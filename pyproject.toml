@@ -30,3 +30,10 @@ classifiers = [
     "Topic :: Conference",
 ]
 dependencies = []
+
+[project.urls]
+Homepage = "https://2025.pycon.de/talks/"
+Documentation = "https://github.com/PioneersHub/pyconde-talks#readme"
+Repository = "https://github.com/PioneersHub/pyconde-talks"
+CI = "https://github.com/PioneersHub/pyconde-talks/actions"
+Issues = "https://github.com/PioneersHub/pyconde-talks/issues"
