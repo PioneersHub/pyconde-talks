@@ -44,6 +44,14 @@ Repository = "https://github.com/PioneersHub/pyconde-talks"
 CI = "https://github.com/PioneersHub/pyconde-talks/actions"
 Issues = "https://github.com/PioneersHub/pyconde-talks/issues"
 
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+
 [tool.ruff]
 line-length = 100
 indent-width = 4
