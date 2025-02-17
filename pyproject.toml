@@ -29,7 +29,9 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
     "Topic :: Conference",
 ]
-dependencies = []
+dependencies = [
+    "django>=5.1.6",
+]
 
 [dependency-groups]
 dev = [
