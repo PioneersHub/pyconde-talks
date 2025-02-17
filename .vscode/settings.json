@@ -12,5 +12,14 @@
     },
     "editor.defaultFormatter": "charliermarsh.ruff"
   },
-  "editor.rulers": [100]
+  "editor.rulers": [100],
+  "cSpell.words": [
+    "django",
+    "isort",
+    "mypy",
+    "pycon",
+    "pyconde",
+    "pydata",
+    "pytest"
+  ]
 }
