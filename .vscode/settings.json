@@ -1,0 +1,16 @@
+{
+  "evenBetterToml.formatter.allowedBlankLines": 2,
+  "evenBetterToml.formatter.columnWidth": 100,
+  "python.defaultInterpreterPath": "./.venv/bin/python",
+  "python.testing.pytestArgs": ["--import-mode=importlib"],
+  "python.testing.pytestEnabled": true,
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    },
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+  "editor.rulers": [100]
+}
