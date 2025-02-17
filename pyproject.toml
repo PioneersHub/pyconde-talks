@@ -6,4 +6,15 @@ readme = "README.md"
 requires-python = ">=3.13"
 authors = [{ name = "Julio Batista Silva", email = "python@juliobs.com" }]
 license = { text = "MIT" }
+keywords = [
+    "conference",
+    "django",
+    "event",
+    "pycon",
+    "pyconde",
+    "pydata",
+    "speaker",
+    "talks",
+    "videos",
+]
 dependencies = []
