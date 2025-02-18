@@ -82,6 +82,8 @@ ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS = 3  # Maximum attempts at inputting a valid 
 ACCOUNT_LOGIN_BY_EMAIL_ENABLED = False
 ACCOUNT_LOGIN_BY_USERNAME_ENABLED = False
 
+# Redirect after login
+LOGIN_REDIRECT_URL = "home"
 
 # For development/testing
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
