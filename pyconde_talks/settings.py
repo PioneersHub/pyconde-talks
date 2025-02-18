@@ -38,8 +38,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
+    "allauth",
+    "allauth.account",
     "users",
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -49,9 +54,45 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
+]
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
 AUTH_USER_MODEL = "users.CustomUser"
+
+
+# Passwordless authentication settings
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_PASSWORD_REQUIRED = False
+ACCOUNT_SIGNUP_ENABLED = False
+ACCOUNT_LOGIN_BY_CODE_ENABLED = True
+ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 180  # Code expiration in seconds
+ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS = 3  # Maximum attempts at inputting a valid code
+ACCOUNT_LOGIN_BY_EMAIL_ENABLED = False
+ACCOUNT_LOGIN_BY_USERNAME_ENABLED = False
+
+
+# For development/testing
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# For production
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'your-smtp-server'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'your-email@example.com'
+# EMAIL_HOST_PASSWORD = 'your-password'
+# DEFAULT_FROM_EMAIL = 'your-email@example.com'
+
+
 ROOT_URLCONF = "pyconde_talks.urls"
 
 TEMPLATES = [
