@@ -1,62 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Passwordless Auth{% endblock %}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .messages {
-            list-style: none;
-            padding: 10px;
-            margin: 10px 0;
-        }
-        .messages .success {
-            background-color: #dff0d8;
-            border: 1px solid #d6e9c6;
-            color: #3c763d;
-            padding: 10px;
-        }
-        .messages .error {
-            background-color: #f2dede;
-            border: 1px solid #ebccd1;
-            color: #a94442;
-            padding: 10px;
-        }
-        form {
-            margin: 20px 0;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-    </style>
-</head>
-<body>
-    {% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-
-    <main>
-        {% block content %}
-        {% endblock %}
-    </main>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PyCon DE 2025 Talks</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100">
+    <nav class="bg-blue-600 text-white p-4">
+      <div class="container mx-auto flex justify-between items-center">
+        <a href="{% url 'home' %}" class="text-xl font-bold">PyCon DE 2025</a>
+        {% if user.is_authenticated %}
+        <span
+          >{{ user.email }} |
+          <a href="{% url 'account_logout' %}" class="hover:underline">Logout</a></span
+        >
+        {% endif %}
+      </div>
+    </nav>
+    <main class="container mx-auto mt-8 px-4">{% block content %}{% endblock %}</main>
+  </body>
 </html>
