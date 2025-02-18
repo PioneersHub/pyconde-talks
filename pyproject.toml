@@ -32,6 +32,7 @@ classifiers = [
 dependencies = [
     "django>=5.1.6",
     "django-allauth[socialaccount]>=65.4.1",
+    "django-htmx>=1.22.0",
 ]
 
 [dependency-groups]
