@@ -1,0 +1,5 @@
+Your PyCon DE 2025 login code is: {{ code }}
+
+This code will expire in 5 minutes.
+
+If you didn't request this code, please ignore this email.
