@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "users",
+    "talks",
     "django_htmx",
 ]
 
