@@ -2,9 +2,15 @@ from typing import Any
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models.functions import TruncDate
-from django.views.generic import ListView
+from django.views.generic import DetailView, ListView
 
 from .models import Talk
+
+
+class TalkDetailView(LoginRequiredMixin, DetailView):
+    model = Talk
+    template_name = "talks/talk_detail.html"
+    context_object_name = "talk"
 
 
 class TalkListView(LoginRequiredMixin, ListView):
