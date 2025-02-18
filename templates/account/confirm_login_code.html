@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+<h1>{% trans "Confirm Login Code" %}</h1>
+<form class="confirm-login-code" method="POST" action="{% url 'account_confirm_login_code' %}">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">{% trans "Confirm" %}</button>
+</form>
+{% endblock %}
