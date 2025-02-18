@@ -177,6 +177,18 @@ wheels = [
 ]
 
 [[package]]
+name = "faker"
+version = "36.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "tzdata" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/55/8f/40d002bed58bd6b79bf970505582b769fc975afcacc62c2fe1518d5729c2/faker-36.1.1.tar.gz", hash = "sha256:7cb2bbd4c8f040e4a340ae4019e9a48b6cf1db6a71bda4e5a61d8d13b7bef28d", size = 1874935 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/65/79/e13ae542f63ce40d02b0fe63809563b102f19ffa3b94e6062ee9286a7801/Faker-36.1.1-py3-none-any.whl", hash = "sha256:ad1f1be7fd692ec0256517404a9d7f007ab36ac5d4674082fa72404049725eaa", size = 1917865 },
+]
+
+[[package]]
 name = "idna"
 version = "3.10"
 source = { registry = "https://pypi.org/simple" }
@@ -263,6 +275,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "django-stubs", extra = ["compatible-mypy"] },
+    { name = "faker" },
     { name = "mypy" },
     { name = "ruff" },
 ]
@@ -278,6 +291,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "django-stubs", extras = ["compatible-mypy"], specifier = ">=5.1.3" },
+    { name = "faker", specifier = ">=36.1.1" },
     { name = "mypy", specifier = ">=1.15.0" },
     { name = "ruff", specifier = ">=0.9.6" },
 ]
