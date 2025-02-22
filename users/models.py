@@ -62,7 +62,10 @@ class CustomUserManager(BaseUserManager):
             email = self.normalize_email(email).lower()
             user = self.model(email=email, **extra_fields)
 
-            if password:
+            if extra_fields.get("is_superuser"):
+                if not password:
+                    msg = "Superuser must have a password"
+                    raise ValueError(msg)
                 user.set_password(password)
             else:
                 user.set_unusable_password()
@@ -164,3 +167,12 @@ class CustomUser(AbstractUser):
         """
         super().clean()
         self.email = self.email.lower()
+
+    def save(self, *args, **kwargs) -> None:
+        """Save superuser with a password and non-superusers without a password."""
+        if self.is_superuser and not self.has_usable_password():
+            msg = "Superusers must have a password"
+            raise ValidationError(msg)
+        if not self.is_superuser and self.has_usable_password():
+            self.set_unusable_password()
+        super().save(*args, **kwargs)
