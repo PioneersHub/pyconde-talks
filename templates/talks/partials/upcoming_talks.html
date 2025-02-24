@@ -3,26 +3,21 @@
     <h2 class="text-xl font-bold">Coming Up Next</h2>
   </div>
   {% if upcoming_talks %}
-  <div class="space-y-4">
-    {% for talk in upcoming_talks %}
-    <div class="bg-white p-4 rounded">
-      <a href="{% url 'talk_detail' talk.pk %}" class="font-bold text-lg hover:text-blue-600">
-        {{ talk.title }}
-      </a>
-      <p class="text-gray-600">{{ talk.speaker_name }}</p>
-      <div class="text-sm text-gray-500 mt-2">
-        {{ talk.date_time|date:"g:i A" }} - {{ talk.room }}
-      </div>
-      <div class="mt-3 space-x-4">
-        <a href="{{ talk.pretalx_link }}" class="text-blue-500 hover:underline">Details</a>
-        {% if talk.video_link %}
-        <a href="{{ talk.video_link }}" class="text-blue-500 hover:underline">Video</a>
-        {% endif %}
-      </div>
+    <div class="space-y-4">
+      {% for talk in upcoming_talks %}
+        <div class="bg-white p-4 rounded">
+          <a href="{% url 'talk_detail' talk.pk %}"
+             class="font-bold text-lg hover:text-blue-600">{{ talk.title }}</a>
+          <p class="text-gray-600">{{ talk.speaker_name }}</p>
+          <div class="text-sm text-gray-500 mt-2">{{ talk.date_time|date:"g:i A" }} - {{ talk.room }}</div>
+          <div class="mt-3 space-x-4">
+            <a href="{{ talk.pretalx_link }}" class="text-blue-500 hover:underline">Details</a>
+            {% if talk.video_link %}<a href="{{ talk.video_link }}" class="text-blue-500 hover:underline">Video</a>{% endif %}
+          </div>
+        </div>
+      {% endfor %}
     </div>
-    {% endfor %}
-  </div>
   {% else %}
-  <p class="text-gray-500">No upcoming talks scheduled.</p>
+    <p class="text-gray-500">No upcoming talks scheduled.</p>
   {% endif %}
 </div>

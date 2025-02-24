@@ -1,37 +1,26 @@
-{% extends "base.html" %} {% block content %}
-<div class="max-w-md mx-auto p-4">
-  <div class="bg-white rounded-lg shadow-sm p-6">
-    <h1 class="text-2xl font-bold text-center mb-6">Enter Login Code</h1>
-
-    {% if form.code.errors %}
-    <div class="mb-4 p-4 rounded-lg bg-red-100 border border-red-200">
-      <p class="text-red-700 text-sm">The code you entered is incorrect. Please try again.</p>
+{% extends "base.html" %}
+{% block content %}
+  <div class="max-w-md mx-auto p-4">
+    <div class="bg-white rounded-lg shadow-sm p-6">
+      <h1 class="text-2xl font-bold text-center mb-6">Enter Login Code</h1>
+      {% if form.code.errors %}
+        <div class="mb-4 p-4 rounded-lg bg-red-100 border border-red-200">
+          <p class="text-red-700 text-sm">The code you entered is incorrect. Please try again.</p>
+        </div>
+      {% endif %}
+      <form method="POST" action="{% url 'account_confirm_login_code' %}">
+        {% csrf_token %}
+        <div class="mb-6">
+          <label for="{{ form.code.id_for_label }}"
+                 class="block text-sm font-medium text-gray-700 mb-1">Login Code</label>
+          {{ form.code }}
+          <p class="mt-2 text-sm text-gray-500">Please enter the code we sent to your email address.</p>
+        </div>
+        <button type="submit"
+                class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+          Verify Code
+        </button>
+      </form>
     </div>
-    {% endif %}
-
-    <form method="POST" action="{% url 'account_confirm_login_code' %}">
-      {% csrf_token %}
-
-      <div class="mb-6">
-        <label
-          for="{{ form.code.id_for_label }}"
-          class="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Login Code
-        </label>
-        {{ form.code }}
-        <p class="mt-2 text-sm text-gray-500">
-          Please enter the code we sent to your email address.
-        </p>
-      </div>
-
-      <button
-        type="submit"
-        class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        Verify Code
-      </button>
-    </form>
   </div>
-</div>
 {% endblock %}

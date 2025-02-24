@@ -12,13 +12,14 @@
       <div class="container mx-auto flex justify-between items-center">
         <a href="{% url 'home' %}" class="text-xl font-bold">PyCon DE 2025</a>
         {% if user.is_authenticated %}
-        <span
-          >{{ user.email }} |
-          <a href="{% url 'account_logout' %}" class="hover:underline">Logout</a></span
-        >
+          <span>{{ user.email }} |
+            <a href="{% url 'account_logout' %}" class="hover:underline">Logout</a></span>
         {% endif %}
       </div>
     </nav>
-    <main class="container mx-auto mt-8 px-4">{% block content %}{% endblock %}</main>
+    <main class="container mx-auto mt-8 px-4">
+      {% block content %}
+      {% endblock content %}
+    </main>
   </body>
 </html>
