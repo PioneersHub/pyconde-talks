@@ -20,7 +20,11 @@
   "cSpell.words": [
     "allauth",
     "django",
+    "endfor",
+    "htmx",
     "isort",
+    "linecap",
+    "linejoin",
     "mypy",
     "pretalx",
     "pycon",
