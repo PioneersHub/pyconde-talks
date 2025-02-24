@@ -3,7 +3,7 @@ from typing import Any
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models.functions import TruncDate
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.views.generic import DetailView, ListView
 
@@ -83,3 +83,16 @@ def upcoming_talks(request):
     upcoming_talks = Talk.objects.filter(date_time__gt=current_time).order_by("date_time")[:5]
     context = {"upcoming_talks": upcoming_talks}
     return render(request, "talks/partials/upcoming_talks.html", context)
+
+
+@login_required
+def talk_status(request, pk):
+    talk = get_object_or_404(Talk, pk=pk)
+    current_time = timezone.now()
+
+    context = {
+        "talk": talk,
+        "current_time": current_time,
+    }
+
+    return render(request, "talks/partials/talk_status.html", context)

@@ -7,7 +7,7 @@ from django.contrib import admin
 from django.urls import path
 from django.views.generic import TemplateView
 
-from talks.views import TalkDetailView, TalkListView, dashboard_stats, upcoming_talks
+from talks.views import TalkDetailView, TalkListView, dashboard_stats, talk_status, upcoming_talks
 
 
 urlpatterns = [
@@ -19,6 +19,7 @@ urlpatterns = [
     path("talks/<int:pk>/", TalkDetailView.as_view(), name="talk_detail"),
     path("dashboard-stats/", dashboard_stats, name="dashboard_stats"),
     path("upcoming-talks/", upcoming_talks, name="upcoming_talks"),
+    path("talk-status/<int:pk>/", talk_status, name="talk_status"),
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
 ]
 
