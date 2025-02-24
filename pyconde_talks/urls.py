@@ -7,7 +7,7 @@ from django.contrib import admin
 from django.urls import path
 from django.views.generic import TemplateView
 
-from talks.views import TalkDetailView, TalkListView
+from talks.views import TalkDetailView, TalkListView, dashboard_stats
 
 
 urlpatterns = [
@@ -17,6 +17,7 @@ urlpatterns = [
     path("accounts/logout/", logout, name="account_logout"),
     path("talks/", TalkListView.as_view(), name="talk_list"),
     path("talks/<int:pk>/", TalkDetailView.as_view(), name="talk_detail"),
+    path("dashboard-stats/", dashboard_stats, name="dashboard_stats"),
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
 ]
 

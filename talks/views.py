@@ -1,7 +1,10 @@
 from typing import Any
 
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models.functions import TruncDate
+from django.shortcuts import render
+from django.utils import timezone
 from django.views.generic import DetailView, ListView
 
 from .models import Talk
@@ -53,3 +56,20 @@ class TalkListView(LoginRequiredMixin, ListView):
         context["selected_room"] = self.request.GET.get("room", "")
         context["selected_date"] = self.request.GET.get("date", "")
         return context
+
+
+@login_required
+def dashboard_stats(request):
+    current_time = timezone.now()
+
+    context = {
+        "total_talks": Talk.objects.count(),
+        "todays_talks": Talk.objects.filter(
+            date_time__date=current_time.date(),
+        ).count(),
+        "recorded_talks": Talk.objects.filter(
+            video_link__isnull=False,
+        ).count(),
+    }
+
+    return render(request, "talks/partials/dashboard_stats.html", context)
