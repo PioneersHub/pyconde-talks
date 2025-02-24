@@ -1,6 +1,10 @@
 {
   "evenBetterToml.formatter.allowedBlankLines": 2,
   "evenBetterToml.formatter.columnWidth": 100,
+  "[django-html]": {
+    "editor.defaultFormatter": "monosans.djlint"
+  },
+  "djlint.enableLinting": true,
   "python.defaultInterpreterPath": "./.venv/bin/python",
   "python.testing.pytestArgs": ["--import-mode=importlib"],
   "python.testing.pytestEnabled": true,
