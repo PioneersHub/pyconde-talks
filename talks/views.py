@@ -21,6 +21,11 @@ class TalkListView(LoginRequiredMixin, ListView):
     template_name = "talks/talk_list.html"
     context_object_name = "talks"
 
+    def get_template_names(self):
+        if self.request.headers.get("HX-Request"):
+            return ["talks/partials/talk_list.html"]
+        return [self.template_name]
+
     def get_queryset(self) -> Any:
         queryset = Talk.objects.all()
 
