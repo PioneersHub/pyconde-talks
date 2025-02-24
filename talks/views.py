@@ -73,3 +73,13 @@ def dashboard_stats(request):
     }
 
     return render(request, "talks/partials/dashboard_stats.html", context)
+
+
+@login_required
+def upcoming_talks(request):
+    current_time = timezone.now()
+
+    # Get next 5 upcoming talks
+    upcoming_talks = Talk.objects.filter(date_time__gt=current_time).order_by("date_time")[:5]
+    context = {"upcoming_talks": upcoming_talks}
+    return render(request, "talks/partials/upcoming_talks.html", context)
