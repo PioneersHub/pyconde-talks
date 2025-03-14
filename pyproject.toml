@@ -34,6 +34,7 @@ dependencies = [
     "django-allauth[socialaccount]>=65.4.1",
     "django-htmx>=1.22.0",
     "pillow>=11.1.0",
+    "requests>=2.32.3",
 ]
 
 [dependency-groups]
@@ -80,6 +81,7 @@ fixture-parentheses = true
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
+    "D200", # one-line-summary
     "D203", # one-blank-line-before-class
     "D212", # multi-line-summary-first-line
 ]
