@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load time_filters %}
 {% block content %}
   <div class="max-w-4xl mx-auto p-4">
     <!-- Back button -->
@@ -45,6 +46,33 @@
         </div>
         <!-- Description -->
         <div class="prose max-w-none mb-8">{{ talk.description|linebreaks }}</div>
+        <!-- Video Container -->
+        {% if talk.video_link %}
+          <div id="video-container"
+               style="padding:56.25% 0 0 0;
+                      position:relative"
+               class="mb-8 rounded-lg overflow-hidden shadow-lg">
+            <iframe src="{{ talk.video_link }}"
+                    frameborder="0"
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    style="position:absolute;
+                           top:0;
+                           left:0;
+                           width:100%;
+                           height:100%">
+            </iframe>
+          </div>
+          <!-- Video Start Time Controls -->
+          {% if talk.video_start_time %}
+            <div class="mb-8 flex items-center">
+              <button id="jump-to-time"
+                      class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
+                Jump to {{ talk.video_start_time|format_seconds }}
+              </button>
+              <span class="ml-3 text-sm text-gray-500">(Skip to estimated talk start)</span>
+            </div>
+          {% endif %}
+        {% endif %}
         <!-- Action Buttons -->
         <div class="flex flex-wrap gap-4">
           <a href="{{ talk.pretalx_link }}"
@@ -74,4 +102,30 @@
       </div>
     </article>
   </div>
+  {% if talk.video_link %}
+    <script src="https://player.vimeo.com/api/player.js"></script>
+    <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const iframe = document.querySelector('#video-container iframe');
+
+    if (iframe) {
+      const player = new Vimeo.Player(iframe);
+
+      {% if talk.video_start_time %}
+      const jumpButton = document.getElementById('jump-to-time');
+      if (jumpButton) {
+        jumpButton.addEventListener('click', function() {
+          const startTime = {{ talk.video_start_time }};
+          player.setCurrentTime(startTime).then(function() {
+            console.log('Starting video at', startTime, 'seconds');
+          }).catch(function(error) {
+            console.error('Error setting start time:', error);
+          });
+        });
+      }
+      {% endif %}
+    }
+  });
+    </script>
+  {% endif %}
 {% endblock content %}
