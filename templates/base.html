@@ -4,11 +4,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PyCon DE 2025 Talks</title>
     <meta name="description"
           content="{% block meta_description %}PyCon DE and PyData 2025 Talks and Schedule{% endblock meta_description %}">
     <meta name="author" content="PyCon DE and PyData 2025 Video Committee">
     <link rel="icon" href="{% static 'images/favicon.ico' %}">
+    <title>
+      {% block title %}
+        PyCon DE 2025 Talks
+      {% endblock title %}
+    </title>
     <script src="{% static 'js/htmx.min.js' %}" defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
