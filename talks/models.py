@@ -1,3 +1,12 @@
+"""
+Conference talk management module for PyCon DE 2025.
+
+This module provides the Talk model for storing and managing conference talks, including their
+metadata, scheduling information, and video links.
+"""
+
+from typing import ClassVar
+
 from django.db import models
 from django.utils import timezone
 
@@ -35,7 +44,7 @@ class Talk(models.Model):
     video_link = models.URLField(
         help_text="Link to talk recording on Vimeo",
         blank=True,
-        null=True,
+        default="",
     )
     created_at = models.DateTimeField(
         default=timezone.now,
@@ -47,10 +56,12 @@ class Talk(models.Model):
     )
 
     class Meta:
-        ordering = ["date_time"]
+        """Metadata options for the Talk model."""
+
+        ordering: ClassVar[list[str]] = ["date_time"]
         verbose_name = "Talk"
         verbose_name_plural = "Talks"
-        indexes = [
+        indexes: ClassVar[list[models.Index]] = [
             models.Index(fields=["date_time"]),
             models.Index(fields=["speaker_name"]),
         ]
