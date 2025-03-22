@@ -7,6 +7,7 @@
     "streetsidesoftware.code-spell-checker",
     "tamasfe.even-better-toml",
     "batisteo.vscode-django",
+    "bradlc.vscode-tailwindcss",
     "monosans.djlint"
   ]
 }
