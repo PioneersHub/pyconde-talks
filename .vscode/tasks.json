@@ -1,0 +1,20 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup Python Environment",
+      "type": "shell",
+      "command": "UV=$(command -v uv || echo $HOME/.cargo/bin/uv) && test -d .venv || $UV venv && $UV sync",
+      "detail": "Creates virtual environment with uv and syncs dependencies",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
