@@ -12,6 +12,7 @@ from talks.views import TalkDetailView, TalkListView, dashboard_stats, talk_stat
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("accounts/login/", request_login_code, name="account_request_login_code"),
     path("accounts/login/code/", request_login_code, name="account_request_login_code"),
     path("accounts/login/code/confirm/", confirm_login_code, name="account_confirm_login_code"),
     path("accounts/logout/", logout, name="account_logout"),
