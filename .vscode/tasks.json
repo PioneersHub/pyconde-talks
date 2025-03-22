@@ -17,6 +17,18 @@
       "problemMatcher": []
     },
     {
+      "label": "Setup dev environment with fake data",
+      "type": "shell",
+      "command": "bash",
+      "args": ["${workspaceFolder}/.vscode/scripts/dev-setup.sh"],
+      "detail": "Install dependencies, generate sample data, run Tailwind and Django",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Clean Repo (destructive)",
       "type": "shell",
       "command": "git clean -fdx -e .vscode",
