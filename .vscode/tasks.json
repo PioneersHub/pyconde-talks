@@ -15,6 +15,17 @@
         "panel": "shared"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "Clean Repo (destructive)",
+      "type": "shell",
+      "command": "git clean -fdx -e .vscode",
+      "detail": "Clean the repository",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
     }
   ]
 }
