@@ -92,6 +92,7 @@ class Command(BaseCommand):
                     f"{fake.bothify(text='???###').upper()}"
                 ),
                 video_link=f"https://vimeo.com/{random.randint(100000000, 999999999)}",
+                video_start_time=random.randint(0, 1800),
             )
             self.stdout.write(
                 self.style.SUCCESS(f"Created talk [{i + 1}/{talk_count}]: {talk.title}"),

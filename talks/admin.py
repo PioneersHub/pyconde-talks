@@ -31,7 +31,7 @@ class TalkAdmin(admin.ModelAdmin):
         (
             "Links",
             {
-                "fields": ("pretalx_link", "video_link"),
+                "fields": ("pretalx_link", "video_link", "video_start_time"),
             },
         ),
         (

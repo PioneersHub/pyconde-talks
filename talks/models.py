@@ -46,6 +46,11 @@ class Talk(models.Model):
         blank=True,
         default="",
     )
+    video_start_time = models.PositiveIntegerField(
+        help_text="Start time in seconds",
+        blank=True,
+        default=0,
+    )
     created_at = models.DateTimeField(
         default=timezone.now,
         help_text="When this talk was added to the system",
