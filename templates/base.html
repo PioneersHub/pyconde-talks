@@ -20,9 +20,11 @@
     <nav class="bg-blue-600 text-white p-4">
       <div class="container mx-auto flex justify-between items-center">
         <a href="{% url 'home' %}">
-          <img src="{% static 'images/logo-white.svg' %}"
-               alt="PyCon DE & PyData 2025"
-               class="w-25 h-20" />
+          <object class="w-25 h-20 header-logo"
+                  type="image/svg+xml"
+                  data="{% static 'images/logo-white.svg' %}">
+            <span>PyCon DE &amp; PyData 2025</span>
+          </object>
         </a>
         {% if user.is_authenticated %}
           <span>{{ user.email }} |
