@@ -11,3 +11,28 @@ wheels/
 
 # Database
 *.sqlite3
+
+# VS Code Configuration
+#
+# These specific VS Code files are tracked to provide:
+#  - Consistent development environment setup across the team
+#  - Recommended extensions for this project (extensions.json)
+#  - Shared debugging configurations (launch.json)
+#  - Build and automation tasks (tasks.json)
+#  - Project-wide editor settings (settings.json)
+#  - Development setup scripts (scripts/)
+#
+# If you need to use different personal settings:
+#  1. Use VS Code's multi-layered settings. User Settings override Workspace Settings
+#  2. Or prevent Git from tracking your local changes:
+#     git update-index --skip-worktree .vscode/settings.json
+#  3. To later accept updates from the repo:
+#     git update-index --no-skip-worktree .vscode/settings.json
+#
+# Non-VS Code users can safely ignore these files.
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/scripts/
+!.vscode/settings.json
+!.vscode/tasks.json
