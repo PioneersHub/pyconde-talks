@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand Colors */
+  --blue: #3778be;
+  --blue-light: #00c8e1;
+  --blue-lighter: #a2d9ef;
+  --green: #00aa41;
+  --green-light: #96dc00;
+  --green-lighter: #d5f199;
+  --yellow: #fac800;
+  --orange: #ff9b00;
+  --red: #c41011;
+  --red-light: #e54f53;
+  --grey: #b7bcbf;
+  --pink: #d14190;
+  --pink-light: #e199c3;
+
+  /* Colors */
+  --color-primary: var(--blue);
+  --color-secondary: var(--blue-light);
+  --color-accent: var(--yellow);
+  --color-info: var(--blue-light);
+  --color-success: var(--green);
+  --color-warning: var(--yellow);
+  --color-error: var(--red);
+
+  /* Typography */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Satoshi", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Spacing */
+  --spacing-page-padding: 2rem;
+  --container-max: 1280px;
+
+  /* Breakpoints */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* Animation */
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
