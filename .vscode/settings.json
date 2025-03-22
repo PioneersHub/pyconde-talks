@@ -19,8 +19,12 @@
   "editor.rulers": [100],
   "cSpell.words": [
     "allauth",
+    "autoplay",
+    "bothify",
     "django",
+    "djlint",
     "endfor",
+    "fullscreen",
     "htmx",
     "isort",
     "linecap",
@@ -30,6 +34,8 @@
     "pycon",
     "pyconde",
     "pydata",
-    "pytest"
+    "pytest",
+    "socialaccount",
+    "tailwindcss"
   ]
 }
