@@ -51,3 +51,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom utilities */
+@layer utilities {
+  .header-logo {
+    pointer-events: none;
+  }
+}
