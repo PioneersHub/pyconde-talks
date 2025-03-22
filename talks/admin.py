@@ -1,3 +1,5 @@
+"""Admin interface for the talks app."""
+
 from django.contrib import admin
 
 from .models import Talk
@@ -5,6 +7,8 @@ from .models import Talk
 
 @admin.register(Talk)
 class TalkAdmin(admin.ModelAdmin):
+    """Admin interface for the Talk model."""
+
     list_display = ("title", "speaker_name", "date_time", "room")
     list_filter = ("room", "date_time")
     search_fields = ("title", "speaker_name", "description")
