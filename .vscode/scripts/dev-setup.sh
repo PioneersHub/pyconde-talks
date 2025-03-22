@@ -65,6 +65,9 @@ setup_dependencies() {
 
     log "Syncing dependencies with uv..."
     uv sync
+
+    log "Installing pre-commit hooks..."
+    $VENV_DIR/bin/pre-commit install
 }
 
 # Setup TailwindCSS
