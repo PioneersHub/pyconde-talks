@@ -19,6 +19,6 @@ class HomeView(TemplateView):
                     "upcoming_talks": Talk.objects.filter(
                         date_time__gte=timezone.now(),
                     ).order_by("date_time")[:5],
-                }
+                },
             )
         return context
