@@ -36,5 +36,39 @@
       {% block content %}
       {% endblock content %}
     </main>
+    <footer class="bg-gray-800 text-white p-6 mt-12">
+      <div class="container mx-auto">
+        <div class="flex flex-col md:flex-row justify-between">
+          <div>
+            <h2 class="text-xl font-bold mb-4">PyCon DE &amp; PyData 2025 Talks</h2>
+            <p>
+              Made with ❤️ by the <a href="https://2025.pycon.de/team/">Video Committee</a>
+            </p>
+          </div>
+          <div class="mt-6 md:mt-0">
+            <h3 class="text-lg font-semibold mb-2">Quick Links</h3>
+            <ul>
+              <li>
+                <a href="https://2025.pycon.de/" class="hover:underline">Main website</a>
+              </li>
+              <li>
+                <a href="https://pretalx.com/pyconde-pydata-2025/schedule/"
+                   class="hover:underline">Schedule</a>
+              </li>
+              <li>
+                <a href="https://pretalx.com/pyconde-pydata-2025/speaker/"
+                   class="hover:underline">Speakers</a>
+              </li>
+              <li>
+                <a href="https://2025.pycon.de/venue/" class="hover:underline">Venue</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="mt-8 pt-4 border-t border-gray-700 text-sm text-gray-400">
+          © {% now "Y" %} PyCon DE &amp; PyData. All rights reserved.
+        </div>
+      </div>
+    </footer>
   </body>
 </html>
