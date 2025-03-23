@@ -18,7 +18,9 @@
         <div class="w-full h-72 overflow-hidden">
           <img src="{{ talk.image.url }}"
                alt="Image for {{ talk.title }}"
-               class="w-full h-full object-cover" />
+               class="w-full h-full object-cover"
+               width="600"
+               height="400" />
         </div>
       {% endif %}
       <div class="p-6 {% if not talk.image %}pt-8{% endif %}">
