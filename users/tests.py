@@ -22,4 +22,3 @@ if __name__ == "__main__":
     test_is_valid_name_fail()
     test_is_valid_email_pass()
     test_is_valid_email_fail()
-    print("OK")

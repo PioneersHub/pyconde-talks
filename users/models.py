@@ -168,7 +168,7 @@ class CustomUser(AbstractUser):
         super().clean()
         self.email = self.email.lower()
 
-    def save(self, *args, **kwargs) -> None:
+    def save(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
         """Save superuser with a password and non-superusers without a password."""
         if self.is_superuser and not self.has_usable_password():
             msg = "Superusers must have a password"
