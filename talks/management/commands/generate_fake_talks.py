@@ -56,7 +56,12 @@ class Command(BaseCommand):
             tzinfo=ZoneInfo("Europe/Berlin"),
         )
 
-        rooms = ["Main Hall", "Track 1", "Track 2", "Workshop Room", "Community Space"]
+        # Darmstadium rooms
+        rooms_plenary = ["Spectrum"]
+        rooms_talks = ["Titanium", "Helium", "Platinum", "Europium", "Hassium", "Palladium"]
+        rooms_tutorials = ["Ferrum", "Dynamicum"]
+        rooms = rooms_plenary + rooms_talks + rooms_tutorials
+
         tracks = [
             "MLOps & DevOps",
             "Security",
