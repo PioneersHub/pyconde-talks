@@ -21,6 +21,7 @@
     "allauth",
     "autoplay",
     "bothify",
+    "csrf",
     "django",
     "djlint",
     "endfor",
