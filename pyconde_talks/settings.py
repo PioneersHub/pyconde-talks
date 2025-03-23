@@ -67,8 +67,18 @@ AUTHENTICATION_BACKENDS = [
 
 AUTH_USER_MODEL = "users.CustomUser"
 
+# E-mail validation API Settings
+EMAIL_VALIDATION_API_URL = "https://val.pycon.de/tickets/validate_email/"
+EMAIL_VALIDATION_API_TIMEOUT = 5
+
+# E-mails that will bypass API validation
+AUTHORIZED_EMAILS_WHITELIST = [
+    "whitelisted@example.com",
+    "julio@example.com",
+]
 
 # Passwordless authentication settings
+ACCOUNT_ADAPTER = "users.adapters.CustomAccountAdapter"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False
 ACCOUNT_USERNAME_REQUIRED = False
