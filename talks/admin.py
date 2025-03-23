@@ -37,7 +37,8 @@ class TalkAdmin(admin.ModelAdmin):
         (
             "Media",
             {
-                "fields": ("image",),
+                "fields": ("image", "external_image_url"),
+                "description": "Please provide a link to an external image OR upload one.",
             },
         ),
     )

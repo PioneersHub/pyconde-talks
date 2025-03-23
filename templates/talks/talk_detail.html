@@ -14,16 +14,16 @@
       Back to Talks
     </a>
     <article class="bg-white rounded-lg shadow-sm overflow-hidden">
-      {% if talk.image %}
-        <div class="w-full h-72 overflow-hidden">
-          <img src="{{ talk.image.url }}"
+      {% if talk.get_image_url %}
+        <div class="w-full h-96 overflow-hidden">
+          <img src="{{ talk.get_image_url }}"
                alt="Image for {{ talk.title }}"
                class="w-full h-full object-cover"
-               width="600"
-               height="400" />
+               width="1200"
+               height="630" />
         </div>
       {% endif %}
-      <div class="p-6 {% if not talk.image %}pt-8{% endif %}">
+      <div class="p-6 {% if not talk.get_image_url %}pt-8{% endif %}">
         <!-- Title and Speaker -->
         <div class="mb-6">
           <h1 class="text-3xl font-bold text-gray-900">{{ talk.title }}</h1>

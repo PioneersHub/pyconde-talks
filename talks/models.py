@@ -7,6 +7,7 @@ metadata, scheduling information, and video links.
 
 from typing import ClassVar
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -32,9 +33,14 @@ class Talk(models.Model):
         max_length=50,
         help_text="Room where the talk takes place",
     )
+    external_image_url = models.URLField(
+        help_text="URL to an externally hosted image",
+        blank=True,
+        default="",
+    )
     image = models.ImageField(
         upload_to="talk_images/",
-        help_text="Speaker or talk-related image",
+        help_text="Speaker or talk-related image (use if the external URL is bad or not available)",
         blank=True,
         null=True,
     )
@@ -82,3 +88,16 @@ class Talk(models.Model):
     def get_duration(self) -> int | None:
         """Return talk duration in minutes if set."""
         return getattr(self, "duration", None)
+
+    def get_image_url(self) -> str:
+        """
+        Return the image URL.
+
+        Prefer the image field over the external image URL.
+        Use a default placeholder image if neither is set.
+        """
+        if self.image:
+            return self.image.url
+        if self.external_image_url:
+            return self.external_image_url
+        return f"{settings.MEDIA_URL}talk_images/default.jpg"
