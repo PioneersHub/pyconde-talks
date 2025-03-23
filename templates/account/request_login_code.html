@@ -6,7 +6,7 @@
       {% if form.non_field_errors %}
         <div class="mb-4 p-4 rounded-lg bg-red-100 text-red-700">{{ form.non_field_errors }}</div>
       {% endif %}
-      <form method="POST" action="{% url 'account_request_login_code' %}">
+      <form method="post" action="{% url 'account_request_login_code' %}">
         {% csrf_token %}
         <div class="mb-4">
           <label for="{{ form.email.id_for_label }}"
