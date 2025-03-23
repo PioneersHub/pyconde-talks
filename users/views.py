@@ -5,7 +5,7 @@ from typing import Any
 from django.utils import timezone
 from django.views.generic import TemplateView
 
-from .models import Talk
+from talks.models import Talk
 
 
 class HomeView(TemplateView):
