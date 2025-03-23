@@ -1,5 +1,5 @@
 """
-Conference talk management module for PyCon DE 2025.
+Conference talk management module for PyCon DE & PyData 2025.
 
 This module provides the Talk model for storing and managing conference talks, including their
 metadata, scheduling information, and video links.
@@ -12,7 +12,7 @@ from django.utils import timezone
 
 
 class Talk(models.Model):
-    """Represents a conference talk at PyCon DE 2025."""
+    """Represents a conference talk."""
 
     title = models.CharField(
         max_length=200,
