@@ -47,6 +47,9 @@ class Talk(models.Model):
     pretalx_link = models.URLField(
         help_text="Link to talk description in pretalx",
     )
+    slido_link = models.URLField(
+        help_text="Link to questions on Slido",
+    )
     video_link = models.URLField(
         help_text="Link to talk recording on Vimeo",
         blank=True,

@@ -96,6 +96,11 @@ class Command(BaseCommand):
                     f"https://pretalx.com/pyconde-pydata-2025/talk/"
                     f"{fake.bothify(text='???###').upper()}"
                 ),
+                slido_link=(
+                    f"https://app.sli.do/event/"
+                    f"{fake.bothify(text='??????????????????????????')}"
+                    f"/live/questions?m={fake.bothify(text='????#')}"
+                ),
                 video_link=f"https://vimeo.com/{random.randint(100000000, 999999999)}",
                 video_start_time=random.randint(0, 1800),
             )

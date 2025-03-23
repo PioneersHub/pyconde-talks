@@ -36,6 +36,7 @@
     "pyconde",
     "pydata",
     "pytest",
+    "slido",
     "socialaccount",
     "tailwindcss"
   ]
