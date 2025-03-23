@@ -70,7 +70,7 @@ django_settings_module = "pyconde_talks.settings"
 profile = "django"
 indent = 2
 line_length = 100
-ignore = "H014"
+ignore = "H014,H021"
 
 [tool.ruff]
 line-length = 100
