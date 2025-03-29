@@ -40,8 +40,7 @@
     {% startpartial talk-list %}
     <div class="space-y-4">
       {% for talk in talks %}
-        <div class="bg-white p-4 rounded"
-             {% if talk.date_time|date:'Y-m-d H:i:s' > current_time|date:'Y-m-d H:i:s' %} hx-get="{% url 'talk_status' talk.pk %}" hx-trigger="every 60s" {% endif %}>
+        <div class="bg-white p-4 rounded">
           <a href="{% url 'talk_detail' talk.pk %}"
              class="font-bold text-lg hover:text-blue-600">{{ talk.title }}</a>
           <p class="text-gray-600">{{ talk.speaker_name }}</p>

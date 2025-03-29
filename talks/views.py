@@ -13,7 +13,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models.functions import TruncDate
 from django.db.models.query import QuerySet
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import render
 from django.utils import timezone
 from django.views.generic import DetailView, ListView
 
@@ -112,15 +112,3 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
     upcoming_talks = Talk.objects.filter(date_time__gt=current_time).order_by("date_time")[:5]
     context = {"upcoming_talks": upcoming_talks}
     return render(request, "talks/partials/upcoming_talks.html", context)
-
-
-@login_required
-def talk_status(request: HttpRequest, talk_pk: int) -> HttpResponse:
-    """Show the current status of a specific talk."""
-    talk = get_object_or_404(Talk, pk=talk_pk)
-    current_time = timezone.now()
-    context = {
-        "talk": talk,
-        "current_time": current_time,
-    }
-    return render(request, "talks/partials/talk_status.html", context)
