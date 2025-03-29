@@ -25,6 +25,7 @@
     "csrf",
     "django",
     "djlint",
+    "emailaddress",
     "endfor",
     "fullscreen",
     "htmx",
