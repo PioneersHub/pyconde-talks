@@ -78,6 +78,7 @@ THIRD_PARTY_APPS = [
     "allauth",
     "allauth.account",
     "django_htmx",
+    "template_partials",
 ]
 LOCAL_APPS = [
     "users",
