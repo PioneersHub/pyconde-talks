@@ -55,6 +55,8 @@ ROOT_URLCONF = "pyconde_talks.urls"
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#wsgi-application
 WSGI_APPLICATION = "pyconde_talks.wsgi.application"
+# https://docs.djangoproject.com/en/dev/howto/deployment/asgi/
+ASGI_APPLICATION = "pyconde_talks.asgi.application"
 
 
 # --------------------------------------------------------------------------------------------------
@@ -66,6 +68,8 @@ DJANGO_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    # https://docs.djangoproject.com/en/dev/howto/deployment/asgi/daphne/
+    "daphne",
     "django.contrib.staticfiles",
     "django.contrib.sites",
 ]
