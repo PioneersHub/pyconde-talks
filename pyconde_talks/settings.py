@@ -74,29 +74,15 @@ ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
-ACCOUNT_PASSWORD_REQUIRED = False
-ACCOUNT_SIGNUP_ENABLED = False
 ACCOUNT_LOGIN_BY_CODE_ENABLED = True
-ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 180  # Code expiration in seconds
-ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS = 3  # Maximum attempts at inputting a valid code
-ACCOUNT_LOGIN_BY_EMAIL_ENABLED = False
-ACCOUNT_LOGIN_BY_USERNAME_ENABLED = False
+ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 180
+ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS = 3
 
 # Redirect after login
 LOGIN_REDIRECT_URL = "home"
 
 # For development/testing
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-
-# For production
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'your-smtp-server'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'your-email@example.com'
-# EMAIL_HOST_PASSWORD = 'your-password'
-# DEFAULT_FROM_EMAIL = 'your-email@example.com'
-
 
 ROOT_URLCONF = "pyconde_talks.urls"
 
