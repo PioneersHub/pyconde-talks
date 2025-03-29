@@ -204,3 +204,20 @@ def test_user_save_superuser_without_password() -> None:
 
     with pytest.raises(ValidationError, match="Superusers must have a password"):
         user.save()
+
+
+@pytest.mark.django_db
+def test_user_save_non_superuser_with_password() -> None:
+    """
+    Test saving a non-superuser with a password.
+
+    Verifies that when a non-superuser with a password is saved, the password is automatically made
+    unusable.
+    """
+    # Non-superuser with a password should have the password removed during save
+    user = CustomUser(email="user@example.com")
+    user.set_password("password")
+    assert user.has_usable_password()
+
+    user.save()
+    assert not user.has_usable_password()
