@@ -3,6 +3,7 @@
 from typing import Any
 
 import pytest
+from django.core.exceptions import ValidationError
 
 from users.models import CustomUser, InvalidEmailError
 
@@ -134,4 +135,19 @@ def test_create_superuser_without_password() -> None:
         CustomUser.objects.create_superuser(
             email="admin@example.com",
             password=None,
+        )
+
+
+@pytest.mark.django_db
+def test_create_superuser_without_staff_flag() -> None:
+    """
+    Test creating a superuser without the staff flag.
+
+    Verifies that attempting to create a superuser with is_staff=False raises a ValidationError.
+    """
+    with pytest.raises(ValidationError, match="Superuser must have is_staff=True"):
+        CustomUser.objects.create_superuser(
+            email="admin@example.com",
+            password="password",
+            is_staff=False,
         )
