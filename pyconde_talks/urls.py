@@ -16,7 +16,7 @@ urlpatterns = [
     path(
         "accounts/login/",
         CustomRequestLoginCodeView.as_view(),
-        name="account_request_login_code",
+        name="account_login",
     ),
     path(
         "accounts/login/code/",
