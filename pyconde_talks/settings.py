@@ -215,6 +215,9 @@ MIDDLEWARE = [
 # --------------------------------------------------------------------------------------------------
 # STATIC
 # --------------------------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/ref/settings/#static-root
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 # https://docs.djangoproject.com/en/dev/ref/settings/#static-url
 STATIC_URL = env("STATIC_URL", default="static/")
 
