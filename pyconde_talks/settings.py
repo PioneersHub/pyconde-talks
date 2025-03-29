@@ -2,26 +2,65 @@
 
 from pathlib import Path
 
+import environ
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Django-environ
+# Take environment variables from .env file
+env = environ.Env()
+environ.Env.read_env(BASE_DIR / ".env")
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-_)bw6fz9@qqh9379b6rsa=gcwv*v0uk-s^x3ov-kr-%du&=5+v"
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+# --------------------------------------------------------------------------------------------------
+# GENERAL
+# --------------------------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/ref/settings/#debug
+DEBUG = env.bool("DJANGO_DEBUG", False)
+SITE_ID = env.int("SITE_ID", default=1)
 
 
-# Application definition
+# --------------------------------------------------------------------------------------------------
+# INTERNATIONALIZATION
+# https://docs.djangoproject.com/en/dev/topics/i18n/
+# --------------------------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/ref/settings/#language-code
+LANGUAGE_CODE = env("LANGUAGE_CODE", default="en-us")
+# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+TIME_ZONE = env("TIME_ZONE", default="Europe/Berlin")
+# https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
+USE_I18N = env.bool("USE_I18N", default=True)
+# https://docs.djangoproject.com/en/dev/ref/settings/#use-tz
+USE_TZ = env.bool("USE_TZ", default=True)
 
-INSTALLED_APPS = [
+
+# --------------------------------------------------------------------------------------------------
+# DATABASES
+# --------------------------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/ref/settings/#databases
+DATABASES = {"default": env.db("DATABASE_URL")}
+DATABASES["default"]["ATOMIC_REQUESTS"] = True
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/dev/ref/settings/#default-auto-field
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# --------------------------------------------------------------------------------------------------
+# URLS
+# --------------------------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/ref/settings/#root-urlconf
+ROOT_URLCONF = "pyconde_talks.urls"
+
+# https://docs.djangoproject.com/en/dev/ref/settings/#wsgi-application
+WSGI_APPLICATION = "pyconde_talks.wsgi.application"
+
+
+# --------------------------------------------------------------------------------------------------
+# APPS
+# --------------------------------------------------------------------------------------------------
+DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -29,45 +68,88 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",
+]
+THIRD_PARTY_APPS = [
     "allauth",
     "allauth.account",
-    "users",
-    "talks",
     "django_htmx",
 ]
-
-SITE_ID = 1
-
-MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "allauth.account.middleware.AccountMiddleware",
-    "django_htmx.middleware.HtmxMiddleware",
+LOCAL_APPS = [
+    "users",
+    "talks",
 ]
+# https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
+
+# --------------------------------------------------------------------------------------------------
+# SECURITY
+# --------------------------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
+SECRET_KEY = env("DJANGO_SECRET_KEY")
+# https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
+# https://docs.djangoproject.com/en/dev/ref/settings/#session-cookie-httponly
+SESSION_COOKIE_HTTPONLY = True
+# https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-httponly
+CSRF_COOKIE_HTTPONLY = True
+# https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
+X_FRAME_OPTIONS = "DENY"
+
+
+# --------------------------------------------------------------------------------------------------
+# ADMIN
+# --------------------------------------------------------------------------------------------------
+# Django Admin URL
+ADMIN_URL = env("DJANGO_ADMIN_URL", default="admin/")
+
+# https://docs.djangoproject.com/en/dev/ref/settings/#admins
+ADMIN_NAMES = env.list("ADMIN_NAMES")
+ADMIN_EMAILS = env.list("ADMIN_EMAILS")
+ADMINS = list(zip(ADMIN_NAMES, ADMIN_EMAILS, strict=False))
+
+# https://docs.djangoproject.com/en/dev/ref/settings/#managers
+MANAGERS = ADMINS
+
+
+# --------------------------------------------------------------------------------------------------
+# AUTHENTICATION
+# --------------------------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/ref/settings/#authentication-backends
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
+# https://docs.djangoproject.com/en/dev/ref/settings/#auth-user-model
 AUTH_USER_MODEL = "users.CustomUser"
 
-# E-mail validation API Settings
-EMAIL_VALIDATION_API_URL = "https://val.pycon.de/tickets/validate_email/"
-EMAIL_VALIDATION_API_TIMEOUT = 5
+# Redirect after login
+# https://docs.djangoproject.com/en/dev/ref/settings/#login-redirect-url
+LOGIN_REDIRECT_URL = env("LOGIN_REDIRECT_URL", default="home")
+
+# ---------------------
+# E-mail validation API
+# ---------------------
+EMAIL_VALIDATION_API_URL = env(
+    "EMAIL_VALIDATION_API_URL",
+    default="https://val.pycon.de/tickets/validate_email/",
+)
+EMAIL_VALIDATION_API_TIMEOUT = env.int("EMAIL_VALIDATION_API_TIMEOUT", default=10)
 
 # E-mails that will bypass API validation
-AUTHORIZED_EMAILS_WHITELIST = [
-    "whitelisted@example.com",
-    "julio@example.com",
-]
+AUTHORIZED_EMAILS_WHITELIST = env.list(
+    "AUTHORIZED_EMAILS_WHITELIST",
+    default=ADMIN_EMAILS,
+)
 
-# Passwordless authentication settings
+# --------------
+# django-allauth
+# https://docs.allauth.org/en/latest/
+# --------------
+
+# Regular accounts: passwordless authentication
+# https://docs.allauth.org/en/latest/account/index.html
 ACCOUNT_ADAPTER = "users.adapters.AccountAdapter"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False
@@ -77,23 +159,74 @@ ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_LOGIN_BY_CODE_ENABLED = True
 ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 180
 ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS = 3
+ACCOUNT_PREVENT_ENUMERATION = True
 
-# Redirect after login
-LOGIN_REDIRECT_URL = "home"
 
-# For development/testing
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# --------------------------------------------------------------------------------------------------
+# PASSWORDS
+# User authentication is passwordless, but the admins do have passwords
+# --------------------------------------------------------------------------------------------------
+# Password validation
+# https://docs.djangoproject.com/en/dev/ref/settings/#auth-password-validators
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
 
-ROOT_URLCONF = "pyconde_talks.urls"
 
+# --------------------------------------------------------------------------------------------------
+# MIDDLEWARE
+# --------------------------------------------------------------------------------------------------
+# Order matters!
+# https://docs.djangoproject.com/en/dev/ref/settings/#middleware
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
+]
+
+
+# --------------------------------------------------------------------------------------------------
+# STATIC
+# --------------------------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/ref/settings/#static-url
+STATIC_URL = env("STATIC_URL", default="static/")
+
+# https://docs.djangoproject.com/en/dev/ref/settings/#std-setting-STATICFILES_DIRS
+STATICFILES_DIRS = [BASE_DIR / "static"]
+
+
+# --------------------------------------------------------------------------------------------------
+# MEDIA
+# --------------------------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/ref/settings/#media-root
+MEDIA_ROOT = BASE_DIR / env("MEDIA_ROOT", default="media")
+MEDIA_URL = env("MEDIA_URL", default="/media/")
+
+
+# --------------------------------------------------------------------------------------------------
+# TEMPLATES
+# --------------------------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/ref/settings/#templates
 TEMPLATES = [
     {
+        # https://docs.djangoproject.com/en/dev/ref/settings/#std-setting-TEMPLATES-BACKEND
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
             BASE_DIR / "templates",
         ],
+        # https://docs.djangoproject.com/en/dev/ref/settings/#app-dirs
         "APP_DIRS": True,
         "OPTIONS": {
+            # https://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
@@ -104,58 +237,11 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "pyconde_talks.wsgi.application"
 
-
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    },
-}
-
-
-# Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
-]
-
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
-
-LANGUAGE_CODE = "en-us"
-
-TIME_ZONE = "Europe/Berlin"
-
-USE_I18N = True
-
-USE_TZ = True
-
-
-# Static files configuration
-STATIC_URL = "static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+# --------------------------------------------------------------------------------------------------
+# EMAIL
+# --------------------------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
+EMAIL_BACKEND = env("DJANGO_EMAIL_BACKEND")
+# https://docs.djangoproject.com/en/dev/ref/settings/#email-timeout
+EMAIL_TIMEOUT = 5
