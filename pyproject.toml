@@ -30,6 +30,7 @@ classifiers = [
     "Topic :: Conference",
 ]
 dependencies = [
+    "argon2-cffi>=23.1.0",
     "django>=5.1.6",
     "django-allauth[socialaccount]>=65.4.1",
     "django-environ>=0.12.0",

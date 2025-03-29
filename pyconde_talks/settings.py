@@ -166,6 +166,17 @@ ACCOUNT_PREVENT_ENUMERATION = True
 # PASSWORDS
 # User authentication is passwordless, but the admins do have passwords
 # --------------------------------------------------------------------------------------------------
+# Password hashers
+# Use Argon2 for password hashing
+# https://docs.djangoproject.com/en/dev/ref/settings/#password-hashers
+# https://docs.djangoproject.com/en/dev/topics/auth/passwords/#using-argon2-with-django
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+]
+
 # Password validation
 # https://docs.djangoproject.com/en/dev/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
