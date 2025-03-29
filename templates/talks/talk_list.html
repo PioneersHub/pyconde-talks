@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load partials %}
 {% block content %}
   <div class="max-w-4xl mx-auto p-4">
     <!-- Filters -->
@@ -41,11 +42,9 @@
         </div>
       </form>
     </div>
-    <!-- Talks -->
-    <div id="talks-container"
-         class="space-y-4"
-         hx-get="{% url 'talk_list' %}"
-         hx-trigger="every 30s">
+    <!-- Define the talks partial -->
+    {% startpartial talk-list %}
+    <div class="space-y-4">
       {% for talk in talks %}
         <div class="bg-white p-4 rounded"
              {% if talk.date_time|date:'Y-m-d H:i:s' > current_time|date:'Y-m-d H:i:s' %} hx-get="{% url 'talk_status' talk.pk %}" hx-trigger="every 60s" {% endif %}>
@@ -65,5 +64,11 @@
         <div class="bg-white p-4 rounded text-center text-gray-500">No talks found</div>
       {% endfor %}
     </div>
-  </div>
+  {% endpartial %}
+  <!-- Talks container that references the partial -->
+  <div id="talks-container"
+       class="space-y-4"
+       hx-get="{% url 'talk_list' %}"
+       hx-trigger="every 30s">{% partial talk-list %}</div>
+</div>
 {% endblock content %}

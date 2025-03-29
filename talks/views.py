@@ -48,10 +48,10 @@ class TalkListView(LoginRequiredMixin, ListView):
         """
         Determine which template to use.
 
-        Return a partial template for HTMX.
+        Return a partial fragment for HTMX requests.
         """
         if self.request.headers.get("HX-Request"):
-            return ["talks/partials/talk_list.html"]
+            return ["talks/talk_list.html#talk-list"]
         return [self.template_name]
 
     def get_queryset(self) -> QuerySet[Talk]:
