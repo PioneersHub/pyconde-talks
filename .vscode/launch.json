@@ -1,0 +1,13 @@
+{
+  "configurations": [
+    {
+      "type": "debugpy",
+      "request": "launch",
+      "name": "Django: Runserver",
+      "program": "${workspaceFolder}/manage.py",
+      "args": ["runserver", "--noreload"],
+      "django": true,
+      "preLaunchTask": "Setup Python Environment"
+    }
+  ]
+}
