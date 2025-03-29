@@ -68,12 +68,12 @@ DJANGO_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    # https://docs.djangoproject.com/en/dev/howto/deployment/asgi/daphne/
-    "daphne",
     "django.contrib.staticfiles",
     "django.contrib.sites",
 ]
 THIRD_PARTY_APPS = [
+    # https://docs.djangoproject.com/en/dev/howto/deployment/asgi/daphne/
+    "daphne",
     "allauth",
     "allauth.account",
     "django_htmx",
@@ -83,7 +83,7 @@ LOCAL_APPS = [
     "talks",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+INSTALLED_APPS = LOCAL_APPS + THIRD_PARTY_APPS + DJANGO_APPS
 
 
 # --------------------------------------------------------------------------------------------------
