@@ -107,3 +107,17 @@ def test_create_user_invalid_email() -> None:
 
     with pytest.raises(InvalidEmailError):
         CustomUser.objects.create_user(email="not-an-email")
+
+
+@pytest.mark.django_db
+def test_create_user_duplicate_email(user_data: dict[str, Any]) -> None:
+    """
+    Test creating a user with a duplicate email address.
+
+    The duplication is caught by user.full_clean(), which raises a ValidationError.
+    CustomUserManager catches this and raises an InvalidEmailError.
+    """
+    CustomUser.objects.create_user(**user_data)
+
+    with pytest.raises(InvalidEmailError):
+        CustomUser.objects.create_user(**user_data)
