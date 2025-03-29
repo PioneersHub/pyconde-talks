@@ -70,7 +70,7 @@ class TalkListView(LoginRequiredMixin, ListView):
 
         return queryset.order_by("date_time")
 
-    def get_context_data(self, **kwargs: dict[str, Any]) -> dict[str, Any]:
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
         """Enhance the template context with additional data."""
         context = super().get_context_data(**kwargs)
 
