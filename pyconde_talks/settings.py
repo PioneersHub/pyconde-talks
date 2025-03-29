@@ -132,6 +132,9 @@ AUTH_USER_MODEL = "users.CustomUser"
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-redirect-url
 LOGIN_REDIRECT_URL = env("LOGIN_REDIRECT_URL", default="home")
 
+# https://docs.djangoproject.com/en/dev/ref/settings/#login-url
+LOGIN_URL = "/accounts/login/"
+
 # ---------------------
 # E-mail validation API
 # ---------------------
