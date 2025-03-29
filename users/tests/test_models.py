@@ -15,6 +15,17 @@ def user_data() -> dict[str, str]:
     }
 
 
+@pytest.fixture()
+def superuser_data() -> dict[str, Any]:
+    """Return test data for creating a superuser."""
+    return {
+        "email": "admin@example.com",
+        "password": "hunter2",
+        "is_staff": True,
+        "is_superuser": True,
+    }
+
+
 @pytest.mark.django_db
 def test_create_user(user_data: dict[str, Any]) -> None:
     """
@@ -43,3 +54,29 @@ def test_create_user(user_data: dict[str, Any]) -> None:
     assert email_obj.email == user_data["email"]
     assert email_obj.verified
     assert email_obj.primary
+
+
+@pytest.mark.django_db
+def test_create_superuser(superuser_data: dict[str, Any]) -> None:
+    """
+    Test creating a superuser with the CustomUserManager.
+
+    Verifies that:
+    - Superuser is created with the correct email
+    - Superuser has a usable password
+    - Superuser has appropriate permissions
+
+    Args:
+        superuser_data: Dictionary containing superuser creation parameters
+
+    """
+    user = CustomUser.objects.create_superuser(
+        email=superuser_data["email"],
+        password=superuser_data["password"],
+    )
+    assert user.email == superuser_data["email"]
+    assert user.has_usable_password()
+    assert user.check_password(superuser_data["password"])
+    assert user.is_active
+    assert user.is_staff
+    assert user.is_superuser
