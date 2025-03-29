@@ -113,3 +113,30 @@ def test_api_authorization_failure(
     # Check request was properly formed
     assert len(responses.calls) == 1
     assert json.loads(responses.calls[0].request.body) == {"email": "user@example.com"}
+
+
+@pytest.mark.django_db
+@responses.activate
+def test_api_authorization_validation_error(
+    adapter: AccountAdapter,
+    settings: SettingsWrapper,
+    mock_email_api_error: str,
+) -> None:
+    """
+    Test API authorization with validation error response.
+
+    Verifies that authorization fails gracefully when the API rejects the request due to email
+    format validation errors.
+    """
+    # Clear the whitelist to ensure we test the API path
+    settings.AUTHORIZED_EMAILS_WHITELIST = []
+
+    # Test with a malformed email (without @)
+    test_email = "invalid-email-format"
+
+    # Test that authorization fails gracefully, even with a 422 response
+    assert adapter.is_email_authorized(test_email) is False
+
+    # Verify the request was made
+    assert len(responses.calls) == 1
+    assert json.loads(responses.calls[0].request.body) == {"email": test_email}
