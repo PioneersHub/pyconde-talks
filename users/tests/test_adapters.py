@@ -94,3 +94,22 @@ def test_api_authorization_success(
     # Check request was properly formed
     assert len(responses.calls) == 1
     assert json.loads(responses.calls[0].request.body) == {"email": "user@example.com"}
+
+
+@pytest.mark.django_db
+@responses.activate
+def test_api_authorization_failure(
+    adapter: AccountAdapter,
+    settings: SettingsWrapper,
+    mock_email_api_invalid: str,
+) -> None:
+    """Test failed email authorization via the external API."""
+    # Make sure we're testing the API path by clearing the whitelist
+    settings.AUTHORIZED_EMAILS_WHITELIST = []
+
+    # Test authorization - should fail because we've mocked the API to return valid=False
+    assert adapter.is_email_authorized("user@example.com") is False
+
+    # Check request was properly formed
+    assert len(responses.calls) == 1
+    assert json.loads(responses.calls[0].request.body) == {"email": "user@example.com"}
