@@ -34,7 +34,7 @@ class CustomAccountAdapter(DefaultAccountAdapter):
             bool: True if the email is authorized, False otherwise (including on API errors)
 
         """
-        # Normalize email
+        # Normalize email (the API should be case-insensitive)
         email = email.lower().strip()
 
         # Check if email is in the whitelist
