@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from users.models import CustomUser
+from users.models import CustomUser, InvalidEmailError
 
 
 @pytest.fixture()
@@ -92,3 +92,18 @@ def test_create_user_normalize_email() -> None:
     email = "TEST@Example.COM   "
     user = CustomUser.objects.create_user(email=email)
     assert user.email == "test@example.com"
+
+
+@pytest.mark.django_db
+def test_create_user_invalid_email() -> None:
+    """
+    Test creating a user with invalid email addresses.
+
+    Verifies that attempting to create a user with an empty or invalid email raises an
+    InvalidEmailError.
+    """
+    with pytest.raises(InvalidEmailError):
+        CustomUser.objects.create_user(email="")
+
+    with pytest.raises(InvalidEmailError):
+        CustomUser.objects.create_user(email="not-an-email")
