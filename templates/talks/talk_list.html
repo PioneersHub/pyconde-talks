@@ -7,29 +7,23 @@
       <form hx-get="{% url 'talk_list' %}"
             hx-target="#talks-container"
             hx-push-url="true"
+            hx-trigger="change from:select"
             hx-indicator="#loading-indicator"
             class="flex gap-4">
-        <select name="date"
-                class="border rounded px-2 py-1"
-                hx-get="{% url 'talk_list' %}"
-                hx-target="#talks-container"
-                hx-trigger="change">
+        <select name="date" class="border rounded px-2 py-1">
           <option value="">All Days</option>
           {% for date in dates %}
             <option value="{{ date|date:'Y-m-d' }}"
                     {% if date|date:'Y-m-d' == selected_date %}selected{% endif %}>{{ date|date:"l, F j" }}</option>
           {% endfor %}
         </select>
-        <select name="room"
-                class="border rounded px-2 py-1"
-                hx-get="{% url 'talk_list' %}"
-                hx-target="#talks-container"
-                hx-trigger="change">
+        <select name="room" class="border rounded px-2 py-1">
           <option value="">All Rooms</option>
           {% for room in rooms %}
             <option value="{{ room }}"{% if room == selected_room %}selected{% endif %}>{{ room }}</option>
           {% endfor %}
         </select>
+        <!-- spinner -->
         <div id="loading-indicator" class="htmx-indicator">
           <svg class="animate-spin h-5 w-5 text-blue-500"
                xmlns="http://www.w3.org/2000/svg"
@@ -69,6 +63,7 @@
   <div id="talks-container"
        class="space-y-4"
        hx-get="{% url 'talk_list' %}"
-       hx-trigger="every 30s">{% partial talk-list %}</div>
+       hx-include="form"
+       hx-trigger="every 60s">{% partial talk-list %}</div>
 </div>
 {% endblock content %}
