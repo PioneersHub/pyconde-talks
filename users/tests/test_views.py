@@ -130,3 +130,50 @@ def test_form_valid_authorized_new_user(  # noqa: PLR0913
 
     # Assert that the response is the one from the parent class
     assert response == "success"
+
+
+@pytest.mark.django_db
+def test_form_valid_unauthorized_email(
+    request_factory: RequestFactory,
+    login_form_data: dict[str, str],
+    view: CustomRequestLoginCodeView,
+    mocker: MockerFixture,
+    allauth_settings: None,
+) -> None:
+    """
+    Test form_valid with an unauthorized email.
+
+    Verifies that when an unauthorized email is submitted, the view adds an error to the form and
+    calls form_invalid.
+    """
+    # Create form with valid data
+    form = mocker.MagicMock()
+    form.is_valid.return_value = True
+    form.cleaned_data = {"email": login_form_data["email"].lower()}
+    form.add_error = mocker.MagicMock()
+
+    # Mock the request
+    request = request_factory.post(reverse("account_login"))
+    view.request = request
+
+    # Mock the adapter's is_email_authorized method to return False
+    mock_adapter = mocker.MagicMock()
+    mock_adapter.is_email_authorized.return_value = False
+
+    # Patch get_adapter to return our mock adapter
+    mocker.patch("users.views.get_adapter", return_value=mock_adapter)
+
+    # Mock the form_invalid method
+    mocker.patch.object(view, "form_invalid", return_value="form_invalid")
+
+    # Call our view's form_valid method
+    response = view.form_valid(form)
+
+    # Check that the adapter's is_email_authorized was called
+    mock_adapter.is_email_authorized.assert_called_once_with(login_form_data["email"].lower())
+
+    # Check that the form has an error
+    form.add_error.assert_called_once_with("email", "This email is not authorized for access.")
+
+    # Assert that form_invalid was called
+    assert response == "form_invalid"
