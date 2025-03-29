@@ -187,3 +187,20 @@ def test_user_clean_method() -> None:
     user = CustomUser(email="        TEST@EXAMPLE.COM")
     user.clean()
     assert user.email == "test@example.com"
+
+
+@pytest.mark.django_db
+def test_user_save_superuser_without_password() -> None:
+    """
+    Test saving a superuser without a password.
+
+    Verifies that attempting to save a superuser instance without a usable password raises a
+    ValidationError.
+    """
+    user = CustomUser(
+        email="admin@example.com",
+        is_superuser=True,
+    )
+
+    with pytest.raises(ValidationError, match="Superusers must have a password"):
+        user.save()
