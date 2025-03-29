@@ -151,3 +151,18 @@ def test_create_superuser_without_staff_flag() -> None:
             password="password",
             is_staff=False,
         )
+
+
+@pytest.mark.django_db
+def test_create_superuser_without_superuser_flag() -> None:
+    """
+    Test creating a superuser without the superuser flag.
+
+    Verifies that attempting to create a superuser with is_superuser=False raises a ValidationError.
+    """
+    with pytest.raises(ValidationError, match="Superuser must have is_superuser=True"):
+        CustomUser.objects.create_superuser(
+            email="admin@example.com",
+            password="password",
+            is_superuser=False,
+        )
