@@ -140,3 +140,26 @@ def test_api_authorization_validation_error(
     # Verify the request was made
     assert len(responses.calls) == 1
     assert json.loads(responses.calls[0].request.body) == {"email": test_email}
+
+
+@pytest.mark.django_db
+@responses.activate
+def test_api_authorization_exceptions(
+    adapter: AccountAdapter,
+    settings: SettingsWrapper,
+    mock_email_api_exception: str,
+) -> None:
+    """
+    Test API authorization with exceptions during request.
+
+    Verifies that authorization fails gracefully when API request raises exceptions.
+    """
+    # Clear the whitelist to ensure we test the API path
+    settings.AUTHORIZED_EMAILS_WHITELIST = []
+
+    # Test that authorization fails gracefully when the API raises an exception
+    assert adapter.is_email_authorized("error@example.com") is False
+
+    # Verify that a request attempt was made
+    assert len(responses.calls) == 1
+    assert responses.calls[0].request.url == mock_email_api_exception  # Check URL matches
