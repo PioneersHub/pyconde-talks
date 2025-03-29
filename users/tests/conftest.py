@@ -160,3 +160,18 @@ def mock_email_api_exception(mock_email_api_base: str) -> str:
     )
 
     return api_url
+
+
+@pytest.fixture()
+def allauth_settings(settings: SettingsWrapper) -> None:
+    """Configure Allauth settings for passwordless login."""
+    settings.ACCOUNT_ADAPTER = "users.adapters.AccountAdapter"
+    settings.ACCOUNT_EMAIL_REQUIRED = True
+    settings.ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False
+    settings.ACCOUNT_USERNAME_REQUIRED = False
+    settings.ACCOUNT_AUTHENTICATION_METHOD = "email"
+    settings.ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+    settings.ACCOUNT_LOGIN_BY_CODE_ENABLED = True
+    settings.ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 180
+    settings.ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS = 3
+    settings.ACCOUNT_PREVENT_ENUMERATION = True
