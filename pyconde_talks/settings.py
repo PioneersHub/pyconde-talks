@@ -224,6 +224,12 @@ STATIC_URL = env("STATIC_URL", default="static/")
 # https://docs.djangoproject.com/en/dev/ref/settings/#std-setting-STATICFILES_DIRS
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
+# https://docs.djangoproject.com/en/dev/ref/settings/#staticfiles-finders
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+]
+
 
 # --------------------------------------------------------------------------------------------------
 # MEDIA
