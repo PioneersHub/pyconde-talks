@@ -176,3 +176,14 @@ def test_user_str_representation() -> None:
     """
     user = CustomUser(email="test@example.com")
     assert str(user) == "test@example.com"
+
+
+def test_user_clean_method() -> None:
+    """
+    Test the clean method of CustomUser.
+
+    Verifies that the clean method normalizes email addresses to lowercase.
+    """
+    user = CustomUser(email="        TEST@EXAMPLE.COM")
+    user.clean()
+    assert user.email == "test@example.com"
