@@ -80,3 +80,15 @@ def test_create_superuser(superuser_data: dict[str, Any]) -> None:
     assert user.is_active
     assert user.is_staff
     assert user.is_superuser
+
+
+@pytest.mark.django_db
+def test_create_user_normalize_email() -> None:
+    """
+    Test email normalization when creating a user.
+
+    Verifies that email addresses are normalized to lowercase.
+    """
+    email = "TEST@Example.COM   "
+    user = CustomUser.objects.create_user(email=email)
+    assert user.email == "test@example.com"
