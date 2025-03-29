@@ -1,8 +1,10 @@
 """Tests for the custom allauth adapter that validates emails using an external API."""
 
+import json
 from typing import Any
 
 import pytest
+import responses
 from django.conf import settings
 from pytest_django.fixtures import SettingsWrapper
 
@@ -73,3 +75,22 @@ def test_superuser_authorization(
 
     # Test non-existent user email
     assert adapter.is_email_authorized("nonexistent@example.com") is False
+
+
+@pytest.mark.django_db
+@responses.activate
+def test_api_authorization_success(
+    adapter: AccountAdapter,
+    settings: SettingsWrapper,
+    mock_email_api_valid: str,
+) -> None:
+    """Test successful email authorization via the external API."""
+    # Make sure we're testing the API path by clearing the whitelist
+    settings.AUTHORIZED_EMAILS_WHITELIST = []
+
+    # Test authorization - should succeed because we've mocked the API to return valid=True
+    assert adapter.is_email_authorized("user@example.com") is True
+
+    # Check request was properly formed
+    assert len(responses.calls) == 1
+    assert json.loads(responses.calls[0].request.body) == {"email": "user@example.com"}
