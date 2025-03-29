@@ -64,7 +64,7 @@ setup_dependencies() {
     fi
 
     log "Syncing dependencies with uv..."
-    uv sync
+    uv sync --all-groups
 
     log "Installing pre-commit hooks..."
     $VENV_DIR/bin/pre-commit install
