@@ -23,21 +23,18 @@
         </div>
       </div>
       <!-- Quick Stats with live updates -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"
-           hx-get="{% url 'dashboard_stats' %}"
-           hx-trigger="load, every 30s"
-           hx-swap="innerHTML">
-        <div class="bg-white p-4 rounded-lg shadow-sm">
-          <div class="text-sm text-gray-500">Total Talks</div>
-          <div class="text-2xl font-bold">{{ total_talks }}</div>
-        </div>
-        <div class="bg-white p-4 rounded-lg shadow-sm">
-          <div class="text-sm text-gray-500">Today's Talks</div>
-          <div class="text-2xl font-bold">{{ todays_talks }}</div>
-        </div>
-        <div class="bg-white p-4 rounded-lg shadow-sm">
-          <div class="text-sm text-gray-500">Available Recordings</div>
-          <div class="text-2xl font-bold">{{ recorded_talks }}</div>
+      <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <!-- Container for HTMX to swap content into -->
+        <div hx-get="{% url 'dashboard_stats' %}"
+             hx-trigger="load, every 30s"
+             hx-swap="innerHTML">
+          <!-- Initial placeholder state -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% load stat_tags %}
+            {% stat_card "Total Talks" "Loading..." %}
+            {% stat_card "Today's Talks" "Loading..." %}
+            {% stat_card "Available Recordings" "Loading..." %}
+          </div>
         </div>
       </div>
       <!-- Next Talks with live updates -->
