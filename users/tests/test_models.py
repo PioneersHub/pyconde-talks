@@ -121,3 +121,17 @@ def test_create_user_duplicate_email(user_data: dict[str, Any]) -> None:
 
     with pytest.raises(InvalidEmailError):
         CustomUser.objects.create_user(**user_data)
+
+
+@pytest.mark.django_db
+def test_create_superuser_without_password() -> None:
+    """
+    Test creating a superuser without a password.
+
+    Verifies that attempting to create a superuser without providing a password raises a ValueError.
+    """
+    with pytest.raises(ValueError, match="Superuser must have a password"):
+        CustomUser.objects.create_superuser(
+            email="admin@example.com",
+            password=None,
+        )
