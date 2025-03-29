@@ -68,7 +68,7 @@ AUTHORIZED_EMAILS_WHITELIST = [
 ]
 
 # Passwordless authentication settings
-ACCOUNT_ADAPTER = "users.adapters.CustomAccountAdapter"
+ACCOUNT_ADAPTER = "users.adapters.AccountAdapter"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False
 ACCOUNT_USERNAME_REQUIRED = False

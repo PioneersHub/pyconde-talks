@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 
 
-class CustomAccountAdapter(DefaultAccountAdapter):
+class AccountAdapter(DefaultAccountAdapter):
     """
     Custom adapter for django-allauth that validates emails using an external API.
 
