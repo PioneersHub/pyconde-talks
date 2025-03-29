@@ -166,3 +166,13 @@ def test_create_superuser_without_superuser_flag() -> None:
             password="password",
             is_superuser=False,
         )
+
+
+def test_user_str_representation() -> None:
+    """
+    Test the string representation of a user.
+
+    Verifies that the string representation of a CustomUser instance is the user's email address.
+    """
+    user = CustomUser(email="test@example.com")
+    assert str(user) == "test@example.com"
