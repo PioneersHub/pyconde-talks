@@ -177,3 +177,69 @@ def test_form_valid_unauthorized_email(
 
     # Assert that form_invalid was called
     assert response == "form_invalid"
+
+
+@pytest.mark.django_db
+def test_form_valid_user_creation_error(
+    request_factory: RequestFactory,
+    login_form_data: dict[str, str],
+    view: CustomRequestLoginCodeView,
+    mocker: MockerFixture,
+    allauth_settings: None,
+) -> None:
+    """
+    Test form_valid when user creation fails.
+
+    Verifies that when an authorized email is submitted but user creation fails, the view adds an
+    error to the form and calls form_invalid.
+    """
+    # Create form with valid data
+    form = mocker.MagicMock()
+    form.is_valid.return_value = True
+    form.cleaned_data = {"email": login_form_data["email"].lower()}
+    form.add_error = mocker.MagicMock()
+
+    # Mock the request with all necessary attributes
+    request = request_factory.post(reverse("account_login"))
+    request.session = {}
+    from django.contrib.messages.storage.fallback import FallbackStorage
+
+    messages = FallbackStorage(request)
+    request._messages = messages  # noqa: SLF001
+    from django.contrib.auth.models import AnonymousUser
+
+    request.user = AnonymousUser()
+    view.request = request
+
+    # Mock the adapter
+    mock_adapter = mocker.MagicMock()
+    mock_adapter.is_email_authorized.return_value = True
+    mocker.patch("users.views.get_adapter", return_value=mock_adapter)
+
+    # Make sure the user doesn't exist but creation fails
+    mock_filter = mocker.MagicMock()
+    mock_filter.exists.return_value = False
+    mock_qs = mocker.MagicMock()
+    mock_qs.filter.return_value = mock_filter
+
+    mock_user_model = mocker.MagicMock()
+    mock_user_model.objects = mock_qs
+    mock_user_model.objects.create_user.side_effect = Exception("User creation failed")
+
+    # Patch at the exact point it's used in the view
+    mocker.patch("users.views.get_user_model", return_value=mock_user_model)
+
+    # Mock form_invalid to return a predictable value
+    mocker.patch.object(view, "form_invalid", return_value="form_invalid")
+
+    # Call the method being tested
+    response = view.form_valid(form)
+
+    # Verify error was added to the form
+    form.add_error.assert_called_once()
+    args = form.add_error.call_args[0]
+    assert args[0] == "email"  # First arg should be field name
+    assert "Error creating user: User creation failed" in args[1]  # Second arg is error message
+
+    # Verify form_invalid was called
+    assert response == "form_invalid"
