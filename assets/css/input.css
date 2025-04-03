@@ -48,10 +48,6 @@
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
 }
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Custom components */
 @layer components {
   .btn-primary {
