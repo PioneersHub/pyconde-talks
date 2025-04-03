@@ -52,9 +52,56 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom components */
+@layer components {
+  .btn-primary {
+    @apply bg-[var(--blue)] hover:bg-[var(--blue-light)] text-white font-semibold py-2 px-4 rounded;
+  }
+
+  .btn-secondary {
+    @apply bg-[var(--green)] hover:bg-[var(--green-light)] text-white font-semibold py-2 px-4 rounded;
+  }
+
+  .alert-success {
+    @apply bg-[var(--green-lighter)] text-[var(--green)] p-4 rounded;
+  }
+
+  .alert-info {
+    @apply bg-[var(--blue-lighter)] text-[var(--blue)] p-4 rounded;
+  }
+
+  .alert-warning {
+    @apply bg-[var(--yellow)] text-black p-4 rounded;
+  }
+
+  .alert-error {
+    @apply bg-[var(--red-light)] text-white p-4 rounded;
+  }
+}
+
 /* Custom utilities */
 @layer utilities {
   .header-logo {
     pointer-events: none;
+  }
+
+  .text-brand-blue {
+    color: var(--blue);
+  }
+
+  .text-brand-green {
+    color: var(--green);
+  }
+
+  .bg-brand-blue {
+    background-color: var(--blue);
+  }
+
+  .bg-brand-blue-light {
+    background-color: var(--blue-light);
+  }
+
+  .border-brand-blue {
+    border-color: var(--blue);
   }
 }
