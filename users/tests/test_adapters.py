@@ -70,8 +70,9 @@ def test_superuser_authorization(
     # Test superuser email is authorized
     assert adapter.is_email_authorized("admin@example.com") is True
 
-    # Test regular user email is not automatically authorized
-    assert adapter.is_email_authorized("user@example.com") is False
+    # Test regular user email is also authorized
+    # Any active user can login now. No need to call the API all the time
+    assert adapter.is_email_authorized("user@example.com") is True
 
     # Test non-existent user email
     assert adapter.is_email_authorized("nonexistent@example.com") is False

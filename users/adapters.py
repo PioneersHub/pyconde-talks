@@ -29,7 +29,7 @@ class AccountAdapter(DefaultAccountAdapter):
     Custom adapter for django-allauth that validates emails using an external API.
 
     This adapter implements a multi-layered authorization strategy:
-    1. Local authorization (whitelist and superusers)
+    1. Local authorization (whitelist, superusers, and active users)
     2. External API authorization
 
     Configuration is done via Django settings:
@@ -54,6 +54,7 @@ class AccountAdapter(DefaultAccountAdapter):
         """
         # Normalize email (the API should be case-insensitive)
         email = email.lower().strip()
+        email_hash = hash_email(email)
 
         # Check if email is in the whitelist
         if email in getattr(settings, "AUTHORIZED_EMAILS_WHITELIST", []):
@@ -65,12 +66,15 @@ class AccountAdapter(DefaultAccountAdapter):
         try:
             user = UserModel.objects.get(email=email)
             if user.is_superuser:
+                logger.info("Super user authorized: %s", email_hash)
+                return True
+            if user.is_active:
+                logger.info("User authorized: %s", email_hash)
                 return True
         except UserModel.DoesNotExist:
             pass
 
         # Check the API
-        email_hash = hash_email(email)
         is_valid = False
         try:
             data = self._call_validation_api(email)
