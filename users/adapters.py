@@ -1,9 +1,26 @@
 """Custom adapter for django-allauth that validates e-mails using an external API."""
 
+import hashlib
+import logging
+from json.decoder import JSONDecodeError
+
 import requests
 from allauth.account.adapter import DefaultAccountAdapter
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from requests.exceptions import (
+    ConnectionError as RequestsConnectionError,
+    RequestException,
+    Timeout,
+)
+
+
+logger = logging.getLogger("users.adapters")
+
+
+def hash_email(email: str) -> str:
+    """Create a SHA-256 hash of an email address."""
+    return hashlib.sha256(email.encode()).hexdigest()
 
 
 class AccountAdapter(DefaultAccountAdapter):
@@ -52,6 +69,8 @@ class AccountAdapter(DefaultAccountAdapter):
             pass
 
         # Check the API
+        email_hash = hash_email(email)
+        is_valid = False
         try:
             response = requests.post(
                 settings.EMAIL_VALIDATION_API_URL,
@@ -59,10 +78,24 @@ class AccountAdapter(DefaultAccountAdapter):
                 timeout=settings.EMAIL_VALIDATION_API_TIMEOUT,
             )
 
-            HTTP_STATUS_OK = 200  # noqa: N806
-            if response.status_code == HTTP_STATUS_OK:
-                data = response.json()
-                return data.get("valid", False)
-            return False
+            response.raise_for_status()
+            data = response.json()
+            is_valid = data.get("valid", False)
+
+            if is_valid:
+                logger.info("Successfully validated email: %s", email_hash)
+            else:
+                logger.warning("Email validation failed for: %s", email_hash)
+
+        except Timeout:
+            logger.warning("Timeout validating email: %s", email_hash)
+        except RequestsConnectionError:
+            logger.warning("Connection error validating email: %s", email_hash)
+        except JSONDecodeError:
+            logger.warning("Invalid JSON response validating email: %s", email_hash)
+        except RequestException as e:
+            logger.warning("Request error validating email: %s. Error: %s", email_hash, str(e))
         except Exception:
-            return False
+            logger.exception("Unexpected error validating email: %s", email_hash)
+
+        return is_valid
