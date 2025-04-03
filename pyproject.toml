@@ -105,7 +105,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/test_*.py" = [
+"**/tests/{test_*.py,conftest.py}" = [
     "S101",   # Allow assert in tests
     "S106",   # Allow hardcoded password in tests
     "ARG001", # Allow unused arguments in tests (for pytest fixtures)
