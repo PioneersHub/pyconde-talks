@@ -52,8 +52,19 @@ class AccountAdapter(DefaultAccountAdapter):
         email = email.lower().strip()
         email_hash = hash_email(email)
 
+        # Check whitelist, admins, and active users
+        if self._is_locally_authorized(email, email_hash):
+            return True
+
+        # Check the external API
+        return self._validate_email_with_api(email, email_hash)
+
+    @staticmethod
+    def _is_locally_authorized(email: str, email_hash: str) -> bool:
+        """Check if email is locally authorized (whitelist, superuser, or active user)."""
         # Check if email is in the whitelist
         if email in getattr(settings, "AUTHORIZED_EMAILS_WHITELIST", []):
+            logger.info("Email found in whitelist: %s", email_hash)
             return True
 
         # Check if this email belongs to an administrator or active user
@@ -68,8 +79,13 @@ class AccountAdapter(DefaultAccountAdapter):
                 logger.info("User authorized: %s", email_hash)
                 return True
         except UserModel.DoesNotExist:
-            pass
+            logger.debug("User with email %s does not exist", email_hash)
+        except Exception:
+            logger.exception("Error checking user authorization for email: %s", email_hash)
+        return False
 
+    def _validate_email_with_api(self, email: str, email_hash: str) -> bool:
+        """Validate email using an external API."""
         # Check the API
         is_valid = False
         try:
