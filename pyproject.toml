@@ -110,6 +110,9 @@ ignore = [
     "S106",   # Allow hardcoded password in tests
     "ARG001", # Allow unused arguments in tests (for pytest fixtures)
 ]
+"**/__init__.py" = [
+    "D104", # Allow empty __init__.py files
+]
 
 [tool.ruff.format]
 quote-style = "double"
