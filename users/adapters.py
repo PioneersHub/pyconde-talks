@@ -56,13 +56,13 @@ class AccountAdapter(DefaultAccountAdapter):
         if email in getattr(settings, "AUTHORIZED_EMAILS_WHITELIST", []):
             return True
 
-        # Check if this is a superuser email
+        # Check if this email belongs to an administrator or active user
         # Note: admins can also login from /admin/login/ using their password
         UserModel = get_user_model()  # noqa: N806
         try:
             user = UserModel.objects.get(email=email)
             if user.is_superuser:
-                logger.info("Super user authorized: %s", email_hash)
+                logger.info("Admin authorized: %s", email_hash)
                 return True
             if user.is_active:
                 logger.info("User authorized: %s", email_hash)
