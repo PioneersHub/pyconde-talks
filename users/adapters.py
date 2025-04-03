@@ -94,13 +94,14 @@ class AccountAdapter(DefaultAccountAdapter):
 
         return is_valid
 
+    @staticmethod
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=1, max=10),
         retry=retry_if_exception_type((Timeout, RequestsConnectionError)),
         reraise=True,
     )
-    def _call_validation_api(self, email: str) -> dict:
+    def _call_validation_api(email: str) -> dict:
         """Call the validation API with retry."""
         response = requests.post(
             settings.EMAIL_VALIDATION_API_URL,
