@@ -55,7 +55,32 @@ setup_dependencies() {
     fi
 
     log "Setting up dependencies..."
-    command -v uv >/dev/null 2>&1 || error "uv is not installed. Please install it first."
+
+    # Check if uv is already installed
+    if command -v uv &> /dev/null; then
+        log "uv is already installed."
+        log "Current version: $(uv --version)"
+    else
+        log "uv is not installed. Installing now..."
+
+        # Try with curl
+        if command -v curl &> /dev/null; then
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+        # Try with wget
+        elif command -v wget &> /dev/null; then
+            wget -qO- https://astral.sh/uv/install.sh | sh
+        else
+            error "Please install curl or wget."
+        fi
+
+        # Verify installation
+        if command -v uv &> /dev/null; then
+            log "uv has been successfully installed."
+            log "Current version: $(uv --version)"
+        else
+            error "uv installation failed."
+        fi
+    fi
 
     # Create virtual environment if needed
     if [ ! -d "$VENV_DIR" ]; then
