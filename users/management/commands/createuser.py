@@ -34,7 +34,7 @@ class Command(BaseCommand):
             help="Email address for the new user",
         )
 
-    def handle(self, *args: Any, **options: dict[str, Any]) -> None:
+    def handle(self, *args: Any, **options: dict[str, Any]) -> None:  # noqa: ANN401, ARG002
         """
         Handle the command execution.
 
@@ -46,7 +46,7 @@ class Command(BaseCommand):
             **options: Command options including the email address
 
         """
-        User = get_user_model()
+        User = get_user_model()  # noqa: N806
         email = options["email"]
 
         try:
