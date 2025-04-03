@@ -16,31 +16,5 @@
     },
     "editor.defaultFormatter": "charliermarsh.ruff"
   },
-  "editor.rulers": [100],
-  "cSpell.words": [
-    "allauth",
-    "asgi",
-    "autoplay",
-    "bothify",
-    "csrf",
-    "django",
-    "djlint",
-    "emailaddress",
-    "endfor",
-    "fullscreen",
-    "htmx",
-    "isort",
-    "linecap",
-    "linejoin",
-    "mypy",
-    "passwordless",
-    "pretalx",
-    "pycon",
-    "pyconde",
-    "pydata",
-    "pytest",
-    "slido",
-    "socialaccount",
-    "tailwindcss"
-  ]
+  "editor.rulers": [100]
 }

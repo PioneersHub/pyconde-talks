@@ -1,0 +1,21 @@
+// cSpell Settings
+{
+  // Version of the setting file
+  "version": "0.2",
+  // Current active spelling language
+  "language": "en",
+  "ignorePaths": [],
+  "dictionaryDefinitions": [
+    {
+      "name": "custom-dictionary",
+      "path": ".cspell/custom-dictionary.txt",
+      "addWords": true
+    }
+  ],
+  "dictionaries": ["custom-dictionary"],
+  // words - list of words to be always considered correct
+  "words": [],
+  // flagWords - list of words to be always considered incorrect
+  "flagWords": ["hte"],
+  "import": []
+}
