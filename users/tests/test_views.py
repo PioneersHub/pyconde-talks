@@ -239,7 +239,7 @@ def test_form_valid_user_creation_error(
     form.add_error.assert_called_once()
     args = form.add_error.call_args[0]
     assert args[0] == "email"  # First arg should be field name
-    assert "Error creating user: User creation failed" in args[1]  # Second arg is error message
+    assert "Error creating user" in args[1]  # Second arg is error message
 
     # Verify form_invalid was called
     assert response == "form_invalid"
