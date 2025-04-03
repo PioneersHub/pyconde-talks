@@ -13,6 +13,7 @@ from requests.exceptions import (
     RequestException,
     Timeout,
 )
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 
 logger = logging.getLogger("users.adapters")
@@ -72,14 +73,7 @@ class AccountAdapter(DefaultAccountAdapter):
         email_hash = hash_email(email)
         is_valid = False
         try:
-            response = requests.post(
-                settings.EMAIL_VALIDATION_API_URL,
-                json={"email": email},
-                timeout=settings.EMAIL_VALIDATION_API_TIMEOUT,
-            )
-
-            response.raise_for_status()
-            data = response.json()
+            data = self._call_validation_api(email)
             is_valid = data.get("valid", False)
 
             if is_valid:
@@ -99,3 +93,19 @@ class AccountAdapter(DefaultAccountAdapter):
             logger.exception("Unexpected error validating email: %s", email_hash)
 
         return is_valid
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        retry=retry_if_exception_type((Timeout, RequestsConnectionError)),
+        reraise=True,
+    )
+    def _call_validation_api(self, email: str) -> dict:
+        """Call the validation API with retry."""
+        response = requests.post(
+            settings.EMAIL_VALIDATION_API_URL,
+            json={"email": email},
+            timeout=getattr(settings, "EMAIL_VALIDATION_API_TIMEOUT", 5),
+        )
+        response.raise_for_status()
+        return response.json()

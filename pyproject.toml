@@ -40,6 +40,7 @@ dependencies = [
     "django-template-partials>=24.4",
     "pillow>=11.1.0",
     "requests>=2.32.3",
+    "tenacity>=9.1.2",
 ]
 
 [dependency-groups]
