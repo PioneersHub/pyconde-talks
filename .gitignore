@@ -36,3 +36,6 @@ wheels/
 !.vscode/scripts/
 !.vscode/settings.json
 !.vscode/tasks.json
+
+# Logs
+logs/*.log
