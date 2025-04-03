@@ -68,6 +68,13 @@ setup_dependencies() {
 
     log "Installing pre-commit hooks..."
     $VENV_DIR/bin/pre-commit install
+
+    if [ ! -f ".env" ]; then
+        log "Creating .env file..."
+        cp env.example .env
+    else
+        log ".env file already exists, skipping creation."
+    fi
 }
 
 # Setup TailwindCSS
