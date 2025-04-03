@@ -1,6 +1,5 @@
 """Custom adapter for django-allauth that validates e-mails using an external API."""
 
-import hashlib
 import logging
 from json.decoder import JSONDecodeError
 
@@ -15,13 +14,10 @@ from requests.exceptions import (
 )
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from pyconde_talks.utils.email_utils import hash_email
+
 
 logger = logging.getLogger("users.adapters")
-
-
-def hash_email(email: str) -> str:
-    """Create a SHA-256 hash of an email address."""
-    return hashlib.sha256(email.encode()).hexdigest()
 
 
 class AccountAdapter(DefaultAccountAdapter):
