@@ -130,7 +130,7 @@ class Talk(models.Model):
         verbose_name_plural = "Talks"
         indexes: ClassVar[list[models.Index]] = [
             models.Index(fields=["date_time"]),
-            models.Index(fields=["speaker_name"]),
+            models.Index(fields=["room"]),
         ]
 
     def __str__(self) -> str:
