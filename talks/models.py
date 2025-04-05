@@ -23,6 +23,9 @@ class Talk(models.Model):
         max_length=100,
         help_text="Full name of the speaker",
     )
+    abstract = models.TextField(
+        help_text="Talk abstract",
+    )
     description = models.TextField(
         help_text="Full description of the talk",
     )
