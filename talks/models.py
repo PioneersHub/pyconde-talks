@@ -67,6 +67,10 @@ class Talk(models.Model):
         blank=True,
         default=0,
     )
+    hide = models.BooleanField(
+        default=False,
+        help_text="Hide this talk from the public",
+    )
     created_at = models.DateTimeField(
         default=timezone.now,
         help_text="When this talk was added to the system",
