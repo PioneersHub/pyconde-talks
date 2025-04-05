@@ -5,7 +5,6 @@ This module provides class-based and function-based views for handling Talk-rela
 including listing, detail views, and statistics.
 """
 
-from collections.abc import Sequence
 from typing import Any
 
 from django.contrib.auth.decorators import login_required
@@ -44,7 +43,7 @@ class TalkListView(LoginRequiredMixin, ListView):
     template_name = "talks/talk_list.html"
     context_object_name = "talks"
 
-    def get_template_names(self) -> Sequence[str]:
+    def get_template_names(self) -> list[str]:
         """
         Determine which template to use.
 
