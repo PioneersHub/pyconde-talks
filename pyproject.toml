@@ -3,7 +3,7 @@ name = "pyconde-talks"
 version = "0.1.0"
 description = "Website for PyCon DE & PyData 2025 talks"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<4"
 authors = [{ name = "Julio Batista Silva", email = "python@juliobs.com" }]
 license = { text = "MIT" }
 keywords = [
