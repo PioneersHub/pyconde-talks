@@ -160,9 +160,8 @@ AUTHORIZED_EMAILS_WHITELIST = env.list(
 # Regular accounts: passwordless authentication
 # https://docs.allauth.org/en/latest/account/index.html
 ACCOUNT_ADAPTER = "users.adapters.AccountAdapter"
-ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_SIGNUP_FIELDS = ["email*"]
 ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False
-ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_LOGIN_BY_CODE_ENABLED = True
