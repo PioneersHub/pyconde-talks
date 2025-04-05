@@ -54,7 +54,7 @@ class TalkListView(LoginRequiredMixin, ListView):
         return [self.template_name]
 
     def get_queryset(self) -> QuerySet[Talk]:
-        """Get the list of talks filtered by room and date if specified."""
+        """Get the list of talks filtered by room, date, track, and presentation type."""
         queryset: QuerySet[Talk] = Talk.objects.all()
 
         # Filter by room
@@ -66,6 +66,16 @@ class TalkListView(LoginRequiredMixin, ListView):
         date = self.request.GET.get("date")
         if date and date != "":
             queryset = queryset.filter(date_time__date=date)
+
+        # Filter by track
+        track = self.request.GET.get("track")
+        if track and track != "":
+            queryset = queryset.filter(track=track)
+
+        # Filter by presentation type
+        presentation_type = self.request.GET.get("presentation_type")
+        if presentation_type and presentation_type != "":
+            queryset = queryset.filter(presentation_type=presentation_type)
 
         return queryset.order_by("date_time")
 
@@ -82,8 +92,17 @@ class TalkListView(LoginRequiredMixin, ListView):
             .distinct()
             .order_by("date")
         )
+        # Get unique tracks
+        context["tracks"] = (
+            Talk.objects.values_list("track", flat=True).distinct().order_by("track")
+        )
+        # Get presentation types
+        context["presentation_types"] = Talk.PresentationType.choices
+        # Set the selected values for filters
         context["selected_room"] = self.request.GET.get("room", "")
         context["selected_date"] = self.request.GET.get("date", "")
+        context["selected_track"] = self.request.GET.get("track", "")
+        context["selected_type"] = self.request.GET.get("presentation_type", "")
 
         return context
 

@@ -9,7 +9,7 @@
             hx-push-url="true"
             hx-trigger="change from:select"
             hx-indicator="#loading-indicator"
-            class="flex gap-4">
+            class="flex flex-wrap gap-4">
         <select name="date" class="border rounded px-2 py-1">
           <option value="">All Days</option>
           {% for date in dates %}
@@ -21,6 +21,20 @@
           <option value="">All Rooms</option>
           {% for room in rooms %}
             <option value="{{ room }}"{% if room == selected_room %}selected{% endif %}>{{ room }}</option>
+          {% endfor %}
+        </select>
+        <select name="presentation_type" class="border rounded px-2 py-1">
+          <option value="">All Types</option>
+          {% for type_value, type_label in presentation_types %}
+            <option value="{{ type_value }}"
+                    {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
+          {% endfor %}
+        </select>
+        <select name="track" class="border rounded px-2 py-1">
+          <option value="">All Tracks</option>
+          {% for track in tracks %}
+            <option value="{{ track }}"
+                    {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
           {% endfor %}
         </select>
         <!-- spinner -->
