@@ -15,6 +15,18 @@ from django.utils import timezone
 class Talk(models.Model):
     """Represents a conference talk."""
 
+    class PresentationType(models.TextChoices):
+        """Enumeration of presentation types."""
+
+        TALK = "Talk", "Talk"
+        TUTORIAL = "Tutorial", "Tutorial"
+
+    presentation_type = models.CharField(
+        max_length=10,
+        choices=PresentationType.choices,
+        default=PresentationType.TALK,
+        help_text="Type of the presentation",
+    )
     title = models.CharField(
         max_length=200,
         help_text="Title of the talk",
