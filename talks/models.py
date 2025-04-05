@@ -135,7 +135,7 @@ class Talk(models.Model):
 
     def __str__(self) -> str:
         """Return a string representation of the talk."""
-        return f"{self.title} by {self.speaker_name}"
+        return f"{self.title} by {self.speaker_names}"
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         """
@@ -149,6 +149,30 @@ class Talk(models.Model):
             elif self.presentation_type == self.PresentationType.TUTORIAL:
                 self.duration = timedelta(minutes=45)
         super().save(*args, **kwargs)
+
+    @property
+    def speaker_names(self) -> str:
+        """
+        Return a formatted list of speaker names.
+
+        - 1 speaker: "Jane Smith"
+        - 2 speakers: "Jane Smith & John Doe"
+        - 3 speakers: "Jane Smith, John Doe & Julio Batista"
+        - 4 or more: "Jane Smith, John Doe & 3 more"
+        """
+        speakers_list = list(self.speakers.all().values_list("name", flat=True))
+
+        match speakers_list:
+            case [single_name]:
+                return single_name
+            case [first, second]:
+                return f"{first} & {second}"
+            case [first, second, third]:
+                return f"{first}, {second} & {third}"
+            case [first, second, *others]:
+                return f"{first}, {second} & {len(others)} more"
+            case _:
+                return ""
 
     def is_upcoming(self) -> bool:
         """Check if the talk is in the future."""
