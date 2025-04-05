@@ -5,7 +5,8 @@ This module provides the Talk model for storing and managing conference talks, i
 metadata, scheduling information, and video links.
 """
 
-from typing import ClassVar
+from datetime import timedelta
+from typing import Any, ClassVar
 
 from django.conf import settings
 from django.db import models
@@ -112,13 +113,22 @@ class Talk(models.Model):
         """Return a string representation of the talk."""
         return f"{self.title} by {self.speaker_name}"
 
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Save the talk instance.
+
+        Set the duration based on the presentation type if not already set.
+        """
+        if self.duration is None:
+            if self.presentation_type == self.PresentationType.TALK:
+                self.duration = timedelta(minutes=30)
+            elif self.presentation_type == self.PresentationType.TUTORIAL:
+                self.duration = timedelta(minutes=45)
+        super().save(*args, **kwargs)
+
     def is_upcoming(self) -> bool:
         """Check if the talk is in the future."""
         return self.date_time > timezone.now()
-
-    def get_duration(self) -> int | None:
-        """Return talk duration in minutes if set."""
-        return getattr(self, "duration", None)
 
     def get_image_url(self) -> str:
         """
