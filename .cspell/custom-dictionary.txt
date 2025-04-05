@@ -29,6 +29,7 @@ formmethod
 fullscreen
 gcwv
 htmx
+ipython
 isort
 levelname
 linecap
