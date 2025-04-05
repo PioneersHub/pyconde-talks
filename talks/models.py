@@ -44,6 +44,11 @@ class Talk(models.Model):
     date_time = models.DateTimeField(
         help_text="Date and time when the talk is scheduled",
     )
+    duration = models.DurationField(
+        help_text="Duration of the talk",
+        blank=True,
+        null=True,
+    )
     room = models.CharField(
         max_length=50,
         help_text="Room where the talk takes place",
