@@ -28,6 +28,7 @@ formaction
 formmethod
 fullscreen
 gcwv
+Genderqueer
 htmx
 ipython
 isort

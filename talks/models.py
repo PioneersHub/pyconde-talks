@@ -16,6 +16,16 @@ from django.utils import timezone
 class Speaker(models.Model):
     """Represents a conference speaker."""
 
+    class Gender(models.TextChoices):
+        """Enumeration of gender options available for speakers."""
+
+        MAN = "M", "Man"
+        WOMAN = "W", "Woman"
+        NON_BINARY = "NB", "Non-binary"
+        GENDERQUEER = "GQ", "Genderqueer"
+        SELF_DESCRIBE = "SD", "Self-describe"
+        PREFER_NOT_TO_SAY = "NS", "Prefer not to say"
+
     name = models.CharField(
         max_length=200,
         help_text="Full name of the speaker",
@@ -29,6 +39,25 @@ class Speaker(models.Model):
     avatar = models.URLField(
         help_text="URL to the speaker's avatar image",
         blank=True,
+    )
+
+    gender = models.CharField(
+        max_length=2,
+        choices=Gender.choices,
+        blank=True,
+        help_text="Gender identity (optional)",
+    )
+
+    gender_self_description = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="If you selected 'Self-describe', please specify your gender identity",
+    )
+
+    pronouns = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Preferred pronouns (e.g., he/him, she/her, they/them)",
     )
 
     def __str__(self) -> str:
