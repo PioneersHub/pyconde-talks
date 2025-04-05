@@ -13,6 +13,29 @@ from django.db import models
 from django.utils import timezone
 
 
+class Speaker(models.Model):
+    """Represents a conference speaker."""
+
+    name = models.CharField(
+        max_length=200,
+        help_text="Full name of the speaker",
+    )
+
+    biography = models.TextField(
+        help_text="Biography of the speaker",
+        blank=True,
+    )
+
+    avatar = models.URLField(
+        help_text="URL to the speaker's avatar image",
+        blank=True,
+    )
+
+    def __str__(self) -> str:
+        """Return the speaker name."""
+        return self.name
+
+
 class Talk(models.Model):
     """Represents a conference talk."""
 
@@ -32,9 +55,10 @@ class Talk(models.Model):
         max_length=200,
         help_text="Title of the talk",
     )
-    speaker_name = models.CharField(
-        max_length=100,
-        help_text="Full name of the speaker",
+    speakers = models.ManyToManyField(
+        Speaker,
+        related_name="talks",
+        help_text="Speakers giving this talk",
     )
     abstract = models.TextField(
         help_text="Talk abstract",
