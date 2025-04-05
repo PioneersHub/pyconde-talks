@@ -96,6 +96,9 @@ unsafe-fixes = false
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = true
 
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = true
+
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [

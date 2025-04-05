@@ -34,7 +34,7 @@ class Command(BaseCommand):
             help="Email address for the new user",
         )
 
-    def handle(self, *args: Any, **options: dict[str, Any]) -> None:  # noqa: ANN401, ARG002
+    def handle(self, *args: Any, **options: dict[str, Any]) -> None:  # noqa: ARG002
         """
         Handle the command execution.
 
