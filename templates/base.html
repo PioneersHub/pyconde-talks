@@ -1,4 +1,5 @@
 {% load static %}
+{% load svg_tags %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -21,13 +22,7 @@
   <body class="bg-gray-100">
     <nav class="bg-blue-600 text-white p-4">
       <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
-        <a href="{% url 'home' %}" aria-label="Home">
-          <object class="w-25 h-20 header-logo"
-                  type="image/svg+xml"
-                  data="{% static 'images/logo-white.svg' %}">
-            <span>PyCon DE &amp; PyData 2025</span>
-          </object>
-        </a>
+        <a href="{% url 'home' %}" aria-label="Home">{% svg 'pyconde-pydata-logo' "w-25 h-20 header-logo" %}</a>
         {% if user.is_authenticated %}
           <span>{{ user.email }} |
             <a href="{% url 'account_logout' %}" class="hover:underline">Logout</a></span>

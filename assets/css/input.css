@@ -79,6 +79,7 @@
 @layer utilities {
   .header-logo {
     pointer-events: none;
+    fill: var(--color-white);
   }
 
   .text-brand-blue {
