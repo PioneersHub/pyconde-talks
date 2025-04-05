@@ -33,6 +33,10 @@ class Talk(models.Model):
         max_length=50,
         help_text="Room where the talk takes place",
     )
+    track = models.CharField(
+        max_length=50,
+        help_text="Track or category of the talk",
+    )
     external_image_url = models.URLField(
         help_text="URL to an externally hosted image",
         blank=True,
