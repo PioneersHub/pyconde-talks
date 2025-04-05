@@ -48,6 +48,7 @@ pycache
 pycon
 pyconde
 pydata
+pytanis
 pytest
 Reswap
 Retarget
