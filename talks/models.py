@@ -16,6 +16,12 @@ from django.utils.translation import gettext_lazy as _
 
 # Constants
 FAR_FUTURE = datetime(2050, 1, 1, 0, 0, 0, tzinfo=UTC)
+MAX_PRETALX_ID_LENGTH = 50
+MAX_PRONOUNS_LENGTH = 50
+MAX_ROOM_NAME_LENGTH = 50
+MAX_SPEAKER_NAME_LENGTH = 200
+MAX_TALK_TITLE_LENGTH = 250
+MAX_TRACK_NAME_LENGTH = 50
 
 
 class Speaker(models.Model):
@@ -32,7 +38,7 @@ class Speaker(models.Model):
         PREFER_NOT_TO_SAY = "NS", _("Prefer not to say")
 
     name = models.CharField(
-        max_length=200,
+        max_length=MAX_SPEAKER_NAME_LENGTH,
         help_text=_("Full name of the speaker"),
     )
 
@@ -60,13 +66,13 @@ class Speaker(models.Model):
     )
 
     pronouns = models.CharField(
-        max_length=50,
+        max_length=MAX_PRONOUNS_LENGTH,
         blank=True,
         help_text=_("Preferred pronouns (e.g., he/him, she/her, they/them)"),
     )
 
     pretalx_id = models.CharField(
-        max_length=50,
+        max_length=MAX_PRETALX_ID_LENGTH,
         help_text=_("Unique identifier for the speaker in the Pretalx system"),
     )
 
@@ -91,7 +97,7 @@ class Talk(models.Model):
         help_text=_("Type of the presentation"),
     )
     title = models.CharField(
-        max_length=200,
+        max_length=MAX_TALK_TITLE_LENGTH,
         help_text=_("Title of the talk"),
     )
     speakers = models.ManyToManyField(
@@ -118,13 +124,13 @@ class Talk(models.Model):
         help_text=_("Duration of the talk"),
     )
     room = models.CharField(
-        max_length=50,
+        max_length=MAX_ROOM_NAME_LENGTH,
         help_text=_("Room where the talk takes place"),
         blank=True,
         default="",
     )
     track = models.CharField(
-        max_length=50,
+        max_length=MAX_TRACK_NAME_LENGTH,
         help_text=_("Track or category of the talk"),
         blank=True,
         default="",
