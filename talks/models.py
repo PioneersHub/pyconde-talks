@@ -5,7 +5,7 @@ This module provides the Talk model for storing and managing conference talks, i
 metadata, scheduling information, and video links.
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, ClassVar, cast
 
 from django.conf import settings
@@ -14,8 +14,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 
-# Constant for unscheduled talks
-FAR_FUTURE = datetime(2050, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+# Constants
+FAR_FUTURE = datetime(2050, 1, 1, 0, 0, 0, tzinfo=UTC)
 
 
 class Speaker(models.Model):
