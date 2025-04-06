@@ -1,10 +1,12 @@
 """Views for user authentication."""
 
 import logging
+from typing import Any, cast
 
 from allauth.account.adapter import get_adapter
 from allauth.account.forms import LoginForm
 from allauth.account.views import RequestLoginCodeView
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import DatabaseError, IntegrityError
@@ -68,3 +70,18 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):
 
         # Proceed with standard login code process
         return super().form_valid(form)
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """
+        Enhance the template context with login code timeout information.
+
+        This method extends the parent context by adding the login code timeout value in minutes,
+        calculated from settings.ACCOUNT_LOGIN_BY_CODE_TIMEOUT.
+        """
+        context = cast("dict[str, Any]", super().get_context_data(**kwargs))
+        timeout_seconds = getattr(settings, "ACCOUNT_LOGIN_BY_CODE_TIMEOUT", 180)
+        timeout_minutes = timeout_seconds / 60
+        context["login_code_timeout_minutes"] = (
+            int(timeout_minutes) if timeout_minutes.is_integer() else timeout_minutes
+        )
+        return context
