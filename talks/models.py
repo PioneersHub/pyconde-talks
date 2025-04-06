@@ -65,6 +65,11 @@ class Speaker(models.Model):
         help_text=_("Preferred pronouns (e.g., he/him, she/her, they/them)"),
     )
 
+    pretalx_id = models.CharField(
+        max_length=50,
+        help_text=_("Unique identifier for the speaker in the Pretalx system"),
+    )
+
     def __str__(self) -> str:
         """Return the speaker name."""
         return self.name
