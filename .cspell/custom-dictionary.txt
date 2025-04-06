@@ -4,6 +4,7 @@ anymail
 asgi
 autoplay
 batisteo
+bezier
 bothify
 bradlc
 cffi
