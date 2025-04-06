@@ -47,10 +47,10 @@ class Speaker(models.Model):
     )
 
     gender = models.CharField(
+        help_text=_("Gender identity (optional)"),
         max_length=2,
         choices=Gender.choices,
         blank=True,
-        help_text=_("Gender identity (optional)"),
     )
 
     gender_self_description = models.CharField(
