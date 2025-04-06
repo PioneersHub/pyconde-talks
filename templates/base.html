@@ -19,7 +19,7 @@
     </title>
     <script src="{% static 'js/htmx.min.js' %}" defer></script>
   </head>
-  <body class="bg-gray-100">
+  <body class="bg-gray-100 flex flex-col min-h-screen">
     <nav class="bg-blue-600 text-white p-4">
       <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
         <a href="{% url 'home' %}" aria-label="Home">{% svg 'pyconde-pydata-logo' "w-25 h-20 header-logo" %}</a>
@@ -29,7 +29,7 @@
         {% endif %}
       </div>
     </nav>
-    <main class="container mx-auto mt-8 px-4">
+    <main class="container mx-auto mt-8 px-4 grow">
       {% block content %}
       {% endblock content %}
     </main>
