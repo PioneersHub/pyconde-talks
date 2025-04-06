@@ -13,6 +13,7 @@ FAKE_DATA_COUNT="${FAKE_DATA_COUNT:-50}"
 RUN_SERVER="${RUN_SERVER:-true}"
 SKIP_STEPS="${SKIP_STEPS:-}"
 GEN_FAKE_DATA="${GEN_FAKE_DATA:-true}"
+PRETALX_SYNC="${PRETALX_SYNC:-false}"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -165,6 +166,11 @@ initialize_django() {
         "$VENV_PYTHON" manage.py generate_fake_talks --count "$FAKE_DATA_COUNT" || warn "Failed to generate fake data"
     fi
 
+    # Sync with Pretalx
+    if [ "$PRETALX_SYNC" = "true" ]; then
+        log "Syncing with Pretalx..."
+        "$VENV_PYTHON" manage.py import_pretalx_talks --verbosity 3 || warn "Failed to import talks from Pretalx"
+    fi
 }
 
 # Start services
