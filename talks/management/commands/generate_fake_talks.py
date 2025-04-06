@@ -3,6 +3,7 @@
 
 import random
 from datetime import datetime, timedelta
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from django.core.management.base import BaseCommand, CommandParser
@@ -37,14 +38,13 @@ class Command(BaseCommand):
             help="Base conference date (YYYY-MM-DD)",
         )
 
-    def handle(self, **options: dict[str, str | int]) -> None:
+    def handle(self, *args: Any, **options: Any) -> None:  # noqa: ARG002
         """
         Generate fake conference talks.
 
-        Args:
-            **options: Command options including:
-                - count: Number of talks to generate
-                - date: Base conference date
+        options:
+            - count: Number of talks to generate
+            - date: Base conference date
 
         """
         fake = Faker()
