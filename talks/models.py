@@ -115,10 +115,14 @@ class Talk(models.Model):
     room = models.CharField(
         max_length=50,
         help_text=_("Room where the talk takes place"),
+        blank=True,
+        default="",
     )
     track = models.CharField(
         max_length=50,
         help_text=_("Track or category of the talk"),
+        blank=True,
+        default="",
     )
     external_image_url = models.URLField(
         blank=True,
@@ -133,9 +137,13 @@ class Talk(models.Model):
     )
     pretalx_link = models.URLField(
         help_text=_("Link to talk description in pretalx"),
+        blank=True,
+        default="",
     )
     slido_link = models.URLField(
         help_text=_("Link to questions on Slido"),
+        blank=True,
+        default="",
     )
     video_link = models.URLField(
         blank=True,
