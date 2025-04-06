@@ -6,7 +6,7 @@ metadata, scheduling information, and video links.
 """
 
 from datetime import datetime, timedelta
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 from django.conf import settings
 from django.db import models
@@ -224,7 +224,7 @@ class Talk(models.Model):
         Use a default placeholder image if neither is set.
         """
         if self.image:
-            return self.image.url
+            return cast("str", self.image.url)
         if self.external_image_url:
             return self.external_image_url
         return f"{settings.MEDIA_URL}talk_images/default.jpg"
