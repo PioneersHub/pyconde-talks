@@ -12,6 +12,7 @@ DJANGO_SUPERUSER_PASSWORD="${DJANGO_SUPERUSER_PASSWORD:-PyConDE_2025}"
 FAKE_DATA_COUNT="${FAKE_DATA_COUNT:-50}"
 RUN_SERVER="${RUN_SERVER:-true}"
 SKIP_STEPS="${SKIP_STEPS:-}"
+GEN_FAKE_DATA="${GEN_FAKE_DATA:-true}"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -158,9 +159,12 @@ initialize_django() {
     "$VENV_PYTHON" manage.py createuser --email=user1@example.com || warn "User1 creation failed"
     "$VENV_PYTHON" manage.py createuser --email=user2@example.com || warn "User2 creation failed"
 
-    # Generate test data
-    log "Generating fake talks..."
-    "$VENV_PYTHON" manage.py generate_fake_talks --count "$FAKE_DATA_COUNT" || warn "Failed to generate fake data"
+    # Generate test data if requested
+    if [ "$GEN_FAKE_DATA" = "true" ]; then
+        log "Generating fake talks..."
+        "$VENV_PYTHON" manage.py generate_fake_talks --count "$FAKE_DATA_COUNT" || warn "Failed to generate fake data"
+    fi
+
 }
 
 # Start services
