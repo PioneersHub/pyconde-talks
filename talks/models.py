@@ -37,13 +37,13 @@ class Speaker(models.Model):
     )
 
     biography = models.TextField(
-        help_text=_("Biography of the speaker"),
         blank=True,
+        help_text=_("Biography of the speaker"),
     )
 
     avatar = models.URLField(
-        help_text=_("URL to the speaker's avatar image"),
         blank=True,
+        help_text=_("URL to the speaker's avatar image"),
     )
 
     gender = models.CharField(
@@ -95,9 +95,11 @@ class Talk(models.Model):
         help_text=_("Speakers giving this talk"),
     )
     abstract = models.TextField(
+        blank=True,
         help_text=_("Talk abstract"),
     )
     description = models.TextField(
+        blank=True,
         help_text=_("Full description of the talk"),
     )
     date_time = models.DateTimeField(
@@ -106,9 +108,9 @@ class Talk(models.Model):
         help_text=_("Date and time when the talk is scheduled"),
     )
     duration = models.DurationField(
-        help_text=_("Duration of the talk"),
         blank=True,
         null=True,
+        help_text=_("Duration of the talk"),
     )
     room = models.CharField(
         max_length=50,
@@ -119,17 +121,15 @@ class Talk(models.Model):
         help_text=_("Track or category of the talk"),
     )
     external_image_url = models.URLField(
-        help_text=_("URL to an externally hosted image"),
         blank=True,
         default="",
+        help_text=_("URL to an externally hosted image"),
     )
     image = models.ImageField(
         upload_to="talk_images/",
-        help_text=_(
-            "Speaker or talk-related image (use if the external URL is bad or not available)",
-        ),
         blank=True,
         null=True,
+        help_text=_("Image for the talk. Overrides the external image URL if provided."),
     )
     pretalx_link = models.URLField(
         help_text=_("Link to talk description in pretalx"),
@@ -138,14 +138,14 @@ class Talk(models.Model):
         help_text=_("Link to questions on Slido"),
     )
     video_link = models.URLField(
-        help_text=_("Link to talk recording on Vimeo"),
         blank=True,
         default="",
+        help_text=_("Link to talk recording on Vimeo"),
     )
     video_start_time = models.PositiveIntegerField(
-        help_text=_("Start time in seconds"),
         blank=True,
         default=0,
+        help_text=_("Start time in seconds"),
     )
     hide = models.BooleanField(
         default=False,
