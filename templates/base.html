@@ -18,6 +18,17 @@
       {% endblock title %}
     </title>
     <script src="{% static 'js/htmx.min.js' %}" defer></script>
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      main {
+        flex-grow: 1;
+      }
+    </style>
   </head>
   <body class="bg-gray-100">
     <nav class="bg-blue-600 text-white p-4">
