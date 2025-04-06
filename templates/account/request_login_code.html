@@ -1,23 +1,80 @@
 {% extends "base.html" %}
+{% load i18n %}
+{% load svg_tags %}
+{% block title %}
+  {% translate "Sign In" %}
+{% endblock title %}
+{% block meta_description %}
+  {% translate "Request a login code to access your account without a password" %}
+{% endblock meta_description %}
 {% block content %}
-  <div class="max-w-md mx-auto p-4">
-    <div class="bg-white rounded-lg shadow-sm p-6">
-      <h1 class="text-2xl font-bold text-center mb-6">Enter Email</h1>
+  <div class="max-w-md mx-auto p-4 animate-fade-in">
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h1 class="text-2xl font-bold text-center mb-2">{% translate "Sign in with Email" %}</h1>
+      <p class="text-gray-600 text-center mb-6">{% translate "We'll send a secure login code to your email" %}</p>
       {% if form.non_field_errors %}
-        <div class="mb-4 p-4 rounded-lg bg-red-100 text-red-700">{{ form.non_field_errors }}</div>
+        <div class="mb-4 p-4 rounded-lg bg-red-100 text-red-700 border border-red-200 flex items-start gap-2"
+             role="alert">
+          {% svg 'envelope' "flex-shrink-0 mt-0.5" %}
+          <span>{{ form.non_field_errors }}</span>
+        </div>
       {% endif %}
       <form method="post" action="{% url 'account_request_login_code' %}">
         {% csrf_token %}
-        <div class="mb-4">
-          <label for="{{ form.email.id_for_label }}"
-                 class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-          {{ form.email.errors }} {{ form.email }}
+        <div class="mb-6">
+          <div class="flex justify-between items-center mb-1">
+            <label for="{{ form.email.id_for_label }}"
+                   class="text-sm font-medium text-gray-700">{% translate "Email Address" %}</label>
+            <span class="text-xs text-blue-600">{% translate "Use your ticket email" %}</span>
+          </div>
+          {% if form.email.errors %}
+            <div class="text-sm text-red-600 mb-2 flex items-center gap-1">
+              {% svg 'exclamation-circle' %}
+              {{ form.email.errors }}
+            </div>
+          {% endif %}
+          <!-- Email input with icon -->
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              {% svg 'envelope' "h-5 w-5 text-gray-400" %}
+            </div>
+            <input type="email"
+                   name="email"
+                   id="{{ form.email.id_for_label }}"
+                   placeholder="{% translate "your@email.com" %}"
+                   required
+                   class="w-full pl-10 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                   {% if form.email.value %}value="{{ form.email.value }}"{% endif %}>
+          </div>
+          <p class="mt-1 text-xs text-gray-500">{% translate "Check your inbox for a login code after submission" %}</p>
         </div>
         <button type="submit"
-                class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-          Send Login Code
+                class="w-full bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium">
+          {% translate "Send Login Code" %}
         </button>
       </form>
+    </div>
+    <!-- Ticket instructions section -->
+    <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+      <h2 class="font-medium text-blue-800 mb-2">{% translate "Important Note" %}</h2>
+      <div class="text-sm text-blue-700 space-y-2">
+        <p>
+          {% translate "Please use the same email address that you used when purchasing your PyCon DE &amp; PyData ticket." %}
+        </p>
+        <div class="flex items-start gap-2 mt-2">
+          {% svg 'check-circle' "text-blue-600 mt-0.5" %}
+          <p>{% translate "Your login code will be valid for" %} {{ login_code_timeout_minutes }} {% translate "minutes." %}</p>
+        </div>
+      </div>
+    </div>
+    <!-- How it works section -->
+    <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <h2 class="font-medium text-gray-800 mb-2">{% translate "How it works" %}</h2>
+      <ol class="list-decimal pl-5 text-sm text-gray-700 space-y-1">
+        <li>{% translate "Enter your ticket purchase email address" %}</li>
+        <li>{% translate "We'll send you a secure login code" %}</li>
+        <li>{% translate "Enter the code on the next screen to sign in" %}</li>
+      </ol>
     </div>
   </div>
 {% endblock content %}
