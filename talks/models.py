@@ -85,10 +85,20 @@ class Talk(models.Model):
     """Represents a conference talk."""
 
     class PresentationType(models.TextChoices):
-        """Enumeration of presentation types."""
+        """
+        Enumeration of presentation types.
+
+        Values in Pretalx:
+        - Sponsored Talk
+        - Talk (long)
+        - Keynote
+        - Kids Workshop
+        """
 
         TALK = "Talk", _("Talk")
         TUTORIAL = "Tutorial", _("Tutorial")
+        KEYNOTE = "Keynote", _("Keynote")
+        KIDS = "Kids", _("Kids")
 
     presentation_type = models.CharField(
         max_length=10,
