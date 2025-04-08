@@ -8,6 +8,7 @@
     "tamasfe.even-better-toml",
     "batisteo.vscode-django",
     "bradlc.vscode-tailwindcss",
-    "monosans.djlint"
+    "monosans.djlint",
+    "pycqa.bandit-pycqa"
   ]
 }
