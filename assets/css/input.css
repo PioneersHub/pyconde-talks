@@ -103,7 +103,8 @@
   }
 
   button.go-back,
-  .go-back-button {
+  .go-back-button,
+  .try-again-button {
     cursor: pointer;
   }
 }
