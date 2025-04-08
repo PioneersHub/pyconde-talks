@@ -119,7 +119,7 @@ class AccountAdapter(DefaultAccountAdapter):
     )
     def _call_validation_api(email: str) -> dict:
         """Call the validation API with retry."""
-        response = requests.post(
+        response = requests.post(  # nosec: B113
             settings.EMAIL_VALIDATION_API_URL,
             json={"email": email},
             timeout=getattr(settings, "EMAIL_VALIDATION_API_TIMEOUT", 5),

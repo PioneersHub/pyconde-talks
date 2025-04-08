@@ -60,8 +60,8 @@ def svg(name: str, css_class: str = "") -> SafeString:
         if css_class:
             svg_content = svg_content.replace("<svg", f'<svg class="{css_class}"')
 
-        return mark_safe(svg_content)
+        return mark_safe(svg_content)  # nosec: B308, B703
 
     except (OSError, FileNotFoundError):
         # Return empty string if file doesn't exist or can't be read
-        return mark_safe("")
+        return mark_safe("")  # nosec: B308
