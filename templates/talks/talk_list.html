@@ -15,7 +15,13 @@
           <option value="">All Days</option>
           {% for date in dates %}
             <option value="{{ date|date:'Y-m-d' }}"
-                    {% if date|date:'Y-m-d' == selected_date %}selected{% endif %}>{{ date|date:"l, F j" }}</option>
+                    {% if date|date:'Y-m-d' == selected_date %}selected{% endif %}>
+              {% if has_multiple_years %}
+                {{ date|date:"l, F j, Y" }}
+              {% else %}
+                {{ date|date:"l, F j" }}
+              {% endif %}
+            </option>
           {% endfor %}
         </select>
         <select name="room" class="border rounded px-2 py-1">

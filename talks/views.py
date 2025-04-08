@@ -92,6 +92,11 @@ class TalkListView(LoginRequiredMixin, ListView):
             .distinct()
             .order_by("date")
         )
+
+        # Check if there are multiple years
+        years = {date.year for date in context["dates"]}
+        context["has_multiple_years"] = len(years) > 1
+
         # Get unique tracks
         context["tracks"] = (
             Talk.objects.values_list("track", flat=True).distinct().order_by("track")
