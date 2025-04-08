@@ -116,9 +116,7 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
         "todays_talks": Talk.objects.filter(
             date_time__date=current_time.date(),
         ).count(),
-        "recorded_talks": Talk.objects.filter(
-            video_link__isnull=False,
-        ).count(),
+        "recorded_talks": Talk.objects.exclude(video_link="").count(),
     }
     return render(request, "talks/partials/dashboard_stats.html", context)
 
