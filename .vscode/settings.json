@@ -5,6 +5,8 @@
     "editor.defaultFormatter": "monosans.djlint"
   },
   "djlint.enableLinting": true,
+  "djlint.formatCss": true,
+  "djlint.formatJs": true,
   "python.defaultInterpreterPath": "./.venv/bin/python",
   "python.testing.pytestArgs": ["--import-mode=importlib"],
   "python.testing.pytestEnabled": true,
