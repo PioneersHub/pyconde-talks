@@ -10,7 +10,7 @@ repos:
       - id: check-yaml
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.2
+    rev: v0.11.4
     hooks:
       - id: ruff
         args: [--fix]
@@ -36,3 +36,9 @@ repos:
           - .git/COMMIT_EDITMSG
         stages: [commit-msg]
         always_run: true
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.3
+    hooks:
+    -   id: bandit
+        args: ["-ll"]
