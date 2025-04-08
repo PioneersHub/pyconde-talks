@@ -102,7 +102,15 @@ class TalkListView(LoginRequiredMixin, ListView):
             Talk.objects.values_list("track", flat=True).distinct().order_by("track")
         )
         # Get presentation types
-        context["presentation_types"] = Talk.PresentationType.choices
+        existing_types = (
+            Talk.objects.values_list("presentation_type", flat=True)
+            .distinct()
+            .order_by("presentation_type")
+        )
+        context["presentation_types"] = [
+            (ptype, Talk.PresentationType(ptype).label) for ptype in existing_types
+        ]
+
         # Set the selected values for filters
         context["selected_room"] = self.request.GET.get("room", "")
         context["selected_date"] = self.request.GET.get("date", "")
