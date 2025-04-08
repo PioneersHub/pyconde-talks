@@ -101,4 +101,9 @@
   .border-brand-blue {
     border-color: var(--blue);
   }
+
+  button.go-back,
+  .go-back-button {
+    cursor: pointer;
+  }
 }

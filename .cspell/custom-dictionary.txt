@@ -43,6 +43,7 @@ msys
 mypy
 noinput
 noreload
+onclick
 passwordless
 pretalx
 pycache
