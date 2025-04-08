@@ -651,6 +651,9 @@ class Command(BaseCommand):
         type_mapping = {
             "Keynote": Talk.PresentationType.KEYNOTE,
             "Kids Workshop": Talk.PresentationType.KIDS,
+            "Panel": Talk.PresentationType.PANEL,
+            "Sponsored Talk (Keystone)": Talk.PresentationType.TUTORIAL,
+            "Sponsored Talk (long)": Talk.PresentationType.TALK,
             "Sponsored Talk": Talk.PresentationType.TALK,
             "Talk (long)": Talk.PresentationType.TALK,
             "Talk": Talk.PresentationType.TALK,

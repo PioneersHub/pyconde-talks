@@ -89,16 +89,22 @@ class Talk(models.Model):
         Enumeration of presentation types.
 
         Values in Pretalx:
-        - Sponsored Talk
-        - Talk (long)
         - Keynote
         - Kids Workshop
+        - Panel
+        - Sponsored Talk
+        - Sponsored Talk (Keystone)
+        - Sponsored Talk (long)
+        - Talk
+        - Talk (long)
+        - Tutorial
         """
 
-        TALK = "Talk", _("Talk")
-        TUTORIAL = "Tutorial", _("Tutorial")
         KEYNOTE = "Keynote", _("Keynote")
         KIDS = "Kids", _("Kids")
+        PANEL = "Panel", _("Panel")
+        TALK = "Talk", _("Talk")
+        TUTORIAL = "Tutorial", _("Tutorial")
 
     presentation_type = models.CharField(
         max_length=10,
