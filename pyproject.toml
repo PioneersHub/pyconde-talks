@@ -36,6 +36,7 @@ dependencies = [
     "django-allauth[socialaccount]>=65.7.0",
     "django-anymail[mailgun]>=13.0",
     "django-environ>=0.12.0",
+    "django-health-check>=3.18.3",
     "django-htmx>=1.23.0",
     "django-template-partials>=24.4",
     "pillow>=11.1.0",

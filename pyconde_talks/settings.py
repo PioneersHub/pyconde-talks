@@ -79,6 +79,8 @@ THIRD_PARTY_APPS = [
     "allauth.account",
     "django_htmx",
     "template_partials",
+    "health_check",
+    "health_check.db",
 ]
 LOCAL_APPS = [
     "users",
