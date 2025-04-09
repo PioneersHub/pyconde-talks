@@ -1,8 +1,8 @@
 """Views for user authentication."""
 
-import logging
 from typing import Any, cast
 
+import structlog
 from allauth.account.adapter import get_adapter
 from allauth.account.forms import LoginForm
 from allauth.account.views import RequestLoginCodeView
@@ -16,7 +16,7 @@ from pyconde_talks.utils.email_utils import hash_email
 
 
 # Get logger
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class CustomRequestLoginCodeView(RequestLoginCodeView):
@@ -38,7 +38,7 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):
 
         # Check if the email is authorized
         if not adapter.is_email_authorized(email):
-            logger.warning("Unauthorized access attempt from email: %s", email_hash)
+            logger.warning("Unauthorized access attempt", email=email_hash)
             form.add_error("email", "This email is not authorized for access.")
             return self.form_invalid(form)
 
@@ -46,25 +46,25 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):
         UserModel = get_user_model()  # noqa: N806
         if not UserModel.objects.filter(email=email).exists():
             try:
-                logger.info("Creating new user account for email: %s", email_hash)
+                logger.info("Creating new user account", email=email_hash)
                 UserModel.objects.create_user(email=email, is_active=True)
-                logger.info("Successfully created user account for: %s", email_hash)
+                logger.info("Successfully created user account", email=email_hash)
             except (IntegrityError, ValidationError) as e:
-                logger.warning("Failed to create user for %s: %s", email_hash, str(e))
+                logger.warning("Failed to create user", email=email_hash, error=str(e))
                 form.add_error(
                     "email",
                     "Unable to create account. Please ensure your email is valid.",
                 )
                 return self.form_invalid(form)
             except DatabaseError:
-                logger.exception("Database error creating user for %s", email_hash)
+                logger.exception("Database error creating user", email=email_hash)
                 form.add_error(
                     "email",
                     "System error while creating account. Please try again later.",
                 )
                 return self.form_invalid(form)
             except Exception:
-                logger.exception("Unexpected error creating user for %s", email_hash)
+                logger.exception("Unexpected error creating user", email=email_hash)
                 form.add_error("email", "Error creating user. Please try again later.")
                 return self.form_invalid(form)
 

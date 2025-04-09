@@ -7,6 +7,7 @@ batisteo
 bezier
 bothify
 bradlc
+Callsite
 cffi
 charliermarsh
 conftest
@@ -61,6 +62,8 @@ slido
 socialaccount
 sqlite
 startpartial
+staticfiles
+structlog
 stylesheet
 tailwindcss
 tamasfe

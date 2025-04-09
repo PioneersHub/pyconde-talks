@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import environ
+import structlog
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -73,6 +74,7 @@ DJANGO_APPS = [
     "django.forms",
 ]
 THIRD_PARTY_APPS = [
+    "django_structlog",
     # https://docs.djangoproject.com/en/dev/howto/deployment/asgi/daphne/
     "daphne",
     "allauth",
@@ -306,64 +308,141 @@ EMAIL_TIMEOUT = 5
 # --------------------------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#logging
 # https://docs.djangoproject.com/en/dev/topics/logging
+
+# Ensure log directory exists
+log_dir = Path(env("LOG_DIR", default=BASE_DIR / "logs"))
+log_dir.mkdir(parents=True, exist_ok=True)
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
-        "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
-            "style": "{",
+        "colored_console": {
+            "()": structlog.stdlib.ProcessorFormatter,
+            "processor": structlog.dev.ConsoleRenderer(colors=True),
         },
-        "simple": {
-            "format": "{levelname} {message}",
-            "style": "{",
-        },
-    },
-    "filters": {
-        "require_debug_true": {
-            "()": "django.utils.log.RequireDebugTrue",
-        },
-        "require_debug_false": {
-            "()": "django.utils.log.RequireDebugFalse",
+        "json_formatter": {
+            "()": structlog.stdlib.ProcessorFormatter,
+            "processor": structlog.processors.JSONRenderer(),
         },
     },
     "handlers": {
         "console": {
-            "level": "INFO",
-            "filters": ["require_debug_true"],
             "class": "logging.StreamHandler",
-            "formatter": "simple",
+            "formatter": "colored_console",
         },
-        "mail_admins": {
+        "json_file": {
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": log_dir / "django.log",
+            "formatter": "json_formatter",
+            "when": "midnight",
+            "backupCount": 30,
+        },
+        "error_file": {
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": log_dir / "error.log",
+            "formatter": "json_formatter",
+            "when": "midnight",
+            "backupCount": 90,
             "level": "ERROR",
-            "filters": ["require_debug_false"],
-            "class": "django.utils.log.AdminEmailHandler",
-        },
-        "file": {
-            "level": "INFO",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": env("LOG_PATH", default=BASE_DIR / "logs/info.log"),
-            "formatter": "verbose",
-            "maxBytes": 20 * 1024 * 1024,  # 20MB
-            "backupCount": 10,
         },
     },
     "root": {
-        "level": "INFO",
-        "handlers": ["console", "file"],
+        "handlers": ["console", "json_file"],
+        "level": "WARNING",
     },
     "loggers": {
         "django": {
-            "handlers": ["console", "file"],
-            "propagate": True,
+            "handlers": ["console", "json_file"],
+            "level": "WARNING",
+            "propagate": False,
         },
         "django.request": {
-            "handlers": ["mail_admins"],
+            "handlers": ["error_file"],
             "level": "ERROR",
+            "propagate": True,
+        },
+        "django.security": {
+            "handlers": ["error_file"],
+            "level": "WARNING",
+            "propagate": True,
+        },
+        "django.db.backends": {
+            "level": env("DJANGO_DATABASE_LOG_LEVEL", default="ERROR"),
+            "handlers": ["error_file"],
+            "propagate": False,
+        },
+        "pyconde_talks": {
+            "level": env("LOG_LEVEL", default="INFO"),
+            "handlers": ["console", "json_file", "error_file"],
+            "propagate": False,
+        },
+        "users": {
+            "level": env("LOG_LEVEL", default="INFO"),
+            "handlers": ["console", "json_file", "error_file"],
+            "propagate": False,
+        },
+        "talks": {
+            "level": env("LOG_LEVEL", default="INFO"),
+            "handlers": ["console", "json_file", "error_file"],
             "propagate": False,
         },
     },
 }
+
+# Structlog configuration
+processors = []
+
+# Add CallsiteParameterAdder in debug mode
+if DEBUG:
+    processors.append(
+        # Add source code location information (file, function, line) where the log was called
+        structlog.processors.CallsiteParameterAdder(
+            parameters=(
+                structlog.processors.CallsiteParameter.FILENAME,
+                structlog.processors.CallsiteParameter.FUNC_NAME,
+                structlog.processors.CallsiteParameter.LINENO,
+            ),
+        ),
+    )
+
+# Then add all your other processors
+processors.extend(
+    [
+        # Add context variables from the current context
+        structlog.contextvars.merge_contextvars,
+        # Filter logs according to their level
+        structlog.stdlib.filter_by_level,
+        # Add a timestamp in ISO 8601 format
+        structlog.processors.TimeStamper(fmt="iso"),
+        # Add the logger name
+        structlog.stdlib.add_logger_name,
+        # Add the log level
+        structlog.stdlib.add_log_level,
+        # Replace positional arguments with properly formatted strings
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        # Add stack information for warnings and above
+        structlog.processors.StackInfoRenderer(),
+        # Format exception info if present
+        structlog.processors.format_exc_info,
+        # If some value is in bytes, decode it to unicode
+        structlog.processors.UnicodeDecoder(),
+        # Prepare the event dict for the formatter
+        structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+    ],
+)
+
+structlog.configure(
+    processors=processors,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    cache_logger_on_first_use=True,
+)
+
+structlog.configure(
+    processors=processors,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    cache_logger_on_first_use=True,
+)
 
 # --------------------------------------------------------------------------------------------------
 # Pretalx

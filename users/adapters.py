@@ -1,9 +1,9 @@
 """Custom adapter for django-allauth that validates e-mails using an external API."""
 
-import logging
 from json.decoder import JSONDecodeError
 
 import requests
+import structlog
 from allauth.account.adapter import DefaultAccountAdapter
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -17,7 +17,7 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 from pyconde_talks.utils.email_utils import hash_email
 
 
-logger = logging.getLogger("users.adapters")
+logger = structlog.get_logger(__name__)
 
 
 class AccountAdapter(DefaultAccountAdapter):
@@ -64,7 +64,7 @@ class AccountAdapter(DefaultAccountAdapter):
         """Check if email is locally authorized (whitelist, superuser, or active user)."""
         # Check if email is in the whitelist
         if email in getattr(settings, "AUTHORIZED_EMAILS_WHITELIST", []):
-            logger.info("Email found in whitelist: %s", email_hash)
+            logger.info("Email found in whitelist", email=email_hash)
             return True
 
         # Check if this email belongs to an administrator or active user
@@ -73,15 +73,15 @@ class AccountAdapter(DefaultAccountAdapter):
         try:
             user = UserModel.objects.get(email=email)
             if user.is_superuser:
-                logger.info("Admin authorized: %s", email_hash)
+                logger.info("Admin authorized", email=email_hash)
                 return True
             if user.is_active:
-                logger.info("User authorized: %s", email_hash)
+                logger.info("User authorized", email=email_hash)
                 return True
         except UserModel.DoesNotExist:
-            logger.debug("User with email %s does not exist", email_hash)
+            logger.debug("User with email does not exist", email=email_hash)
         except Exception:
-            logger.exception("Error checking user authorization for email: %s", email_hash)
+            logger.exception("Error checking user authorization for email", email=email_hash)
         return False
 
     def _validate_email_with_api(self, email: str, email_hash: str) -> bool:
@@ -93,20 +93,20 @@ class AccountAdapter(DefaultAccountAdapter):
             is_valid = data.get("valid", False)
 
             if is_valid:
-                logger.info("Successfully validated email: %s", email_hash)
+                logger.info("Successfully validated email", email=email_hash)
             else:
-                logger.warning("Email validation failed for: %s", email_hash)
+                logger.warning("Email validation failed for", email=email_hash)
 
         except Timeout:
-            logger.warning("Timeout validating email: %s", email_hash)
+            logger.warning("Timeout validating email", email=email_hash)
         except RequestsConnectionError:
-            logger.warning("Connection error validating email: %s", email_hash)
+            logger.warning("Connection error validating email", email=email_hash)
         except JSONDecodeError:
-            logger.warning("Invalid JSON response validating email: %s", email_hash)
+            logger.warning("Invalid JSON response validating email", email=email_hash)
         except RequestException as e:
-            logger.warning("Request error validating email: %s. Error: %s", email_hash, str(e))
+            logger.warning("Request error validating email", email=email_hash, error=str(e))
         except Exception:
-            logger.exception("Unexpected error validating email: %s", email_hash)
+            logger.exception("Unexpected error validating email", email=email_hash)
 
         return is_valid
 
