@@ -37,6 +37,11 @@ class Command(BaseCommand):
             default="2025-04-23",
             help="Base conference date (YYYY-MM-DD)",
         )
+        parser.add_argument(
+            "--clear-existing",
+            action="store_true",
+            help="Clear existing rooms, talks and speakers before generating new ones",
+        )
 
     def _create_rooms(self) -> dict[str, list[Room]]:
         """Create room objects for the conference."""
@@ -110,9 +115,18 @@ class Command(BaseCommand):
         options:
             - count: Number of talks to generate
             - date: Base conference date
+            - clear-existing: Whether to clear existing data
+
         """
         fake = Faker()
         talk_count = int(options["count"])
+
+        # Clear existing data if requested
+        if options.get("clear_existing"):
+            self.stdout.write("Clearing existing data...")
+            Talk.objects.all().delete()
+            Speaker.objects.all().delete()
+            Room.objects.all().delete()
 
         # Conference configuration
         base_time = datetime.strptime(str(options["date"]), "%Y-%m-%d").replace(
