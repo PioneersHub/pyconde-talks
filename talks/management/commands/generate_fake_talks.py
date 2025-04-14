@@ -154,6 +154,7 @@ class Command(BaseCommand):
                 gender=gender,
                 gender_self_description=gender_self_description,
                 pronouns=pronouns,
+                pretalx_id=fake.bothify(text="???###").upper(),
             )
             speakers_pool.append(speaker)
             gender_label = dict(Speaker.Gender.choices).get(gender, "")
