@@ -83,6 +83,7 @@ THIRD_PARTY_APPS = [
     "template_partials",
     "health_check",
     "health_check.db",
+    "anymail",
 ]
 LOCAL_APPS = [
     "users",
@@ -315,6 +316,16 @@ EMAIL_HOST = env("EMAIL_HOST", default="localhost")
 EMAIL_PORT = env.int("EMAIL_PORT", default=1025)
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-timeout
 EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
+
+# https://anymail.dev/en/stable/esps/
+# https://anymail.dev/en/stable/esps/mailgun/
+if EMAIL_BACKEND == "anymail.backends.mailgun.EmailBackend":
+    ANYMAIL_MAILGUN_API_KEY = env("MAILGUN_API_KEY")
+    ANYMAIL_MAILGUN_API_URL = env(
+        "MAILGUN_API_URL",
+        default="https://api.eu.mailgun.net/v3",
+    )
+    ANYMAIL_MAILGUN_SENDER_DOMAIN = env("MAILGUN_SENDER_DOMAIN")
 
 
 # --------------------------------------------------------------------------------------------------
