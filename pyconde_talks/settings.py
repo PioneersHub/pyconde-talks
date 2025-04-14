@@ -310,7 +310,7 @@ FIXTURE_DIRS = [BASE_DIR / "fixtures"]
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
 EMAIL_BACKEND = env("DJANGO_EMAIL_BACKEND")
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-timeout
-EMAIL_TIMEOUT = 5
+EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
 
 
 # --------------------------------------------------------------------------------------------------
