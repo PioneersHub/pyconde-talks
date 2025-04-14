@@ -1,8 +1,10 @@
 """
 Admin configuration for conference talk management.
 
-This module defines the Django admin interfaces for the Speaker and Talk models.
+This module defines the Django admin interfaces for the Speaker, Talk, and Room models.
 """
+
+from typing import ClassVar
 
 from django.contrib import admin
 from django.db.models import QuerySet
@@ -10,7 +12,49 @@ from django.http import HttpRequest
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import Speaker, Talk
+from .models import Room, Speaker, Talk
+
+
+@admin.register(Room)
+class RoomAdmin(admin.ModelAdmin):
+    """
+    Admin configuration for the Room model.
+
+    Attributes:
+        list_display: Fields to display in the admin list view.
+        list_filter: Fields to filter by in the admin list view.
+        search_fields: Fields to search by in the admin list view.
+        fieldsets: Field groupings for the admin form.
+
+    """
+
+    list_display = ("name", "capacity", "talk_count", "has_slido_link")
+    search_fields = ("name", "description")
+
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": ("name", "description", "capacity"),
+            },
+        ),
+        (
+            _("Links"),
+            {
+                "fields": ("slido_link",),
+            },
+        ),
+    )
+
+    @admin.display(description=_("Talk Count"))
+    def talk_count(self, obj: Room) -> int:
+        """Display the number of talks in this room."""
+        return obj.talks.count()
+
+    @admin.display(boolean=True, description=_("Has Slido"))
+    def has_slido_link(self, obj: Room) -> bool:
+        """Display whether the room has a Slido link."""
+        return bool(obj.slido_link)
 
 
 @admin.register(Speaker)
@@ -41,6 +85,13 @@ class SpeakerAdmin(admin.ModelAdmin):
             _("Personal Information"),
             {
                 "fields": ("gender", "gender_self_description", "pronouns"),
+            },
+        ),
+        (
+            _("Integration"),
+            {
+                "fields": ("pretalx_id",),
+                "classes": ("collapse",),
             },
         ),
     )
@@ -79,15 +130,16 @@ class TalkAdmin(admin.ModelAdmin):
         "speaker_names",
         "date_time",
         "duration",
-        "room",
+        "room_name",
         "track",
         "is_upcoming",
         "hide",
     )
     list_filter = ("presentation_type", "room", "track", "hide", "date_time")
-    search_fields = ("title", "abstract", "description", "speakers__name")
+    search_fields = ("title", "abstract", "description", "speakers__name", "room__name")
     date_hierarchy = "date_time"
     filter_horizontal = ("speakers",)
+    autocomplete_fields: ClassVar[list[str]] = ["room"]
 
     fieldsets = (
         (
@@ -126,8 +178,13 @@ class TalkAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at", "display_image_preview")
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Talk]:
-        """Prefetch related speakers to optimize database queries."""
-        return super().get_queryset(request).prefetch_related("speakers")
+        """Prefetch related speakers and room to optimize database queries."""
+        return super().get_queryset(request).prefetch_related("speakers").select_related("room")
+
+    @admin.display(description=_("Room"))
+    def room_name(self, obj: Talk) -> str:
+        """Display the room name or an empty string if no room is assigned."""
+        return obj.room.name if obj.room else ""
 
     @admin.display(description=_("Image Preview"))
     def display_image_preview(self, obj: Talk) -> str | None:
