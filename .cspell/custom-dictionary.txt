@@ -39,6 +39,7 @@ levelname
 linecap
 linejoin
 mailgun
+mailpit
 makemigrations
 miterlimit
 monosans

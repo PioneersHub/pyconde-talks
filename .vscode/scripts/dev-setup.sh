@@ -7,6 +7,7 @@
 VENV_DIR="${VENV_DIR:-.venv}"
 VENV_PYTHON="${VENV_DIR}/bin/python"
 VENV_TAILWIND="${VENV_DIR}/bin/tailwindcss"
+VENV_MAILPIT="${VENV_DIR}/bin/mailpit"
 DJANGO_SUPERUSER_EMAIL="${DJANGO_SUPERUSER_EMAIL:-admin@example.com}"
 DJANGO_SUPERUSER_PASSWORD="${DJANGO_SUPERUSER_PASSWORD:-PyConDE_2025}"
 FAKE_DATA_COUNT="${FAKE_DATA_COUNT:-50}"
@@ -185,6 +186,35 @@ setup_tailwind() {
     mkdir -p assets/css static/css
 }
 
+# Setup mailpit
+setup_mailpit() {
+    if [[ "$SKIP_STEPS" == *"mailpit"* ]]; then
+        log "Skipping Mailpit setup"
+        return
+    fi
+
+    log "Setting up Mailpit..."
+
+    # Download Mailpit if necessary
+    if [ ! -f "$VENV_MAILPIT" ]; then
+        mkdir -p "$(dirname "$VENV_MAILPIT")"
+        if command -v mailpit &>/dev/null; then
+            MAILPIT_VERSION=$(mailpit version)
+            log "Found Mailpit ${MAILPIT_VERSION:-unknown version} in PATH, creating symlink..."
+            ln -sf "$(command -v mailpit)" "$VENV_MAILPIT"
+        else
+            log "Downloading Mailpit..."
+
+            # Detect platform
+            PLATFORM=$(detect_platform)
+            log "Detected platform: $PLATFORM"
+
+            curl -sL "https://github.com/axllent/mailpit/releases/latest/download/mailpit-${PLATFORM}.tar.gz" | tar -xz -C "$VENV_DIR/bin" mailpit
+            chmod +x "$VENV_MAILPIT"
+        fi
+    fi
+}
+
 # Initialize Django
 initialize_django() {
     if [[ "$SKIP_STEPS" == *"django"* ]]; then
@@ -239,6 +269,16 @@ start_services() {
         trap 'kill $TAILWIND_PID 2>/dev/null' EXIT
     fi
 
+    # Start Mailpit if not skipped
+    if [[ "$SKIP_STEPS" != *"mailpit"* ]]; then
+        log "Starting Mailpit..."
+        "$VENV_MAILPIT" &
+        MAILPIT_PID=$!
+
+        # Clean up mailpit when the script exits
+        trap 'kill $MAILPIT_PID 2>/dev/null' EXIT
+    fi
+
     # Start Django server if requested
     if [ "$RUN_SERVER" = "true" ]; then
         log "Starting Django development server..."
@@ -263,6 +303,7 @@ main() {
     log "Starting development environment setup..."
     setup_dependencies
     setup_tailwind
+    setup_mailpit
     initialize_django
     start_services
     collect_static
