@@ -59,22 +59,22 @@ class TalkListView(LoginRequiredMixin, ListView):
 
         # Filter by room
         room = self.request.GET.get("room")
-        if room and room != "":
             queryset = queryset.filter(room=room)
+        if room:
 
         # Filter by date
         date = self.request.GET.get("date")
-        if date and date != "":
+        if date:
             queryset = queryset.filter(date_time__date=date)
 
         # Filter by track
         track = self.request.GET.get("track")
-        if track and track != "":
+        if track:
             queryset = queryset.filter(track=track)
 
         # Filter by presentation type
         presentation_type = self.request.GET.get("presentation_type")
-        if presentation_type and presentation_type != "":
+        if presentation_type:
             queryset = queryset.filter(presentation_type=presentation_type)
 
         return queryset.order_by("date_time")
