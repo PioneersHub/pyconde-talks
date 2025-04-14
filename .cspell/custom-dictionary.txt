@@ -1,6 +1,7 @@
 addopts
 allauth
 anymail
+armv
 asgi
 autoplay
 batisteo
@@ -67,6 +68,7 @@ startpartial
 staticfiles
 structlog
 stylesheet
+sunos
 tailwindcss
 tamasfe
 venv

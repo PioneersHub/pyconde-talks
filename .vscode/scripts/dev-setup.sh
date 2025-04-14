@@ -29,24 +29,73 @@ error() {
     exit 1
 }
 
-# Platform detection
+# Detect operating system
+detect_os() {
+    local os=""
+
+    # Use OSTYPE variable for initial detection
+    case "$OSTYPE" in
+    linux*) os="linux" ;;
+    darwin*) os="darwin" ;;
+    freebsd*) os="freebsd" ;;
+    msys* | mingw*) os="windows" ;;
+    cygwin*) os="windows" ;;
+    *)
+        # Fallback to uname if OSTYPE detection failed
+        os=$(uname | tr '[:upper:]' '[:lower:]')
+        case "$os" in
+        linux*) os="linux" ;;
+        darwin*) os="darwin" ;;
+        freebsd*) os="freebsd" ;;
+        msys* | mingw*) os="windows" ;;
+        sunos*) os="solaris" ;;
+        *) os="unknown" ;;
+        esac
+        ;;
+    esac
+
+    echo "$os"
+}
+
+# Detect architecture
+detect_arch() {
+    local format="${1:-default}"
+    local arch=$(uname -m)
+
+    # Normalize architecture names based on format
+    if [ "$format" = "alt" ]; then
+        # Alternative format (like x64)
+        case "$arch" in
+        x86_64) arch="x64" ;;
+        i686 | i386) arch="x86" ;;
+        armv6* | armv7*) arch="arm" ;;
+        aarch64) arch="arm64" ;;
+        esac
+    else
+        # Default format (like amd64)
+        case "$arch" in
+        x86_64) arch="amd64" ;;
+        i686 | i386) arch="386" ;;
+        armv6* | armv7*) arch="arm" ;;
+        aarch64 | arm64) arch="arm64" ;;
+        esac
+    fi
+
+    echo "$arch"
+}
+
+# Detect platform
 detect_platform() {
-    local OS="linux"
-    local ARCH="x64"
+    # default: "linux-amd64"
+    # alt: "linux-x64"
+    local format="${1:-default}"
 
-    # Detect OS
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        OS="macos"
-    elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
-        OS="windows"
-    fi
+    # Get OS and architecture
+    local os=$(detect_os)
+    local arch=$(detect_arch "$format")
 
-    # Detect architecture
-    if [[ "$(uname -m)" == "arm64" || "$(uname -m)" == "aarch64" ]]; then
-        ARCH="arm64"
-    fi
-
-    echo "${OS}-${ARCH}"
+    # Return "os-arch"
+    echo "$os-$arch"
 }
 
 # Setup dependencies
@@ -113,10 +162,6 @@ setup_tailwind() {
 
     log "Setting up TailwindCSS..."
 
-    # Detect platform
-    PLATFORM=$(detect_platform)
-    log "Detected platform: $PLATFORM"
-
     # Download TailwindCSS if needed
     if [ ! -f "$VENV_TAILWIND" ]; then
         mkdir -p "$(dirname "$VENV_TAILWIND")"
@@ -126,6 +171,11 @@ setup_tailwind() {
             ln -sf "$(command -v tailwindcss)" "$VENV_TAILWIND"
         else
             log "Downloading TailwindCSS..."
+
+            # Detect platform
+            PLATFORM=$(detect_platform alt)
+            log "Detected platform: $PLATFORM"
+
             curl -sL "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-${PLATFORM}" -o "$VENV_TAILWIND"
             chmod +x "$VENV_TAILWIND"
         fi
