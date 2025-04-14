@@ -24,6 +24,44 @@ MAX_TALK_TITLE_LENGTH = 250
 MAX_TRACK_NAME_LENGTH = 50
 
 
+class Room(models.Model):
+    """Represents a conference room where talks take place."""
+
+    name = models.CharField(
+        max_length=MAX_ROOM_NAME_LENGTH,
+        help_text=_("Name of the room"),
+        unique=True,
+    )
+
+    description = models.TextField(
+        blank=True,
+        help_text=_("Description of the room"),
+    )
+
+    capacity = models.PositiveIntegerField(
+        help_text=_("Maximum number of people that can fit in the room"),
+        null=True,
+        blank=True,
+    )
+
+    slido_link = models.URLField(
+        help_text=_("Link to Slido for this room"),
+        blank=True,
+        default="",
+    )
+
+    class Meta:
+        """Metadata for the Room model."""
+
+        verbose_name = _("Room")
+        verbose_name_plural = _("Rooms")
+        ordering: ClassVar[list[str]] = ["name"]
+
+    def __str__(self) -> str:
+        """Return the room name."""
+        return self.name
+
+
 class Speaker(models.Model):
     """Represents a conference speaker."""
 
@@ -139,11 +177,13 @@ class Talk(models.Model):
         null=True,
         help_text=_("Duration of the talk"),
     )
-    room = models.CharField(
-        max_length=MAX_ROOM_NAME_LENGTH,
-        help_text=_("Room where the talk takes place"),
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
-        default="",
+        help_text=_("Room where the talk takes place"),
+        related_name="talks",
     )
     track = models.CharField(
         max_length=MAX_TRACK_NAME_LENGTH,
@@ -168,7 +208,7 @@ class Talk(models.Model):
         default="",
     )
     slido_link = models.URLField(
-        help_text=_("Link to questions on Slido"),
+        help_text=_("Link to questions on Slido. Overrides the room's link if provided."),
         blank=True,
         default="",
     )
