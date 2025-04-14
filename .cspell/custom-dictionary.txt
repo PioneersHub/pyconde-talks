@@ -10,6 +10,7 @@ bradlc
 Callsite
 cffi
 charliermarsh
+collectstatic
 conftest
 createsuperuser
 createuser

@@ -198,6 +198,16 @@ start_services() {
     fi
 }
 
+# Collect static files
+collect_static() {
+    if [[ "$SKIP_STEPS" == *"collectstatic"* ]]; then
+        log "Skipping static files collection"
+        return
+    fi
+    log "Collecting static files..."
+    "$VENV_PYTHON" manage.py collectstatic --noinput
+}
+
 # Main execution flow
 main() {
     log "Starting development environment setup..."
@@ -205,6 +215,7 @@ main() {
     setup_tailwind
     initialize_django
     start_services
+    collect_static
 }
 
 # Run the script
