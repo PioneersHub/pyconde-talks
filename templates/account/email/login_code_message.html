@@ -3,6 +3,6 @@
   <p style="font-size: 18px; margin-bottom: 20px">
     Your login code is: <strong style="font-size: 24px; color: #2563eb">{{ code }}</strong>
   </p>
-  <p style="color: #64748b; margin-bottom: 20px">This code will expire in 5 minutes.</p>
+  <p style="color: #64748b; margin-bottom: 20px">This code will expire in {{ login_code_timeout_minutes }} minutes.</p>
   <p style="color: #64748b">If you didn't request this code, please ignore this email.</p>
 </div>

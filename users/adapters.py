@@ -126,3 +126,12 @@ class AccountAdapter(DefaultAccountAdapter):
         )
         response.raise_for_status()
         return response.json()
+
+    def send_mail(self, template_prefix: str, email: str, context: dict) -> None:
+        """Add custom variables to the email context before sending."""
+        timeout_seconds = getattr(settings, "ACCOUNT_LOGIN_BY_CODE_TIMEOUT", 180)
+        timeout_minutes = round(timeout_seconds / 60, 1)
+        context["login_code_timeout_minutes"] = (
+            int(timeout_minutes) if timeout_minutes.is_integer() else round(timeout_minutes, 1)
+        )
+        return super().send_mail(template_prefix, email, context)
