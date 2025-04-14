@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 from django.core.management.base import BaseCommand, CommandParser
 from faker import Faker
 
-from talks.models import Speaker, Talk
+from talks.models import Room, Speaker, Talk
 
 
 class Command(BaseCommand):
@@ -38,24 +38,8 @@ class Command(BaseCommand):
             help="Base conference date (YYYY-MM-DD)",
         )
 
-    def handle(self, *args: Any, **options: Any) -> None:  # noqa: ARG002
-        """
-        Generate fake conference talks.
-
-        options:
-            - count: Number of talks to generate
-            - date: Base conference date
-
-        """
-        fake = Faker()
-        talk_count = int(options["count"])
-
-        # Conference configuration
-        base_time = datetime.strptime(str(options["date"]), "%Y-%m-%d").replace(
-            hour=9,
-            tzinfo=ZoneInfo("Europe/Berlin"),
-        )
-
+    def _create_rooms(self) -> dict[str, list[Room]]:
+        """Create room objects for the conference."""
         # Darmstadium rooms
         rooms_plenary = ["Spectrum"]
         rooms_talks = [
@@ -67,6 +51,78 @@ class Command(BaseCommand):
             "Palladium",
         ]
         rooms_tutorials = ["Ferrum", "Dynamicum"]
+
+        # Dictionary to store room objects by name
+        room_objects = {}
+
+        # Create plenary rooms
+        for room_name in rooms_plenary:
+            room, created = Room.objects.get_or_create(
+                name=room_name,
+                defaults={
+                    "description": "Plenary room for keynotes and large events",
+                    "capacity": random.randint(300, 500),
+                    "slido_link": f"https://app.sli.do/event/{room_name.lower()}",
+                },
+            )
+            if created:
+                self.stdout.write(f"Created plenary room: {room_name}")
+            room_objects[room_name] = room
+
+        # Create talk rooms
+        for room_name in rooms_talks:
+            room, created = Room.objects.get_or_create(
+                name=room_name,
+                defaults={
+                    "description": "Standard talk room",
+                    "capacity": random.randint(100, 200),
+                    "slido_link": f"https://app.sli.do/event/{room_name.lower()}",
+                },
+            )
+            if created:
+                self.stdout.write(f"Created talk room: {room_name}")
+            room_objects[room_name] = room
+
+        # Create tutorial rooms
+        for room_name in rooms_tutorials:
+            room, created = Room.objects.get_or_create(
+                name=room_name,
+                defaults={
+                    "description": "Room for hands-on tutorials and workshops",
+                    "capacity": random.randint(30, 80),
+                    "slido_link": f"https://app.sli.do/event/{room_name.lower()}",
+                },
+            )
+            if created:
+                self.stdout.write(f"Created tutorial room: {room_name}")
+            room_objects[room_name] = room
+
+        return {
+            "plenary": [room_objects[name] for name in rooms_plenary],
+            "talks": [room_objects[name] for name in rooms_talks],
+            "tutorials": [room_objects[name] for name in rooms_tutorials],
+        }
+
+    def handle(self, *args: Any, **options: Any) -> None:  # noqa: ARG002
+        """
+        Generate fake conference talks.
+
+        options:
+            - count: Number of talks to generate
+            - date: Base conference date
+        """
+        fake = Faker()
+        talk_count = int(options["count"])
+
+        # Conference configuration
+        base_time = datetime.strptime(str(options["date"]), "%Y-%m-%d").replace(
+            hour=9,
+            tzinfo=ZoneInfo("Europe/Berlin"),
+        )
+
+        # Create or get rooms
+        self.stdout.write("Setting up conference rooms...")
+        rooms = self._create_rooms()
 
         tracks = [
             "MLOps & DevOps",
@@ -180,17 +236,31 @@ class Command(BaseCommand):
                 [
                     Talk.PresentationType.TALK,
                     Talk.PresentationType.TUTORIAL,
+                    Talk.PresentationType.KEYNOTE,
                 ],
-                weights=[80, 20],
+                weights=[75, 20, 5],
             )[0]
 
             # Set room based on presentation type
-            if presentation_type == Talk.PresentationType.TALK:
-                room = random.choice(rooms_plenary + rooms_talks)
+            if presentation_type == Talk.PresentationType.KEYNOTE:
+                room = random.choice(rooms["plenary"])
+                duration = timedelta(minutes=45)
+            elif presentation_type == Talk.PresentationType.TALK:
+                room = random.choice(rooms["talks"])
                 duration = timedelta(minutes=random.choice([30, 45]))
             else:  # Tutorial
-                room = random.choice(rooms_tutorials)
+                room = random.choice(rooms["tutorials"])
                 duration = timedelta(minutes=random.choice([45, 90, 180]))
+
+            # Decide whether to use room's Slido link or a custom one
+            use_custom_slido = random.random() < 0.3  # 30% have custom Slido
+            slido_link = ""
+            if use_custom_slido:
+                slido_link = (
+                    f"https://app.sli.do/event/"
+                    f"{fake.bothify(text='??????????????????????????')}"
+                    f"/live/questions?m={fake.bothify(text='????#')}"
+                )
 
             talk = Talk.objects.create(
                 title=title,
@@ -205,11 +275,7 @@ class Command(BaseCommand):
                     f"https://pretalx.com/pyconde-pydata-2025/talk/"
                     f"{fake.bothify(text='???###').upper()}"
                 ),
-                slido_link=(
-                    f"https://app.sli.do/event/"
-                    f"{fake.bothify(text='??????????????????????????')}"
-                    f"/live/questions?m={fake.bothify(text='????#')}"
-                ),
+                slido_link=slido_link,
                 video_link=f"https://vimeo.com/{random.randint(100000000, 999999999)}",
                 video_start_time=random.randint(0, 1800),
                 hide=random.random() < 0.1,  # 10% of talks are hidden
@@ -225,7 +291,7 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Created {presentation_type} [{i + 1}/{talk_count}]: {talk.title} "
-                    f"with {len(selected_speakers)} speaker(s)",
+                    f"in {room.name} with {len(selected_speakers)} speaker(s)",
                 ),
             )
 
