@@ -16,7 +16,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views.generic import DetailView, ListView
 
-from .models import Talk
+from .models import Room, Talk
 
 
 class TalkDetailView(LoginRequiredMixin, DetailView):
@@ -59,8 +59,8 @@ class TalkListView(LoginRequiredMixin, ListView):
 
         # Filter by room
         room = self.request.GET.get("room")
-            queryset = queryset.filter(room=room)
         if room:
+            queryset = queryset.filter(room_id=room)
 
         # Filter by date
         date = self.request.GET.get("date")
@@ -84,7 +84,7 @@ class TalkListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
 
         # Get unique rooms
-        context["rooms"] = Talk.objects.values_list("room", flat=True).distinct().order_by("room")
+        context["rooms"] = Room.objects.filter(talks__isnull=False).distinct().order_by("name")
         # Get unique days
         context["dates"] = (
             Talk.objects.annotate(date=TruncDate("date_time"))

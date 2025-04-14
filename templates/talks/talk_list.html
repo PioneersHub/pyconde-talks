@@ -27,7 +27,8 @@
         <select name="room" class="border rounded px-2 py-1">
           <option value="">All Rooms</option>
           {% for room in rooms %}
-            <option value="{{ room }}"{% if room == selected_room %}selected{% endif %}>{{ room }}</option>
+            <option value="{{ room.id }}"
+                    {% if room.id|stringformat:"s" == selected_room %}selected{% endif %}>{{ room.name }}</option>
           {% endfor %}
         </select>
         <select name="presentation_type" class="border rounded px-2 py-1">
