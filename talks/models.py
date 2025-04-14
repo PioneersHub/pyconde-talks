@@ -303,3 +303,18 @@ class Talk(models.Model):
         if self.external_image_url:
             return self.external_image_url
         return f"{settings.MEDIA_URL}talk_images/default.jpg"
+
+    def get_slido_link(self) -> str:
+        """
+        Return the Slido link for this talk.
+
+        Returns the talk's own slido_link if it exists, otherwise falls back to the room's
+        slido_link. Returns an empty string if neither exists.
+        """
+        if self.slido_link:
+            return self.slido_link
+
+        if self.room and self.room.slido_link:
+            return self.room.slido_link
+
+        return ""
