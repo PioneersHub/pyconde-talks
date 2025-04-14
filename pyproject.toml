@@ -40,7 +40,7 @@ dependencies = [
     "django-htmx>=1.23.0",
     "django-structlog>=9.1.1",
     "django-template-partials>=24.4",
-    "pillow>=11.1.0",
+    "pillow>=11.2.1",
     "pytanis>=0.8",
     "requests>=2.32.3",
     "structlog>=25.2.0",
@@ -56,7 +56,7 @@ dev = [
     "ipython>=9.1.0",
     "mypy>=1.15.0",
     "pre-commit>=4.2.0",
-    "ruff>=0.11.4",
+    "ruff>=0.11.5",
     "types-requests>=2.32.0.20250328",
 ]
 test = [
