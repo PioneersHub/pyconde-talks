@@ -41,6 +41,7 @@ dependencies = [
     "django-structlog>=9.1.1",
     "django-template-partials>=24.4",
     "pillow>=11.2.1",
+    "psycopg2>=2.9.10",
     "pytanis>=0.8",
     "requests>=2.32.3",
     "structlog>=25.2.0",

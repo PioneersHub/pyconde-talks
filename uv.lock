@@ -1014,6 +1014,15 @@ wheels = [
 ]
 
 [[package]]
+name = "psycopg2"
+version = "2.9.10"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/62/51/2007ea29e605957a17ac6357115d0c1a1b60c8c984951c19419b3474cdfd/psycopg2-2.9.10.tar.gz", hash = "sha256:12ec0b40b0273f95296233e8750441339298e6a572f7039da5b260e3c8b60e11", size = 385672 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ae/49/a6cfc94a9c483b1fa401fbcb23aca7892f60c7269c5ffa2ac408364f80dc/psycopg2-2.9.10-cp313-cp313-win_amd64.whl", hash = "sha256:91fd603a2155da8d0cfcdbf8ab24a2d54bca72795b90d2a3ed2b6da8d979dee2", size = 2569060 },
+]
+
+[[package]]
 name = "ptyprocess"
 version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1068,6 +1077,7 @@ dependencies = [
     { name = "django-structlog" },
     { name = "django-template-partials" },
     { name = "pillow" },
+    { name = "psycopg2" },
     { name = "pytanis" },
     { name = "requests" },
     { name = "structlog" },
@@ -1107,6 +1117,7 @@ requires-dist = [
     { name = "django-structlog", specifier = ">=9.1.1" },
     { name = "django-template-partials", specifier = ">=24.4" },
     { name = "pillow", specifier = ">=11.2.1" },
+    { name = "psycopg2", specifier = ">=2.9.10" },
     { name = "pytanis", specifier = ">=0.8" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "structlog", specifier = ">=25.2.0" },

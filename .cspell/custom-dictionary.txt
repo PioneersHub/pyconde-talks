@@ -48,6 +48,7 @@ noreload
 onclick
 passwordless
 pretalx
+psycopg
 pycache
 pycon
 pyconde
