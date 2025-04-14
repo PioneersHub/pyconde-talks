@@ -119,13 +119,13 @@ setup_tailwind() {
 
     # Download TailwindCSS if needed
     if [ ! -f "$VENV_TAILWIND" ]; then
+        mkdir -p "$(dirname "$VENV_TAILWIND")"
         if command -v tailwindcss &>/dev/null; then
             TAILWIND_VERSION=$(tailwindcss --help 2>/dev/null | head -n 1 | grep -o "v[0-9]\+\.[0-9]\+\.[0-9]\+")
             log "Found tailwindcss ${TAILWIND_VERSION:-unknown version} in PATH, creating symlink..."
             ln -sf "$(command -v tailwindcss)" "$VENV_TAILWIND"
         else
             log "Downloading TailwindCSS..."
-            mkdir -p "$(dirname "$VENV_TAILWIND")"
             curl -sL "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-${PLATFORM}" -o "$VENV_TAILWIND"
             chmod +x "$VENV_TAILWIND"
         fi
