@@ -24,6 +24,7 @@ from talks.models import (
     MAX_ROOM_NAME_LENGTH,
     MAX_TALK_TITLE_LENGTH,
     MAX_TRACK_NAME_LENGTH,
+    Room,
     Speaker,
     Talk,
 )
@@ -408,6 +409,11 @@ class Command(BaseCommand):
         # Map presentation type
         presentation_type = self._map_presentation_type(data.submission_type, data.code, verbosity)
 
+        # Get or create room
+        room = None
+        if data.room:
+            room = self._get_or_create_room(data.room, options)
+
         # Create the talk
         talk = Talk.objects.create(
             presentation_type=presentation_type,
@@ -416,7 +422,7 @@ class Command(BaseCommand):
             description=data.description,
             date_time=data.start_time,
             duration=data.duration,
-            room=data.room,
+            room=room,
             track=data.track,
             pretalx_link=data.pretalx_link,
             external_image_url=data.image_url,
@@ -454,7 +460,12 @@ class Command(BaseCommand):
         if data.duration:
             talk.duration = data.duration
 
-        talk.room = data.room
+        # Get or create room
+        if data.room:
+            talk.room = self._get_or_create_room(data.room, options)
+        else:
+            talk.room = None
+
         talk.track = data.track
 
         if data.image_url:
@@ -557,6 +568,57 @@ class Command(BaseCommand):
                 VerbosityLevel.DETAILED,
                 "SUCCESS",
             )
+
+    def _get_or_create_room(
+        self,
+        room_name: str,
+        options: dict[str, Any],
+    ) -> Room | None:
+        """Get an existing room or create a new one."""
+        # If no room name provided, return None
+        if not room_name:
+            return None
+
+        verbosity = VerbosityLevel(options.get("verbosity", VerbosityLevel.NORMAL.value))
+        dry_run = options.get("dry_run", False)
+
+        # Check if room exists by name
+        existing_room = Room.objects.filter(name=room_name).first()
+
+        if existing_room:
+            # Room already exists
+            self._log(
+                f"Using existing room: {room_name}",
+                verbosity,
+                VerbosityLevel.DETAILED,
+            )
+            return existing_room
+
+        # Create new room
+        if dry_run:
+            self._log(
+                f"Would create room: {room_name} (dry run)",
+                verbosity,
+                VerbosityLevel.DETAILED,
+                "SUCCESS",
+            )
+            # Return a dummy room for dry run
+            return Room(
+                name=room_name,
+                description="",
+            )
+
+        room = Room.objects.create(
+            name=room_name,
+            description=f"Room imported from Pretalx: {room_name}",
+        )
+        self._log(
+            f"Created room: {room_name}",
+            verbosity,
+            VerbosityLevel.DETAILED,
+            "SUCCESS",
+        )
+        return room
 
     def _get_or_create_speaker(
         self,
