@@ -145,3 +145,9 @@ addopts = [
     "--tb=short",
     "--verbose",
 ]
+
+[tool.bandit]
+exclude_dirs = [".venv", "tests", "__pycache__", ".git", "generate_fake_talks.py"]
+
+[tool.bandit.assert_used]
+skips = ['*_test.py', '*/test_*.py']

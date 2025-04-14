@@ -2,6 +2,7 @@
   "evenBetterToml.formatter.allowedBlankLines": 2,
   "evenBetterToml.formatter.columnWidth": 100,
   "bandit.importStrategy": "fromEnvironment",
+  "bandit.args": ["-c", "pyproject.toml"],
   "[django-html]": {
     "editor.defaultFormatter": "monosans.djlint"
   },
