@@ -9,6 +9,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, ClassVar, cast
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -60,6 +61,70 @@ class Room(models.Model):
     def __str__(self) -> str:
         """Return the room name."""
         return self.name
+
+
+class Streaming(models.Model):
+    """Represents a video streaming session for a room."""
+
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.CASCADE,
+        related_name="streamings",
+        help_text=_("Room where the streaming takes place"),
+    )
+
+    start_time = models.DateTimeField(
+        help_text=_("When the streaming starts"),
+    )
+
+    end_time = models.DateTimeField(
+        help_text=_("When the streaming ends"),
+    )
+
+    video_link = models.URLField(
+        help_text=_("Link to Vimeo streaming"),
+    )
+
+    class Meta:
+        """Metadata for the Streaming model."""
+
+        verbose_name = _("Streaming")
+        verbose_name_plural = _("Streamings")
+        ordering: ClassVar[list[str]] = ["start_time"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["room", "start_time"]),
+            models.Index(fields=["room", "end_time"]),
+        ]
+        constraints: ClassVar[list[models.CheckConstraint]] = [
+            models.CheckConstraint(
+                condition=models.Q(start_time__lt=models.F("end_time")),
+                name="streaming_start_before_end",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        """Return a string representation of the streaming."""
+        local_start = timezone.localtime(self.start_time).strftime("%b %d, %Y %H:%M")
+        local_end = timezone.localtime(self.end_time).strftime("%b %d, %Y %H:%M (%Z)")
+        return f"Streaming for {self.room.name} from {local_start} to {local_end}"
+
+    def clean(self) -> None:
+        """Validate that this streaming doesn't overlap with another for the same room."""
+        if self.start_time and self.end_time:
+            overlapping = Streaming.objects.filter(
+                room=self.room,
+                start_time__lt=self.end_time,
+                end_time__gt=self.start_time,
+            )
+
+            # Exclude self when updating
+            if self.pk:
+                overlapping = overlapping.exclude(pk=self.pk)
+
+            if overlapping.exists():
+                raise ValidationError(
+                    _("This streaming overlaps with another streaming for the same room."),
+                )
 
 
 class Speaker(models.Model):
@@ -223,7 +288,9 @@ class Talk(models.Model):
     video_link = models.URLField(
         blank=True,
         default="",
-        help_text=_("Link to talk recording on Vimeo"),
+        help_text=_(
+            "Link to talk recording on Vimeo. Overrides the calculated streaming link if provided.",
+        ),
     )
     video_start_time = models.PositiveIntegerField(
         blank=True,
@@ -263,11 +330,57 @@ class Talk(models.Model):
         Save the talk instance.
 
         Set the duration based on the presentation type if not already set.
+        Update video_start_time based on streaming if applicable.
         """
         if not self.duration:
             self.duration = self.DEFAULT_DURATIONS.get(self.presentation_type, timedelta())
 
+        # Update video_start_time if necessary and possible
+        if self.room and self.date_time and not self.video_link and not self.video_start_time:
+            streaming = Streaming.objects.filter(
+                room=self.room,
+                start_time__lte=self.date_time,
+                end_time__gte=self.date_time,
+            ).first()
+
+            if streaming:
+                # Calculate seconds between streaming start and talk start
+                self.video_start_time = int((self.date_time - streaming.start_time).total_seconds())
+
         super().save(*args, **kwargs)
+
+    def get_video_link(self) -> str:
+        """
+        Return the Video link for this talk.
+
+        Returns the talk's own video_link if it exists.
+        Otherwise, finds the appropriate streaming for this talk and returns its link with the
+        correct timestamp.
+        Returns an empty string if no link is found or if the talk is in the future.
+        """
+        if self.is_upcoming():
+            return ""
+
+        if self.video_link:
+            return self.video_link
+
+        if self.room and self.date_time:
+            # Find the streaming that is/was happening during the talk
+            # Allow a 1 minute delay for the start time
+            # At least half of the talk must be covered by the streaming
+            margin = timedelta(minutes=1)
+            min_duration = self.duration / 2
+
+            streaming = Streaming.objects.filter(
+                room=self.room,
+                start_time__lte=self.date_time + margin,
+                end_time__gt=self.date_time + min_duration,
+            ).first()
+
+            if streaming:
+                return streaming.video_link
+
+        return ""
 
     @property
     def speaker_names(self) -> str:
