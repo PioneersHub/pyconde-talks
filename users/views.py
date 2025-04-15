@@ -38,7 +38,7 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):
 
         # Check if the email is authorized
         if not adapter.is_email_authorized(email):
-            logger.warning("Unauthorized access attempt", email=email_hash)
+            logger.warning("Unauthorized access attempt", email=email)
             form.add_error("email", "This email is not authorized for access.")
             return self.form_invalid(form)
 
