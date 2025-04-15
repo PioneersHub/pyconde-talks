@@ -248,11 +248,13 @@ class Command(BaseCommand):
             # Determine presentation type
             presentation_type = random.choices(
                 [
+                    Talk.PresentationType.KEYNOTE,
+                    Talk.PresentationType.KIDS,
+                    Talk.PresentationType.PANEL,
                     Talk.PresentationType.TALK,
                     Talk.PresentationType.TUTORIAL,
-                    Talk.PresentationType.KEYNOTE,
                 ],
-                weights=[75, 20, 5],
+                weights=[7, 3, 5, 70, 15],
             )[0]
 
             # Set room based on presentation type
