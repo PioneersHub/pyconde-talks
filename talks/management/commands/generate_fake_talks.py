@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 from django.core.management.base import BaseCommand, CommandParser
 from faker import Faker
 
-from talks.models import Room, Speaker, Talk
+from talks.models import Room, Speaker, Streaming, Talk
 
 
 class Command(BaseCommand):
@@ -40,7 +40,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--clear-existing",
             action="store_true",
-            help="Clear existing rooms, talks and speakers before generating new ones",
+            help="Clear existing rooms, talks, speakers, and streamings before generating new ones",
         )
 
     def _create_rooms(self) -> dict[str, list[Room]]:
@@ -108,6 +108,104 @@ class Command(BaseCommand):
             "tutorials": [room_objects[name] for name in rooms_tutorials],
         }
 
+    def _create_streaming_sessions(self, rooms: dict[str, list[Room]], base_time: datetime) -> None:
+        """
+        Create streaming sessions for each room.
+
+        Args:
+            rooms: Dictionary of room types to room objects
+            base_time: Base start time for the conference
+
+        """
+        self.stdout.write("Setting up streaming sessions...")
+
+        # Clear existing streaming sessions if any
+        Streaming.objects.all().delete()
+
+        # Create streaming sessions for each day of the conference
+        for day in range(3):  # 3-day conference
+            day_start = base_time + timedelta(days=day)
+
+            # Always stream plenary rooms (for keynotes)
+            for room in rooms["plenary"]:
+                # Morning session
+                morning_start = day_start.replace(hour=9, minute=0)
+                morning_end = day_start.replace(hour=12, minute=30)
+
+                # Afternoon session
+                afternoon_start = day_start.replace(hour=13, minute=30)
+                afternoon_end = day_start.replace(hour=18, minute=0)
+
+                Streaming.objects.create(
+                    room=room,
+                    start_time=morning_start,
+                    end_time=morning_end,
+                    video_link=f"https://vimeo.com/{random.randint(100000000, 999999999)}",
+                )
+
+                Streaming.objects.create(
+                    room=room,
+                    start_time=afternoon_start,
+                    end_time=afternoon_end,
+                    video_link=f"https://vimeo.com/{random.randint(100000000, 999999999)}",
+                )
+
+                self.stdout.write(f"Created streaming sessions for {room.name} on day {day + 1}")
+
+            # Stream most talk rooms but not all
+            for room in rooms["talks"]:
+                # 80% of talk rooms have streaming
+                if random.random() < 0.8:
+                    start_hour = random.choice([9, 10])
+                    session_duration = random.randint(3, 5)  # hours
+
+                    morning_start = day_start.replace(hour=start_hour, minute=0)
+                    morning_end = morning_start + timedelta(hours=session_duration)
+
+                    Streaming.objects.create(
+                        room=room,
+                        start_time=morning_start,
+                        end_time=morning_end,
+                        video_link=f"https://vimeo.com/{random.randint(100000000, 999999999)}",
+                    )
+
+                    # Some rooms may have afternoon sessions too
+                    if random.random() < 0.6:
+                        afternoon_start = day_start.replace(hour=14, minute=0)
+                        afternoon_end = afternoon_start + timedelta(hours=random.randint(3, 4))
+
+                        Streaming.objects.create(
+                            room=room,
+                            start_time=afternoon_start,
+                            end_time=afternoon_end,
+                            video_link=f"https://vimeo.com/{random.randint(100000000, 999999999)}",
+                        )
+
+                    self.stdout.write(
+                        f"Created streaming sessions for {room.name} on day {day + 1}",
+                    )
+
+            # Tutorial rooms
+            for room in rooms["tutorials"]:
+                # 70% of tutorial rooms get streaming
+                if random.random() < 0.7:
+                    tutorial_start = day_start.replace(
+                        hour=random.choice([9, 13]),
+                        minute=0,
+                    )
+                    tutorial_end = tutorial_start + timedelta(hours=random.randint(3, 4))
+
+                    Streaming.objects.create(
+                        room=room,
+                        start_time=tutorial_start,
+                        end_time=tutorial_end,
+                        video_link=f"https://vimeo.com/{random.randint(100000000, 999999999)}",
+                    )
+
+                    self.stdout.write(
+                        f"Created streaming session for tutorial room {room.name} on day {day + 1}",
+                    )
+
     def handle(self, *args: Any, **options: Any) -> None:  # noqa: ARG002
         """
         Generate fake conference talks.
@@ -126,6 +224,7 @@ class Command(BaseCommand):
             self.stdout.write("Clearing existing data...")
             Talk.objects.all().delete()
             Speaker.objects.all().delete()
+            Streaming.objects.all().delete()
             Room.objects.all().delete()
 
         # Conference configuration
@@ -137,6 +236,9 @@ class Command(BaseCommand):
         # Create or get rooms
         self.stdout.write("Setting up conference rooms...")
         rooms = self._create_rooms()
+
+        # Create streaming sessions for each room
+        self._create_streaming_sessions(rooms, base_time)
 
         tracks = [
             "MLOps & DevOps",
@@ -264,13 +366,34 @@ class Command(BaseCommand):
             elif presentation_type == Talk.PresentationType.TALK:
                 room = random.choice(rooms["talks"])
                 duration = timedelta(minutes=random.choice([30, 45]))
-            else:  # Tutorial
+            else:  # Tutorial, Kids, or Panel
                 room = random.choice(rooms["tutorials"])
                 duration = timedelta(minutes=random.choice([45, 90, 180]))
 
+            # Find if there's an active streaming for this talk
+            streaming = None
+            if room:
+                streaming = Streaming.objects.filter(
+                    room=room,
+                    start_time__lte=talk_date,
+                    end_time__gte=talk_date,
+                ).first()
+
+            # Decide whether to use room streaming video link or a custom one
+            video_link = ""
+            use_custom_video = streaming and random.random() < 0.3
+            if use_custom_video:
+                video_link = f"https://vimeo.com/{random.randint(100000000, 999999999)}"
+
+            # Decide whether to use a custom video start time
+            video_start_time = 0
+            use_custom_start_time = random.random() < 0.1
+            if use_custom_start_time:
+                video_start_time = random.randint(0, int(duration.total_seconds() - 1))
+
             # Decide whether to use room's Slido link or a custom one
-            use_custom_slido = random.random() < 0.3  # 30% have custom Slido
             slido_link = ""
+            use_custom_slido = random.random() < 0.3  # 30% have custom Slido
             if use_custom_slido:
                 slido_link = (
                     f"https://app.sli.do/event/"
@@ -292,8 +415,8 @@ class Command(BaseCommand):
                     f"{fake.bothify(text='???###').upper()}"
                 ),
                 slido_link=slido_link,
-                video_link=f"https://vimeo.com/{random.randint(100000000, 999999999)}",
-                video_start_time=random.randint(0, 1800),
+                video_link=video_link,
+                video_start_time=video_start_time,
                 hide=random.random() < 0.1,  # 10% of talks are hidden
             )
 
@@ -304,10 +427,12 @@ class Command(BaseCommand):
             for speaker in selected_speakers:
                 talk.speakers.add(speaker)
 
+            streaming_info = " (with streaming)" if streaming else ""
+
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Created {presentation_type} [{i + 1}/{talk_count}]: {talk.title} "
-                    f"in {room.name} with {len(selected_speakers)} speaker(s)",
+                    f"in {room.name}{streaming_info} with {len(selected_speakers)} speaker(s)",
                 ),
             )
 
