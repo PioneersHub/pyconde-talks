@@ -29,8 +29,8 @@ class Room(models.Model):
 
     name = models.CharField(
         max_length=MAX_ROOM_NAME_LENGTH,
-        help_text=_("Name of the room"),
         unique=True,
+        help_text=_("Name of the room"),
     )
 
     description = models.TextField(
@@ -39,15 +39,15 @@ class Room(models.Model):
     )
 
     capacity = models.PositiveIntegerField(
-        help_text=_("Maximum number of people that can fit in the room"),
         null=True,
         blank=True,
+        help_text=_("Maximum number of people that can fit in the room"),
     )
 
     slido_link = models.URLField(
-        help_text=_("Link to Slido for this room"),
         blank=True,
         default="",
+        help_text=_("Link to Slido for this room"),
     )
 
     class Meta:
@@ -91,10 +91,10 @@ class Speaker(models.Model):
     )
 
     gender = models.CharField(
-        help_text=_("Gender identity (optional)"),
         max_length=2,
         choices=Gender.choices,
         blank=True,
+        help_text=_("Gender identity (optional)"),
     )
 
     gender_self_description = models.CharField(
