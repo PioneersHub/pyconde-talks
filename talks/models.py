@@ -144,6 +144,14 @@ class Talk(models.Model):
         TALK = "Talk", _("Talk")
         TUTORIAL = "Tutorial", _("Tutorial")
 
+    DEFAULT_DURATIONS: ClassVar[dict] = {
+        PresentationType.KEYNOTE: timedelta(minutes=45),
+        PresentationType.KIDS: timedelta(minutes=30),
+        PresentationType.PANEL: timedelta(minutes=45),
+        PresentationType.TALK: timedelta(minutes=30),
+        PresentationType.TUTORIAL: timedelta(minutes=45),
+    }
+
     presentation_type = models.CharField(
         max_length=10,
         choices=PresentationType.choices,
@@ -174,7 +182,7 @@ class Talk(models.Model):
     )
     duration = models.DurationField(
         blank=True,
-        null=True,
+        default=timedelta(),
         help_text=_("Duration of the talk"),
     )
     room = models.ForeignKey(
@@ -256,11 +264,9 @@ class Talk(models.Model):
 
         Set the duration based on the presentation type if not already set.
         """
-        if self.duration is None:
-            if self.presentation_type == self.PresentationType.TALK:
-                self.duration = timedelta(minutes=30)
-            elif self.presentation_type == self.PresentationType.TUTORIAL:
-                self.duration = timedelta(minutes=45)
+        if not self.duration:
+            self.duration = self.DEFAULT_DURATIONS.get(self.presentation_type, timedelta())
+
         super().save(*args, **kwargs)
 
     @property
