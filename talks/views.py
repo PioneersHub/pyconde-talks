@@ -124,12 +124,11 @@ class TalkListView(LoginRequiredMixin, ListView):
 def dashboard_stats(request: HttpRequest) -> HttpResponse:
     """Generate statistics for the dashboard."""
     current_time = timezone.now()
+
     context = {
         "total_talks": Talk.objects.count(),
-        "todays_talks": Talk.objects.filter(
-            date_time__date=current_time.date(),
-        ).count(),
-        "recorded_talks": Talk.objects.exclude(video_link="").count(),
+        "todays_talks": Talk.objects.filter(date_time__date=current_time.date()).count(),
+        "recorded_talks": sum(1 for talk in Talk.objects.all() if talk.get_video_link()),
     }
     return render(request, "talks/partials/dashboard_stats.html", context)
 
