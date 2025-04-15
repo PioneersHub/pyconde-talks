@@ -45,12 +45,12 @@
         <!-- Description -->
         <div class="prose max-w-none mb-8">{{ talk.description|linebreaks }}</div>
         <!-- Video Container -->
-        {% if talk.video_link %}
+        {% if talk.get_video_link %}
           <div id="video-container"
                style="padding:56.25% 0 0 0;
                       position:relative"
                class="mb-8 rounded-lg overflow-hidden shadow-lg">
-            <iframe src="{{ talk.video_link }}"
+            <iframe src="{{ talk.get_video_link }}"
                     frameborder="0"
                     allow="autoplay; fullscreen; picture-in-picture"
                     style="position:absolute;
@@ -78,15 +78,15 @@
             {% svg 'information-circle' "h-4 w-4 mr-2" %}
             View on Pretalx
           </a>
-          {% if talk.video_link %}
-            <a href="{{ talk.video_link }}"
+          {% if talk.get_video_link %}
+            <a href="{{ talk.get_video_link }}"
                class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
               {% svg 'play-circle' "h-4 w-4 mr-2" %}
               Watch Video
             </a>
           {% endif %}
-          {% if talk.slido_link %}
-            <a href="{{ talk.slido_link|default:'#' }}"
+          {% if talk.get_slido_link %}
+            <a href="{{ talk.get_slido_link|default:'#' }}"
                class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
               {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-2" %}
               Questions on Slido
@@ -96,7 +96,7 @@
       </div>
     </article>
   </div>
-  {% if talk.video_link %}
+  {% if talk.get_video_link %}
     <script src="https://player.vimeo.com/api/player.js"></script>
     <script>
   document.addEventListener('DOMContentLoaded', function() {
