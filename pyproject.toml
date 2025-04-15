@@ -109,7 +109,6 @@ allow-star-arg-any = true
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "D200", # one-line-summary
     "D203", # one-blank-line-before-class
     "D212", # multi-line-summary-first-line
 ]
