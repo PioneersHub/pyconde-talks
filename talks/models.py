@@ -421,6 +421,12 @@ class Talk(models.Model):
         """Check if the talk is in the future."""
         return self.start_time > timezone.now()
 
+    def is_current(self) -> bool:
+        """Check if the talk is currently happening."""
+        now = timezone.now()
+        end_time = self.start_time + self.duration
+        return self.start_time <= now <= end_time
+
     def get_image_url(self) -> str:
         """
         Return the image URL.
