@@ -26,7 +26,7 @@
       <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
         <!-- Container for HTMX to swap content into -->
         <div hx-get="{% url 'dashboard_stats' %}"
-             hx-trigger="load, every 30s"
+             hx-trigger="load, every 300s"
              hx-swap="innerHTML">
           <!-- Initial placeholder state -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -41,7 +41,7 @@
       <div class="mb-6">
         <!-- Container for HTMX to swap content into -->
         <div hx-get="{% url 'upcoming_talks' %}"
-             hx-trigger="load, every 30s"
+             hx-trigger="load, every 300s"
              hx-swap="innerHTML">
           <!-- Initial placeholder state -->
           <div class="bg-white rounded-lg shadow-sm p-6">
