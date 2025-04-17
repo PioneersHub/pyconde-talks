@@ -257,14 +257,14 @@ class Talk(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text=_("Room where the talk takes place"),
         related_name="talks",
+        help_text=_("Room where the talk takes place"),
     )
     track = models.CharField(
         max_length=MAX_TRACK_NAME_LENGTH,
-        help_text=_("Track or category of the talk"),
         blank=True,
         default="",
+        help_text=_("Track or category of the talk"),
     )
     external_image_url = models.URLField(
         blank=True,
@@ -278,14 +278,14 @@ class Talk(models.Model):
         help_text=_("Image for the talk. Overrides the external image URL if provided."),
     )
     pretalx_link = models.URLField(
-        help_text=_("Link to talk description in pretalx"),
         blank=True,
         default="",
+        help_text=_("Link to talk description in pretalx"),
     )
     slido_link = models.URLField(
-        help_text=_("Link to questions on Slido. Overrides the room's link if provided."),
         blank=True,
         default="",
+        help_text=_("Link to questions on Slido. Overrides the room's link if provided."),
     )
     video_link = models.URLField(
         blank=True,
