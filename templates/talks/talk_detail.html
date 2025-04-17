@@ -75,12 +75,16 @@
         <!-- Action Buttons -->
         <div class="flex flex-wrap gap-4">
           <a href="{{ talk.pretalx_link }}"
+             target="_blank"
+             rel="noopener noreferrer"
              class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             {% svg 'information-circle' "h-4 w-4 mr-2" %}
             View on Pretalx
           </a>
           {% if talk.get_video_link %}
             <a href="{{ talk.get_video_link }}"
+               target="_blank"
+               rel="noopener noreferrer"
                class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
               {% svg 'play-circle' "h-4 w-4 mr-2" %}
               Watch Video
@@ -88,6 +92,8 @@
           {% endif %}
           {% if talk.get_slido_link %}
             <a href="{{ talk.get_slido_link|default:'#' }}"
+               target="_blank"
+               rel="noopener noreferrer"
                class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
               {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-2" %}
               Questions on Slido
