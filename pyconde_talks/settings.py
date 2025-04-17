@@ -474,3 +474,8 @@ structlog.configure(
 # --------------------------------------------------------------------------------------------------
 PRETALX_API_TOKEN = env("PRETALX_API_TOKEN")
 PRETALX_EVENT_SLUG = env("PRETALX_EVENT_SLUG", default="pyconde-pydata-2025")
+
+# --------------------------------------------------------------------------------------------------
+# Extra settings
+# --------------------------------------------------------------------------------------------------
+SHOW_UPCOMING_TALKS_LINKS = env.bool("SHOW_UPCOMING_TALKS_LINKS", default=False)

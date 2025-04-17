@@ -358,7 +358,7 @@ class Talk(models.Model):
         correct timestamp.
         Returns an empty string if no link is found or if the talk is in the future.
         """
-        if self.is_upcoming():
+        if self.is_upcoming() and not getattr(settings, "SHOW_UPCOMING_TALKS_LINKS", False):
             return ""
 
         if self.video_link:
