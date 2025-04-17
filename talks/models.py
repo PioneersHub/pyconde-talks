@@ -16,6 +16,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 # Constants
+EMPTY_TRACK_NAME = "No track"
 FAR_FUTURE = datetime(2050, 1, 1, 0, 0, 0, tzinfo=UTC)
 MAX_PRETALX_ID_LENGTH = 50
 MAX_PRONOUNS_LENGTH = 50
@@ -263,7 +264,7 @@ class Talk(models.Model):
     track = models.CharField(
         max_length=MAX_TRACK_NAME_LENGTH,
         blank=True,
-        default="",
+        default=EMPTY_TRACK_NAME,
         help_text=_("Track or category of the talk"),
     )
     external_image_url = models.URLField(
@@ -336,6 +337,12 @@ class Talk(models.Model):
         """
         if not self.duration:
             self.duration = self.DEFAULT_DURATIONS.get(self.presentation_type, timedelta())
+
+        if not self.track:
+            if self.presentation_type == self.PresentationType.LIGHTNING:
+                self.track = "Lightning Talks"
+            else:
+                self.track = EMPTY_TRACK_NAME
 
         # Update video_start_time if necessary and possible
         if self.room and self.date_time and not self.video_link and not self.video_start_time:
