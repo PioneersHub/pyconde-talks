@@ -81,6 +81,7 @@ THIRD_PARTY_APPS = [
     "allauth.account",
     "django_htmx",
     "template_partials",
+    "markdownify.apps.MarkdownifyConfig",
     "health_check",
     "health_check.db",
     "anymail",
@@ -468,6 +469,40 @@ structlog.configure(
     logger_factory=structlog.stdlib.LoggerFactory(),
     cache_logger_on_first_use=True,
 )
+
+# --------------------------------------------------------------------------------------------------
+# Markdownify
+# --------------------------------------------------------------------------------------------------
+MARKDOWNIFY = {
+    "default": {
+        "WHITELIST_TAGS": [
+            "a",
+            "abbr",
+            "acronym",
+            "b",
+            "blockquote",
+            "code",
+            "em",
+            "i",
+            "li",
+            "ol",
+            "p",
+            "pre",
+            "strong",
+            "ul",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+        ],
+        "MARKDOWN_EXTENSIONS": [
+            "markdown.extensions.extra",
+            "markdown.extensions.fenced_code",
+        ],
+    },
+}
 
 # --------------------------------------------------------------------------------------------------
 # Pretalx

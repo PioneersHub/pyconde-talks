@@ -41,6 +41,7 @@ linejoin
 mailgun
 mailpit
 makemigrations
+markdownify
 miterlimit
 monosans
 msys
