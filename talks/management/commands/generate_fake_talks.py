@@ -406,7 +406,7 @@ class Command(BaseCommand):
                 title=title,
                 abstract=fake.paragraph(nb_sentences=3),
                 description=fake.text(max_nb_chars=500),
-                date_time=talk_date,
+                start_time=talk_date,
                 duration=duration,
                 room=room,
                 track=track,

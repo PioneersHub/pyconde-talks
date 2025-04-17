@@ -420,7 +420,7 @@ class Command(BaseCommand):
             title=data.title,
             abstract=data.abstract,
             description=data.description,
-            date_time=data.start_time,
+            start_time=data.start_time,
             duration=data.duration,
             room=room,
             track=data.track,
@@ -455,7 +455,7 @@ class Command(BaseCommand):
         talk.title = data.title
         talk.abstract = data.abstract
         talk.description = data.description
-        talk.date_time = data.start_time
+        talk.start_time = data.start_time
 
         if data.duration:
             talk.duration = data.duration

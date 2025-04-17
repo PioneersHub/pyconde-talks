@@ -31,11 +31,11 @@
           <div class="grid sm:grid-cols-3 gap-4 text-gray-600">
             <div>
               <div class="text-sm text-gray-500">Date</div>
-              <div>{{ talk.date_time|date:"l, F j, Y" }}</div>
+              <div>{{ talk.start_time|date:"l, F j, Y" }}</div>
             </div>
             <div>
               <div class="text-sm text-gray-500">Time</div>
-              <div>{{ talk.date_time|date:"g:i A" }}</div>
+              <div>{{ talk.start_time|date:"g:i A" }}</div>
             </div>
             <div>
               <div class="text-sm text-gray-500">Room</div>

@@ -243,7 +243,7 @@ class Talk(models.Model):
         blank=True,
         help_text=_("Full description of the talk"),
     )
-    date_time = models.DateTimeField(
+    start_time = models.DateTimeField(
         blank=True,
         default=FAR_FUTURE,
         help_text=_("Date and time when the talk is scheduled"),
@@ -316,11 +316,11 @@ class Talk(models.Model):
     class Meta:
         """Metadata options for the Talk model."""
 
-        ordering: ClassVar[list[str]] = ["date_time"]
+        ordering: ClassVar[list[str]] = ["start_time"]
         verbose_name = _("Talk")
         verbose_name_plural = _("Talks")
         indexes: ClassVar[list[models.Index]] = [
-            models.Index(fields=["date_time"]),
+            models.Index(fields=["start_time"]),
             models.Index(fields=["room"]),
         ]
 
@@ -345,16 +345,18 @@ class Talk(models.Model):
                 self.track = EMPTY_TRACK_NAME
 
         # Update video_start_time if necessary and possible
-        if self.room and self.date_time and not self.video_link and not self.video_start_time:
+        if self.room and self.start_time and not self.video_link and not self.video_start_time:
             streaming = Streaming.objects.filter(
                 room=self.room,
-                start_time__lte=self.date_time,
-                end_time__gte=self.date_time,
+                start_time__lte=self.start_time,
+                end_time__gte=self.start_time,
             ).first()
 
             if streaming:
                 # Calculate seconds between streaming start and talk start
-                self.video_start_time = int((self.date_time - streaming.start_time).total_seconds())
+                self.video_start_time = int(
+                    (self.start_time - streaming.start_time).total_seconds(),
+                )
 
         super().save(*args, **kwargs)
 
@@ -373,7 +375,7 @@ class Talk(models.Model):
         if self.video_link:
             return self.video_link
 
-        if self.room and self.date_time:
+        if self.room and self.start_time:
             # Find the streaming that is/was happening during the talk
             # Allow a 1 minute delay for the start time
             # At least half of the talk must be covered by the streaming
@@ -382,8 +384,8 @@ class Talk(models.Model):
 
             streaming = Streaming.objects.filter(
                 room=self.room,
-                start_time__lte=self.date_time + margin,
-                end_time__gt=self.date_time + min_duration,
+                start_time__lte=self.start_time + margin,
+                end_time__gt=self.start_time + min_duration,
             ).first()
 
             if streaming:
@@ -417,7 +419,7 @@ class Talk(models.Model):
 
     def is_upcoming(self) -> bool:
         """Check if the talk is in the future."""
-        return self.date_time > timezone.now()
+        return self.start_time > timezone.now()
 
     def get_image_url(self) -> str:
         """

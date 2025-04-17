@@ -200,7 +200,7 @@ class TalkAdmin(admin.ModelAdmin):
         "title",
         "presentation_type",
         "speaker_names",
-        "date_time",
+        "start_time",
         "duration",
         "room_name",
         "track",
@@ -213,7 +213,7 @@ class TalkAdmin(admin.ModelAdmin):
         "room",
         "track",
         "hide",
-        "date_time",
+        "start_time",
     )
     search_fields = (
         "title",
@@ -222,7 +222,7 @@ class TalkAdmin(admin.ModelAdmin):
         "speakers__name",
         "room__name",
     )
-    date_hierarchy = "date_time"
+    date_hierarchy = "start_time"
     filter_horizontal = ("speakers",)
     autocomplete_fields: ClassVar[list[str]] = ["room"]
 
@@ -236,7 +236,7 @@ class TalkAdmin(admin.ModelAdmin):
         (
             _("Scheduling"),
             {
-                "fields": ("date_time", "duration", "room", "track"),
+                "fields": ("start_time", "duration", "room", "track"),
             },
         ),
         (
@@ -312,7 +312,7 @@ class TalkAdmin(admin.ModelAdmin):
     @admin.display(description=_("Active Streaming"))
     def display_active_streaming(self, obj: Talk) -> str:
         """Display information about the active streaming for this talk's time slot."""
-        if not obj.room or not obj.date_time:
+        if not obj.room or not obj.start_time:
             return _("No room or time scheduled")
 
         margin = timedelta(minutes=1)
@@ -320,8 +320,8 @@ class TalkAdmin(admin.ModelAdmin):
 
         streaming = Streaming.objects.filter(
             room=obj.room,
-            start_time__lte=obj.date_time + margin,
-            end_time__gt=obj.date_time + min_duration,
+            start_time__lte=obj.start_time + margin,
+            end_time__gt=obj.start_time + min_duration,
         ).first()
 
         if streaming:

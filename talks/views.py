@@ -65,7 +65,7 @@ class TalkListView(LoginRequiredMixin, ListView):
         # Filter by date
         date = self.request.GET.get("date")
         if date:
-            queryset = queryset.filter(date_time__date=date)
+            queryset = queryset.filter(start_time__date=date)
 
         # Filter by track
         track = self.request.GET.get("track")
@@ -77,7 +77,7 @@ class TalkListView(LoginRequiredMixin, ListView):
         if presentation_type:
             queryset = queryset.filter(presentation_type=presentation_type)
 
-        return queryset.order_by("date_time")
+        return queryset.order_by("start_time")
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Enhance the template context with additional data."""
@@ -87,7 +87,7 @@ class TalkListView(LoginRequiredMixin, ListView):
         context["rooms"] = Room.objects.filter(talks__isnull=False).distinct().order_by("name")
         # Get unique days
         context["dates"] = (
-            Talk.objects.annotate(date=TruncDate("date_time"))
+            Talk.objects.annotate(date=TruncDate("start_time"))
             .values_list("date", flat=True)
             .distinct()
             .order_by("date")
@@ -127,7 +127,7 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
 
     context = {
         "total_talks": Talk.objects.count(),
-        "todays_talks": Talk.objects.filter(date_time__date=current_time.date()).count(),
+        "todays_talks": Talk.objects.filter(start_time__date=current_time.date()).count(),
         "recorded_talks": sum(1 for talk in Talk.objects.all() if talk.get_video_link()),
     }
     return render(request, "talks/partials/dashboard_stats.html", context)
@@ -137,6 +137,6 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
 def upcoming_talks(request: HttpRequest) -> HttpResponse:
     """Display the next 5 upcoming talks."""
     current_time = timezone.now()
-    upcoming_talks = Talk.objects.filter(date_time__gt=current_time).order_by("date_time")[:5]
+    upcoming_talks = Talk.objects.filter(start_time__gt=current_time).order_by("start_time")[:5]
     context = {"upcoming_talks": upcoming_talks}
     return render(request, "talks/partials/upcoming_talks.html", context)
