@@ -352,11 +352,12 @@ class Command(BaseCommand):
                 [
                     Talk.PresentationType.KEYNOTE,
                     Talk.PresentationType.KIDS,
+                    Talk.PresentationType.LIGHTNING,
                     Talk.PresentationType.PANEL,
                     Talk.PresentationType.TALK,
                     Talk.PresentationType.TUTORIAL,
                 ],
-                weights=[7, 3, 5, 70, 15],
+                weights=[7, 2, 1, 5, 70, 15],
             )[0]
 
             # Set room based on presentation type

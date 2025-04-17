@@ -194,6 +194,7 @@ class Talk(models.Model):
         Values in Pretalx:
         - Keynote
         - Kids Workshop
+        - Lightning Talks
         - Panel
         - Sponsored Talk
         - Sponsored Talk (Keystone)
@@ -205,6 +206,7 @@ class Talk(models.Model):
 
         KEYNOTE = "Keynote", _("Keynote")
         KIDS = "Kids", _("Kids")
+        LIGHTNING = "Lightning", _("Lightning Talk")
         PANEL = "Panel", _("Panel")
         TALK = "Talk", _("Talk")
         TUTORIAL = "Tutorial", _("Tutorial")
