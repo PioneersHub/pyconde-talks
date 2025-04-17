@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";
+
 @theme {
   /* Brand Colors */
   --blue: #3778be;
