@@ -319,6 +319,8 @@ EMAIL_PORT = env.int("EMAIL_PORT", default=1025)
 EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
 # https://docs.djangoproject.com/en/dev/ref/settings/#default-from-email
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="webmaster@localhost")
+# https://docs.djangoproject.com/en/dev/ref/settings/#std-setting-SERVER_EMAIL
+SERVER_EMAIL = env("SERVER_EMAIL", default="root@localhost")
 
 # https://anymail.dev/en/stable/esps/
 # https://anymail.dev/en/stable/esps/mailgun/
