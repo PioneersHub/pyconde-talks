@@ -38,7 +38,7 @@
                     {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
           {% endfor %}
         </select>
-        <select name="track" class="border rounded px-2 py-1 pr-8">
+        <select name="track" class="border rounded px-2 py-1 pr-8 truncate w-60">
           <option value="">All Tracks</option>
           {% for track in tracks %}
             <option value="{{ track }}"
