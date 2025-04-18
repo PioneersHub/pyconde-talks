@@ -9,6 +9,8 @@
   "djlint.enableLinting": true,
   "djlint.formatCss": true,
   "djlint.formatJs": false,
+  "djlint.indentJs": 2,
+  "djlint.formatAttributeTemplateTags": true,
   "python.defaultInterpreterPath": "./.venv/bin/python",
   "python.testing.pytestArgs": ["--import-mode=importlib"],
   "python.testing.pytestEnabled": true,
