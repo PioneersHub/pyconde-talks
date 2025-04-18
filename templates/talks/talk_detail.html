@@ -55,8 +55,6 @@
             {% endif %}
           </div>
         </div>
-        <!-- Description -->
-        <div class="prose max-w-none mb-8">{{ talk.description|markdownify }}</div>
         <!-- Video Container -->
         {% if talk.get_video_link %}
           <div id="video-container"
@@ -84,6 +82,8 @@
             </div>
           {% endif %}
         {% endif %}
+        <!-- Description -->
+        <div class="prose max-w-none mb-8">{{ talk.description|markdownify }}</div>
         <!-- Action Buttons -->
         <div class="flex flex-wrap gap-4">
           <a href="{{ talk.pretalx_link }}"
