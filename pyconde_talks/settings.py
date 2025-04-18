@@ -184,6 +184,10 @@ ACCOUNT_LOGIN_BY_CODE_ENABLED = True
 ACCOUNT_LOGIN_BY_CODE_TIMEOUT = env.int("ACCOUNT_LOGIN_BY_CODE_TIMEOUT", default=180)
 ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS = 3
 ACCOUNT_PREVENT_ENUMERATION = True
+ACCOUNT_EMAIL_SUBJECT_PREFIX = env(
+    "ACCOUNT_EMAIL_SUBJECT_PREFIX",
+    default="[PyConDE & PyData Berlin 2025] ",
+)
 
 
 # --------------------------------------------------------------------------------------------------
