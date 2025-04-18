@@ -237,9 +237,11 @@ initialize_django() {
     "$VENV_PYTHON" manage.py createsuperuser --noinput || warn "Superuser creation failed"
 
     # Create test users
-    log "Creating test users..."
-    "$VENV_PYTHON" manage.py createuser --email=user1@example.com || warn "User1 creation failed"
-    "$VENV_PYTHON" manage.py createuser --email=user2@example.com || warn "User2 creation failed"
+    if [ "$GEN_FAKE_DATA" = "true" ]; then
+        log "Creating test users..."
+        "$VENV_PYTHON" manage.py createuser --email=user1@example.com || warn "User1 creation failed"
+        "$VENV_PYTHON" manage.py createuser --email=user2@example.com || warn "User2 creation failed"
+    fi
 
     # Generate test data if requested
     if [ "$GEN_FAKE_DATA" = "true" ]; then
