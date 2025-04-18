@@ -11,7 +11,7 @@
             hx-trigger="change from:select"
             hx-indicator="#loading-indicator"
             class="flex flex-wrap gap-4">
-        <select name="date" class="border rounded px-2 py-1">
+        <select name="date" class="border rounded px-2 py-1 pr-8">
           <option value="">All Days</option>
           {% for date in dates %}
             <option value="{{ date|date:'Y-m-d' }}"
@@ -24,21 +24,21 @@
             </option>
           {% endfor %}
         </select>
-        <select name="room" class="border rounded px-2 py-1">
+        <select name="room" class="border rounded px-2 py-1 pr-8">
           <option value="">All Rooms</option>
           {% for room in rooms %}
             <option value="{{ room.id }}"
                     {% if room.id|stringformat:"s" == selected_room %}selected{% endif %}>{{ room.name }}</option>
           {% endfor %}
         </select>
-        <select name="presentation_type" class="border rounded px-2 py-1">
+        <select name="presentation_type" class="border rounded px-2 py-1 pr-8">
           <option value="">All Types</option>
           {% for type_value, type_label in presentation_types %}
             <option value="{{ type_value }}"
                     {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
           {% endfor %}
         </select>
-        <select name="track" class="border rounded px-2 py-1">
+        <select name="track" class="border rounded px-2 py-1 pr-8">
           <option value="">All Tracks</option>
           {% for track in tracks %}
             <option value="{{ track }}"
