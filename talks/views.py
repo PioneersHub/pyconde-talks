@@ -135,8 +135,8 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def upcoming_talks(request: HttpRequest) -> HttpResponse:
-    """Display the next 5 upcoming talks."""
+    """Display the next 8 upcoming talks."""
     current_time = timezone.now()
-    upcoming_talks = Talk.objects.filter(start_time__gt=current_time).order_by("start_time")[:5]
+    upcoming_talks = Talk.objects.filter(start_time__gt=current_time).order_by("start_time")[:8]
     context = {"upcoming_talks": upcoming_talks}
     return render(request, "talks/partials/upcoming_talks.html", context)
