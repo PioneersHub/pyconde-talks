@@ -4,6 +4,7 @@
 # Description: setup development environment
 
 # Default configuration (can be overridden by environment variables)
+DEBUG="${DEBUG:-false}"
 VENV_DIR="${VENV_DIR:-.venv}"
 VENV_PYTHON="${VENV_DIR}/bin/python"
 VENV_TAILWIND="${VENV_DIR}/bin/tailwindcss"
@@ -259,14 +260,17 @@ start_services() {
 
     # Only build TailwindCSS if not skipped
     if [[ "$SKIP_STEPS" != *"tailwind"* ]]; then
-        # Start TailwindCSS in background
-        # Note: will use --minify in production
-        log "Starting TailwindCSS watcher..."
-        "$VENV_TAILWIND" -i ./assets/css/input.css -o ./static/css/tailwind.min.css --watch &
-        TAILWIND_PID=$!
-
-        # Clean up tailwind when the script exits
-        trap 'kill $TAILWIND_PID 2>/dev/null' EXIT
+        if [ "$DEBUG" = "true" ]; then
+            # Start TailwindCSS in background
+            log "Starting TailwindCSS watcher..."
+            "$VENV_TAILWIND" -i ./assets/css/input.css -o ./static/css/tailwind.min.css --watch &
+            TAILWIND_PID=$!
+            # Clean up tailwind when the script exits
+            trap 'kill $TAILWIND_PID 2>/dev/null' EXIT
+        else
+            log "Building minified TailwindCSS..."
+            "$VENV_TAILWIND" -i ./assets/css/input.css -o ./static/css/tailwind.min.css --minify
+        fi
     fi
 
     # Start Mailpit if not skipped
