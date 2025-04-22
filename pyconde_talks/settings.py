@@ -241,10 +241,10 @@ MIDDLEWARE = [
 # https://docs.djangoproject.com/en/dev/howto/static-files/
 # https://docs.djangoproject.com/en/dev/howto/static-files/deployment/
 # https://docs.djangoproject.com/en/dev/ref/settings/#static-root
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = env("DJANGO_STATIC_ROOT", default=BASE_DIR / "staticfiles")
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#static-url
-STATIC_URL = env("STATIC_URL", default="static/")
+STATIC_URL = env("DJANGO_STATIC_URL", default="static/")
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#std-setting-STATICFILES_DIRS
 STATICFILES_DIRS = [BASE_DIR / "static"]
@@ -260,7 +260,7 @@ STATICFILES_FINDERS = [
 # MEDIA
 # --------------------------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-root
-MEDIA_ROOT = BASE_DIR / env("MEDIA_ROOT", default="media")
+MEDIA_ROOT = BASE_DIR / env("DJANGO_MEDIA_ROOT", default="media")
 MEDIA_URL = env("MEDIA_URL", default="/media/")
 
 
@@ -348,7 +348,7 @@ if EMAIL_BACKEND == "anymail.backends.mailgun.EmailBackend":
 LOG_EMAIL_HASH = env.bool("LOG_EMAIL_HASH", default=True)
 
 # Ensure log directory exists
-log_dir = Path(env("LOG_DIR", default=BASE_DIR / "logs"))
+log_dir = Path(env("DJANGO_LOGS_DIR", default=BASE_DIR / "logs"))
 log_dir.mkdir(parents=True, exist_ok=True)
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#logging
