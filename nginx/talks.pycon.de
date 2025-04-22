@@ -1,3 +1,7 @@
+# Rate limiting configuration
+limit_req_zone $binary_remote_addr zone=general:10m rate=10r/s;
+limit_req_status 429;
+
 # Define upstream for Django application
 upstream django_talks_app {
     server 127.0.0.1:8000;
@@ -38,6 +42,7 @@ server {
 
     # Static files with 30 days caching
     location /static/ {
+        limit_req zone=general burst=30 nodelay;
         alias /var/cache/talks.pycon.de/staticfiles/;
         expires 30d;
         add_header Cache-Control "public, max-age=2592000, immutable";
@@ -45,12 +50,14 @@ server {
 
     # Media files
     location /media/ {
+        limit_req zone=general burst=20 nodelay;
         alias /var/opt/talks.pycon.de/media/;
         expires 30d;
     }
 
     # Django app
     location / {
+        limit_req zone=general burst=10;
         proxy_pass http://django_talks_app;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
