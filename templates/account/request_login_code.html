@@ -46,7 +46,9 @@
                    class="w-full pl-10 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                    {% if form.email.value %}value="{{ form.email.value }}"{% endif %}>
           </div>
-          <p class="mt-1 text-xs text-gray-500">{% translate "Check your inbox for a login code after submission" %}</p>
+          <p class="mt-1 text-xs text-gray-500">
+            {% translate "Check your inbox (and spam folder) for a login code after submission" %}
+          </p>
         </div>
         <button type="submit"
                 class="w-full bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium">
@@ -64,6 +66,10 @@
         <div class="flex items-start gap-2 mt-2">
           {% svg 'check-circle' "text-blue-600 mt-0.5" %}
           <p>{% translate "Your login code will be valid for" %} {{ login_code_timeout_minutes }} {% translate "minutes." %}</p>
+        </div>
+        <div class="flex items-start gap-2 mt-2">
+          {% svg 'exclamation-circle' "text-blue-600 mt-0.5" %}
+          <p>{% translate "If you don't see the login code in your inbox, please check your spam or junk folder." %}</p>
         </div>
       </div>
     </div>
