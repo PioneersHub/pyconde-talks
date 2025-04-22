@@ -247,7 +247,7 @@ STATIC_ROOT = env("DJANGO_STATIC_ROOT", default=BASE_DIR / "staticfiles")
 STATIC_URL = env("DJANGO_STATIC_URL", default="static/")
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#std-setting-STATICFILES_DIRS
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_DIRS = env.list("DJANGO_STATICFILES_DIRS", default=[BASE_DIR / "static"])
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#staticfiles-finders
 STATICFILES_FINDERS = [
