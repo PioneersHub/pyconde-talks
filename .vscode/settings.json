@@ -1,4 +1,7 @@
 {
+  "files.associations": {
+    "**/nginx/*": "nginx"
+  },
   "evenBetterToml.formatter.allowedBlankLines": 2,
   "evenBetterToml.formatter.columnWidth": 100,
   "bandit.importStrategy": "fromEnvironment",

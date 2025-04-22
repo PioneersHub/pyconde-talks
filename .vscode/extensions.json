@@ -9,6 +9,7 @@
     "batisteo.vscode-django",
     "bradlc.vscode-tailwindcss",
     "monosans.djlint",
-    "pycqa.bandit-pycqa"
+    "pycqa.bandit-pycqa",
+    "ahmadalli.vscode-nginx-conf"
   ]
 }

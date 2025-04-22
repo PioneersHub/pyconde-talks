@@ -1,0 +1,68 @@
+# Define upstream for Django application
+upstream django_talks_app {
+    server 127.0.0.1:8000;
+}
+
+server {
+    listen 80;
+    server_name talks.pycon.de;
+
+    # Redirect all HTTP traffic to HTTPS
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name talks.pycon.de;
+
+    # SSL Configuration (Managed by Certbot)
+    ssl_certificate /etc/letsencrypt/live/talks.pycon.de/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/talks.pycon.de/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Security headers
+    add_header X-Content-Type-Options nosniff;
+    add_header X-Frame-Options SAMEORIGIN;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Referrer-Policy strict-origin-when-cross-origin;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com *.ytimg.com *.googlevideo.com *.newrelic.com *.nr-data.net; style-src 'self' 'unsafe-inline' *.vimeocdn.com *.ytimg.com; img-src 'self' data: vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com *.ytimg.com *.ggpht.com; font-src 'self' data:; connect-src 'self' vimeo.com *.vimeo.com youtube.com *.youtube.com *.googlevideo.com; frame-src 'self' vimeo.com *.vimeo.com player.vimeo.com *.player.vimeo.com youtube.com www.youtube.com youtube-nocookie.com; child-src 'self' vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com;";
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";
+
+    # Static files with 30 days caching
+    location /static/ {
+        alias /var/cache/talks.pycon.de/staticfiles/;
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000, immutable";
+    }
+
+    # Media files
+    location /media/ {
+        alias /var/opt/talks.pycon.de/media/;
+        expires 30d;
+    }
+
+    # Django app
+    location / {
+        proxy_pass http://django_talks_app;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_redirect off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $server_name;
+
+        # Buffer settings for better performance
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
+
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
