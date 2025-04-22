@@ -528,6 +528,18 @@ PRETALX_API_TOKEN = env("PRETALX_API_TOKEN", default="00000000000000000000000000
 PRETALX_EVENT_SLUG = env("PRETALX_EVENT_SLUG", default="pyconde-pydata-2025")
 
 # --------------------------------------------------------------------------------------------------
+# Livestreams
+# --------------------------------------------------------------------------------------------------
+LIVESTREAMS_SHEET_ID = env(
+    "LIVESTREAMS_SHEET_ID",
+    default="0000000000000000000000000000000000000000000",
+)
+LIVESTREAMS_WORKSHEET_NAME = env(
+    "LIVESTREAMS_WORKSHEET_NAME",
+    default="Livestreams",
+)
+
+# --------------------------------------------------------------------------------------------------
 # Extra settings
 # --------------------------------------------------------------------------------------------------
 SHOW_UPCOMING_TALKS_LINKS = env.bool("SHOW_UPCOMING_TALKS_LINKS", default=False)

@@ -38,6 +38,7 @@ isort
 levelname
 linecap
 linejoin
+livestreams
 mailgun
 mailpit
 makemigrations
@@ -49,6 +50,7 @@ mypy
 noinput
 noreload
 onclick
+openpyxl
 passwordless
 pretalx
 psycopg
