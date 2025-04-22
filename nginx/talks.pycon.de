@@ -40,6 +40,14 @@ server {
     add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com *.ytimg.com *.googlevideo.com *.newrelic.com *.nr-data.net; style-src 'self' 'unsafe-inline' *.vimeocdn.com *.ytimg.com; img-src 'self' data: vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com *.ytimg.com *.ggpht.com; font-src 'self' data:; connect-src 'self' vimeo.com *.vimeo.com youtube.com *.youtube.com *.googlevideo.com; frame-src 'self' vimeo.com *.vimeo.com player.vimeo.com *.player.vimeo.com youtube.com www.youtube.com youtube-nocookie.com; child-src 'self' vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com;";
     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";
 
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_min_length 1000;
+    gzip_types application/atom+xml application/javascript application/json application/ld+json application/manifest+json application/rss+xml application/vnd.geo+json application/xml font/eot font/otf font/ttf image/svg+xml text/css text/javascript text/plain text/xml;
+
     # Static files with 30 days caching
     location /static/ {
         limit_req zone=general burst=30 nodelay;
