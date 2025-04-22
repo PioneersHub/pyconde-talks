@@ -34,7 +34,11 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):
         If authorized but user doesn't exist, create the user.
         """
         email = form.cleaned_data["email"].lower()
-        email_hash = hash_email(email)
+
+        email_hash = email
+        if getattr(settings, "LOG_EMAIL_HASH", True):
+            email_hash = hash_email(email)
+
         adapter = get_adapter(self.request)
 
         # Check if the email is authorized

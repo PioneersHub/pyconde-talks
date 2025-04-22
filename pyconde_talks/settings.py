@@ -339,14 +339,15 @@ if EMAIL_BACKEND == "anymail.backends.mailgun.EmailBackend":
 
 # --------------------------------------------------------------------------------------------------
 # LOGGING
-# --------------------------------------------------------------------------------------------------
-# https://docs.djangoproject.com/en/dev/ref/settings/#logging
 # https://docs.djangoproject.com/en/dev/topics/logging
+# --------------------------------------------------------------------------------------------------
+LOG_EMAIL_HASH = env.bool("LOG_EMAIL_HASH", default=True)
 
 # Ensure log directory exists
 log_dir = Path(env("LOG_DIR", default=BASE_DIR / "logs"))
 log_dir.mkdir(parents=True, exist_ok=True)
 
+# https://docs.djangoproject.com/en/dev/ref/settings/#logging
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
