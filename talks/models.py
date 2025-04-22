@@ -333,7 +333,6 @@ class Talk(models.Model):
         Save the talk instance.
 
         Set the duration based on the presentation type if not already set.
-        Update video_start_time based on streaming if applicable.
         """
         if not self.duration:
             self.duration = self.DEFAULT_DURATIONS.get(self.presentation_type, timedelta())
@@ -343,20 +342,6 @@ class Talk(models.Model):
                 self.track = "Lightning Talks"
             else:
                 self.track = EMPTY_TRACK_NAME
-
-        # Update video_start_time if necessary and possible
-        if self.room and self.start_time and not self.video_link and not self.video_start_time:
-            streaming = Streaming.objects.filter(
-                room=self.room,
-                start_time__lte=self.start_time,
-                end_time__gte=self.start_time,
-            ).first()
-
-            if streaming:
-                # Calculate seconds between streaming start and talk start
-                self.video_start_time = int(
-                    (self.start_time - streaming.start_time).total_seconds(),
-                )
 
         super().save(*args, **kwargs)
 
