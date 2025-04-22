@@ -4,7 +4,7 @@
 FROM python:3.13-slim AS builder
 
 # Copy uv package manager
-COPY --from=ghcr.io/astral-sh/uv:0.6.14 /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
