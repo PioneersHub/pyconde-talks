@@ -1,0 +1,80 @@
+services:
+  db:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    volumes:
+      - talks_postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app_network
+    expose:
+      - "5432"
+
+  django:
+    # ATTENTION: build with Bake: `COMPOSE_BAKE=true docker compose up --build`
+    #            or `docker buildx bake --allow=fs.read=..` instead of `docker compose build`
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
+        - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+        - DJANGO_STATIC_ROOT=${DJANGO_STATIC_ROOT}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - ADMIN_NAMES=${ADMIN_NAMES}
+      - ADMIN_EMAILS=${ADMIN_EMAILS}
+      - ACCOUNT_EMAIL_SUBJECT_PREFIX=${ACCOUNT_EMAIL_SUBJECT_PREFIX}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+      - DJANGO_MEDIA_ROOT=${DJANGO_MEDIA_ROOT}
+      - DJANGO_STATIC_ROOT=${DJANGO_STATIC_ROOT}
+      - DJANGO_STATICFILES_DIRS=${DJANGO_STATICFILES_DIRS}
+      - DJANGO_LOGS_DIR=${DJANGO_LOGS_DIR}
+      - DJANGO_EMAIL_BACKEND=${DJANGO_EMAIL_BACKEND}
+      - MAILGUN_API_KEY=${MAILGUN_API_KEY}
+      - MAILGUN_API_URL=${MAILGUN_API_URL}
+      - MAILGUN_SENDER_DOMAIN=${MAILGUN_SENDER_DOMAIN}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
+      - PRETALX_API_TOKEN=${PRETALX_API_TOKEN}
+      - PRETALX_EVENT_SLUG=${PRETALX_EVENT_SLUG}
+      - SHOW_UPCOMING_TALKS_LINKS=${SHOW_UPCOMING_TALKS_LINKS}
+    volumes:
+      - ${MOUNT_MEDIA_ROOT}:${DJANGO_MEDIA_ROOT}
+      - ${MOUNT_LOGS_DIR}:${DJANGO_LOGS_DIR}
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/ht/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app_network
+
+volumes:
+  talks_postgres_data:
+
+networks:
+  app_network:
+    driver: bridge

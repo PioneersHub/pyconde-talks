@@ -8,6 +8,7 @@ batisteo
 bezier
 bothify
 bradlc
+buildx
 Callsite
 cffi
 charliermarsh
@@ -32,10 +33,14 @@ formmethod
 fullscreen
 gcwv
 Genderqueer
+healthcheck
+htmlcov
 htmx
 ipython
 isort
+isready
 levelname
+libpq
 linecap
 linejoin
 livestreams
@@ -62,10 +67,13 @@ pydata
 pyproject
 pytanis
 pytest
+PYTHONDONTWRITEBYTECODE
+PYTHONUNBUFFERED
 Reswap
 Retarget
 runserver
 Satoshi
+sdist
 slido
 socialaccount
 sqlite

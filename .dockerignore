@@ -1,0 +1,74 @@
+# Version control
+.git
+.gitignore
+.github
+.pre-commit-config.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing
+.tox/
+.coverage
+.coverage.*
+.cache
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+htmlcov/
+
+# Environment
+.venv
+env.example
+
+# Editors and dev environments
+.idea/
+.vscode/
+*.swp
+*.swo
+.devcontainer/
+.cspell
+.cspell.json
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+docs/
+
+# Database
+*.sqlite3
+*.db
+
+# Logs
+# The folder should stay
+*.log
