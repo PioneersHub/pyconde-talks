@@ -252,6 +252,7 @@ class Command(BaseCommand):
             "total": len(submissions),
             "created": 0,
             "updated": 0,
+            "deleted": 0,
             "skipped": 0,
             "failed": 0,
         }
@@ -281,17 +282,6 @@ class Command(BaseCommand):
             )
 
             try:
-                # Skip based on state
-                if submission.state not in [State.confirmed, State.accepted]:
-                    self._log(
-                        f"Skipping: {submission.title} (state: {submission.state})",
-                        verbosity,
-                        VerbosityLevel.DETAILED,
-                        "WARNING",
-                    )
-                    stats["skipped"] += 1
-                    continue
-
                 # Validate submission
                 if not self._is_valid_submission(submission, verbosity):
                     stats["skipped"] += 1
@@ -319,7 +309,8 @@ class Command(BaseCommand):
         # Log completion statistics
         self._log(
             f"Import complete: {stats['created']} created, {stats['updated']} updated, "
-            f"{stats['skipped']} skipped, {stats['failed']} failed, {stats['total']} total",
+            f"{stats['deleted']} deleted, {stats['skipped']} skipped, "
+            f"{stats['failed']} failed, {stats['total']} total",
             verbosity,
             VerbosityLevel.NORMAL,
             "SUCCESS",
@@ -374,6 +365,23 @@ class Command(BaseCommand):
 
         # Check if talk exists
         existing_talk = Talk.objects.filter(pretalx_link=data.pretalx_link).first()
+
+        # Delete canceled talk
+        if submission.state not in [State.confirmed, State.accepted]:
+            if existing_talk:
+                self._log(
+                    f"Talk {data.title} changed state to {submission.state}. Deleting",
+                    verbosity,
+                    VerbosityLevel.NORMAL,
+                    "WARNING",
+                )
+
+                if not dry_run:
+                    # Delete the talk
+                    existing_talk.delete()
+
+                return "deleted"
+            return "skipped"
 
         if existing_talk:
             if no_update:
