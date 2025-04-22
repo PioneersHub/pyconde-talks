@@ -42,7 +42,7 @@ USE_TZ = env.bool("USE_TZ", default=True)
 # DATABASES
 # --------------------------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
-DATABASES = {"default": env.db("DATABASE_URL")}
+DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
 
 # Default primary key field type
@@ -100,9 +100,9 @@ INSTALLED_APPS = LOCAL_APPS + THIRD_PARTY_APPS + DJANGO_APPS
 # SECURITY
 # --------------------------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
-SECRET_KEY = env("DJANGO_SECRET_KEY")
+SECRET_KEY = env("DJANGO_SECRET_KEY", default="unsafe-secret-key")
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
 # https://docs.djangoproject.com/en/dev/ref/settings/#session-cookie-httponly
 SESSION_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#session-cookie-secure
@@ -128,8 +128,8 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 ADMIN_URL = env("DJANGO_ADMIN_URL", default="admin/")
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#admins
-ADMIN_NAMES = env.list("ADMIN_NAMES")
-ADMIN_EMAILS = env.list("ADMIN_EMAILS")
+ADMIN_NAMES = env.list("ADMIN_NAMES", default=["Admin"])
+ADMIN_EMAILS = env.list("ADMIN_EMAILS", default=["admin@example.com"])
 ADMINS = list(zip(ADMIN_NAMES, ADMIN_EMAILS, strict=False))
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#managers
@@ -183,12 +183,12 @@ ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_LOGIN_BY_CODE_ENABLED = True
-ACCOUNT_LOGIN_BY_CODE_TIMEOUT = env.int("ACCOUNT_LOGIN_BY_CODE_TIMEOUT", default=180)
+ACCOUNT_LOGIN_BY_CODE_TIMEOUT = env.int("ACCOUNT_LOGIN_BY_CODE_TIMEOUT", default=300)
 ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS = 3
 ACCOUNT_PREVENT_ENUMERATION = True
 ACCOUNT_EMAIL_SUBJECT_PREFIX = env(
     "ACCOUNT_EMAIL_SUBJECT_PREFIX",
-    default="[PyConDE & PyData Berlin 2025] ",
+    default="[PyConDE & PyData 2025] ",
 )
 
 
@@ -521,7 +521,7 @@ MARKDOWNIFY = {
 # --------------------------------------------------------------------------------------------------
 # Pretalx
 # --------------------------------------------------------------------------------------------------
-PRETALX_API_TOKEN = env("PRETALX_API_TOKEN")
+PRETALX_API_TOKEN = env("PRETALX_API_TOKEN", default="0000000000000000000000000000000000000000")
 PRETALX_EVENT_SLUG = env("PRETALX_EVENT_SLUG", default="pyconde-pydata-2025")
 
 # --------------------------------------------------------------------------------------------------
