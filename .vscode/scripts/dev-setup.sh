@@ -16,6 +16,7 @@ RUN_SERVER="${RUN_SERVER:-true}"
 SKIP_STEPS="${SKIP_STEPS:-}"
 GEN_FAKE_DATA="${GEN_FAKE_DATA:-true}"
 PRETALX_SYNC="${PRETALX_SYNC:-false}"
+export DJANGO_READ_VARS_FILE=True
 
 # Colors for output
 GREEN='\033[0;32m'

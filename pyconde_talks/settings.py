@@ -14,7 +14,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # https://django-environ.readthedocs.io/
 # https://12factor.net/config
 env = environ.Env()
-environ.Env.read_env(BASE_DIR / "django-vars.env")
+
+READ_VARS_FILE = env.bool("DJANGO_READ_VARS_FILE", default=False)
+if READ_VARS_FILE:
+    environ.Env.read_env(BASE_DIR / "django-vars.env")
 
 # --------------------------------------------------------------------------------------------------
 # GENERAL
