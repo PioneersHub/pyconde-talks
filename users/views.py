@@ -5,12 +5,13 @@ from typing import Any, cast
 import structlog
 from allauth.account.adapter import get_adapter
 from allauth.account.forms import LoginForm
+from allauth.account.internal import flows
 from allauth.account.views import RequestLoginCodeView
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import DatabaseError, IntegrityError
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 
 from pyconde_talks.utils.email_utils import hash_email
 
@@ -47,8 +48,17 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):
         if not UserModel.objects.filter(email=email).exists():
             try:
                 logger.info("Creating new user account", email=email_hash)
-                UserModel.objects.create_user(email=email, is_active=True)
-                logger.info("Successfully created user account", email=email_hash)
+                user = UserModel.objects.create_user(email=email, is_active=True)
+                form.user = user
+                logger.info("Successfully created user account", email=email_hash, form=form.user)
+                # Trigger the login code flow
+                flows.login_by_code.LoginCodeVerificationProcess.initiate(
+                    request=self.request,
+                    user=user,
+                    email=email,
+                )
+                # Redirect to success page
+                return HttpResponseRedirect(self.get_success_url())
             except (IntegrityError, ValidationError) as e:
                 logger.warning("Failed to create user", email=email_hash, error=str(e))
                 form.add_error(
@@ -69,6 +79,7 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):
                 return self.form_invalid(form)
 
         # Proceed with standard login code process
+        logger.info("Form is valid", email=email_hash)
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
