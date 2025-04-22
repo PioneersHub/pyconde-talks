@@ -51,7 +51,7 @@ def svg(name: str, css_class: str = "") -> SafeString:
         {% svg 'arrow' 'h-4 w-4 text-blue-500' %}
 
     """
-    svg_path = Path(settings.BASE_DIR) / "static" / "images" / "icons" / f"{name}.svg"
+    svg_path = Path(settings.BASE_DIR) / "svg" / f"{name}.svg"
 
     try:
         svg_content = svg_path.read_text()
