@@ -16,6 +16,7 @@ RUN_SERVER="${RUN_SERVER:-true}"
 SKIP_STEPS="${SKIP_STEPS:-}"
 GEN_FAKE_DATA="${GEN_FAKE_DATA:-true}"
 PRETALX_SYNC="${PRETALX_SYNC:-false}"
+IMPORT_STREAMS="${IMPORT_STREAMS:-false}"
 export DJANGO_READ_VARS_FILE=True
 
 # Colors for output
@@ -254,6 +255,12 @@ initialize_django() {
     if [ "$PRETALX_SYNC" = "true" ]; then
         log "Syncing with Pretalx..."
         "$VENV_PYTHON" manage.py import_pretalx_talks --verbosity 3 || warn "Failed to import talks from Pretalx"
+    fi
+
+    # Sync with Google Sheets
+    if [ "$IMPORT_STREAMS" = "true" ]; then
+        log "Importing streams from Google Sheets..."
+        "$VENV_PYTHON" manage.py import_livestream_urls || warn "Failed to import livestreams from Google Sheets"
     fi
 }
 
