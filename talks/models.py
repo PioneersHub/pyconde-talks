@@ -63,6 +63,15 @@ class Room(models.Model):
         """Return the room name."""
         return self.name
 
+    def is_streaming_live(self) -> bool:
+        """Check if there's currently a live streaming for this room."""
+        now = timezone.now()
+        return Streaming.objects.filter(
+            room=self,
+            start_time__lte=now,
+            end_time__gte=now,
+        ).exists()
+
 
 class Streaming(models.Model):
     """Represents a video streaming session for a room."""
@@ -345,6 +354,30 @@ class Talk(models.Model):
 
         super().save(*args, **kwargs)
 
+    def get_video_start_time(self) -> int:
+        """
+        Return the video start time for this talk.
+
+        Returns the talk's stored video_start_time if it exists.
+        Otherwise, calculates the start time based on the corresponding streaming.
+        Returns 0 if no start time can be determined.
+        """
+        if self.video_start_time:
+            return self.video_start_time
+
+        if self.room and self.start_time:
+            streaming = Streaming.objects.filter(
+                room=self.room,
+                start_time__lte=self.start_time,
+                end_time__gte=self.start_time,
+            ).first()
+
+            if streaming:
+                # Calculate seconds between streaming start and talk start
+                return int((self.start_time - streaming.start_time).total_seconds())
+
+        return 0
+
     def get_video_link(self) -> str:
         """
         Return the Video link for this talk.
@@ -411,6 +444,30 @@ class Talk(models.Model):
         now = timezone.now()
         end_time = self.start_time + self.duration
         return self.start_time <= now <= end_time
+
+    def has_active_streaming(self) -> bool:
+        """
+        Check if the streaming associated with this talk is still ongoing.
+
+        Returns True if the talk has a corresponding streaming that is still ongoing (end_time is in
+        the future), meaning the video is a live stream.
+        Returns False if the talk has no streaming or if its streaming has already ended, meaning
+        the video is a recording.
+        """
+        if not self.room or not self.start_time:
+            return False
+
+        now = timezone.now()
+
+        # Find the streaming that contains this talk
+        streaming = Streaming.objects.filter(
+            room=self.room,
+            start_time__lte=self.start_time,
+            end_time__gte=self.start_time,
+        ).first()
+
+        # Streaming exists and has not finished yet
+        return streaming and streaming.end_time > now
 
     def get_image_url(self) -> str:
         """

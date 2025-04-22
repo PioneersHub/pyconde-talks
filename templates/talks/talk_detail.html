@@ -72,12 +72,18 @@
             </iframe>
           </div>
           <!-- Video Start Time Controls -->
-          {% if talk.video_start_time %}
+          {% if talk.get_video_start_time and not talk.is_upcoming %}
             <div class="mb-8 flex items-center">
-              <button id="jump-to-time"
-                      class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
-                Jump to {{ talk.video_start_time|format_seconds }}
-              </button>
+              {% if talk.has_active_streaming %}
+                <div class="text-sm text-gray-600">
+                  This is a live stream. Please skip manually to {{ talk.get_video_start_time|format_seconds }} to see the start of the talk.
+                </div>
+              {% else %}
+                <button id="jump-to-time"
+                        class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
+                  Jump to {{ talk.get_video_start_time|format_seconds }}
+                </button>
+              {% endif %}
               <span class="ml-3 text-sm text-gray-500">(Skip to estimated talk start)</span>
             </div>
           {% endif %}
@@ -118,27 +124,27 @@
   {% if talk.get_video_link %}
     <script src="https://player.vimeo.com/api/player.js"></script>
     <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const iframe = document.querySelector('#video-container iframe');
+    document.addEventListener('DOMContentLoaded', function() {
+      const iframe = document.querySelector('#video-container iframe');
 
-    if (iframe) {
-      const player = new Vimeo.Player(iframe);
+      if (iframe) {
+        const player = new Vimeo.Player(iframe);
 
-      {% if talk.video_start_time %}
-      const jumpButton = document.getElementById('jump-to-time');
-      if (jumpButton) {
-        jumpButton.addEventListener('click', function() {
-          const startTime = {{ talk.video_start_time }};
-          player.setCurrentTime(startTime).then(function() {
-            console.log('Starting video at', startTime, 'seconds');
-          }).catch(function(error) {
-            console.error('Error setting start time:', error);
+        {% if talk.get_video_start_time and not talk.has_active_streaming %}
+        const jumpButton = document.getElementById('jump-to-time');
+        if (jumpButton) {
+          jumpButton.addEventListener('click', function() {
+            const startTime = {{ talk.get_video_start_time }};
+            player.setCurrentTime(startTime).then(function() {
+              console.log('Starting video at', startTime, 'seconds');
+            }).catch(function(error) {
+              console.error('Error setting start time:', error);
+            });
           });
-        });
+        }
+        {% endif %}
       }
-      {% endif %}
-    }
-  });
+    });
     </script>
   {% endif %}
 {% endblock content %}
