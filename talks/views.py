@@ -11,8 +11,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models.functions import TruncDate
 from django.db.models.query import QuerySet
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
+from django.http import Http404, HttpRequest, HttpResponse
+from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import DetailView, ListView
 
@@ -140,3 +140,33 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
     upcoming_talks = Talk.objects.filter(start_time__gt=current_time).order_by("start_time")[:8]
     context = {"upcoming_talks": upcoming_talks}
     return render(request, "talks/partials/upcoming_talks.html", context)
+
+
+def talk_redirect_view(_: HttpRequest, talk_id: str) -> HttpResponse:
+    """
+    Get talk detail view by Talk ID or pretalx_id.
+
+    The chance of collision is very small.
+    It's not clear if the pretalx_id is unique across all events or if it can be a small number like
+    the primary key of a talk.
+    """
+    # Try to interpret as primary key
+    try:
+        pk = int(talk_id)
+        talk = Talk.objects.filter(pk=pk).first()
+        if talk:
+            return redirect("talk_detail", pk=pk)
+    except ValueError:
+        # Not an integer, so can only be a pretalx_id
+        pass
+
+    # 1. talk_id was an integer but no talk with that pk exists, or
+    # 2. talk_id was not an integer
+    # Try to interpret as pretalx_id
+    talk = Talk.objects.filter(pretalx_link__contains=f"/talk/{talk_id}").first()
+    if talk:
+        return redirect("talk_detail", pk=talk.pk)
+
+    # Talk not found
+    msg = f"No talk found with ID or pretalx ID: {talk_id}"
+    raise Http404(msg)
