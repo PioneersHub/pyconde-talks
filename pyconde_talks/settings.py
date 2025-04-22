@@ -238,6 +238,8 @@ MIDDLEWARE = [
 # --------------------------------------------------------------------------------------------------
 # STATIC
 # --------------------------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/howto/static-files/
+# https://docs.djangoproject.com/en/dev/howto/static-files/deployment/
 # https://docs.djangoproject.com/en/dev/ref/settings/#static-root
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
