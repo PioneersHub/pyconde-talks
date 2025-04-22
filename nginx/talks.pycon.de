@@ -21,6 +21,13 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
+    # Enable OCSP stapling
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    ssl_trusted_certificate /etc/letsencrypt/live/talks.pycon.de/chain.pem;
+    resolver 1.1.1.1 8.8.8.8 valid=10m;
+    resolver_timeout 5s;
+
     # Security headers
     add_header X-Content-Type-Options nosniff;
     add_header X-Frame-Options SAMEORIGIN;
