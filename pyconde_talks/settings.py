@@ -10,7 +10,9 @@ import structlog
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Django-environ
-# Take environment variables from .env file
+# 12factor approach: OS environment variables take precedence over .env file
+# https://django-environ.readthedocs.io/
+# https://12factor.net/config
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / ".env")
 
