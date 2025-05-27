@@ -31,6 +31,7 @@ emailaddress
 endfor
 endpartial
 esbenp
+extrahead
 formaction
 formmethod
 fullchain
@@ -62,6 +63,8 @@ mypy
 newrelic
 nodelay
 noinput
+noopener
+noreferrer
 noreload
 nosniff
 OCSP
@@ -81,8 +84,10 @@ pytanis
 pytest
 PYTHONDONTWRITEBYTECODE
 PYTHONUNBUFFERED
+regularuser
 Reswap
 Retarget
+rgba
 runserver
 SAMEORIGIN
 Satoshi
