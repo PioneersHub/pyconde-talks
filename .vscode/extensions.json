@@ -6,6 +6,7 @@
     "charliermarsh.ruff",
     "esbenp.prettier-vscode",
     "monosans.djlint",
+    "ms-azuretools.vscode-containers",
     "ms-python.mypy-type-checker",
     "ms-python.python",
     "pycqa.bandit-pycqa",
