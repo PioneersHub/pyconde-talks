@@ -1,15 +1,15 @@
 {
   "recommendations": [
-    "charliermarsh.ruff",
-    "esbenp.prettier-vscode",
-    "ms-python.mypy-type-checker",
-    "ms-python.python",
-    "streetsidesoftware.code-spell-checker",
-    "tamasfe.even-better-toml",
+    "ahmadalli.vscode-nginx-conf",
     "batisteo.vscode-django",
     "bradlc.vscode-tailwindcss",
+    "charliermarsh.ruff",
+    "esbenp.prettier-vscode",
     "monosans.djlint",
+    "ms-python.mypy-type-checker",
+    "ms-python.python",
     "pycqa.bandit-pycqa",
-    "ahmadalli.vscode-nginx-conf"
+    "streetsidesoftware.code-spell-checker",
+    "tamasfe.even-better-toml"
   ]
 }
