@@ -4,7 +4,7 @@
   "version": "0.2",
   // Current active spelling language
   "language": "en",
-  "ignorePaths": [],
+  "ignorePaths": ["**/migrations/**"],
   "dictionaryDefinitions": [
     {
       "name": "custom-dictionary",

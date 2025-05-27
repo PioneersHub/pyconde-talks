@@ -100,6 +100,7 @@ ignore = "H014,H021"
 line-length = 100
 indent-width = 4
 target-version = "py313"
+extend-exclude = ["migrations"]
 fix = true
 unsafe-fixes = false
 
@@ -149,7 +150,7 @@ addopts = [
 ]
 
 [tool.bandit]
-exclude_dirs = [".venv", "tests", "__pycache__", ".git", "generate_fake_talks.py"]
+exclude_dirs = [".git", ".venv", "__pycache__", "generate_fake_talks.py", "migrations", "tests"]
 
 [tool.bandit.assert_used]
 skips = ['*_test.py', '*/test_*.py']
