@@ -14,6 +14,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from talks.types import StreamingProvider
+from talks.validators import validate_video_link
 
 
 # Constants
@@ -230,14 +232,6 @@ class Talk(models.Model):
         PresentationType.TUTORIAL: timedelta(minutes=45),
     }
 
-    """Represents a streaming provider options"""
-
-    class StreamingProvider(Enum):
-        """Enumeration of Streming providers."""
-
-        Youtube = "youtube"
-        Vimeo = "vimeo"
-
     presentation_type = models.CharField(
         max_length=10,
         choices=PresentationType.choices,
@@ -307,6 +301,7 @@ class Talk(models.Model):
         help_text=_("Link to questions on Slido. Overrides the room's link if provided."),
     )
     video_link = models.URLField(
+        validators=[validate_video_link],
         blank=True,
         default="",
         help_text=_(
@@ -428,7 +423,7 @@ class Talk(models.Model):
         In case the the streaming provider is not part of StreamingProvider.
         """
         video_link = self.get_video_link()
-        for streaming_provider in self.StreamingProvider:
+        for streaming_provider in StreamingProvider:
             if streaming_provider.value in video_link:
                 return streaming_provider.value
         return None
