@@ -159,13 +159,13 @@
               events: {
                 onReady: () => {
                   {% if talk.get_video_start_time and not talk.has_active_streaming %}
-                  const jumpButton = document.getElementById('jump-to-time');
-                  if (jumpButton) {
-                    jumpButton.addEventListener('click', function() {
-                      const startTime = {{ talk.get_video_start_time }};
-                      player.seekTo(startTime, true);
-                    });
-                  }
+                    const jumpButton = document.getElementById('jump-to-time');
+                    if (jumpButton) {
+                      jumpButton.addEventListener('click', function() {
+                        const startTime = {{ talk.get_video_start_time }};
+                        player.seekTo(startTime, true);
+                      });
+                    }
                   {% endif %}
                 },
               }
