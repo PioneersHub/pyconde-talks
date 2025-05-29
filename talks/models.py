@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from talks.types import StreamingProvider
 from talks.validators import validate_video_link
+from utils.url import add_query_param
 
 
 # Constants
@@ -356,7 +357,14 @@ class Talk(models.Model):
             else:
                 self.track = EMPTY_TRACK_NAME
 
+        self.video_link = self._enrich_video_link()
+
         super().save(*args, **kwargs)
+
+    def _enrich_video_link(self) -> str:
+        if self.video_streaming_provider == StreamingProvider.Youtube.name:
+            return add_query_param(self.video_link, "enablejsapi", "1")
+        return self.video_link
 
     def get_video_start_time(self) -> int:
         """
@@ -416,17 +424,13 @@ class Talk(models.Model):
         return ""
 
     @property
-    def get_video_streaming_provider(self) -> str | None:
-        """
-        Return the streaming provider name or none.
-
-        In case the the streaming provider is not part of StreamingProvider.
-        """
+    def video_streaming_provider(self) -> str:
+        """Return the streaming provider name."""
         video_link = self.get_video_link()
         for streaming_provider in StreamingProvider:
             if streaming_provider.value in video_link:
-                return streaming_provider.value
-        return None
+                return streaming_provider.name
+        return ""
 
     @property
     def speaker_names(self) -> str:
