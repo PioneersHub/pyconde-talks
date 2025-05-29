@@ -421,6 +421,19 @@ class Talk(models.Model):
         return ""
 
     @property
+    def get_video_streaming_provider(self) -> str | None:
+        """
+        Return the streaming provider name or none.
+
+        In case the the streaming provider is not part of StreamingProvider.
+        """
+        video_link = self.get_video_link()
+        for streaming_provider in self.StreamingProvider:
+            if streaming_provider.value in video_link:
+                return streaming_provider.value
+        return None
+
+    @property
     def speaker_names(self) -> str:
         """
         Return a formatted list of speaker names.
