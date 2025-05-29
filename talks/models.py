@@ -6,6 +6,7 @@ metadata, scheduling information, and video links.
 """
 
 from datetime import UTC, datetime, timedelta
+from enum import Enum
 from typing import Any, ClassVar, cast
 
 from django.conf import settings
@@ -228,6 +229,14 @@ class Talk(models.Model):
         PresentationType.TALK: timedelta(minutes=30),
         PresentationType.TUTORIAL: timedelta(minutes=45),
     }
+
+    """Represents a streaming provider options"""
+
+    class StreamingProvider(Enum):
+        """Enumeration of Streming providers."""
+
+        Youtube = "youtube"
+        Vimeo = "vimeo"
 
     presentation_type = models.CharField(
         max_length=10,
