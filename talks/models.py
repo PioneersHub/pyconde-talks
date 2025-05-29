@@ -93,7 +93,7 @@ class Streaming(models.Model):
     )
 
     video_link = models.URLField(
-        help_text=_("Link to Vimeo streaming"),
+        help_text=_("Link to the streaming"),
     )
 
     class Meta:
@@ -310,7 +310,7 @@ class Talk(models.Model):
         blank=True,
         default="",
         help_text=_(
-            "Link to talk recording on Vimeo. Overrides the calculated streaming link if provided.",
+            "Link to talk recording. Overrides the calculated streaming link if provided.",
         ),
     )
     video_start_time = models.PositiveIntegerField(
