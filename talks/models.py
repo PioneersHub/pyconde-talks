@@ -14,6 +14,10 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from talks.types import VideoProvider
+from talks.validators import validate_video_link
+from utils.url import add_query_param
+
 
 # Constants
 EMPTY_TRACK_NAME = "No track"
@@ -92,7 +96,7 @@ class Streaming(models.Model):
     )
 
     video_link = models.URLField(
-        help_text=_("Link to Vimeo streaming"),
+        help_text=_("Link to the streaming"),
     )
 
     class Meta:
@@ -298,10 +302,11 @@ class Talk(models.Model):
         help_text=_("Link to questions on Slido. Overrides the room's link if provided."),
     )
     video_link = models.URLField(
+        validators=[validate_video_link],
         blank=True,
         default="",
         help_text=_(
-            "Link to talk recording on Vimeo. Overrides the calculated streaming link if provided.",
+            "Link to talk recording. Overrides the calculated streaming link if provided.",
         ),
     )
     video_start_time = models.PositiveIntegerField(
@@ -352,7 +357,14 @@ class Talk(models.Model):
             else:
                 self.track = EMPTY_TRACK_NAME
 
+        self.video_link = self._enrich_video_link()
+
         super().save(*args, **kwargs)
+
+    def _enrich_video_link(self) -> str:
+        if self.video_provider == VideoProvider.Youtube.name:
+            return add_query_param(self.video_link, "enablejsapi", "1")
+        return self.video_link
 
     def get_video_start_time(self) -> int:
         """
@@ -409,6 +421,15 @@ class Talk(models.Model):
             if streaming:
                 return streaming.video_link
 
+        return ""
+
+    @property
+    def video_provider(self) -> str:
+        """Return the video provider name."""
+        video_link = self.get_video_link()
+        for video_provider in VideoProvider:
+            if video_provider in video_link:
+                return video_provider.name
         return ""
 
     @property

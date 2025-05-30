@@ -62,6 +62,7 @@
                       position:relative"
                class="mb-8 rounded-lg overflow-hidden shadow-lg">
             <iframe src="{{ talk.get_video_link }}"
+                    id="video-iframe"
                     frameborder="0"
                     allow="autoplay; fullscreen; picture-in-picture"
                     style="position:absolute;
@@ -121,11 +122,11 @@
       </div>
     </article>
   </div>
-  {% if talk.get_video_link %}
+  {% if talk.get_video_link and talk.video_streaming_provider.lower == "vimeo" %}
     <script src="https://player.vimeo.com/api/player.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-      const iframe = document.querySelector('#video-container iframe');
+      const iframe = document.querySelector('#video-iframe');
 
       if (iframe) {
         const player = new Vimeo.Player(iframe);
@@ -145,6 +146,32 @@
         {% endif %}
       }
     });
+    </script>
+  {% endif %}
+  {% if talk.get_video_link and talk.video_streaming_provider.lower == "youtube" %}
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script defer>
+        document.addEventListener('DOMContentLoaded', function() {
+          const iframe = document.querySelector('#video-iframe');
+
+          if (iframe) {
+            const player = new YT.Player(iframe.id, {
+              events: {
+                onReady: () => {
+                  {% if talk.get_video_start_time and not talk.has_active_streaming %}
+                    const jumpButton = document.getElementById('jump-to-time');
+                    if (jumpButton) {
+                      jumpButton.addEventListener('click', function() {
+                        const startTime = {{ talk.get_video_start_time }};
+                        player.seekTo(startTime, true);
+                      });
+                    }
+                  {% endif %}
+                },
+              }
+            });
+          }
+        });
     </script>
   {% endif %}
 {% endblock content %}
