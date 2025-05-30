@@ -428,7 +428,7 @@ class Talk(models.Model):
         """Return the video provider name."""
         video_link = self.get_video_link()
         for video_provider in VideoProvider:
-            if video_provider.value in video_link:
+            if video_provider in video_link:
                 return video_provider.name
         return ""
 
