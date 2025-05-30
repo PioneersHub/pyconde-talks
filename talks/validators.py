@@ -1,14 +1,12 @@
 from django.core.exceptions import ValidationError
-from talks.types import StreamingProvider
+from talks.types import VideoProvider
 
 
 def validate_video_link(video_link: str):
-    is_valid_streaming_provider = any(
-        provider.value in video_link for provider in StreamingProvider
-    )
+    is_valid_video_provider = any(provider.value in video_link for provider in VideoProvider)
 
-    if not is_valid_streaming_provider:
-        providers_name = [x.name for x in StreamingProvider]
+    if not is_valid_video_provider:
+        video_provider_names = [x.name for x in VideoProvider]
         raise ValidationError(
-            f"URL must be from a valid streaming provider. Allowed streaming providers are: {', '.join(providers_name)}"
+            f"URL must be from a valid video provider. Allowed video providers are: {', '.join(video_provider_names)}"
         )

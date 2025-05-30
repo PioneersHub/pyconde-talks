@@ -14,7 +14,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from talks.types import StreamingProvider
+from talks.types import VideoProvider
 from talks.validators import validate_video_link
 from utils.url import add_query_param
 
@@ -362,7 +362,7 @@ class Talk(models.Model):
         super().save(*args, **kwargs)
 
     def _enrich_video_link(self) -> str:
-        if self.video_streaming_provider == StreamingProvider.Youtube.name:
+        if self.video_provider == VideoProvider.Youtube.name:
             return add_query_param(self.video_link, "enablejsapi", "1")
         return self.video_link
 
@@ -424,12 +424,12 @@ class Talk(models.Model):
         return ""
 
     @property
-    def video_streaming_provider(self) -> str:
-        """Return the streaming provider name."""
+    def video_provider(self) -> str:
+        """Return the video provider name."""
         video_link = self.get_video_link()
-        for streaming_provider in StreamingProvider:
-            if streaming_provider.value in video_link:
-                return streaming_provider.name
+        for video_provider in VideoProvider:
+            if video_provider.value in video_link:
+                return video_provider.name
         return ""
 
     @property
