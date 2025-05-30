@@ -6,7 +6,6 @@ metadata, scheduling information, and video links.
 """
 
 from datetime import UTC, datetime, timedelta
-from enum import Enum
 from typing import Any, ClassVar, cast
 
 from django.conf import settings
@@ -14,6 +13,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+
 from talks.types import VideoProvider
 from talks.validators import validate_video_link
 from utils.url import add_query_param
