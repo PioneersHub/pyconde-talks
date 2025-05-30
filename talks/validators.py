@@ -20,9 +20,7 @@ def validate_video_link(video_link: str) -> bool | Exception:
 
     if not valid_video_provider:
         video_providers_name = ", ".join([x.name for x in VideoProvider])
-        exception_message = (
-            f"URL must be from a valid video provider. Allowed video providers are: \
-            {video_providers_name}",
-        )
+        allowed_providers = f"Allowed video providers are: {video_providers_name}"
+        exception_message = f"URL must be from a valid video provider. {allowed_providers}"
         raise ValidationError(exception_message)
     return True
