@@ -1,3 +1,5 @@
+"""Utility functions for URL manipulation."""
+
 from furl import furl
 
 
