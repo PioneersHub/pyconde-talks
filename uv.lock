@@ -848,6 +848,18 @@ wheels = [
 ]
 
 [[package]]
+name = "model-bakery"
+version = "1.20.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/05/dc/6d6260fa30c4d041958f71d6790b722e6f2588fbbca0534779b81a83b66d/model_bakery-1.20.4.tar.gz", hash = "sha256:a0c97e8a27329ecad78136f9d8f573ae392e4282326ea5c5f6daed1173013c4e", size = 21147, upload-time = "2025-02-26T20:10:05.713Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/81/23/9b30a9c70e1a6df5100ae8c440b98fc1da6a4ce195327a7fba399569a2ec/model_bakery-1.20.4-py3-none-any.whl", hash = "sha256:30ad372604f326a1ba9f949bad9d0f85e6a510db4ef6a0b07be2d6bd7485008b", size = 24154, upload-time = "2025-02-26T20:10:03.988Z" },
+]
+
+[[package]]
 name = "mypy"
 version = "1.15.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1177,6 +1189,7 @@ dependencies = [
     { name = "django-structlog" },
     { name = "django-template-partials" },
     { name = "furl" },
+    { name = "model-bakery" },
     { name = "openpyxl" },
     { name = "pillow" },
     { name = "psycopg2" },
@@ -1221,6 +1234,7 @@ requires-dist = [
     { name = "django-structlog", specifier = ">=9.1.1" },
     { name = "django-template-partials", specifier = ">=24.4" },
     { name = "furl", specifier = ">=2.1.4" },
+    { name = "model-bakery", specifier = ">=1.20.4" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pillow", specifier = ">=11.2.1" },
     { name = "psycopg2", specifier = ">=2.9.10" },
