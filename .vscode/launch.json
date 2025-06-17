@@ -24,6 +24,16 @@
       "args": ["runserver", "--noreload"],
       "django": true,
       "preLaunchTask": "Setup Python Environment"
+    },
+    {
+      "name": "Python Debugger: Django Tests",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/manage.py",
+      "args": ["test"],
+      "django": true,
+      "justMyCode": false,
+      "purpose": ["debug-test"]
     }
   ]
 }
