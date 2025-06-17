@@ -96,6 +96,9 @@ def test_form_valid_authorized_new_user(  # noqa: PLR0913
     created and the view proceeds with the login code process.
 
     """
+    # Make sure the user is not in the database
+    assert not user_model.objects.filter(email=login_form_data["email"].lower()).exists()
+
     # Create form with valid data
     form = mocker.MagicMock()
     form.is_valid.return_value = True
