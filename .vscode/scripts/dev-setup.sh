@@ -17,7 +17,6 @@ SKIP_STEPS="${SKIP_STEPS:-}"
 GEN_FAKE_DATA="${GEN_FAKE_DATA:-true}"
 PRETALX_SYNC="${PRETALX_SYNC:-false}"
 IMPORT_STREAMS="${IMPORT_STREAMS:-false}"
-export DJANGO_READ_VARS_FILE=True
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -160,11 +159,12 @@ setup_dependencies() {
     log "Installing pre-commit hooks..."
     $VENV_DIR/bin/pre-commit install
 
-    if [ ! -f ".env" ]; then
-        log "Creating .env file..."
-        cp env.example .env
+    if [ ! -f "django-vars.env" ]; then
+        warn "django-vars.env file not found. Reading settings from environment variables..."
+        export DJANGO_READ_VARS_FILE=False
     else
-        log ".env file already exists, skipping creation."
+        log "Reading settings from django-vars.env file..."
+        export DJANGO_READ_VARS_FILE=True
     fi
 }
 
