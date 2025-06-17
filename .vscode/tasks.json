@@ -29,6 +29,13 @@
       "problemMatcher": []
     },
     {
+      "label": "Start Mailpit",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/mailpit --smtp 0.0.0.0:1025 --listen 0.0.0.0:8025",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
       "label": "Clean Repo (destructive)",
       "type": "shell",
       "command": "git clean -fdx -e .vscode",
