@@ -45,7 +45,6 @@ dependencies = [
     "model-bakery>=1.20.5",
     "openpyxl>=3.1.5",
     "pillow>=11.2.1",
-    "psycopg2>=2.9.10",
     "pytanis>=0.8",
     "requests>=2.32.4",
     "structlog>=25.4.0",
@@ -62,6 +61,7 @@ dev = [
     "mypy>=1.15.0",
     "pandas-stubs>=2.2.3.250527",
     "pre-commit>=4.2.0",
+    "psycopg2-binary>=2.9.10",
     "ruff>=0.11.13",
     "types-requests>=2.32.4.20250611",
 ]
@@ -71,6 +71,9 @@ test = [
     "pytest-mock>=3.14.1",
     "pytest-random-order>=1.1.1",
     "responses>=0.25.7",
+]
+prod = [
+    "psycopg2>=2.9.10"
 ]
 
 [project.urls]
