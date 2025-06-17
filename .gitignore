@@ -42,3 +42,4 @@ logs/*.log
 
 # Collected static files
 staticfiles/
+static/css/tailwind.min.css
