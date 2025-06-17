@@ -35,6 +35,7 @@ error() {
 
 # Detect operating system
 detect_os() {
+    local format="${1:-default}"
     local os=""
 
     # Use OSTYPE variable for initial detection
@@ -58,6 +59,16 @@ detect_os() {
         ;;
     esac
 
+    # Alternative format (like macos)
+    if [ "$format" = "alt" ]; then
+        case "$os" in
+        darwin) os="macos" ;;
+        linux) os="linux" ;;
+        windows) os="win" ;;
+        freebsd) os="fbsd" ;;
+        esac
+    fi
+
     echo "$os"
 }
 
@@ -73,7 +84,7 @@ detect_arch() {
         x86_64) arch="x64" ;;
         i686 | i386) arch="x86" ;;
         armv6* | armv7*) arch="arm" ;;
-        aarch64) arch="arm64" ;;
+        aarch64 | arm64) arch="arm64" ;;
         esac
     else
         # Default format (like amd64)
@@ -90,12 +101,12 @@ detect_arch() {
 
 # Detect platform
 detect_platform() {
-    # default: "linux-amd64"
-    # alt: "linux-x64"
+    # default: "linux-amd64", "darwin-arm64"
+    # alt: "linux-x64", "macos-arm64"
     local format="${1:-default}"
 
-    # Get OS and architecture
-    local os=$(detect_os)
+    # Get OS and architecture with the same format
+    local os=$(detect_os "$format")
     local arch=$(detect_arch "$format")
 
     # Return "os-arch"
