@@ -311,7 +311,7 @@ class Talk(models.Model):
     )
     video_start_time = models.PositiveIntegerField(
         blank=True,
-        default=0,
+        null=True,
         help_text=_("Start time in seconds"),
     )
     hide = models.BooleanField(
@@ -374,7 +374,7 @@ class Talk(models.Model):
         Otherwise, calculates the start time based on the corresponding streaming.
         Returns 0 if no start time can be determined.
         """
-        if self.video_start_time:
+        if self.video_start_time is not None:
             return self.video_start_time
 
         if self.room and self.start_time:
