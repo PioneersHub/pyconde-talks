@@ -6,6 +6,7 @@ metadata, scheduling information, and video links.
 """
 
 from datetime import UTC, datetime, timedelta
+from enum import IntEnum
 from typing import Any, ClassVar, cast
 
 from django.conf import settings
@@ -139,6 +140,11 @@ class Streaming(models.Model):
                 raise ValidationError(
                     _("This streaming overlaps with another streaming for the same room."),
                 )
+
+    def is_active(self) -> bool:
+        """Check if the streaming is happening now."""
+        now = timezone.now()
+        return self.start_time <= now <= self.end_time
 
 
 class Speaker(models.Model):
@@ -366,6 +372,26 @@ class Talk(models.Model):
             return add_query_param(self.video_link, "enablejsapi", "1")
         return self.video_link
 
+    def get_streaming(self) -> Streaming | None:
+        """
+        Return the streaming associated with this talk.
+
+        Returns the streaming object if it exists, otherwise returns None.
+        """
+        if not self.room or not self.start_time:
+            return None
+
+        # Allow missing the first minute of the talk
+        margin = timedelta(minutes=1)
+        # At least half of the talk must be covered by the streaming
+        min_duration = self.duration / 2
+
+        return Streaming.objects.filter(
+            room=self.room,
+            start_time__lte=self.start_time + margin,
+            end_time__gte=self.start_time + min_duration,
+        ).first()
+
     def get_video_start_time(self) -> int:
         """
         Return the video start time for this talk.
@@ -377,17 +403,9 @@ class Talk(models.Model):
         if self.video_start_time is not None:
             return self.video_start_time
 
-        if self.room and self.start_time:
-            streaming = Streaming.objects.filter(
-                room=self.room,
-                start_time__lte=self.start_time,
-                end_time__gte=self.start_time,
-            ).first()
-
-            if streaming:
-                # Calculate seconds between streaming start and talk start
-                return int((self.start_time - streaming.start_time).total_seconds())
-
+        # Calculate seconds between streaming start and talk start
+        if streaming := self.get_streaming():
+            return int((self.start_time - streaming.start_time).total_seconds())
         return 0
 
     def get_video_link(self) -> str:
@@ -399,7 +417,12 @@ class Talk(models.Model):
         correct timestamp.
         Returns an empty string if no link is found or if the talk is in the future.
         """
-        if self.is_upcoming() and not getattr(settings, "SHOW_UPCOMING_TALKS_LINKS", False):
+        # Optionally hide upcoming talks
+        if self.get_timing() == self.TalkTiming.UPCOMING and not getattr(
+            settings,
+            "SHOW_UPCOMING_TALKS_LINKS",
+            False,
+        ):
             return ""
 
         if self.video_link:
@@ -456,39 +479,50 @@ class Talk(models.Model):
             case _:
                 return ""
 
-    def is_upcoming(self) -> bool:
-        """Check if the talk is in the future."""
-        return self.start_time > timezone.now()
+    class TalkTiming(IntEnum):
+        """
+        Represents a talk's timing relative to now.
 
-    def is_current(self) -> bool:
-        """Check if the talk is currently happening."""
+        PAST (-1): Talk has ended
+        CURRENT (0): Talk is happening now (or very soon)
+        UPCOMING (1): Talk will happen in the future
+        """
+
+        PAST = -1
+        CURRENT = 0
+        UPCOMING = 1
+
+    def get_timing(self) -> TalkTiming:
+        """Return if the talk is in the past, present or future."""
         now = timezone.now()
+        margin = timedelta(minutes=5)
         end_time = self.start_time + self.duration
-        return self.start_time <= now <= end_time
+
+        if end_time + margin < now:
+            return self.TalkTiming.PAST
+
+        if self.start_time - margin > now:
+            return self.TalkTiming.UPCOMING
+
+        return self.TalkTiming.CURRENT
+
+    def is_upcoming(self) -> bool:
+        """
+        Check if the talk is upcoming.
+
+        Returns True if the talk is scheduled in the future, otherwise False.
+        """
+        return self.get_timing() == self.TalkTiming.UPCOMING
 
     def has_active_streaming(self) -> bool:
         """
         Check if the streaming associated with this talk is still ongoing.
 
-        Returns True if the talk has a corresponding streaming that is still ongoing (end_time is in
-        the future), meaning the video is a live stream.
-        Returns False if the talk has no streaming or if its streaming has already ended, meaning
-        the video is a recording.
+        True: the video is in a live streaming.
+        False: the talk was not streamed or the video is a recording.
         """
-        if not self.room or not self.start_time:
-            return False
-
-        now = timezone.now()
-
-        # Find the streaming that contains this talk
-        streaming = Streaming.objects.filter(
-            room=self.room,
-            start_time__lte=self.start_time,
-            end_time__gte=self.start_time,
-        ).first()
-
-        # Streaming exists and has not finished yet
-        return streaming and streaming.end_time > now
+        streaming = self.get_streaming()
+        return streaming and streaming.is_active()
 
     def get_image_url(self) -> str:
         """
