@@ -28,6 +28,7 @@ Dynamicum
 EDITMSG
 elts
 emailaddress
+enablejsapi
 endfor
 endpartial
 esbenp
