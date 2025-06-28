@@ -17,10 +17,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    python3-dev \
-    libpq-dev \
     curl \
+    gcc \
+    libpq-dev \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -81,8 +81,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
     curl \
+    libpq5 \
     vim \
     && rm -rf /var/lib/apt/lists/*
 
