@@ -103,6 +103,7 @@ COPY --from=builder --chown=django:django /app/svg /app/svg/
 COPY --from=builder --chown=django:django /app/talks /app/talks/
 COPY --from=builder --chown=django:django /app/templates /app/templates/
 COPY --from=builder --chown=django:django /app/users /app/users/
+COPY --from=builder --chown=django:django /app/utils /app/utils/
 
 # Switch to non-root user
 USER django:django
