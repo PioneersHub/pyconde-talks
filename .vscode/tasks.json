@@ -4,7 +4,7 @@
     {
       "label": "Setup Python Environment",
       "type": "shell",
-      "command": "UV=$(command -v uv || echo $HOME/.cargo/bin/uv) && test -d .venv || $UV venv && $UV sync",
+      "command": "UV=$(command -v uv || echo $HOME/.cargo/bin/uv) && test -d .venv || $UV venv && $UV sync --group dev --group test",
       "detail": "Creates virtual environment with uv and syncs dependencies",
       "group": {
         "kind": "build",
