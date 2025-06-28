@@ -31,7 +31,7 @@ COPY uv.lock pyproject.toml /app/
 
 # Install dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-install-project --no-dev
+    uv sync --locked --no-install-project --no-default-groups --group prod
 
 # Install TailwindCSS
 ARG PLATFORM=linux-x64
@@ -49,7 +49,7 @@ RUN tailwindcss -i ./assets/css/input.css -o ./static/css/tailwind.min.css --min
 # Install project and collect static files into STATIC_ROOT
 ENV DJANGO_STATIC_ROOT=/staticfiles
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev && \
+    uv sync --locked --no-default-groups --group prod && \
     python manage.py collectstatic --noinput
 
 # Stage 2: extract static files
