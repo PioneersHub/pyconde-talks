@@ -99,10 +99,10 @@ ENV PATH="/venv/bin:$PATH"
 # Copy only project files necessary for production
 COPY --from=builder --chown=django:django /app/manage.py /app/
 COPY --from=builder --chown=django:django /app/pyconde_talks /app/pyconde_talks/
+COPY --from=builder --chown=django:django /app/svg /app/svg/
 COPY --from=builder --chown=django:django /app/talks /app/talks/
 COPY --from=builder --chown=django:django /app/templates /app/templates/
 COPY --from=builder --chown=django:django /app/users /app/users/
-COPY --from=builder --chown=django:django /app/svg /app/svg/
 
 # Switch to non-root user
 USER django:django
