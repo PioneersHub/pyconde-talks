@@ -92,5 +92,4 @@ class Migration(migrations.Migration):
             model_name='answer',
             index=models.Index(fields=['user'], name='talks_answe_user_id_bd34d2_idx'),
         ),
-    ],
-)
+    ]

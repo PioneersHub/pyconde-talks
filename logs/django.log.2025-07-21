@@ -1,0 +1,28 @@
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.02, 127.0.0.1:51800]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:51813]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:51828]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:51832]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.00, 127.0.0.1:51832]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:51836]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:51838]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:51846]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:51846]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.00, 127.0.0.1:51846]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:51871]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:51876]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:51958]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:51959]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:51959]\u001b[0m"}
+{"email": "b36a83701f1c3191e19722d6f90274bc1b5501fe69ebf33313e440fe4b0fe210", "event": "User authorized", "filename": "adapters.py", "func_name": "_is_locally_authorized", "lineno": 79, "timestamp": "2025-07-21T19:53:01.890188Z", "logger": "users.adapters", "level": "info"}
+{"email": "b36a83701f1c3191e19722d6f90274bc1b5501fe69ebf33313e440fe4b0fe210", "event": "Form is valid", "filename": "views.py", "func_name": "form_valid", "lineno": 86, "timestamp": "2025-07-21T19:53:01.890860Z", "logger": "users.views", "level": "info"}
+{"event": "Internal Server Error: /accounts/login/code/", "exc_info": ["<class 'ConnectionRefusedError'>", "ConnectionRefusedError(61, 'Connection refused')", "<traceback object at 0x1098bc8c0>"]}
+{"event": "\u001b[35;1mHTTP POST /accounts/login/code/ 500 [0.42, 127.0.0.1:51961]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /favicon.ico 404 [0.00, 127.0.0.1:51961]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:52585]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.02, 127.0.0.1:52724]\u001b[0m"}
+{"email": "b36a83701f1c3191e19722d6f90274bc1b5501fe69ebf33313e440fe4b0fe210", "event": "User authorized", "filename": "adapters.py", "func_name": "_is_locally_authorized", "lineno": 79, "timestamp": "2025-07-21T20:16:47.387439Z", "logger": "users.adapters", "level": "info"}
+{"email": "b36a83701f1c3191e19722d6f90274bc1b5501fe69ebf33313e440fe4b0fe210", "event": "Form is valid", "filename": "views.py", "func_name": "form_valid", "lineno": 86, "timestamp": "2025-07-21T20:16:47.388358Z", "logger": "users.views", "level": "info"}
+{"event": "Internal Server Error: /accounts/login/code/", "exc_info": ["<class 'ConnectionRefusedError'>", "ConnectionRefusedError(61, 'Connection refused')", "<traceback object at 0x105bef280>"]}
+{"event": "\u001b[35;1mHTTP POST /accounts/login/code/ 500 [0.38, 127.0.0.1:52744]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:52888]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /static/css/tailwind.min.css 404 [0.01, 127.0.0.1:52951]\u001b[0m"}

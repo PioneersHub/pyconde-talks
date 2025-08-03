@@ -110,15 +110,11 @@
                   Video
                 </a>
               {% endif %}
-              {% if talk.get_slido_link %}
-                <a href="{{ talk.get_slido_link }}"
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   class="inline-flex items-center px-3 py-1 rounded bg-purple-100 text-purple-700 border border-purple-300 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 active:bg-purple-300">
-                  {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-1" %}
-                  Q&amp;A
-                </a>
-              {% endif %}
+              <a href="{% url 'talk_questions' talk.pk %}"
+                 class="inline-flex items-center px-3 py-1 rounded bg-purple-100 text-purple-700 border border-purple-300 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 active:bg-purple-300">
+                {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-1" %}
+                Q&amp;A
+              </a>
             </div>
           </div>
         </div>

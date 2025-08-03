@@ -1,0 +1,93 @@
+{"event": "Internal Server Error: /talks/31/questions/", "exc_info": ["<class 'TypeError'>", "TypeError(\"'NoneType' object is not callable\")", "<traceback object at 0x10bc97080>"]}
+{"event": "\u001b[35;1mHTTP GET /talks/31/questions/ 500 [0.14, 127.0.0.1:59454]\u001b[0m"}
+{"event": "\u001b[33mHTTP GET /favicon.ico 404 [0.01, 127.0.0.1:59454]\u001b[0m"}
+{"event": "Internal Server Error: /talks/31/questions/", "exc_info": ["<class 'TypeError'>", "TypeError(\"'NoneType' object is not callable\")", "<traceback object at 0x10be508c0>"]}
+{"event": "\u001b[35;1mHTTP GET /talks/31/questions/ 500 [0.12, 127.0.0.1:59500]\u001b[0m"}
+{"event": "Internal Server Error: /talks/31/questions/", "exc_info": ["<class 'AttributeError'>", "AttributeError(\"property 'vote_count' of 'Question' object has no setter\")", "<traceback object at 0x113b6bf40>"]}
+{"event": "\u001b[35;1mHTTP GET /talks/31/questions/ 500 [0.25, 127.0.0.1:59674]\u001b[0m"}
+{"event": "Internal Server Error: /talks/31/questions/", "exc_info": ["<class 'AttributeError'>", "AttributeError(\"property 'vote_count' of 'Question' object has no setter\")", "<traceback object at 0x114010c00>"]}
+{"event": "\u001b[35;1mHTTP GET /talks/31/questions/ 500 [0.20, 127.0.0.1:59685]\u001b[0m"}
+{"event": "Internal Server Error: /talks/82/questions/", "exc_info": ["<class 'django.template.exceptions.TemplateDoesNotExist'>", "TemplateDoesNotExist('talks/questions/question_list.html#question-list')", "<traceback object at 0x106eee000>"]}
+{"event": "\u001b[35;1mHTTP GET /talks/82/questions/ 500 [0.15, 127.0.0.1:59841]\u001b[0m"}
+{"event": "Internal Server Error: /talks/82/questions/", "exc_info": ["<class 'django.template.exceptions.TemplateDoesNotExist'>", "TemplateDoesNotExist('talks/questions/question_list.html#question-list')", "<traceback object at 0x1071393c0>"]}
+{"event": "\u001b[35;1mHTTP GET /talks/82/questions/ 500 [0.12, 127.0.0.1:59841]\u001b[0m"}
+{"event": "Internal Server Error: /talks/82/questions/", "exc_info": ["<class 'django.template.exceptions.TemplateDoesNotExist'>", "TemplateDoesNotExist('talks/questions/question_list.html#question-list')", "<traceback object at 0x1014f7180>"]}
+{"event": "\u001b[35;1mHTTP GET /talks/82/questions/ 500 [0.13, 127.0.0.1:59841]\u001b[0m"}
+{"event": "Internal Server Error: /talks/82/questions/", "exc_info": ["<class 'django.template.exceptions.TemplateDoesNotExist'>", "TemplateDoesNotExist('talks/questions/question_list.html#question-list')", "<traceback object at 0x106b3fa80>"]}
+{"event": "\u001b[35;1mHTTP GET /talks/82/questions/ 500 [0.11, 127.0.0.1:59841]\u001b[0m"}
+{"event": "Internal Server Error: /talks/82/questions/", "exc_info": ["<class 'django.template.exceptions.TemplateDoesNotExist'>", "TemplateDoesNotExist('talks/questions/question_list.html#question-list')", "<traceback object at 0x107166800>"]}
+{"event": "\u001b[35;1mHTTP GET /talks/82/questions/ 500 [0.10, 127.0.0.1:59841]\u001b[0m"}
+{"email": "2b3b2b9ce842ab8b6a6c614cb1f9604bb8a0d502d1af49c526b72b10894e95b5", "event": "User authorized", "filename": "adapters.py", "func_name": "_is_locally_authorized", "lineno": 79, "timestamp": "2025-07-23T19:40:02.477792Z", "logger": "users.adapters", "level": "info"}
+{"email": "2b3b2b9ce842ab8b6a6c614cb1f9604bb8a0d502d1af49c526b72b10894e95b5", "event": "Form is valid", "filename": "views.py", "func_name": "form_valid", "lineno": 86, "timestamp": "2025-07-23T19:40:02.478495Z", "logger": "users.views", "level": "info"}
+{"email": "2b3b2b9ce842ab8b6a6c614cb1f9604bb8a0d502d1af49c526b72b10894e95b5", "event": "User authorized", "filename": "adapters.py", "func_name": "_is_locally_authorized", "lineno": 79, "timestamp": "2025-07-23T19:46:16.573201Z", "logger": "users.adapters", "level": "info"}
+{"email": "2b3b2b9ce842ab8b6a6c614cb1f9604bb8a0d502d1af49c526b72b10894e95b5", "event": "Form is valid", "filename": "views.py", "func_name": "form_valid", "lineno": 86, "timestamp": "2025-07-23T19:46:16.575326Z", "logger": "users.views", "level": "info"}
+{"event": "Forbidden (CSRF token missing.): /questions/1/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/1/vote/ 403 [0.01, 127.0.0.1:60290]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/1/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/1/vote/ 403 [0.01, 127.0.0.1:60290]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/1/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/1/vote/ 403 [0.01, 127.0.0.1:60290]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/1/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/1/vote/ 403 [0.00, 127.0.0.1:60290]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/1/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/1/vote/ 403 [0.01, 127.0.0.1:60290]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/4/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/4/vote/ 403 [0.00, 127.0.0.1:60468]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/3/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/3/vote/ 403 [0.00, 127.0.0.1:60468]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/4/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/4/vote/ 403 [0.00, 127.0.0.1:60401]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/4/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/4/vote/ 403 [0.00, 127.0.0.1:60401]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/2/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/2/vote/ 403 [0.00, 127.0.0.1:60577]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/2/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/2/vote/ 403 [0.01, 127.0.0.1:60578]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/2/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/2/vote/ 403 [0.01, 127.0.0.1:60578]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/2/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/2/vote/ 403 [0.01, 127.0.0.1:60578]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/5/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/5/vote/ 403 [0.01, 127.0.0.1:60603]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/5/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/5/vote/ 403 [0.01, 127.0.0.1:60603]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/5/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/5/vote/ 403 [0.01, 127.0.0.1:60603]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/2/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/2/vote/ 403 [0.02, 127.0.0.1:60698]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/2/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/2/vote/ 403 [0.01, 127.0.0.1:60698]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/5/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/5/vote/ 403 [0.01, 127.0.0.1:60698]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/5/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/5/vote/ 403 [0.01, 127.0.0.1:60698]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/5/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/5/vote/ 403 [0.01, 127.0.0.1:60698]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/5/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/5/vote/ 403 [0.02, 127.0.0.1:60698]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/2/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/2/vote/ 403 [0.01, 127.0.0.1:60698]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/5/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/5/vote/ 403 [0.01, 127.0.0.1:60707]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/5/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/5/vote/ 403 [0.01, 127.0.0.1:60707]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/5/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/5/vote/ 403 [0.01, 127.0.0.1:60707]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/5/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/5/vote/ 403 [0.01, 127.0.0.1:60707]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/5/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/5/vote/ 403 [0.01, 127.0.0.1:60707]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/5/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/5/vote/ 403 [0.01, 127.0.0.1:60707]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/2/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/2/vote/ 403 [0.01, 127.0.0.1:60707]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/2/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/2/vote/ 403 [0.01, 127.0.0.1:60707]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/2/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/2/vote/ 403 [0.01, 127.0.0.1:60707]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/2/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/2/vote/ 403 [0.01, 127.0.0.1:60707]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/2/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/2/vote/ 403 [0.01, 127.0.0.1:60707]\u001b[0m"}
+{"event": "Forbidden (CSRF token missing.): /questions/2/vote/"}
+{"event": "\u001b[31;1mHTTP POST /questions/2/vote/ 403 [0.01, 127.0.0.1:60707]\u001b[0m"}

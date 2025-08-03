@@ -1,0 +1,2 @@
+{"event": "Internal Server Error: /talks/31/questions/", "exc_info": ["<class 'TypeError'>", "TypeError(\"'NoneType' object is not callable\")", "<traceback object at 0x10a03f3c0>"]}
+{"event": "Internal Server Error: /talks/31/questions/", "exc_info": ["<class 'TypeError'>", "TypeError(\"'NoneType' object is not callable\")", "<traceback object at 0x10a082640>"]}

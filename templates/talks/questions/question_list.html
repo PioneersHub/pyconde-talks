@@ -1,176 +1,206 @@
 {% extends "base.html" %}
 {% load i18n %}
-
-{% block title %}{% translate "Questions for" %} {{ talk.title }}{% endblock %}
-
+{% block title %}
+  {% translate "Questions for" %} {{ talk.title }}
+{% endblock %}
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold">{% translate "Questions for" %} <a href="{% url 'talk_detail' talk.pk %}" class="text-blue-600 hover:underline">{{ talk.title }}</a></h1>
-    <a href="{% url 'talk_detail' talk.pk %}" class="text-blue-600 hover:underline">{% translate "Back to Talk" %}</a>
-  </div>
-
-  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-    <h2 class="text-xl font-semibold mb-4">{% translate "Ask a Question" %}</h2>
-    
-    {% if user.is_authenticated %}
-      <form method="post" action="{% url 'question_create' talk.pk %}" hx-post="{% url 'question_create' talk.pk %}" hx-swap="outerHTML">
-        {% csrf_token %}
-        <div class="mb-4">
-          <label for="id_content" class="block text-gray-700 mb-2">{% translate "Your Question" %}</label>
-          <textarea name="content" id="id_content" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required></textarea>
-        </div>
-        
-        <div class="flex items-center mb-4">
-          <input type="checkbox" name="is_anonymous" id="id_is_anonymous" class="mr-2">
-          <label for="id_is_anonymous" class="text-gray-700">{% translate "Ask anonymously" %}</label>
-        </div>
-        
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-          {% translate "Submit Question" %}
-        </button>
-      </form>
-    {% else %}
-      <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-md">
-        <p>{% translate "Please" %} <a href="{% url 'account_login' %}?next={{ request.path }}" class="text-blue-600 hover:underline">{% translate "log in" %}</a> {% translate "to ask a question." %}</p>
-      </div>
-    {% endif %}
-  </div>
-
-  <!-- Question list -->
-  {% block question-list %}
-  <div id="question-list" class="space-y-6">
-    <h2 class="text-xl font-semibold mb-4">
-      {% if questions %}
-        {% translate "Questions" %} ({{ questions|length }})
-      {% else %}
-        {% translate "No questions yet" %}
-      {% endif %}
-    </h2>
-    
-    {% if user_can_moderate %}
-      <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-md mb-4">
-        <p class="font-medium">{% translate "Moderator View" %}</p>
-        <p class="text-sm">{% translate "You are viewing this page as a moderator and can see all questions including pending and rejected ones." %}</p>
-      </div>
-    {% endif %}
-    
-    {% for question in questions %}
-      <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-        <div class="flex items-start">
-          <!-- Voting button -->
-          <div class="flex flex-col items-center mr-6">
-            {% if user.is_authenticated %}
-              <button 
-                class="flex items-center justify-center w-10 h-10 rounded-full {% if question.user_voted %}bg-blue-100 text-blue-600{% else %}bg-gray-100 hover:bg-gray-200{% endif %}" 
-                hx-post="{% url 'question_vote' question.id %}" 
-                hx-swap="outerHTML" 
-                hx-target="closest div"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
-                </svg>
-              </button>
+  <div class="container mx-auto px-4 py-8">
+    <script>
+    // Restore question content from sessionStorage when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      const questionInput = document.getElementById('id_content');
+      const savedContent = sessionStorage.getItem('question_content');
+      if (questionInput && savedContent) {
+        questionInput.value = savedContent;
+      }
+    });
+    </script>
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold">
+        {% translate "Questions for" %} <a href="{% url 'talk_detail' talk.pk %}"
+    class="text-blue-600 hover:underline">{{ talk.title }}</a>
+      </h1>
+      <a href="{% url 'talk_detail' talk.pk %}"
+         class="text-blue-600 hover:underline">{% translate "Back to Talk" %}</a>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4">{% translate "Ask a Question" %}</h2>
+      {% if user.is_authenticated %}
+        <form method="post"
+              action="{% url 'question_create' talk.pk %}{% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+              hx-post="{% url 'question_create' talk.pk %}{% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+              hx-swap="outerHTML">
+          {% csrf_token %}
+          <div class="mb-4">
+            <label for="id_content" class="block text-gray-700 mb-2">{% translate "Your Question" %}</label>
+            {% if question_form.content %}
+              {{ question_form.content }}
             {% else %}
-              <div class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
-                </svg>
-              </div>
-            {% endif %}
-            <span class="font-bold mt-1">{{ question.vote_count }}</span>
-          </div>
-          
-          <!-- Question content -->
-          <div class="flex-1">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-sm text-gray-600">{{ question.display_name }}</span>
-              
-              <!-- Status badges -->
-              {% if question.status == 'pending' %}
-                <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">{% translate "Pending" %}</span>
-              {% elif question.status == 'approved' %}
-                <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">{% translate "Approved" %}</span>
-              {% elif question.status == 'answered' %}
-                <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">{% translate "Answered" %}</span>
-              {% elif question.status == 'rejected' %}
-                <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">{% translate "Rejected" %}</span>
-              {% endif %}
-            </div>
-            
-            <p class="text-gray-800 mb-4">{{ question.content }}</p>
-            
-            <!-- Timestamp -->
-            <div class="text-xs text-gray-500 mb-2">
-              {% translate "Asked" %} {{ question.created_at|timesince }} {% translate "ago" %}
-            </div>
-            
-            <!-- Moderator actions -->
-            {% if user_can_moderate %}
-              <div class="flex space-x-2 mt-2">
-                {% if question.status == 'pending' %}
-                  <form method="post" action="{% url 'question_approve' question.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="text-sm bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1 rounded">
-                      {% translate "Approve" %}
-                    </button>
-                  </form>
-                  <form method="post" action="{% url 'question_reject' question.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="text-sm bg-red-100 text-red-700 hover:bg-red-200 px-2 py-1 rounded">
-                      {% translate "Reject" %}
-                    </button>
-                  </form>
-                {% endif %}
-                
-                {% if question.status != 'answered' and question.status != 'rejected' %}
-                  <form method="post" action="{% url 'question_mark_answered' question.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded">
-                      {% translate "Mark Answered" %}
-                    </button>
-                  </form>
-                {% endif %}
-                
-                <a href="{% url 'answer_create' question.id %}" class="text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 px-2 py-1 rounded">
-                  {% translate "Add Answer" %}
-                </a>
-              </div>
-            {% endif %}
-            
-            <!-- Answers section -->
-            {% if question.answers.exists %}
-              <div class="mt-4 border-t pt-4">
-                <h4 class="text-sm font-semibold mb-2">{% translate "Answers" %}</h4>
-                {% for answer in question.answers.all %}
-                  <div class="bg-gray-50 p-3 rounded mb-3 {% if answer.is_official %}border-l-4 border-blue-500{% endif %}">
-                    <div class="flex justify-between items-center mb-2">
-                      <span class="text-sm font-medium">
-                        {{ answer.user.email }}
-                        {% if answer.is_official %}
-                          <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full ml-2">
-                            {% translate "Official" %}
-                          </span>
-                        {% endif %}
-                      </span>
-                      <span class="text-xs text-gray-500">
-                        {{ answer.created_at|timesince }} {% translate "ago" %}
-                      </span>
-                    </div>
-                    <p class="text-sm">{{ answer.content }}</p>
-                  </div>
-                {% endfor %}
-              </div>
+              <textarea name='content'
+                        id='id_content'
+                        rows='3'
+                        class='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        required></textarea>
             {% endif %}
           </div>
+          <button type="submit"
+                  class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+            {% translate "Submit Question" %}
+          </button>
+        </form>
+      {% else %}
+        <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-md">
+          <p>
+            {% translate "Please" %} <a href="{% url 'account_login' %}?next={{ request.path }}"
+    class="text-blue-600 hover:underline">{% translate "log in" %}</a> {% translate "to ask a question." %}
+          </p>
         </div>
+      {% endif %}
+    </div>
+    <!-- Question list -->
+    {% block question-list %}
+      <div id="question-list" class="space-y-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold">
+            {% if questions %}
+              {% translate "Questions" %} ({{ questions|length }})
+            {% else %}
+              {% translate "No questions yet" %}
+            {% endif %}
+          </h2>
+          <!-- Filter dropdown -->
+          <div class="relative">
+            <div class="flex items-center">
+              <label for="filter" class="mr-2 text-sm text-gray-600">{% translate "Filter:" %}</label>
+              <select id="filter"
+                      class="border rounded px-2 py-1 text-sm mr-2"
+                      onchange="applyFilter(this.value)">
+                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>{% translate "All" %}</option>
+                {% if user_can_moderate %}
+                  <option value="pending"
+                          {% if status_filter == 'pending' %}selected{% endif %}>{% translate "Pending" %}</option>
+                  <option value="approved"
+                          {% if status_filter == 'approved' %}selected{% endif %}>{% translate "Approved" %}</option>
+                  <option value="answered"
+                          {% if status_filter == 'answered' %}selected{% endif %}>{% translate "Answered" %}</option>
+                  <option value="rejected"
+                          {% if status_filter == 'rejected' %}selected{% endif %}>{% translate "Rejected" %}</option>
+                {% else %}
+                  <option value="approved"
+                          {% if status_filter == 'approved' %}selected{% endif %}>{% translate "Approved" %}</option>
+                  <option value="answered"
+                          {% if status_filter == 'answered' %}selected{% endif %}>{% translate "Answered" %}</option>
+                {% endif %}
+              </select>
+            </div>
+          </div>
+          <script>
+        function applyFilter(value) {
+          // Preserve the question input field value before navigation
+          const questionInput = document.getElementById('id_content');
+          if (questionInput) {
+            sessionStorage.setItem('question_content', questionInput.value);
+          }
+          window.location.href = "{% url 'talk_questions' talk.id %}?status_filter=" + value;
+        }
+          </script>
+        </div>
+        {% if user_can_moderate %}
+          <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-md mb-4">
+            <p class="font-medium">{% translate "Moderator View" %}</p>
+            <p class="text-sm">
+              {% translate "You are viewing this page as a moderator and can see all questions including pending and rejected ones." %}
+            </p>
+          </div>
+        {% endif %}
+        {% for question in questions %}
+          <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <div class="flex items-start">
+              <!-- Voting button -->
+              {% include "talks/questions/vote_button.html" with question=question %}
+              <!-- Question content -->
+              <div class="flex-1">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm text-gray-600">{{ question.display_name }}</span>
+                  <!-- Status badges -->
+                  {% if question.status == 'pending' %}
+                    <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">{% translate "Pending" %}</span>
+                  {% elif question.status == 'approved' %}
+                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">{% translate "Approved" %}</span>
+                  {% elif question.status == 'answered' %}
+                    <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">{% translate "Answered" %}</span>
+                  {% elif question.status == 'rejected' %}
+                    <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">{% translate "Rejected" %}</span>
+                  {% endif %}
+                </div>
+                <p class="text-gray-800 mb-4">{{ question.content }}</p>
+                <!-- Timestamp -->
+                <div class="text-xs text-gray-500 mb-2">
+                  {% translate "Asked" %} {{ question.created_at|timesince }} {% translate "ago" %}
+                </div>
+                <!-- Moderator actions -->
+                {% if user_can_moderate %}
+                  <div class="flex space-x-2 mt-2">
+                    {% if question.status == 'pending' %}
+                      <form method="post" action="{% url 'question_approve' question.id %}">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="text-sm bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1 rounded">
+                          {% translate "Approve" %}
+                        </button>
+                      </form>
+                      <form method="post" action="{% url 'question_reject' question.id %}">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="text-sm bg-red-100 text-red-700 hover:bg-red-200 px-2 py-1 rounded">
+                          {% translate "Reject" %}
+                        </button>
+                      </form>
+                    {% endif %}
+                    {% if question.status != 'answered' and question.status != 'rejected' %}
+                      <form method="post" action="{% url 'question_mark_answered' question.id %}">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded">
+                          {% translate "Mark Answered" %}
+                        </button>
+                      </form>
+                    {% endif %}
+                    <a href="{% url 'answer_create' question.id %}"
+                       class="text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 px-2 py-1 rounded">
+                      {% translate "Add Answer" %}
+                    </a>
+                  </div>
+                {% endif %}
+                <!-- Answers section -->
+                {% if question.answers.exists %}
+                  <div class="mt-4 border-t pt-4">
+                    <h4 class="text-sm font-semibold mb-2">{% translate "Answers" %}</h4>
+                    {% for answer in question.answers.all %}
+                      <div class="bg-gray-50 p-3 rounded mb-3 {% if answer.is_official %}border-l-4 border-blue-500{% endif %}">
+                        <div class="flex justify-between items-center mb-2">
+                          <span class="text-sm font-medium">
+                            {{ answer.user.email }}
+                            {% if answer.is_official %}
+                              <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full ml-2">{% translate "Official" %}</span>
+                            {% endif %}
+                          </span>
+                          <span class="text-xs text-gray-500">{{ answer.created_at|timesince }} {% translate "ago" %}</span>
+                        </div>
+                        <p class="text-sm">{{ answer.content }}</p>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="bg-gray-50 p-6 rounded-lg text-center">
+            <p class="text-gray-600">{% translate "No questions have been asked yet. Be the first to ask!" %}</p>
+          </div>
+        {% endfor %}
       </div>
-    {% empty %}
-      <div class="bg-gray-50 p-6 rounded-lg text-center">
-        <p class="text-gray-600">{% translate "No questions have been asked yet. Be the first to ask!" %}</p>
-      </div>
-    {% endfor %}
+    {% endblock %}
   </div>
-  {% endblock %}
-</div>
 {% endblock %}

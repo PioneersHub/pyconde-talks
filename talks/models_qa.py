@@ -19,11 +19,11 @@ class QuestionQuerySet(models.QuerySet):
 
     def with_vote_count(self):
         """Annotate queryset with the count of votes."""
-        return self.annotate(vote_count=Count("votes"))
+        return self.annotate(votes_count=Count("votes"))
 
     def sorted_by_votes(self):
         """Return questions sorted by vote count (descending)."""
-        return self.with_vote_count().order_by("-vote_count", "-created_at")
+        return self.with_vote_count().order_by("-votes_count", "-created_at")
 
     def approved(self):
         """Return only approved questions."""
@@ -36,7 +36,7 @@ class QuestionQuerySet(models.QuerySet):
     def pending(self):
         """Return only pending questions."""
         return self.filter(status=Question.Status.PENDING)
-    
+
     def not_rejected(self):
         """Return questions that haven't been rejected."""
         return self.exclude(status=Question.Status.REJECTED)
@@ -141,18 +141,22 @@ class Question(models.Model):
     def has_answer(self) -> bool:
         """Return True if this question has at least one answer."""
         return self.answers.exists()
-    
+
     @property
     def vote_count(self) -> int:
         """Return the number of votes this question has received."""
+        # Check if this instance has the annotation from the queryset
+        if hasattr(self, "votes_count"):
+            return self.votes_count
+        # Otherwise calculate it dynamically
         return self.votes.count()
-    
+
     def user_has_voted(self, user) -> bool:
         """Check if a specific user has voted for this question."""
         if not user or user.is_anonymous:
             return False
         return self.votes.filter(user=user).exists()
-    
+
     def mark_as_answered(self) -> None:
         """Mark the question as answered."""
         self.status = self.Status.ANSWERED
@@ -264,12 +268,12 @@ class Answer(models.Model):
     def save(self, *args, **kwargs):
         """
         Save the answer and update the question status if needed.
-        
+
         When an answer is saved, the related question's status is updated
         to "answered" if it's not already rejected.
         """
         super().save(*args, **kwargs)
-        
+
         # Update question status to "answered" if not rejected
         if self.question.status != Question.Status.REJECTED:
             self.question.status = Question.Status.ANSWERED

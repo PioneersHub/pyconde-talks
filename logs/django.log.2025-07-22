@@ -1,0 +1,11 @@
+{"event": "Listen failure: Couldn't listen on 127.0.0.1:8000: [Errno 48] Address already in use."}
+{"email": "258d8dc916db8cea2cafb6c3cd0cb0246efe061421dbd83ec3a350428cabda4f", "event": "Admin authorized", "filename": "adapters.py", "func_name": "_is_locally_authorized", "lineno": 76, "timestamp": "2025-07-22T06:49:40.204550Z", "logger": "users.adapters", "level": "info"}
+{"email": "258d8dc916db8cea2cafb6c3cd0cb0246efe061421dbd83ec3a350428cabda4f", "event": "Form is valid", "filename": "views.py", "func_name": "form_valid", "lineno": 86, "timestamp": "2025-07-22T06:49:40.205606Z", "logger": "users.views", "level": "info"}
+{"email": "258d8dc916db8cea2cafb6c3cd0cb0246efe061421dbd83ec3a350428cabda4f", "event": "Admin authorized", "filename": "adapters.py", "func_name": "_is_locally_authorized", "lineno": 76, "timestamp": "2025-07-22T06:49:43.146822Z", "logger": "users.adapters", "level": "info"}
+{"email": "258d8dc916db8cea2cafb6c3cd0cb0246efe061421dbd83ec3a350428cabda4f", "event": "Form is valid", "filename": "views.py", "func_name": "form_valid", "lineno": 86, "timestamp": "2025-07-22T06:49:43.147757Z", "logger": "users.views", "level": "info"}
+{"email": "258d8dc916db8cea2cafb6c3cd0cb0246efe061421dbd83ec3a350428cabda4f", "event": "Admin authorized", "filename": "adapters.py", "func_name": "_is_locally_authorized", "lineno": 76, "timestamp": "2025-07-22T06:50:07.033420Z", "logger": "users.adapters", "level": "info"}
+{"email": "258d8dc916db8cea2cafb6c3cd0cb0246efe061421dbd83ec3a350428cabda4f", "event": "Form is valid", "filename": "views.py", "func_name": "form_valid", "lineno": 86, "timestamp": "2025-07-22T06:50:07.034741Z", "logger": "users.views", "level": "info"}
+{"event": "Internal Server Error: /talks/31/questions/", "exc_info": ["<class 'TypeError'>", "TypeError(\"'NoneType' object is not callable\")", "<traceback object at 0x10a03f3c0>"]}
+{"event": "\u001b[35;1mHTTP GET /talks/31/questions/ 500 [0.16, 127.0.0.1:58543]\u001b[0m"}
+{"event": "Internal Server Error: /talks/31/questions/", "exc_info": ["<class 'TypeError'>", "TypeError(\"'NoneType' object is not callable\")", "<traceback object at 0x10a082640>"]}
+{"event": "\u001b[35;1mHTTP GET /talks/31/questions/ 500 [0.17, 127.0.0.1:58569]\u001b[0m"}
