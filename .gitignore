@@ -38,7 +38,7 @@ wheels/
 !.vscode/tasks.json
 
 # Logs
-logs/*.log
+logs/*
 
 # Collected static files
 staticfiles/

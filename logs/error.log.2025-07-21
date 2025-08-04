@@ -1,2 +1,0 @@
-{"event": "Internal Server Error: /accounts/login/code/", "exc_info": ["<class 'ConnectionRefusedError'>", "ConnectionRefusedError(61, 'Connection refused')", "<traceback object at 0x1098bc8c0>"]}
-{"event": "Internal Server Error: /accounts/login/code/", "exc_info": ["<class 'ConnectionRefusedError'>", "ConnectionRefusedError(61, 'Connection refused')", "<traceback object at 0x105bef280>"]}
