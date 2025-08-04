@@ -16,7 +16,11 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from .models import Room, Speaker, Streaming, Talk
-from .models_qa import Question, QuestionVote, Answer
+from .models_qa import Answer, Question, QuestionVote
+
+
+# Constants
+CONTENT_PREVIEW_LENGTH = 50
 
 
 @admin.register(Room)
@@ -358,6 +362,7 @@ class QuestionAdmin(admin.ModelAdmin):
         actions: Custom admin actions.
         readonly_fields: Fields that cannot be edited in the admin.
         inlines: Related models to display inline.
+
     """
 
     list_display = (
@@ -371,9 +376,9 @@ class QuestionAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "created_at", "talk__title", "is_anonymous")
     search_fields = ("content", "author_name", "author_email", "talk__title")
-    actions = ["approve_questions", "reject_questions", "mark_as_answered"]
+    actions: ClassVar[list[str]] = ["approve_questions", "reject_questions", "mark_as_answered"]
     readonly_fields = ("vote_count", "created_at", "updated_at")
-    inlines = [AnswerInline]
+    inlines: ClassVar[list[type[admin.TabularInline]]] = [AnswerInline]
 
     fieldsets = (
         (
@@ -400,8 +405,8 @@ class QuestionAdmin(admin.ModelAdmin):
     @admin.display(description=_("Question"))
     def content_preview(self, obj: Question) -> str:
         """Display a preview of the question content."""
-        if len(obj.content) > 50:
-            return f"{obj.content[:50]}..."
+        if len(obj.content) > CONTENT_PREVIEW_LENGTH:
+            return f"{obj.content[:CONTENT_PREVIEW_LENGTH]}..."
         return obj.content
 
     @admin.display(boolean=True, description=_("Has Answers"))
@@ -446,6 +451,7 @@ class QuestionVoteAdmin(admin.ModelAdmin):
         list_filter: Fields to filter by in the admin list view.
         search_fields: Fields to search by in the admin list view.
         readonly_fields: Fields that cannot be edited in the admin.
+
     """
 
     list_display = ("question_preview", "user", "created_at")
@@ -457,8 +463,8 @@ class QuestionVoteAdmin(admin.ModelAdmin):
     def question_preview(self, obj: QuestionVote) -> str:
         """Display a preview of the question content."""
         content = obj.question.content
-        if len(content) > 50:
-            return f"{content[:50]}..."
+        if len(content) > CONTENT_PREVIEW_LENGTH:
+            return f"{content[:CONTENT_PREVIEW_LENGTH]}..."
         return content
 
 
@@ -472,6 +478,7 @@ class AnswerAdmin(admin.ModelAdmin):
         list_filter: Fields to filter by in the admin list view.
         search_fields: Fields to search by in the admin list view.
         readonly_fields: Fields that cannot be edited in the admin.
+
     """
 
     list_display = ("content_preview", "question_preview", "user", "is_official", "created_at")
@@ -498,14 +505,14 @@ class AnswerAdmin(admin.ModelAdmin):
     @admin.display(description=_("Answer"))
     def content_preview(self, obj: Answer) -> str:
         """Display a preview of the answer content."""
-        if len(obj.content) > 50:
-            return f"{obj.content[:50]}..."
+        if len(obj.content) > CONTENT_PREVIEW_LENGTH:
+            return f"{obj.content[:CONTENT_PREVIEW_LENGTH]}..."
         return obj.content
 
     @admin.display(description=_("Question"))
     def question_preview(self, obj: Answer) -> str:
         """Display a preview of the question content."""
         content = obj.question.content
-        if len(content) > 50:
-            return f"{content[:50]}..."
+        if len(content) > CONTENT_PREVIEW_LENGTH:
+            return f"{content[:CONTENT_PREVIEW_LENGTH]}..."
         return content

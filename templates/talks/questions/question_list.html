@@ -2,7 +2,7 @@
 {% load i18n %}
 {% block title %}
   {% translate "Questions for" %} {{ talk.title }}
-{% endblock %}
+{% endblock title %}
 {% block content %}
   <div class="container mx-auto px-4 py-8">
     <script>
@@ -201,6 +201,6 @@
           </div>
         {% endfor %}
       </div>
-    {% endblock %}
+    {% endblock question-list %}
   </div>
-{% endblock %}
+{% endblock content %}

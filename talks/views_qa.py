@@ -1,16 +1,18 @@
 """
 Views for managing and displaying Question and Answer objects.
 
-This module provides class-based and function-based views for handling Question and Answer operations,
+This module provides class-based and function-based views for handling Question and Answer
 including listing, creating, voting, and moderation actions.
 """
 
-from typing import Any
+from typing import Any, ClassVar, Protocol
 
+from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models.query import QuerySet
+from django.forms import modelform_factory
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -90,10 +92,8 @@ class QuestionListView(ListView):
         context["status_filter"] = self.status_filter
 
         # Add form for new questions
-        from django.forms import modelform_factory
-
-        QuestionForm = modelform_factory(Question, fields=["content"])
-        context["question_form"] = QuestionForm()
+        question_form = modelform_factory(Question, fields=["content"])
+        context["question_form"] = question_form()
 
         # For each question, check if the current user has voted
         if self.request.user.is_authenticated:
@@ -119,9 +119,9 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
 
     model = Question
     template_name = "talks/questions/question_form.html"
-    fields = ["content"]
+    fields: ClassVar[list[str]] = ["content"]
 
-    def form_valid(self, form):
+    def form_valid(self, form: forms.ModelForm) -> HttpResponse:
         """Process the form submission."""
         # Set the talk and user
         form.instance.talk = get_object_or_404(Talk, pk=self.kwargs["talk_id"])
@@ -168,7 +168,7 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
 
 
 @login_required
-def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
+def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:  # noqa: C901, PLR0912
     """
     Handle voting for a question.
 
@@ -266,7 +266,14 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
 
 
 # Moderator views
-def is_moderator(user) -> bool:
+class UserWithPermissions(Protocol):
+    """Protocol for objects with permission attributes."""
+
+    is_staff: bool
+    is_superuser: bool
+
+
+def is_moderator(user: UserWithPermissions) -> bool:
     """Check if the user is a moderator (staff or superuser)."""
     return user.is_staff or user.is_superuser
 
@@ -274,7 +281,7 @@ def is_moderator(user) -> bool:
 class ModeratorRequiredMixin(UserPassesTestMixin):
     """Mixin to require moderator permissions."""
 
-    def test_func(self):
+    def test_func(self) -> bool:
         """Check if the user is a moderator."""
         return is_moderator(self.request.user)
 
@@ -318,9 +325,9 @@ class AnswerCreateView(ModeratorRequiredMixin, CreateView):
 
     model = Answer
     template_name = "talks/questions/answer_form.html"
-    fields = ["content", "is_official"]
+    fields: ClassVar[list[str]] = ["content", "is_official"]
 
-    def form_valid(self, form):
+    def form_valid(self, form: forms.ModelForm) -> HttpResponse:
         """Process the form submission."""
         # Set the question and user
         question_id = self.kwargs["question_id"]

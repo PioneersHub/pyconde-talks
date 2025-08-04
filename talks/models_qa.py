@@ -5,39 +5,45 @@ This module provides models for allowing users to ask questions about talks,
 vote on questions, and receive answers from speakers or moderators.
 """
 
+from typing import Any, ClassVar
+
 from django.conf import settings
 from django.db import models
-from django.db.models import Count
+from django.db.models import Count, QuerySet
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .models import Talk
 
 
+# Constants
+CONTENT_PREVIEW_LENGTH = 50
+
+
 class QuestionQuerySet(models.QuerySet):
     """Custom QuerySet for Question model with additional methods."""
 
-    def with_vote_count(self):
+    def with_vote_count(self) -> QuerySet:
         """Annotate queryset with the count of votes."""
         return self.annotate(votes_count=Count("votes"))
 
-    def sorted_by_votes(self):
+    def sorted_by_votes(self) -> QuerySet:
         """Return questions sorted by vote count (descending)."""
         return self.with_vote_count().order_by("-votes_count", "-created_at")
 
-    def approved(self):
+    def approved(self) -> QuerySet:
         """Return only approved questions."""
         return self.filter(status=Question.Status.APPROVED)
 
-    def answered(self):
+    def answered(self) -> QuerySet:
         """Return only answered questions."""
         return self.filter(status=Question.Status.ANSWERED)
 
-    def pending(self):
+    def pending(self) -> QuerySet:
         """Return only pending questions."""
         return self.filter(status=Question.Status.PENDING)
 
-    def not_rejected(self):
+    def not_rejected(self) -> QuerySet:
         """Return questions that haven't been rejected."""
         return self.exclude(status=Question.Status.REJECTED)
 
@@ -112,18 +118,18 @@ class Question(models.Model):
     class Meta:
         """Metadata for the Question model."""
 
-        ordering = ["-created_at"]
+        ordering: ClassVar[list[str]] = ["-created_at"]
         verbose_name = _("Question")
         verbose_name_plural = _("Questions")
-        indexes = [
+        indexes: ClassVar[list[models.Index]] = [
             models.Index(fields=["talk", "status"]),
             models.Index(fields=["user"]),
         ]
 
     def __str__(self) -> str:
         """Return a string representation of the question."""
-        if len(self.content) > 50:
-            return f"{self.content[:50]}..."
+        if len(self.content) > CONTENT_PREVIEW_LENGTH:
+            return f"{self.content[:CONTENT_PREVIEW_LENGTH]}..."
         return self.content
 
     @property
@@ -151,7 +157,7 @@ class Question(models.Model):
         # Otherwise calculate it dynamically
         return self.votes.count()
 
-    def user_has_voted(self, user) -> bool:
+    def user_has_voted(self, user: models.Model | None) -> bool:
         """Check if a specific user has voted for this question."""
         if not user or user.is_anonymous:
             return False
@@ -198,10 +204,10 @@ class QuestionVote(models.Model):
     class Meta:
         """Metadata for the QuestionVote model."""
 
-        unique_together = ["question", "user"]
+        unique_together: ClassVar[list[str]] = ["question", "user"]
         verbose_name = _("Question Vote")
         verbose_name_plural = _("Question Votes")
-        indexes = [
+        indexes: ClassVar[list[models.Index]] = [
             models.Index(fields=["question"]),
             models.Index(fields=["user"]),
         ]
@@ -251,21 +257,21 @@ class Answer(models.Model):
     class Meta:
         """Metadata for the Answer model."""
 
-        ordering = ["created_at"]
+        ordering: ClassVar[list[str]] = ["created_at"]
         verbose_name = _("Answer")
         verbose_name_plural = _("Answers")
-        indexes = [
+        indexes: ClassVar[list[models.Index]] = [
             models.Index(fields=["question"]),
             models.Index(fields=["user"]),
         ]
 
     def __str__(self) -> str:
         """Return a string representation of the answer."""
-        if len(self.content) > 50:
-            return f"{self.content[:50]}..."
+        if len(self.content) > CONTENT_PREVIEW_LENGTH:
+            return f"{self.content[:CONTENT_PREVIEW_LENGTH]}..."
         return self.content
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         """
         Save the answer and update the question status if needed.
 

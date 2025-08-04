@@ -3,6 +3,8 @@
 from typing import Any
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
+from django.contrib.messages.storage.fallback import FallbackStorage
 from django.test import RequestFactory
 from django.urls import reverse
 from pytest_mock import MockerFixture
@@ -205,12 +207,8 @@ def test_form_valid_user_creation_error(
     # Mock the request with all necessary attributes
     request = request_factory.post(reverse("account_login"))
     request.session = {}
-    from django.contrib.messages.storage.fallback import FallbackStorage
-
     messages = FallbackStorage(request)
     request._messages = messages  # noqa: SLF001
-    from django.contrib.auth.models import AnonymousUser
-
     request.user = AnonymousUser()
     view.request = request
 
