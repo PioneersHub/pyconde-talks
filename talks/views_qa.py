@@ -20,7 +20,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, ListView
 
 from .models import Talk
-from .models_qa import Answer, Question, QuestionVote
+from .models_qa import Question, QuestionVote
 
 
 class QuestionListView(ListView):
@@ -295,34 +295,3 @@ def mark_question_answered(request: HttpRequest, question_id: int) -> HttpRespon
     question.mark_as_answered()
     messages.success(request, _("Question has been marked as answered."))
     return redirect("talk_questions", talk_id=question.talk.id)
-
-
-class AnswerCreateView(ModeratorRequiredMixin, CreateView):
-    """
-    Create an answer to a question.
-
-    Only moderators can create official answers.
-    """
-
-    model = Answer
-    template_name = "talks/questions/answer_form.html"
-    fields: ClassVar[list[str]] = ["content", "is_official"]
-
-    def form_valid(self, form: forms.ModelForm) -> HttpResponse:
-        """Process the form submission."""
-        # Set the question and user
-        question_id = self.kwargs["question_id"]
-        form.instance.question = get_object_or_404(Question, pk=question_id)
-        form.instance.user = self.request.user
-
-        # Save the answer
-        response = super().form_valid(form)
-
-        # Show success message
-        messages.success(self.request, _("Answer has been posted."))
-        return response
-
-    def get_success_url(self) -> str:
-        """Redirect to the talk's Q&A page."""
-        question = get_object_or_404(Question, pk=self.kwargs["question_id"])
-        return reverse("talk_questions", args=[question.talk.id])

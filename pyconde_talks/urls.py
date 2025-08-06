@@ -15,7 +15,6 @@ from talks.views import (
     upcoming_talks,
 )
 from talks.views_qa import (
-    AnswerCreateView,
     QuestionCreateView,
     QuestionListView,
     approve_question,
@@ -60,7 +59,6 @@ urlpatterns = [
         mark_question_answered,
         name="question_mark_answered",
     ),
-    path("questions/<int:question_id>/answer/", AnswerCreateView.as_view(), name="answer_create"),
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
     path("ht/", include("health_check.urls")),
 ]
