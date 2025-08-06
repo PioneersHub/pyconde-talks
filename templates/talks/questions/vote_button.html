@@ -5,7 +5,7 @@
             hx-post="{% url 'question_vote' question.id %}{% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
             hx-target="#question-list"
-            hx-swap="innerHTML">
+            hx-swap="outerHTML">
       <svg xmlns="http://www.w3.org/2000/svg"
            fill="none"
            viewBox="0 0 24 24"

@@ -12,7 +12,6 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models.query import QuerySet
-from django.forms import modelform_factory
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -63,10 +62,6 @@ class QuestionListView(ListView):
         context["talk"] = self.talk
         context["user_can_moderate"] = self.request.user.is_staff or self.request.user.is_superuser
         context["status_filter"] = self.status_filter
-
-        # Add form for new questions
-        question_form = modelform_factory(Question, fields=["content"])
-        context["question_form"] = question_form()
 
         # For each question, check if the current user has voted
         if self.request.user.is_authenticated:
@@ -234,7 +229,7 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
 
         return render(
             request,
-            "talks/questions/question_list.html",
+            "talks/questions/question_list_fragment.html",
             {
                 "questions": questions,
                 "talk": talk,

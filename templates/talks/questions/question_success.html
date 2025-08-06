@@ -1,7 +1,8 @@
 {# This template is returned when a question is successfully created via HTMX #}
 <div class="bg-green-50 border border-green-200 p-4 rounded-md">
   <script>
-    // Clear the stored question content on successful submission
+    // Mark that we've submitted a question and clear the stored content
+    sessionStorage.setItem('question_submitted', 'true');
     sessionStorage.removeItem('question_content');
   </script>
   <p class="text-green-700">
