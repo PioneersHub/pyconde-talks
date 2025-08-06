@@ -63,6 +63,6 @@ How to connect as admin:
 
 How to connect as user:
 * go to [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
-* enter `user1@example.com` or `user1@example.com`
+* enter `user1@example.com` or `user2@example.com`
 * go to [http://localhost:8025/](http://localhost:8025/) to see the emails sent.
 * copy the validation code to the form.

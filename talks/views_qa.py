@@ -54,35 +54,8 @@ class QuestionListView(ListView):
         # Get the status filter from the request
         self.status_filter = self.request.GET.get("status_filter", "all")
 
-        # Get base queryset of questions for this talk
-        queryset = Question.objects.filter(talk=self.talk)
-
-        # Apply filtering based on user permissions and filter selection
-        is_moderator = self.request.user.is_staff or self.request.user.is_superuser
-
-        # For moderators, respect the filter if provided
-        if is_moderator:
-            if self.status_filter == "pending":
-                queryset = queryset.filter(status=Question.Status.PENDING)
-            elif self.status_filter == "approved":
-                queryset = queryset.filter(status=Question.Status.APPROVED)
-            elif self.status_filter == "answered":
-                queryset = queryset.filter(status=Question.Status.ANSWERED)
-            elif self.status_filter == "rejected":
-                queryset = queryset.filter(status=Question.Status.REJECTED)
-            # "all" doesn't need filtering as it shows everything
-        # Regular users can only see approved and answered questions
-        elif self.status_filter == "approved":
-            queryset = queryset.filter(status=Question.Status.APPROVED)
-        elif self.status_filter == "answered":
-            queryset = queryset.filter(status=Question.Status.ANSWERED)
-        else:
-            # Default for regular users: show both approved and answered
-            queryset = queryset.filter(
-                status__in=[Question.Status.APPROVED, Question.Status.ANSWERED],
-            )
-
-        return queryset.sorted_by_votes()
+        # Use the shared function to get filtered questions
+        return get_filtered_questions(self.request, self.talk, self.status_filter)
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Enhance the template context with additional data."""
@@ -167,8 +140,49 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
         return reverse("talk_questions", args=[self.kwargs["talk_id"]])
 
 
+def get_filtered_questions(
+    request: HttpRequest,
+    talk: Talk,
+    status_filter: str = "all",
+) -> QuerySet:
+    """
+    Get filtered questions based on user permissions and filter selection.
+
+    This function centralizes the filtering logic used in both QuestionListView and vote_question.
+    """
+    # Get base queryset of questions for this talk
+    queryset = Question.objects.filter(talk=talk)
+
+    # Apply filtering based on user permissions and filter selection
+    is_moderator = request.user.is_staff or request.user.is_superuser
+
+    # For moderators, respect the filter if provided
+    if is_moderator:
+        if status_filter == "pending":
+            queryset = queryset.filter(status=Question.Status.PENDING)
+        elif status_filter == "approved":
+            queryset = queryset.filter(status=Question.Status.APPROVED)
+        elif status_filter == "answered":
+            queryset = queryset.filter(status=Question.Status.ANSWERED)
+        elif status_filter == "rejected":
+            queryset = queryset.filter(status=Question.Status.REJECTED)
+        # "all" doesn't need filtering as it shows everything
+    # Regular users can only see approved and answered questions
+    elif status_filter == "approved":
+        queryset = queryset.filter(status=Question.Status.APPROVED)
+    elif status_filter == "answered":
+        queryset = queryset.filter(status=Question.Status.ANSWERED)
+    else:
+        # Default for regular users: show both approved and answered
+        queryset = queryset.filter(
+            status__in=[Question.Status.APPROVED, Question.Status.ANSWERED],
+        )
+
+    return queryset.sorted_by_votes()
+
+
 @login_required
-def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:  # noqa: C901, PLR0912
+def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """
     Handle voting for a question.
 
@@ -203,35 +217,8 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:  # no
         # Get the status filter from the request, if any
         status_filter = request.GET.get("status_filter", "all")
 
-        # Get base queryset of questions for this talk
-        queryset = Question.objects.filter(talk=talk)
-
-        # Apply filtering based on user permissions and filter selection
-        is_moderator = request.user.is_staff or request.user.is_superuser
-
-        # For moderators, respect the filter if provided
-        if is_moderator:
-            if status_filter == "pending":
-                queryset = queryset.filter(status=Question.Status.PENDING)
-            elif status_filter == "approved":
-                queryset = queryset.filter(status=Question.Status.APPROVED)
-            elif status_filter == "answered":
-                queryset = queryset.filter(status=Question.Status.ANSWERED)
-            elif status_filter == "rejected":
-                queryset = queryset.filter(status=Question.Status.REJECTED)
-            # "all" doesn't need filtering as it shows everything
-        # Regular users can only see approved and answered questions
-        elif status_filter == "approved":
-            queryset = queryset.filter(status=Question.Status.APPROVED)
-        elif status_filter == "answered":
-            queryset = queryset.filter(status=Question.Status.ANSWERED)
-        else:
-            # Default for regular users: show both approved and answered
-            queryset = queryset.filter(
-                status__in=[Question.Status.APPROVED, Question.Status.ANSWERED],
-            )
-
-        questions = queryset.sorted_by_votes()
+        # Get filtered questions using the shared function
+        questions = get_filtered_questions(request, talk, status_filter)
 
         # For each question, check if the current user has voted
         if request.user.is_authenticated:
