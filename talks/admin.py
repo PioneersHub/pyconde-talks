@@ -374,7 +374,7 @@ class QuestionAdmin(admin.ModelAdmin):
         "has_answers",
         "created_at",
     )
-    list_filter = ("status", "created_at", "talk__title", "is_anonymous")
+    list_filter = ("status", "created_at", "talk__title")
     search_fields = ("content", "author_name", "author_email", "talk__title")
     actions: ClassVar[list[str]] = ["approve_questions", "reject_questions", "mark_as_answered"]
     readonly_fields = ("vote_count", "created_at", "updated_at")
@@ -390,7 +390,7 @@ class QuestionAdmin(admin.ModelAdmin):
         (
             _("Author Information"),
             {
-                "fields": ("user", "author_name", "author_email", "is_anonymous"),
+                "fields": ("user", "author_name", "author_email"),
             },
         ),
         (

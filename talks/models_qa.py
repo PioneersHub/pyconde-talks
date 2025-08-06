@@ -97,10 +97,7 @@ class Question(models.Model):
         help_text=_("Status of the question"),
     )
 
-    is_anonymous = models.BooleanField(
-        default=False,
-        help_text=_("Whether to display the author's name"),
-    )
+    # is_anonymous field has been removed as all questions must display author's name
 
     created_at = models.DateTimeField(
         default=timezone.now,
@@ -134,9 +131,7 @@ class Question(models.Model):
 
     @property
     def display_name(self) -> str:
-        """Return the author's name or 'Anonymous' if is_anonymous is True."""
-        if self.is_anonymous:
-            return _("Anonymous")
+        """Return the author's name or email."""
         if self.author_name:
             return self.author_name
         if self.user:

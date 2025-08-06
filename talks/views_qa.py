@@ -95,8 +95,7 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
         form.instance.talk = get_object_or_404(Talk, pk=self.kwargs["talk_id"])
         form.instance.user = self.request.user
 
-        # Always show the user's name (never anonymous)
-        form.instance.is_anonymous = False
+        # Always show the user's name
         form.instance.author_name = (
             getattr(self.request.user, "get_full_name", lambda: "")() or self.request.user.email
         )
