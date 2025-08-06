@@ -74,7 +74,7 @@
               <label for="filter" class="mr-2 text-sm text-gray-600">{% translate "Filter:" %}</label>
               <select id="filter"
                       class="border rounded px-2 py-1 text-sm mr-2"
-                      onchange="applyFilter(this.value)">
+                      onchange="applyFilter(this.value, '{% url 'talk_questions' talk.id %}')">
                 <option value="all" {% if status_filter == 'all' %}selected{% endif %}>{% translate "All" %}</option>
                 {% if user_can_moderate %}
                   <option value="pending"
@@ -94,16 +94,7 @@
               </select>
             </div>
           </div>
-          <script>
-        function applyFilter(value) {
-          // Preserve the question input field value before navigation
-          const questionInput = document.getElementById('id_content');
-          if (questionInput) {
-            sessionStorage.setItem('question_content', questionInput.value);
-          }
-          window.location.href = "{% url 'talk_questions' talk.id %}?status_filter=" + value;
-        }
-          </script>
+          <!-- Filter script moved to external JS file -->
         </div>
         {% if user_can_moderate %}
           <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-md mb-4">
