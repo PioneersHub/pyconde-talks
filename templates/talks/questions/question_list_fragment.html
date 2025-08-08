@@ -167,7 +167,20 @@
     </div>
   {% empty %}
     <div class="bg-gray-50 p-6 rounded-lg text-center">
-      <p class="text-gray-600">{% translate "No questions have been asked yet. Be the first to ask!" %}</p>
+      {% if status_filter == "mine" %}
+        <p class="text-gray-600">{% translate "You haven't asked any questions yet." %}</p>
+      {% elif status_filter == "pending" %}
+        <p class="text-gray-600">{% translate "There are no pending questions right now." %}</p>
+      {% elif status_filter == "approved" %}
+        <p class="text-gray-600">{% translate "There are no approved questions right now." %}</p>
+      {% elif status_filter == "answered" %}
+        <p class="text-gray-600">{% translate "There are no answered questions yet." %}</p>
+      {% elif status_filter == "rejected" %}
+        <p class="text-gray-600">{% translate "There are no rejected questions." %}</p>
+      {% else %}
+        <p class="text-gray-600">{% translate "No questions match the selected filter." %}</p>
+      {% endif %}
+      <p class="text-sm text-gray-500 mt-2">{% translate "Try changing the filter or ask a new question above." %}</p>
     </div>
   {% endfor %}
 </div>
