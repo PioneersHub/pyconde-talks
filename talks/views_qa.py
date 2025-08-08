@@ -11,6 +11,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Q
 from django.db.models.query import QuerySet
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -28,7 +29,7 @@ class QuestionListView(LoginRequiredMixin, ListView):
     Display a list of questions for a specific talk.
 
     Questions are sorted by vote count, with the most popular at the top.
-    Only approved and answered questions are shown to regular users.
+    Only approved, answered and their own questions are shown to regular users.
     Moderators can see all questions including pending ones.
     """
 
@@ -173,9 +174,10 @@ def get_filtered_questions(
     elif status_filter == "answered":
         queryset = queryset.filter(status=Question.Status.ANSWERED)
     else:
-        # Default for regular users: show both approved and answered
+        # Default for regular users: show approved and answered, plus their own pending
         queryset = queryset.filter(
-            status__in=[Question.Status.APPROVED, Question.Status.ANSWERED],
+            Q(status__in=[Question.Status.APPROVED, Question.Status.ANSWERED])
+            | Q(status=Question.Status.PENDING, user=request.user),
         )
 
     return queryset.sorted_by_votes()
