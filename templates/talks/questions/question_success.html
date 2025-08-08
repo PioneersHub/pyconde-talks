@@ -5,6 +5,13 @@
     sessionStorage.setItem('question_submitted', 'true');
     sessionStorage.removeItem('question_content');
   </script>
+  <!-- Auto-refresh the question list -->
+  <div hx-get="{% url 'talk_questions' question.talk.id %}{% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+       hx-trigger="load"
+       hx-target="#question-list"
+       hx-swap="outerHTML"
+       aria-hidden="true"
+       style="display:none"></div>
   <p class="text-green-700">
     {% load i18n %}
     {% if user_can_moderate %}
@@ -18,12 +25,4 @@
       {% translate "Once approved by a moderator, your question will appear in the list and others can vote on it." %}
     </p>
   {% endif %}
-  <div class="mt-4">
-    {% if user_can_moderate %}
-      <button class="text-blue-600 hover:underline"
-              hx-get="{% url 'talk_questions' question.talk.id %}{% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
-              hx-target="#question-list"
-              hx-swap="outerHTML">{% translate "Refresh question list" %}</button>
-    {% endif %}
-  </div>
 </div>
