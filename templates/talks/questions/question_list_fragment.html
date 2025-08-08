@@ -13,7 +13,7 @@
       <div class="flex items-center">
         <label for="filter" class="mr-2 text-sm text-gray-600">{% translate "Filter:" %}</label>
         <select id="filter"
-                class="border rounded px-2 py-1 text-sm mr-2"
+                class="border rounded px-2 py-1 text-sm mr-2 pr-8 min-w-[10rem]"
                 onchange="applyFilter(this.value, '{% url 'talk_questions' talk.id %}')">
           <option value="all" {% if status_filter == 'all' %}selected{% endif %}>{% translate "All" %}</option>
           {% if user_can_moderate %}
