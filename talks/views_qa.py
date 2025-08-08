@@ -176,6 +176,40 @@ def get_filtered_questions(
     return queryset.sorted_by_votes()
 
 
+def render_question_list_fragment(
+    request: HttpRequest,
+    talk: Talk,
+    status_filter: str,
+) -> HttpResponse:
+    """
+    Render the question list fragment for HTMX responses.
+
+    Applies filtering, annotates user_voted, and includes moderator flag.
+    """
+    questions = get_filtered_questions(request, talk, status_filter)
+
+    if request.user.is_authenticated:
+        user_voted_questions = set(
+            QuestionVote.objects.filter(
+                user=request.user,
+                question__talk=talk,
+            ).values_list("question_id", flat=True),
+        )
+        for q in questions:
+            q.user_voted = q.id in user_voted_questions
+
+    return render(
+        request,
+        "talks/questions/question_list_fragment.html",
+        {
+            "questions": questions,
+            "talk": talk,
+            "user_can_moderate": is_moderator(request.user),
+            "status_filter": status_filter,
+        },
+    )
+
+
 @login_required
 def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """
@@ -206,40 +240,9 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
 
     # Return HTML for HTMX to replace the question list with sorted questions
     if request.headers.get("HX-Request"):
-        # Get the talk and fetch sorted questions
         talk = question.talk
-
-        # Get the status filter from the request, if any
         status_filter = request.GET.get("status_filter", "all")
-
-        # Determine moderator permissions for context
-        user_can_moderate = is_moderator(request.user)
-
-        # Get filtered questions using the shared function
-        questions = get_filtered_questions(request, talk, status_filter)
-
-        # For each question, check if the current user has voted
-        if request.user.is_authenticated:
-            user_voted_questions = set(
-                QuestionVote.objects.filter(
-                    user=request.user,
-                    question__talk=talk,
-                ).values_list("question_id", flat=True),
-            )
-
-            for q in questions:
-                q.user_voted = q.id in user_voted_questions
-
-        return render(
-            request,
-            "talks/questions/question_list_fragment.html",
-            {
-                "questions": questions,
-                "talk": talk,
-                "user_can_moderate": user_can_moderate,
-                "status_filter": status_filter,
-            },
-        )
+        return render_question_list_fragment(request, talk, status_filter)
 
     # Fallback to JSON response for non-HTMX requests
     return JsonResponse(
@@ -278,6 +281,12 @@ def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
     question = get_object_or_404(Question, pk=question_id)
     question.approve()
     messages.success(request, _("Question has been approved."))
+
+    if request.headers.get("HX-Request"):
+        talk = question.talk
+        status_filter = request.GET.get("status_filter", "all")
+        return render_question_list_fragment(request, talk, status_filter)
+
     return redirect("talk_questions", talk_id=question.talk.id)
 
 
@@ -288,6 +297,12 @@ def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
     question = get_object_or_404(Question, pk=question_id)
     question.reject()
     messages.success(request, _("Question has been rejected."))
+
+    if request.headers.get("HX-Request"):
+        talk = question.talk
+        status_filter = request.GET.get("status_filter", "all")
+        return render_question_list_fragment(request, talk, status_filter)
+
     return redirect("talk_questions", talk_id=question.talk.id)
 
 
@@ -298,4 +313,10 @@ def mark_question_answered(request: HttpRequest, question_id: int) -> HttpRespon
     question = get_object_or_404(Question, pk=question_id)
     question.mark_as_answered()
     messages.success(request, _("Question has been marked as answered."))
+
+    if request.headers.get("HX-Request"):
+        talk = question.talk
+        status_filter = request.GET.get("status_filter", "all")
+        return render_question_list_fragment(request, talk, status_filter)
+
     return redirect("talk_questions", talk_id=question.talk.id)
