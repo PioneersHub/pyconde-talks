@@ -27,7 +27,10 @@
     class="text-blue-600 hover:underline">{{ talk.title }}</a>
       </h1>
       <a href="{% url 'talk_detail' talk.pk %}"
-         class="text-blue-600 hover:underline">{% translate "Back to Talk" %}</a>
+         class="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 shadow-sm">
+        {% svg 'chevron-left' "h-4 w-4" %}
+        <span>{% translate "Back to Talk" %}</span>
+      </a>
     </div>
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
       <h2 class="text-xl font-semibold mb-4">{% translate "Ask a Question" %}</h2>
