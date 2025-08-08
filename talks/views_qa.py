@@ -212,6 +212,9 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
         # Get the status filter from the request, if any
         status_filter = request.GET.get("status_filter", "all")
 
+        # Determine moderator permissions for context
+        user_can_moderate = is_moderator(request.user)
+
         # Get filtered questions using the shared function
         questions = get_filtered_questions(request, talk, status_filter)
 
@@ -233,7 +236,7 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
             {
                 "questions": questions,
                 "talk": talk,
-                "user_can_moderate": is_moderator,
+                "user_can_moderate": user_can_moderate,
                 "status_filter": status_filter,
             },
         )
