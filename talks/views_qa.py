@@ -23,7 +23,7 @@ from .models import Talk
 from .models_qa import Question, QuestionVote
 
 
-class QuestionListView(ListView):
+class QuestionListView(LoginRequiredMixin, ListView):
     """
     Display a list of questions for a specific talk.
 
