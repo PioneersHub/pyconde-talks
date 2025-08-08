@@ -35,6 +35,7 @@ class QuestionListView(ListView):
     model = Question
     template_name = "talks/questions/question_list.html"
     context_object_name = "questions"
+    fragment_template = "talks/questions/question_list_fragment.html"
 
     def get_template_names(self) -> list[str]:
         """
@@ -43,7 +44,7 @@ class QuestionListView(ListView):
         Return a partial fragment for HTMX requests.
         """
         if self.request.headers.get("HX-Request"):
-            return [self.template_name]
+            return [self.fragment_template]
         return [self.template_name]
 
     def get_queryset(self) -> QuerySet[Question]:
