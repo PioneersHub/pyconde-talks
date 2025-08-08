@@ -8,13 +8,13 @@
         {% translate "No questions yet" %}
       {% endif %}
     </h2>
-    <!-- Filter dropdown -->
+    <!-- Filter dropdown and refresh -->
     <div class="relative">
-      <div class="flex items-center">
-        <label for="filter" class="mr-2 text-sm text-gray-600">{% translate "Filter:" %}</label>
+      <div class="flex items-center gap-2">
+        <label for="filter" class="text-sm text-gray-600">{% translate "Filter:" %}</label>
         <select id="filter"
                 name="status_filter"
-                class="border rounded px-2 py-1 text-sm mr-2 pr-8 min-w-[10rem]"
+                class="border rounded px-2 py-1 text-sm pr-8 min-w-[10rem]"
                 hx-get="{% url 'talk_questions' talk.id %}"
                 hx-trigger="change"
                 hx-target="#question-list"
@@ -38,6 +38,11 @@
                     {% if status_filter == 'answered' %}selected{% endif %}>{% translate "Answered" %}</option>
           {% endif %}
         </select>
+        <button class="text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 px-2 py-1 rounded"
+                hx-get="{% url 'talk_questions' talk.id %}{% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+                hx-target="#question-list"
+                hx-swap="outerHTML"
+                title="{% translate "Refresh" %}">{% translate "Refresh" %}</button>
       </div>
     </div>
   </div>
