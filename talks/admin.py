@@ -1,7 +1,8 @@
 """
 Admin configuration for conference talk management.
 
-This module defines the Django admin interfaces for the Speaker, Talk, Room, and Streaming models.
+This module defines the Django admin interfaces for the Speaker, Talk, Room, Streaming,
+Question, QuestionVote, and Answer models.
 """
 
 from datetime import timedelta
@@ -15,6 +16,11 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from .models import Room, Speaker, Streaming, Talk
+from .models_qa import Answer, Question, QuestionVote
+
+
+# Constants
+CONTENT_PREVIEW_LENGTH = 50
 
 
 @admin.register(Room)
@@ -333,3 +339,180 @@ class TalkAdmin(admin.ModelAdmin):
             )
 
         return _("No active streaming found for this time slot")
+
+
+class AnswerInline(admin.TabularInline):
+    """Inline admin for Answer model."""
+
+    model = Answer
+    extra = 1
+    fields = ("content", "user", "is_official", "created_at")
+    readonly_fields = ("created_at",)
+
+
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+    """
+    Admin configuration for the Question model.
+
+    Attributes:
+        list_display: Fields to display in the admin list view.
+        list_filter: Fields to filter by in the admin list view.
+        search_fields: Fields to search by in the admin list view.
+        actions: Custom admin actions.
+        readonly_fields: Fields that cannot be edited in the admin.
+        inlines: Related models to display inline.
+
+    """
+
+    list_display = (
+        "content_preview",
+        "talk",
+        "display_name",
+        "vote_count",
+        "status",
+        "has_answers",
+        "created_at",
+    )
+    list_filter = ("status", "created_at", "talk__title")
+    search_fields = ("content", "author_name", "author_email", "talk__title")
+    actions: ClassVar[list[str]] = ["approve_questions", "reject_questions", "mark_as_answered"]
+    readonly_fields = ("vote_count", "created_at", "updated_at")
+    inlines: ClassVar[list[type[admin.TabularInline]]] = [AnswerInline]
+
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": ("talk", "content", "status"),
+            },
+        ),
+        (
+            _("Author Information"),
+            {
+                "fields": ("user", "author_name", "author_email"),
+            },
+        ),
+        (
+            _("Metadata"),
+            {
+                "fields": ("vote_count", "created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    @admin.display(description=_("Question"))
+    def content_preview(self, obj: Question) -> str:
+        """Display a preview of the question content."""
+        if len(obj.content) > CONTENT_PREVIEW_LENGTH:
+            return f"{obj.content[:CONTENT_PREVIEW_LENGTH]}..."
+        return obj.content
+
+    @admin.display(boolean=True, description=_("Has Answers"))
+    def has_answers(self, obj: Question) -> bool:
+        """Display whether the question has answers."""
+        return obj.has_answer
+
+    @admin.display(description=_("Votes"))
+    def vote_count(self, obj: Question) -> int:
+        """Display the number of votes for this question."""
+        return obj.vote_count
+
+    @admin.action(description=_("Approve selected questions"))
+    def approve_questions(self, request: HttpRequest, queryset: QuerySet) -> None:
+        """Mark selected questions as approved."""
+        for question in queryset:
+            question.approve()
+        self.message_user(request, _("Questions have been approved."))
+
+    @admin.action(description=_("Reject selected questions"))
+    def reject_questions(self, request: HttpRequest, queryset: QuerySet) -> None:
+        """Mark selected questions as rejected."""
+        for question in queryset:
+            question.reject()
+        self.message_user(request, _("Questions have been rejected."))
+
+    @admin.action(description=_("Mark selected questions as answered"))
+    def mark_as_answered(self, request: HttpRequest, queryset: QuerySet) -> None:
+        """Mark selected questions as answered."""
+        for question in queryset:
+            question.mark_as_answered()
+        self.message_user(request, _("Questions have been marked as answered."))
+
+
+@admin.register(QuestionVote)
+class QuestionVoteAdmin(admin.ModelAdmin):
+    """
+    Admin configuration for the QuestionVote model.
+
+    Attributes:
+        list_display: Fields to display in the admin list view.
+        list_filter: Fields to filter by in the admin list view.
+        search_fields: Fields to search by in the admin list view.
+        readonly_fields: Fields that cannot be edited in the admin.
+
+    """
+
+    list_display = ("question_preview", "user", "created_at")
+    list_filter = ("created_at",)
+    search_fields = ("question__content", "user__email")
+    readonly_fields = ("created_at",)
+
+    @admin.display(description=_("Question"))
+    def question_preview(self, obj: QuestionVote) -> str:
+        """Display a preview of the question content."""
+        content = obj.question.content
+        if len(content) > CONTENT_PREVIEW_LENGTH:
+            return f"{content[:CONTENT_PREVIEW_LENGTH]}..."
+        return content
+
+
+@admin.register(Answer)
+class AnswerAdmin(admin.ModelAdmin):
+    """
+    Admin configuration for the Answer model.
+
+    Attributes:
+        list_display: Fields to display in the admin list view.
+        list_filter: Fields to filter by in the admin list view.
+        search_fields: Fields to search by in the admin list view.
+        readonly_fields: Fields that cannot be edited in the admin.
+
+    """
+
+    list_display = ("content_preview", "question_preview", "user", "is_official", "created_at")
+    list_filter = ("is_official", "created_at")
+    search_fields = ("content", "question__content", "user__email")
+    readonly_fields = ("created_at", "updated_at")
+
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": ("question", "content", "user", "is_official"),
+            },
+        ),
+        (
+            _("Metadata"),
+            {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    @admin.display(description=_("Answer"))
+    def content_preview(self, obj: Answer) -> str:
+        """Display a preview of the answer content."""
+        if len(obj.content) > CONTENT_PREVIEW_LENGTH:
+            return f"{obj.content[:CONTENT_PREVIEW_LENGTH]}..."
+        return obj.content
+
+    @admin.display(description=_("Question"))
+    def question_preview(self, obj: Answer) -> str:
+        """Display a preview of the question content."""
+        content = obj.question.content
+        if len(content) > CONTENT_PREVIEW_LENGTH:
+            return f"{content[:CONTENT_PREVIEW_LENGTH]}..."
+        return content

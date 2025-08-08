@@ -14,6 +14,14 @@ from talks.views import (
     talk_redirect_view,
     upcoming_talks,
 )
+from talks.views_qa import (
+    QuestionCreateView,
+    QuestionListView,
+    approve_question,
+    mark_question_answered,
+    reject_question,
+    vote_question,
+)
 from users.views import CustomRequestLoginCodeView
 
 
@@ -36,6 +44,21 @@ urlpatterns = [
     path("talks/<str:talk_id>/", talk_redirect_view, name="talk_redirect"),
     path("dashboard-stats/", dashboard_stats, name="dashboard_stats"),
     path("upcoming-talks/", upcoming_talks, name="upcoming_talks"),
+    # Q&A URLs
+    path("talks/<int:talk_id>/questions/", QuestionListView.as_view(), name="talk_questions"),
+    path(
+        "talks/<int:talk_id>/questions/new/",
+        QuestionCreateView.as_view(),
+        name="question_create",
+    ),
+    path("questions/<int:question_id>/vote/", vote_question, name="question_vote"),
+    path("questions/<int:question_id>/approve/", approve_question, name="question_approve"),
+    path("questions/<int:question_id>/reject/", reject_question, name="question_reject"),
+    path(
+        "questions/<int:question_id>/mark-answered/",
+        mark_question_answered,
+        name="question_mark_answered",
+    ),
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
     path("ht/", include("health_check.urls")),
 ]

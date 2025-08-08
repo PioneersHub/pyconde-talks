@@ -1,6 +1,7 @@
 """Management command for one-way (Pretalx » Django) sync of speakers and talks via API."""
 # ruff: noqa: BLE001
 
+import traceback
 from collections.abc import Iterator
 from datetime import timedelta
 from enum import Enum
@@ -182,8 +183,6 @@ class Command(BaseCommand):
         except Exception as e:
             self.stderr.write(self.style.ERROR(f"An unexpected error occurred: {e!s}"))
             if verbosity.value >= VerbosityLevel.DEBUG.value:
-                import traceback
-
                 self.stderr.write(traceback.format_exc())
 
     def _log(
@@ -302,8 +301,6 @@ class Command(BaseCommand):
                     "ERROR",
                 )
                 if verbosity.value >= VerbosityLevel.DEBUG.value:
-                    import traceback
-
                     self.stderr.write(traceback.format_exc())
 
         # Log completion statistics

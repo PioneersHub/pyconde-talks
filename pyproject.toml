@@ -120,6 +120,7 @@ select = ["ALL"]
 ignore = [
     "D203", # one-blank-line-before-class
     "D212", # multi-line-summary-first-line
+    "ANN401", # Allow Any type annotations in certain cases
 ]
 
 [tool.ruff.lint.per-file-ignores]

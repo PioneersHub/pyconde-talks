@@ -1,0 +1,110 @@
+{% load i18n %}
+<div id="question-list" class="space-y-6">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-xl font-semibold">
+      {% if questions %}
+        {% translate "Questions" %} ({{ questions|length }})
+      {% else %}
+        {% translate "No questions yet" %}
+      {% endif %}
+    </h2>
+    <!-- Filter dropdown -->
+    <div class="relative">
+      <div class="flex items-center">
+        <label for="filter" class="mr-2 text-sm text-gray-600">{% translate "Filter:" %}</label>
+        <select id="filter"
+                class="border rounded px-2 py-1 text-sm mr-2"
+                onchange="applyFilter(this.value, '{% url 'talk_questions' talk.id %}')">
+          <option value="all" {% if status_filter == 'all' %}selected{% endif %}>{% translate "All" %}</option>
+          {% if user_can_moderate %}
+            <option value="pending"
+                    {% if status_filter == 'pending' %}selected{% endif %}>{% translate "Pending" %}</option>
+            <option value="approved"
+                    {% if status_filter == 'approved' %}selected{% endif %}>{% translate "Approved" %}</option>
+            <option value="answered"
+                    {% if status_filter == 'answered' %}selected{% endif %}>{% translate "Answered" %}</option>
+            <option value="rejected"
+                    {% if status_filter == 'rejected' %}selected{% endif %}>{% translate "Rejected" %}</option>
+          {% else %}
+            <option value="approved"
+                    {% if status_filter == 'approved' %}selected{% endif %}>{% translate "Approved" %}</option>
+            <option value="answered"
+                    {% if status_filter == 'answered' %}selected{% endif %}>{% translate "Answered" %}</option>
+          {% endif %}
+        </select>
+      </div>
+    </div>
+    <!-- Filter script moved to external JS file -->
+  </div>
+  {% if user_can_moderate %}
+    <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-md mb-4">
+      <p class="font-medium">{% translate "Moderator View" %}</p>
+      <p class="text-sm">
+        {% translate "You are viewing this page as a moderator and can see all questions including pending and rejected ones." %}
+      </p>
+    </div>
+  {% endif %}
+  {% for question in questions %}
+    <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+      <div class="flex items-start">
+        <!-- Voting button -->
+        {% include "talks/questions/vote_button.html" with question=question %}
+        <!-- Question content -->
+        <div class="flex-1">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm text-gray-600">{{ question.display_name }}</span>
+            <!-- Status badges -->
+            {% if question.status == 'pending' %}
+              <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">{% translate "Pending" %}</span>
+            {% elif question.status == 'approved' %}
+              <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">{% translate "Approved" %}</span>
+            {% elif question.status == 'answered' %}
+              <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">{% translate "Answered" %}</span>
+            {% elif question.status == 'rejected' %}
+              <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">{% translate "Rejected" %}</span>
+            {% endif %}
+          </div>
+          <p class="text-gray-800 mb-4">{{ question.content }}</p>
+          <!-- Timestamp -->
+          <div class="text-xs text-gray-500 mb-2">
+            {% translate "Asked" %} {{ question.created_at|timesince }} {% translate "ago" %}
+          </div>
+          <!-- Moderator actions -->
+          {% if user_can_moderate %}
+            <div class="flex space-x-2 mt-2">
+              {% if question.status == 'pending' %}
+                <form method="post" action="{% url 'question_approve' question.id %}">
+                  {% csrf_token %}
+                  <button type="submit"
+                          class="text-sm bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1 rounded">
+                    {% translate "Approve" %}
+                  </button>
+                </form>
+                <form method="post" action="{% url 'question_reject' question.id %}">
+                  {% csrf_token %}
+                  <button type="submit"
+                          class="text-sm bg-red-100 text-red-700 hover:bg-red-200 px-2 py-1 rounded">
+                    {% translate "Reject" %}
+                  </button>
+                </form>
+              {% endif %}
+              {% if question.status != 'answered' and question.status != 'rejected' %}
+                <form method="post" action="{% url 'question_mark_answered' question.id %}">
+                  {% csrf_token %}
+                  <button type="submit"
+                          class="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded">
+                    {% translate "Mark Answered" %}
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="bg-gray-50 p-6 rounded-lg text-center">
+      <p class="text-gray-600">{% translate "No questions have been asked yet. Be the first to ask!" %}</p>
+    </div>
+  {% endfor %}
+</div>

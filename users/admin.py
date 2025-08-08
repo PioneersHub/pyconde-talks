@@ -21,7 +21,7 @@ class EmailVerificationListFilter(admin.SimpleListFilter):
     title = _("Email verification")
     parameter_name = "verified"
 
-    def lookups(self, request: HttpRequest, model_admin: Any) -> list[tuple[str, str]]:  # noqa: ANN401, ARG002
+    def lookups(self, request: HttpRequest, model_admin: Any) -> list[tuple[str, str]]:  # noqa: ARG002
         """Return filter options."""
         return [
             ("yes", _("Verified")),
@@ -319,7 +319,7 @@ class CustomUserAdmin(UserAdmin):
     def get_fieldsets(
         self,
         _: HttpRequest,
-        obj: Any | None = None,  # noqa: ANN401
+        obj: Any | None = None,
     ) -> tuple[tuple[None, dict[str, Any]]]:
         """Use different fieldsets for regular users vs superusers."""
         if not obj:
@@ -379,7 +379,7 @@ class CustomUserAdmin(UserAdmin):
 
     deactivate_users.short_description = _("Deactivate selected users")
 
-    def save_model(self, request: HttpRequest, obj: CustomUser, form: Any, change: bool) -> None:  # noqa: ANN401, FBT001
+    def save_model(self, request: HttpRequest, obj: CustomUser, form: Any, change: bool) -> None:  # noqa: FBT001
         """Save user and handle email verification and password logic."""
         creating_new_user = not change
 

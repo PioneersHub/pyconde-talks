@@ -109,15 +109,12 @@
               Watch Video
             </a>
           {% endif %}
-          {% if talk.get_slido_link %}
-            <a href="{{ talk.get_slido_link|default:'#' }}"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-              {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-2" %}
-              Questions on Slido
-            </a>
-          {% endif %}
+          <!-- Our Q&A section link -->
+          <a href="{% url 'talk_questions' talk.id %}"
+             class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+            {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-2" %}
+            Questions & Answers
+          </a>
         </div>
       </div>
     </article>

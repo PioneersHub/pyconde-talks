@@ -47,3 +47,22 @@ Fill the database with testing data:
 ```bash
 python manage.py generate_fake_talks --count 50
 ```
+
+How to run locally:
+```
+RUN_SERVER=true PRETALX_SYNC=false IMPORT_STREAMS=false GEN_FAKE_DATA=true .vscode/scripts/dev-setup.sh
+```
+
+How to connect as admin:
+* open this [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
+* log in with admin:
+    * email: `admin@example.com`
+    * password: `PyConDE_2025`
+* browse to [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+
+
+How to connect as user:
+* go to [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
+* enter `user1@example.com` or `user2@example.com`
+* go to [http://localhost:8025/](http://localhost:8025/) to see the emails sent.
+* copy the validation code to the form.
