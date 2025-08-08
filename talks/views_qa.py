@@ -154,6 +154,10 @@ def get_filtered_questions(
     # Get base queryset of questions for this talk
     queryset = Question.objects.filter(talk=talk)
 
+    # Filter for user's own questions
+    if status_filter == "mine":
+        return queryset.filter(user=request.user).sorted_by_votes()
+
     # Apply filtering based on user permissions and filter selection
     is_moderator = request.user.is_staff or request.user.is_superuser
 
