@@ -30,12 +30,14 @@
     </div>
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
       <h2 class="text-xl font-semibold mb-4">{% translate "Ask a Question" %}</h2>
+      <div id="question-success" class="mb-4"></div>
       {% if user.is_authenticated %}
         <form method="post"
               id="question-form"
               action="{% url 'question_create' talk.pk %}{% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
               hx-post="{% url 'question_create' talk.pk %}{% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
-              hx-swap="outerHTML"
+              hx-target="#question-success"
+              hx-swap="innerHTML"
               onsubmit="sessionStorage.setItem('question_submitted', 'true');">
           {% csrf_token %}
           <div class="mb-4">

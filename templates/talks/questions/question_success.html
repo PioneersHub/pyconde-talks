@@ -4,6 +4,8 @@
     // Mark that we've submitted a question and clear the stored content
     sessionStorage.setItem('question_submitted', 'true');
     sessionStorage.removeItem('question_content');
+    // Reset the form so user can submit another question immediately
+    try { document.getElementById('question-form')?.reset(); } catch (e) {}
   </script>
   <!-- Auto-refresh the question list -->
   <div hx-get="{% url 'talk_questions' question.talk.id %}{% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
