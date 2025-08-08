@@ -36,7 +36,7 @@ class QuestionListView(LoginRequiredMixin, ListView):
     model = Question
     template_name = "talks/questions/question_list.html"
     context_object_name = "questions"
-    fragment_template = "talks/questions/question_list_fragment.html"
+    fragment_template = f"{template_name}#question-list"
 
     def get_template_names(self) -> list[str]:
         """
@@ -61,22 +61,8 @@ class QuestionListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Enhance the template context with additional data."""
         context = super().get_context_data(**kwargs)
-        context["talk"] = self.talk
-        context["user_can_moderate"] = is_moderator(self.request.user)
-        context["status_filter"] = self.status_filter
-
-        # For each question, check if the current user has voted
-        if self.request.user.is_authenticated:
-            user_voted_questions = set(
-                QuestionVote.objects.filter(
-                    user=self.request.user,
-                    question__talk=self.talk,
-                ).values_list("question_id", flat=True),
-            )
-
-            for question in context["questions"]:
-                question.user_voted = question.id in user_voted_questions
-
+        built = build_question_list_context(self.request, self.talk, self.status_filter)
+        context.update(built)
         return context
 
 
@@ -187,16 +173,12 @@ def get_filtered_questions(
     return queryset.sorted_by_votes()
 
 
-def render_question_list_fragment(
+def build_question_list_context(
     request: HttpRequest,
     talk: Talk,
     status_filter: str,
-) -> HttpResponse:
-    """
-    Render the question list fragment for HTMX responses.
-
-    Applies filtering, annotates user_voted, and includes moderator flag.
-    """
+) -> dict:
+    """Build context for rendering the question list partial."""
     questions = get_filtered_questions(request, talk, status_filter)
 
     if request.user.is_authenticated:
@@ -209,15 +191,25 @@ def render_question_list_fragment(
         for q in questions:
             q.user_voted = q.id in user_voted_questions
 
+    return {
+        "questions": questions,
+        "talk": talk,
+        "user_can_moderate": is_moderator(request.user),
+        "status_filter": status_filter,
+    }
+
+
+def render_question_list_fragment(
+    request: HttpRequest,
+    talk: Talk,
+    status_filter: str,
+) -> HttpResponse:
+    """Render the question list partial via the template loader fragment path."""
+    ctx = build_question_list_context(request, talk, status_filter)
     return render(
         request,
-        "talks/questions/question_list_fragment.html",
-        {
-            "questions": questions,
-            "talk": talk,
-            "user_can_moderate": is_moderator(request.user),
-            "status_filter": status_filter,
-        },
+        "talks/questions/question_list.html#question-list",
+        ctx,
     )
 
 

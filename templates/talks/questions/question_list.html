@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% load partials %}
 {% block title %}
   {% translate "Questions for" %} {{ talk.title }}
 {% endblock title %}
@@ -60,8 +61,9 @@
       {% endif %}
     </div>
     <!-- Question list -->
-    {% block question-list %}
-      {% include "talks/questions/question_list_fragment.html" %}
-    {% endblock question-list %}
-  </div>
+    {% startpartial question-list %}
+    {% include "talks/questions/question_list_fragment.html" %}
+  {% endpartial %}
+  <div id="question-list-container">{% partial question-list %}</div>
+</div>
 {% endblock content %}
