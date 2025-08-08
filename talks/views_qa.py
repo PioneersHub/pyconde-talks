@@ -103,16 +103,21 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
         form.instance.author_email = self.request.user.email
 
         # Questions start as pending and require admin approval
-        # The default status is Question.Status.PENDING, so no need to set it explicitly
+        # If the user is a moderator, auto-approve before saving
+        if is_moderator(self.request.user):
+            form.instance.status = Question.Status.APPROVED
 
         # Save the question
         response = super().form_valid(form)
 
-        # Show success message
-        messages.success(
-            self.request,
-            _("Your question has been submitted and is awaiting approval."),
-        )
+        # Show success message (different for moderators)
+        if is_moderator(self.request.user):
+            messages.success(self.request, _("Your question has been posted."))
+        else:
+            messages.success(
+                self.request,
+                _("Your question has been submitted and is awaiting approval."),
+            )
 
         # If this is an HTMX request, return to the question list
         if self.request.headers.get("HX-Request"):

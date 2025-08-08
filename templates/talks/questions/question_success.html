@@ -7,11 +7,17 @@
   </script>
   <p class="text-green-700">
     {% load i18n %}
-    {% translate "Your question has been submitted successfully and is now awaiting approval." %}
+    {% if user_can_moderate %}
+      {% translate "Your question has been posted and is now visible." %}
+    {% else %}
+      {% translate "Your question has been submitted successfully and is now awaiting approval." %}
+    {% endif %}
   </p>
-  <p class="text-sm text-green-600 mt-2">
-    {% translate "Once approved by a moderator, your question will appear in the list and others can vote on it." %}
-  </p>
+  {% if not user_can_moderate %}
+    <p class="text-sm text-green-600 mt-2">
+      {% translate "Once approved by a moderator, your question will appear in the list and others can vote on it." %}
+    </p>
+  {% endif %}
   <div class="mt-4">
     {% if user_can_moderate %}
       <button class="text-blue-600 hover:underline"
