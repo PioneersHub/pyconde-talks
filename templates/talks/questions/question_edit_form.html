@@ -1,0 +1,36 @@
+{% load i18n %}
+<div class="bg-white rounded-lg shadow-md p-6">
+  <h3 class="text-lg font-semibold mb-3">{% translate "Edit your question" %}</h3>
+  <form method="post"
+        action="{% url 'question_edit' object.id %}{% if request.GET.status_filter %}?status_filter={{ request.GET.status_filter }}{% endif %}"
+        hx-post="{% url 'question_edit' object.id %}{% if request.GET.status_filter %}?status_filter={{ request.GET.status_filter }}{% endif %}"
+        hx-target="#question-list"
+        hx-swap="outerHTML">
+    {% csrf_token %}
+    <div class="mb-4">
+      <label for="id_content" class="block text-gray-700 mb-2">{% translate "Your Question" %}</label>
+      <textarea name="content"
+                id="id_content"
+                rows="3"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required>{{ object.content }}</textarea>
+    </div>
+    <div class="flex items-center gap-2">
+      <button type="submit"
+              class="inline-flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700">
+        {% load svg_tags %}
+        {% svg 'check' "h-4 w-4" %}
+        <span>{% translate "Save" %}</span>
+      </button>
+      <button type="button"
+              class="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-md hover:bg-gray-200"
+              hx-get="{% url 'talk_questions' object.talk.id %}{% if request.GET.status_filter %}?status_filter={{ request.GET.status_filter }}{% endif %}"
+              hx-target="#question-list"
+              hx-swap="outerHTML">
+        {% load svg_tags %}
+        {% svg 'x-mark' "h-4 w-4" %}
+        <span>{% translate "Cancel" %}</span>
+      </button>
+    </div>
+  </form>
+</div>

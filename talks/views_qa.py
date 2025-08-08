@@ -18,7 +18,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, ListView
+from django.views.generic import CreateView, ListView, UpdateView
 
 from .models import Talk
 from .models_qa import Question, QuestionVote
@@ -254,6 +254,63 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
             "user_voted": question.user_voted,
         },
     )
+
+
+@login_required
+@require_POST
+def delete_question(request: HttpRequest, question_id: int) -> HttpResponse:
+    """Allow a user to delete their own question."""
+    question = get_object_or_404(Question, pk=question_id)
+    if question.user != request.user and not is_moderator(request.user):
+        return HttpResponse(status=403)
+    talk = question.talk
+    question.delete()
+    messages.success(request, _("Your question has been deleted."))
+    if request.headers.get("HX-Request"):
+        status_filter = request.GET.get("status_filter", "all")
+        return render_question_list_fragment(request, talk, status_filter)
+    return redirect("talk_questions", talk_id=talk.id)
+
+    return redirect("talk_questions", talk_id=question.talk.id)
+
+
+class QuestionOwnerRequiredMixin(UserPassesTestMixin):
+    """Mixin to require that the current user owns the question."""
+
+    def test_func(self) -> bool:
+        """Return True if the current user is the owner of the target question."""
+        question_id = self.kwargs.get("question_id")
+        question = get_object_or_404(Question, pk=question_id)
+        return question.user == self.request.user
+
+
+class QuestionUpdateView(LoginRequiredMixin, QuestionOwnerRequiredMixin, UpdateView):
+    """Allow a question owner to edit content; clears votes upon successful update."""
+
+    model = Question
+    fields: ClassVar[list[str]] = ["content"]
+    template_name = "talks/questions/question_edit_form.html"
+    pk_url_kwarg = "question_id"
+
+    def form_valid(self, form: forms.ModelForm) -> HttpResponse:
+        """Persist changes and clear all existing votes, notifying the user."""
+        # Save updated content
+        response = super().form_valid(form)
+        # Clear all votes after content change
+        QuestionVote.objects.filter(question=self.object).delete()
+        messages.warning(
+            self.request,
+            _("Your question was updated and all previous votes were cleared."),
+        )
+        if self.request.headers.get("HX-Request"):
+            talk = form.instance.talk
+            status_filter = self.request.GET.get("status_filter", "all")
+            return render_question_list_fragment(self.request, talk, status_filter)
+        return response
+
+    def get_success_url(self) -> str:
+        """Redirect back to the talk's questions list after a successful update."""
+        return reverse("talk_questions", args=[self.object.talk_id])
 
 
 # Moderator views

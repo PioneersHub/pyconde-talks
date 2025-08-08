@@ -17,7 +17,9 @@ from talks.views import (
 from talks.views_qa import (
     QuestionCreateView,
     QuestionListView,
+    QuestionUpdateView,
     approve_question,
+    delete_question,
     mark_question_answered,
     reject_question,
     vote_question,
@@ -52,6 +54,8 @@ urlpatterns = [
         name="question_create",
     ),
     path("questions/<int:question_id>/vote/", vote_question, name="question_vote"),
+    path("questions/<int:question_id>/edit/", QuestionUpdateView.as_view(), name="question_edit"),
+    path("questions/<int:question_id>/delete/", delete_question, name="question_delete"),
     path("questions/<int:question_id>/approve/", approve_question, name="question_approve"),
     path("questions/<int:question_id>/reject/", reject_question, name="question_reject"),
     path(
