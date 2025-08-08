@@ -1,8 +1,8 @@
 """
 Views for managing and displaying Question and Answer objects.
 
-This module provides class-based and function-based views for handling Question and Answer
-including listing, creating, voting, and moderation actions.
+This module provides class-based and function-based views for handling Question and Answer including
+listing, creating, voting, and moderation actions.
 """
 
 from typing import Any, ClassVar, Protocol
