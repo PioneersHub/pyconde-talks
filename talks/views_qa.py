@@ -61,7 +61,7 @@ class QuestionListView(ListView):
         """Enhance the template context with additional data."""
         context = super().get_context_data(**kwargs)
         context["talk"] = self.talk
-        context["user_can_moderate"] = self.request.user.is_staff or self.request.user.is_superuser
+        context["user_can_moderate"] = is_moderator(self.request.user)
         context["status_filter"] = self.status_filter
 
         # For each question, check if the current user has voted
@@ -116,7 +116,7 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
 
         # If this is an HTMX request, return to the question list
         if self.request.headers.get("HX-Request"):
-            user_can_moderate = self.request.user.is_staff or self.request.user.is_superuser
+            user_can_moderate = is_moderator(self.request.user)
             status_filter = self.request.GET.get("status_filter", "all")
             return render(
                 self.request,
