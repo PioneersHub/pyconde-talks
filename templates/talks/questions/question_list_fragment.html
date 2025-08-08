@@ -1,4 +1,5 @@
 {% load i18n %}
+{% load svg_tags %}
 <div id="question-list" class="space-y-6">
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-xl font-semibold">
@@ -38,11 +39,14 @@
                     {% if status_filter == 'answered' %}selected{% endif %}>{% translate "Answered" %}</option>
           {% endif %}
         </select>
-        <button class="text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 px-2 py-1 rounded"
+        <button class="inline-flex items-center gap-1.5 text-sm px-2.5 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 rounded-md shadow-sm"
                 hx-get="{% url 'talk_questions' talk.id %}{% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
                 hx-target="#question-list"
                 hx-swap="outerHTML"
-                title="{% translate "Refresh" %}">{% translate "Refresh" %}</button>
+                title="{% translate "Refresh" %}">
+          {% svg 'arrow-path' "h-4 w-4" %}
+          <span>{% translate "Refresh" %}</span>
+        </button>
       </div>
     </div>
   </div>
