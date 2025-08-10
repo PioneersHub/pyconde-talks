@@ -1,8 +1,8 @@
 """
 Question and Answer management module for PyData Berlin Conference talks.
 
-This module provides models for allowing users to ask questions about talks,
-vote on questions, and receive answers from speakers or moderators.
+This module provides models for allowing users to ask questions about talks, vote on questions, and
+receive answers from speakers or moderators.
 """
 
 from typing import Any, ClassVar
@@ -96,8 +96,6 @@ class Question(models.Model):
         default=Status.PENDING,
         help_text=_("Status of the question"),
     )
-
-    # is_anonymous field has been removed as all questions must display author's name
 
     created_at = models.DateTimeField(
         default=timezone.now,
@@ -270,8 +268,8 @@ class Answer(models.Model):
         """
         Save the answer and update the question status if needed.
 
-        When an answer is saved, the related question's status is updated
-        to "answered" if it's not already rejected.
+        When an answer is saved, the related question's status is updated to "answered" if it's not
+        already rejected.
         """
         super().save(*args, **kwargs)
 

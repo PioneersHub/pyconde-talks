@@ -271,8 +271,6 @@ def delete_question(request: HttpRequest, question_id: int) -> HttpResponse:
         return render_question_list_fragment(request, talk, status_filter)
     return redirect("talk_questions", talk_id=talk.id)
 
-    return redirect("talk_questions", talk_id=question.talk.id)
-
 
 class QuestionOwnerRequiredMixin(UserPassesTestMixin):
     """Mixin to require that the current user owns the question."""
