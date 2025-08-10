@@ -31,21 +31,21 @@ classifiers = [
 ]
 dependencies = [
     "argon2-cffi>=25.1.0",
-    "daphne>=4.2.0",
-    "django>=5.2.3",
-    "django-allauth[socialaccount]>=65.9.0",
-    "django-anymail[mailgun]>=13.0",
+    "daphne>=4.2.1",
+    "django>=5.2.5",
+    "django-allauth[socialaccount]>=65.10.0",
+    "django-anymail[mailgun]>=13.0.1",
     "django-environ>=0.12.0",
     "django-health-check>=3.20.0",
     "django-htmx>=1.23.2",
     "django-markdownify>=0.9.5",
     "django-structlog>=9.1.1",
-    "django-template-partials>=24.4",
+    "django-template-partials>=25.1",
     "furl>=2.1.4",
     "model-bakery>=1.20.5",
     "openpyxl>=3.1.5",
-    "pillow>=11.2.1",
-    "pytanis>=0.9.0",
+    "pillow>=11.3.0",
+    "pytanis>=0.9.1",
     "requests>=2.32.4",
     "structlog>=25.4.0",
     "tenacity>=9.1.2",
@@ -53,24 +53,24 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "bandit>=1.8.5",
-    "django-stubs[compatible-mypy]>=5.2.1",
+    "bandit>=1.8.6",
+    "django-stubs[compatible-mypy]>=5.2.2",
     "djlint>=1.36.4",
-    "faker>=37.4.0",
-    "ipython>=9.3.0",
-    "mypy>=1.16.1",
+    "faker>=37.5.3",
+    "ipython>=9.4.0",
+    "mypy>=1.17.1",
     "pandas-stubs>=2.2.3.250527",
-    "pre-commit>=4.2.0",
+    "pre-commit>=4.3.0",
     "psycopg2-binary>=2.9.10",
-    "ruff>=0.12.1",
-    "types-requests>=2.32.4.20250611",
+    "ruff>=0.12.8",
+    "types-requests>=2.32.4.20250809",
 ]
 test = [
     "pytest>=8.4.1",
     "pytest-django>=4.11.1",
     "pytest-mock>=3.14.1",
     "pytest-random-order>=1.2.0",
-    "responses>=0.25.7",
+    "responses>=0.25.8",
 ]
 prod = [
     "psycopg2>=2.9.10"
@@ -118,8 +118,8 @@ allow-star-arg-any = true
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "D203", # one-blank-line-before-class
-    "D212", # multi-line-summary-first-line
+    "D203",   # one-blank-line-before-class
+    "D212",   # multi-line-summary-first-line
     "ANN401", # Allow Any type annotations in certain cases
 ]
 
