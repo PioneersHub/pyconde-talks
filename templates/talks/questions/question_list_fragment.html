@@ -40,7 +40,9 @@
           {% endif %}
         </select>
         <button class="btn-outline-primary inline-flex items-center gap-1.5 text-sm px-2.5 py-1.5"
-                hx-get="{% url 'talk_questions' talk.id %} {% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+                hx-get="{% url 'talk_questions' talk.id %}"
+                hx-include="#filter"
+                hx-push-url="true"
                 hx-target="#question-list"
                 hx-swap="outerHTML"
                 title="{% translate "Refresh" %}">
@@ -91,17 +93,20 @@
                 {# Pending: can approve, reject, answer #}
                 {% if question.status == 'pending' %}
                   <button class="text-sm badge badge-green hover:bg-green-200 px-2 py-1"
-                          hx-post="{% url 'question_approve' question.id %} {% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+                          hx-post="{% url 'question_approve' question.id %}"
+                          hx-vals='{"status_filter":"{{ status_filter }}"}'
                           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                           hx-target="#question-list"
                           hx-swap="outerHTML">{% translate "Approve" %}</button>
                   <button class="text-sm badge hover:bg-red-200 px-2 py-1 bg-red-100 text-red-700"
-                          hx-post="{% url 'question_reject' question.id %} {% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+                          hx-post="{% url 'question_reject' question.id %}"
+                          hx-vals='{"status_filter":"{{ status_filter }}"}'
                           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                           hx-target="#question-list"
                           hx-swap="outerHTML">{% translate "Reject" %}</button>
                   <button class="text-sm badge badge-blue hover:bg-blue-200 px-2 py-1"
-                          hx-post="{% url 'question_mark_answered' question.id %} {% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+                          hx-post="{% url 'question_mark_answered' question.id %}"
+                          hx-vals='{"status_filter":"{{ status_filter }}"}'
                           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                           hx-target="#question-list"
                           hx-swap="outerHTML">{% translate "Mark Answered" %}</button>
@@ -109,12 +114,14 @@
                 {# Approved: can reject or answer #}
                 {% if question.status == 'approved' %}
                   <button class="text-sm badge hover:bg-red-200 px-2 py-1 bg-red-100 text-red-700"
-                          hx-post="{% url 'question_reject' question.id %} {% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+                          hx-post="{% url 'question_reject' question.id %}"
+                          hx-vals='{"status_filter":"{{ status_filter }}"}'
                           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                           hx-target="#question-list"
                           hx-swap="outerHTML">{% translate "Reject" %}</button>
                   <button class="text-sm badge badge-blue hover:bg-blue-200 px-2 py-1"
-                          hx-post="{% url 'question_mark_answered' question.id %} {% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+                          hx-post="{% url 'question_mark_answered' question.id %}"
+                          hx-vals='{"status_filter":"{{ status_filter }}"}'
                           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                           hx-target="#question-list"
                           hx-swap="outerHTML">{% translate "Mark Answered" %}</button>
@@ -122,12 +129,14 @@
                 {# Answered: can move to approved or reject #}
                 {% if question.status == 'answered' %}
                   <button class="text-sm badge badge-green hover:bg-green-200 px-2 py-1"
-                          hx-post="{% url 'question_approve' question.id %} {% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+                          hx-post="{% url 'question_approve' question.id %}"
+                          hx-vals='{"status_filter":"{{ status_filter }}"}'
                           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                           hx-target="#question-list"
                           hx-swap="outerHTML">{% translate "Mark Approved" %}</button>
                   <button class="text-sm badge hover:bg-red-200 px-2 py-1 bg-red-100 text-red-700"
-                          hx-post="{% url 'question_reject' question.id %} {% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+                          hx-post="{% url 'question_reject' question.id %}"
+                          hx-vals='{"status_filter":"{{ status_filter }}"}'
                           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                           hx-target="#question-list"
                           hx-swap="outerHTML">{% translate "Reject" %}</button>
@@ -135,7 +144,8 @@
                 {# Rejected: can move to approved #}
                 {% if question.status == 'rejected' %}
                   <button class="text-sm badge badge-green hover:bg-green-200 px-2 py-1"
-                          hx-post="{% url 'question_approve' question.id %} {% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+                          hx-post="{% url 'question_approve' question.id %}"
+                          hx-vals='{"status_filter":"{{ status_filter }}"}'
                           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                           hx-target="#question-list"
                           hx-swap="outerHTML">{% translate "Approve" %}</button>
@@ -143,7 +153,8 @@
               {% endif %}
               {% if question.user_id == request.user.id %}
                 <button class="text-sm inline-flex items-center gap-1 badge px-2 py-1 bg-subtle text-strong hover:bg-surface"
-                        hx-get="{% url 'question_edit' question.id %} {% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+                        hx-get="{% url 'question_edit' question.id %}"
+                        hx-vals='{"status_filter":"{{ status_filter }}"}'
                         hx-target="#question-{{ question.id }}"
                         hx-swap="outerHTML"
                         title="{% translate "Edit" %}">
@@ -151,7 +162,8 @@
                   {% svg 'pencil-square' "h-4 w-4" %} {% translate "Edit" %}
                 </button>
                 <button class="text-sm inline-flex items-center gap-1 badge px-2 py-1 badge-red hover:bg-red-200"
-                        hx-post="{% url 'question_delete' question.id %} {% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+                        hx-post="{% url 'question_delete' question.id %}"
+                        hx-vals='{"status_filter":"{{ status_filter }}"}'
                         hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                         hx-target="#question-list"
                         hx-swap="outerHTML"

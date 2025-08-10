@@ -2,8 +2,9 @@
 <div class="card">
   <h3 class="text-lg font-semibold mb-3">{% translate "Edit your question" %}</h3>
   <form method="post"
-        action="{% url 'question_edit' object.id %}{% if request.GET.status_filter %}?status_filter={{ request.GET.status_filter }}{% endif %}"
-        hx-post="{% url 'question_edit' object.id %} {% if request.GET.status_filter %}?status_filter={{ request.GET.status_filter }}{% endif %}"
+        action="{% url 'question_edit' object.id %}"
+        hx-post="{% url 'question_edit' object.id %}"
+        hx-vals='{"status_filter":"{{ request.GET.status_filter|default:status_filter }}"}'
         hx-target="#question-list"
         hx-swap="outerHTML">
     {% csrf_token %}
@@ -24,7 +25,8 @@
       </button>
       <button type="button"
               class="btn-outline-primary inline-flex items-center gap-2 px-3 py-1.5"
-              hx-get="{% url 'talk_questions' object.talk.id %} {% if request.GET.status_filter %}?status_filter={{ request.GET.status_filter }}{% endif %}"
+              hx-get="{% url 'talk_questions' object.talk.id %}"
+              hx-vals='{"status_filter":"{{ request.GET.status_filter|default:status_filter }}"}'
               hx-target="#question-list"
               hx-swap="outerHTML">
         {% load svg_tags %}

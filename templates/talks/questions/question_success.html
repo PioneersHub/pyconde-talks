@@ -8,7 +8,8 @@
     try { document.getElementById('question-form')?.reset(); } catch (e) {}
   </script>
   <!-- Auto-refresh the question list -->
-  <div hx-get="{% url 'talk_questions' question.talk.id %}{% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+  <div hx-get="{% url 'talk_questions' question.talk.id %}"
+       hx-vals='{"status_filter":"{{ status_filter }}"}'
        hx-trigger="load"
        hx-target="#question-list"
        hx-swap="outerHTML"

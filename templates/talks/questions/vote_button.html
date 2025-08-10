@@ -2,7 +2,8 @@
 <div class="flex flex-col items-center mr-6">
   {% if user.is_authenticated %}
     <button class="flex items-center justify-center w-10 h-10 rounded-full {% if question.user_voted %} bg-blue-100 text-brand-blue {% else %} bg-subtle hover:bg-surface {% endif %}"
-            hx-post="{% url 'question_vote' question.id %} {% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+            hx-post="{% url 'question_vote' question.id %}"
+            hx-vals='{"status_filter":"{{ status_filter }}"}'
             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
             hx-target="#question-list"
             hx-swap="outerHTML">
