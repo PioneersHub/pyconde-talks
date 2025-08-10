@@ -290,6 +290,14 @@ class QuestionUpdateView(LoginRequiredMixin, QuestionOwnerRequiredMixin, UpdateV
     template_name = "talks/questions/question_edit_form.html"
     pk_url_kwarg = "question_id"
 
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Add status filter to context."""
+        ctx = super().get_context_data(**kwargs)
+        ctx["status_filter"] = (
+            self.request.GET.get("status_filter") or self.request.POST.get("status_filter") or "all"
+        )
+        return ctx
+
     def form_valid(self, form: forms.ModelForm) -> HttpResponse:
         """Persist changes and clear all existing votes, notifying the user."""
         # Save updated content

@@ -152,7 +152,7 @@
                 {% endif %}
               {% endif %}
               {% if question.user_id == request.user.id %}
-                <button class="text-sm inline-flex items-center gap-1 badge px-2 py-1 bg-subtle text-strong hover:bg-surface"
+                <button class="text-sm inline-flex items-center gap-1 badge badge-blue hover:bg-blue-200 px-2 py-1"
                         hx-get="{% url 'question_edit' question.id %}"
                         hx-vals='{"status_filter":"{{ status_filter }}"}'
                         hx-target="#question-{{ question.id }}"
