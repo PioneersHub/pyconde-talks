@@ -81,7 +81,7 @@
               <span class="badge badge-red text-xs px-2 py-1">{% translate "Rejected" %}</span>
             {% endif %}
           </div>
-          <p class="text-strong mb-4">{{ question.content }}</p>
+          <p class="text-strong mb-4">{{ question.content|linebreaksbr }}</p>
           <!-- Timestamp -->
           <div class="text-xs text-subtle mb-2">
             {% translate "Asked" %} {{ question.created_at|timesince }} {% translate "ago" %}
