@@ -24,7 +24,7 @@ from talks.views_qa import (
     reject_question,
     vote_question,
 )
-from users.views import CustomRequestLoginCodeView
+from users.views import CustomRequestLoginCodeView, profile_view
 
 
 urlpatterns = [
@@ -64,6 +64,7 @@ urlpatterns = [
         name="question_mark_answered",
     ),
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
+    path("profile/", profile_view, name="user_profile"),
     path("ht/", include("health_check.urls")),
 ]
 

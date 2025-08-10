@@ -1,4 +1,4 @@
-"""Views for user authentication."""
+"""Views for user authentication and profile management."""
 
 from typing import Any, cast
 
@@ -8,12 +8,17 @@ from allauth.account.forms import LoginForm
 from allauth.account.internal import flows
 from allauth.account.views import RequestLoginCodeView
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import DatabaseError, IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.shortcuts import redirect, render
 
 from pyconde_talks.utils.email_utils import hash_email
+
+from .forms import ProfileForm
 
 
 # Get logger
@@ -100,3 +105,19 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):
             int(timeout_minutes) if timeout_minutes.is_integer() else timeout_minutes
         )
         return context
+
+
+@login_required
+def profile_view(request: HttpRequest) -> HttpResponse:
+    """Allow the authenticated user to edit their profile information."""
+    user = request.user
+    if request.method == "POST":
+        form = ProfileForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Your profile has been updated.", extra_tags="profile")
+            return redirect("user_profile")
+    else:
+        form = ProfileForm(instance=user)
+
+    return render(request, "users/profile.html", {"form": form})

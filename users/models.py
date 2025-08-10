@@ -14,6 +14,7 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 
 class InvalidEmailError(Exception):
@@ -145,6 +146,14 @@ class CustomUser(AbstractUser):
         error_messages={
             "unique": "A user with that email already exists.",
         },
+    )
+    display_name = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text=_(
+            "Public name shown when asking questions (optional). "
+            "If blank, we'll use your full name or email.",
+        ),
     )
     date_joined = models.DateTimeField(default=timezone.now)
 

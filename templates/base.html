@@ -26,8 +26,11 @@
       <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
         <a href="{% url 'home' %}" aria-label="Home">{% svg 'pyconde-pydata-logo' "w-25 h-20 header-logo" %}</a>
         {% if user.is_authenticated %}
-          <span>{{ user.email }} |
-            <a href="{% url 'account_logout' %}" class="hover:underline">Logout</a></span>
+          <span>
+            {{ user.email }} |
+            <a href="{% url 'user_profile' %}" class="hover:underline">Profile</a> |
+            <a href="{% url 'account_logout' %}" class="hover:underline">Logout</a>
+          </span>
         {% endif %}
       </div>
     </nav>

@@ -148,3 +148,19 @@ class CustomUserChangeForm(forms.ModelForm):
         """Return the initial value regardless of user input."""
         # Password field is not meant to be changed here
         return self.initial.get("password", "")
+
+
+class ProfileForm(forms.ModelForm):
+    """Form for users to edit their profile (name and display name)."""
+
+    class Meta:
+        """Metadata for ProfileForm."""
+
+        model = CustomUser
+        fields = ("first_name", "last_name", "display_name")
+        help_texts: ClassVar[dict[str, str]] = {
+            "display_name": _(
+                "Name shown publicly when asking questions. "
+                "If empty, we'll use your full name or email.",
+            ),
+        }

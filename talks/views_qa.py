@@ -83,12 +83,6 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
         form.instance.talk = get_object_or_404(Talk, pk=self.kwargs["talk_id"])
         form.instance.user = self.request.user
 
-        # Always show the user's name
-        form.instance.author_name = (
-            getattr(self.request.user, "get_full_name", lambda: "")() or self.request.user.email
-        )
-        form.instance.author_email = self.request.user.email
-
         # Questions start as pending and require admin approval
         # If the user is a moderator, auto-approve before saving
         if is_moderator(self.request.user):

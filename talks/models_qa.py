@@ -70,17 +70,6 @@ class Question(models.Model):
         help_text=_("The question text"),
     )
 
-    author_name = models.CharField(
-        max_length=100,
-        blank=True,
-        help_text=_("Name of the person asking the question (optional)"),
-    )
-
-    author_email = models.EmailField(
-        blank=True,
-        help_text=_("Email of the person asking the question (optional)"),
-    )
-
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -129,12 +118,15 @@ class Question(models.Model):
 
     @property
     def display_name(self) -> str:
-        """Return the author's name or email."""
-        if self.author_name:
-            return self.author_name
-        if self.user:
-            return getattr(self.user, "email", _("Anonymous"))
-        return _("Anonymous")
+        """Return the author's display name based on related user."""
+        if not self.user:
+            return _("Anonymous")
+        name = (
+            self.user.display_name.strip()
+            or self.user.get_full_name().strip()
+            or self.user.email.strip()
+        )
+        return name or _("Anonymous")
 
     @property
     def has_answer(self) -> bool:

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <div class="container-narrow page-section">
+    <h1 class="page-title">{% trans "Edit Profile" %}</h1>
+    {% for message in messages %}
+      {% if 'profile' in message.tags %}
+        <div class="section-gap" aria-live="polite" aria-atomic="true">
+          <div class="{% if 'success' in message.tags %}alert-success{% elif 'error' in message.tags %}alert-error{% elif 'warning' in message.tags %}alert-warning{% else %}alert-info{% endif %} item-gap">
+            {{ message }}
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+    <form method="post" class="form-stack">
+      {% csrf_token %}
+      <div>
+        <label for="id_first_name" class="form-label">{% trans "First name" %}</label>
+        <input type="text"
+               name="first_name"
+               id="id_first_name"
+               value="{{ form.first_name.value|default_if_none:'' }}"
+               class="input-field focus-ring-primary" />
+        {% if form.first_name.errors %}<p class="form-error">{{ form.first_name.errors|striptags }}</p>{% endif %}
+      </div>
+      <div>
+        <label for="id_last_name" class="form-label">{% trans "Last name" %}</label>
+        <input type="text"
+               name="last_name"
+               id="id_last_name"
+               value="{{ form.last_name.value|default_if_none:'' }}"
+               class="input-field focus-ring-primary" />
+        {% if form.last_name.errors %}<p class="form-error">{{ form.last_name.errors|striptags }}</p>{% endif %}
+      </div>
+      <div>
+        <label for="id_display_name" class="form-label">{% trans "Display name" %}</label>
+        <input type="text"
+               name="display_name"
+               id="id_display_name"
+               value="{{ form.display_name.value|default_if_none:'' }}"
+               class="input-field focus-ring-primary" />
+        {% if form.display_name.help_text %}<p class="form-help">{{ form.display_name.help_text }}</p>{% endif %}
+        {% if form.display_name.errors %}<p class="form-error">{{ form.display_name.errors|striptags }}</p>{% endif %}
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">{% trans "Save changes" %}</button>
+      </div>
+    </form>
+  </div>
+{% endblock content %}

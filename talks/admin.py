@@ -375,7 +375,7 @@ class QuestionAdmin(admin.ModelAdmin):
         "created_at",
     )
     list_filter = ("status", "created_at", "talk__title")
-    search_fields = ("content", "author_name", "author_email", "talk__title")
+    search_fields = ("content", "user__email", "user__first_name", "user__last_name", "talk__title")
     actions: ClassVar[list[str]] = ["approve_questions", "reject_questions", "mark_as_answered"]
     readonly_fields = ("vote_count", "created_at", "updated_at")
     inlines: ClassVar[list[type[admin.TabularInline]]] = [AnswerInline]
@@ -388,9 +388,9 @@ class QuestionAdmin(admin.ModelAdmin):
             },
         ),
         (
-            _("Author Information"),
+            _("Author"),
             {
-                "fields": ("user", "author_name", "author_email"),
+                "fields": ("user",),
             },
         ),
         (

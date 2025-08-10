@@ -167,6 +167,40 @@
   .form-select {
     @apply border rounded px-2 py-1 pr-8;
   }
+
+  /* Page scaffolding */
+  .container-narrow {
+    @apply max-w-xl mx-auto;
+  }
+  .page-section {
+    @apply py-8;
+  }
+  .page-title {
+    @apply text-2xl font-semibold mb-6 text-gray-900;
+  }
+
+  /* Form helpers */
+  .form-label {
+    @apply block text-sm font-medium text-gray-700;
+  }
+  .form-help {
+    @apply text-gray-500 text-sm;
+  }
+  .form-error {
+    @apply text-red-600 text-sm;
+  }
+  .form-actions {
+    @apply pt-4;
+  }
+  .form-stack {
+    @apply space-y-4;
+  }
+  .section-gap {
+    @apply mb-4;
+  }
+  .item-gap {
+    @apply mb-2;
+  }
 }
 
 /* Custom utilities */
@@ -177,28 +211,56 @@
   }
 
   /* Neutral text tones */
-  .text-heading { @apply text-gray-900; }
-  .text-strong { @apply text-gray-800; }
-  .text-label { @apply text-gray-700; }
-  .text-muted { @apply text-gray-600; }
-  .text-subtle { @apply text-gray-500; }
-  .text-inverse { @apply text-white; }
+  .text-heading {
+    @apply text-gray-900;
+  }
+  .text-strong {
+    @apply text-gray-800;
+  }
+  .text-label {
+    @apply text-gray-700;
+  }
+  .text-muted {
+    @apply text-gray-600;
+  }
+  .text-subtle {
+    @apply text-gray-500;
+  }
+  .text-inverse {
+    @apply text-white;
+  }
 
   /* Neutral borders */
-  .border-weak { @apply border-gray-100; }
-  .border-muted { @apply border-gray-200; }
-  .border-strong { @apply border-gray-700; }
+  .border-weak {
+    @apply border-gray-100;
+  }
+  .border-muted {
+    @apply border-gray-200;
+  }
+  .border-strong {
+    @apply border-gray-700;
+  }
 
   /* Neutral backgrounds */
-  .bg-surface { @apply bg-white; }
-  .bg-subtle { @apply bg-gray-50; }
+  .bg-surface {
+    @apply bg-white;
+  }
+  .bg-subtle {
+    @apply bg-gray-50;
+  }
 
   /* Inputs */
-  .input-field { @apply w-full px-3 py-2 border rounded-md focus:outline-none; }
-  .focus-ring-primary { @apply focus:ring-2 focus:ring-[var(--blue)] focus:border-[var(--blue)] outline-none; }
+  .input-field {
+    @apply w-full px-3 py-2 border rounded-md focus:outline-none;
+  }
+  .focus-ring-primary {
+    @apply focus:ring-2 focus:ring-[var(--blue)] focus:border-[var(--blue)] outline-none;
+  }
 
   /* Neutral button */
-  .btn-neutral { @apply bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-1.5 rounded-md inline-flex items-center gap-2; }
+  .btn-neutral {
+    @apply bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-1.5 rounded-md inline-flex items-center gap-2;
+  }
 
   .text-brand-blue {
     color: var(--blue);
@@ -233,13 +295,25 @@
   }
 
   /* Talk list state helpers */
-  .status-bar-current { @apply bg-orange-500; }
-  .status-bar-upcoming { @apply bg-blue-500; }
-  .status-bar-default { @apply bg-gray-400; }
+  .status-bar-current {
+    @apply bg-orange-500;
+  }
+  .status-bar-upcoming {
+    @apply bg-blue-500;
+  }
+  .status-bar-default {
+    @apply bg-gray-400;
+  }
 
-  .card-bg-current { @apply bg-orange-50; }
-  .card-bg-upcoming { @apply bg-white; }
-  .card-bg-default { @apply bg-gray-50; }
+  .card-bg-current {
+    @apply bg-orange-50;
+  }
+  .card-bg-upcoming {
+    @apply bg-white;
+  }
+  .card-bg-default {
+    @apply bg-gray-50;
+  }
 
   button.go-back,
   .go-back-button,
