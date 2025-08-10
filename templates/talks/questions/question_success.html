@@ -1,5 +1,5 @@
 {# This template is returned when a question is successfully created via HTMX #}
-<div class="bg-green-50 border border-green-200 p-4 rounded-md">
+<div class="alert-success">
   <script>
     // Mark that we've submitted a question and clear the stored content
     sessionStorage.setItem('question_submitted', 'true');
@@ -13,8 +13,8 @@
        hx-target="#question-list"
        hx-swap="outerHTML"
        aria-hidden="true"
-       style="display:none"></div>
-  <p class="text-green-700">
+       class="hidden"></div>
+  <p class="text-brand-green">
     {% load i18n %}
     {% if user_can_moderate %}
       {% translate "Your question has been posted and is now visible." %}
@@ -23,7 +23,7 @@
     {% endif %}
   </p>
   {% if not user_can_moderate %}
-    <p class="text-sm text-green-600 mt-2">
+    <p class="text-sm text-brand-green mt-2">
       {% translate "Once approved by a moderator, your question will appear in the list and others can vote on it." %}
     </p>
   {% endif %}

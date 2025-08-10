@@ -23,23 +23,22 @@
     </script>
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold">
-        {% translate "Questions for" %} <a href="{% url 'talk_detail' talk.pk %}"
-    class="text-blue-600 hover:underline">{{ talk.title }}</a>
+        {% translate "Questions for" %} <a href="{% url 'talk_detail' talk.pk %}" class="link-primary">{{ talk.title }}</a>
       </h1>
       <a href="{% url 'talk_detail' talk.pk %}"
-         class="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 shadow-sm">
+         class="btn-outline-primary inline-flex items-center gap-2 px-3 py-2">
         {% svg 'chevron-left' "h-4 w-4" %}
         <span>{% translate "Back to Talk" %}</span>
       </a>
     </div>
-    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <div class="card mb-8">
       <h2 class="text-xl font-semibold mb-4">{% translate "Ask a Question" %}</h2>
       <div id="question-success" class="mb-4"></div>
       {% if user.is_authenticated %}
         <form method="post"
               id="question-form"
               action="{% url 'question_create' talk.pk %}{% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
-              hx-post="{% url 'question_create' talk.pk %}{% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
+              hx-post="{% url 'question_create' talk.pk %} {% if status_filter %}?status_filter={{ status_filter }}{% endif %}"
               hx-target="#question-success"
               hx-swap="innerHTML"
               hx-indicator="#question-submit-indicator"
@@ -47,22 +46,22 @@
               onsubmit="sessionStorage.setItem('question_submitted', 'true');">
           {% csrf_token %}
           <div class="mb-4">
-            <label for="id_content" class="block text-gray-700 mb-2">{% translate "Your Question" %}</label>
+            <label for="id_content" class="block text-label mb-2">{% translate "Your Question" %}</label>
             <textarea name='content'
                       id='id_content'
                       rows='3'
-                      class='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
+                      class='w-full px-3 py-2 border rounded-md focus:outline-none focus-ring-primary disabled:opacity-50 disabled:cursor-not-allowed'
                       required></textarea>
           </div>
           <div class="flex items-center gap-3">
             <button type="submit"
                     id="question-submit-btn"
-                    class="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                    class="btn-primary inline-flex items-center gap-2 px-4 py-2 rounded-md disabled:opacity-60 disabled:cursor-not-allowed">
               {% svg 'paper-airplane' "h-4 w-4" %}
               <span>{% translate "Submit Question" %}</span>
             </button>
             <span id="question-submit-indicator"
-                  class="htmx-indicator inline-flex items-center gap-2 text-sm text-gray-600"
+                  class="htmx-indicator inline-flex items-center gap-2 text-sm text-muted"
                   style="display:none">
               {% svg 'arrow-path' "h-4 w-4 animate-spin" %}
               <span>{% translate "Submitting..." %}</span>
@@ -70,10 +69,10 @@
           </div>
         </form>
       {% else %}
-        <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-md">
+        <div class="alert-warning">
           <p>
             {% translate "Please" %} <a href="{% url 'account_login' %}?next={{ request.path }}"
-    class="text-blue-600 hover:underline">{% translate "log in" %}</a> {% translate "to ask a question." %}
+    class="link-primary">{% translate "log in" %}</a> {% translate "to ask a question." %}
           </p>
         </div>
       {% endif %}

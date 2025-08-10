@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
   <div class="max-w-md mx-auto p-4">
-    <div class="bg-white rounded-lg shadow-sm p-6 text-center">
+    <div class="card text-center">
       <h1 class="text-2xl font-bold mb-4">Sign Out</h1>
-      <p class="text-gray-600 mb-6">Are you sure you want to sign out?</p>
+      <p class="text-muted mb-6">Are you sure you want to sign out?</p>
       <form method="post" action="{% url 'account_logout' %}">
         {% csrf_token %}
         {% if redirect_field_value %}
@@ -11,8 +11,7 @@
                  name="{{ redirect_field_name }}"
                  value="{{ redirect_field_value }}" />
         {% endif %}
-        <button type="submit"
-                class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">Sign Out</button>
+        <button type="submit" class="btn-danger px-6 py-2">Sign Out</button>
       </form>
     </div>
   </div>

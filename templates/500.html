@@ -9,7 +9,7 @@
   <div class="flex flex-col items-center justify-center py-12">
     <div class="mb-8">
       <div class="text-center">
-        <div class="text-8xl font-bold text-red-600 relative">
+        <div class="text-8xl font-bold text-brand-red relative">
           500
           <div class="absolute -top-8 -right-8 transform rotate-12">
             <span class="text-4xl">⚠️</span>
@@ -17,41 +17,38 @@
         </div>
       </div>
     </div>
-    <h2 class="text-3xl font-semibold text-gray-800 mb-8">Server Error</h2>
+    <h2 class="text-3xl font-semibold text-heading mb-8">Server Error</h2>
     <div class="mb-8 text-center max-w-2xl">
-      <p class="text-xl text-gray-600 mb-4">Oops! Something went wrong on our end.</p>
-      <p class="text-lg text-gray-500 mb-4">Our team has been notified of this issue and we're working to fix it.</p>
-      <p class="text-lg text-gray-500">Please try again later or navigate to a different page.</p>
+      <p class="text-xl text-muted mb-4">Oops! Something went wrong on our end.</p>
+      <p class="text-lg text-subtle mb-4">Our team has been notified of this issue and we're working to fix it.</p>
+      <p class="text-lg text-subtle">Please try again later or navigate to a different page.</p>
     </div>
     <div class="flex flex-col sm:flex-row gap-4 mb-12">
-      <a href="{% url 'home' %}"
-         class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
-        Return to Homepage
-      </a>
-      <button class="try-again-button border border-blue-600 text-blue-600 hover:bg-blue-50 font-medium py-2 px-6 rounded-lg transition duration-300"
+      <a href="{% url 'home' %}" class="btn-primary">Return to Homepage</a>
+      <button class="try-again-button btn-outline-primary"
               onclick="window.location.reload();">Try Again</button>
     </div>
-    <div class="mt-8 border-t border-gray-200 pt-8 w-full max-w-2xl">
-      <h3 class="text-xl font-semibold text-gray-700 mb-4 text-center">You can still visit:</h3>
+    <div class="mt-8 border-t border-weak pt-8 w-full max-w-2xl">
+      <h3 class="text-xl font-semibold text-label mb-4 text-center">You can still visit:</h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <a href="{% url 'talk_list' %}"
-           class="bg-white shadow-md p-4 rounded-lg hover:shadow-lg transition duration-300 flex items-center gap-2">
-          <span class="text-blue-600">📝</span>
+           class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
+          <span class="text-brand-blue">📝</span>
           <span>List of Talks</span>
         </a>
         <a href="https://2025.pycon.de/"
-           class="bg-white shadow-md p-4 rounded-lg hover:shadow-lg transition duration-300 flex items-center gap-2">
-          <span class="text-blue-600">🌐</span>
+           class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
+          <span class="text-brand-blue">🌐</span>
           <span>Main Website</span>
         </a>
         <a href="https://2025.pycon.de/venue/"
-           class="bg-white shadow-md p-4 rounded-lg hover:shadow-lg transition duration-300 flex items-center gap-2">
-          <span class="text-blue-600">🏢</span>
+           class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
+          <span class="text-brand-blue">🏢</span>
           <span>Venue Information</span>
         </a>
         <a href="https://pretalx.com/pyconde-pydata-2025/schedule/"
-           class="bg-white shadow-md p-4 rounded-lg hover:shadow-lg transition duration-300 flex items-center gap-2">
-          <span class="text-blue-600">📅</span>
+           class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
+          <span class="text-brand-blue">📅</span>
           <span>Event Schedule</span>
         </a>
       </div>

@@ -1,65 +1,57 @@
 {% load svg_tags %}
-<div class="bg-white rounded-lg shadow-sm p-6">
+<div class="card">
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-xl font-bold">Coming Up Next</h2>
-    <a href="{% url 'talk_list' %}"
-       class="text-blue-600 hover:underline text-sm">View All</a>
+    <a href="{% url 'talk_list' %}" class="link-primary text-sm">View All</a>
   </div>
   {% if upcoming_talks %}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       {% for talk in upcoming_talks %}
-        <div class="relative bg-white border border-gray-100 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+        <div class="relative card-bordered hover:shadow-md transition-shadow">
           <!-- Time indicator strip -->
-          <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500"></div>
+          <div class="absolute left-0 top-0 bottom-0 w-1.5 status-bar-upcoming"></div>
           <!-- Time and day badges -->
           <div class="absolute right-2 top-2 flex flex-col gap-1 items-end">
             {% now "Y-m-d" as today %}
             {% with talk_date=talk.start_time|date:"Y-m-d" %}
               {% if talk_date == today %}
-                <span class="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                <span class="badge badge-green text-xs font-semibold">
                   {% svg 'calendar' "h-3 w-3 mr-1" %}
                   Today
                 </span>
               {% elif talk_date == today|date:"Y-m-d"|add:"1 day" %}
-                <span class="inline-flex items-center px-2 py-0.5 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold">
+                <span class="badge badge-orange text-xs font-semibold">
                   {% svg 'calendar' "h-3 w-3 mr-1" %}
                   Tomorrow
                 </span>
               {% else %}
-                <span class="inline-flex items-center px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold">
+                <span class="badge badge-purple text-xs font-semibold">
                   {% svg 'calendar' "h-3 w-3 mr-1" %}
                   {{ talk.start_time|date:"l" }}
                 </span>
               {% endif %}
             {% endwith %}
-            <span class="inline-flex items-center px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
+            <span class="badge badge-blue text-xs font-semibold">
               {% svg 'clock' "h-3 w-3 mr-1" %}
               {{ talk.start_time|date:"g:i A" }}
             </span>
           </div>
           <div class="p-4 pl-5">
-            <a href="{% url 'talk_detail' talk.pk %}"
-               class="block font-bold text-lg hover:text-blue-600 mb-1 pr-20">{{ talk.title }}</a>
-            <p class="text-gray-600 mb-3">{{ talk.speaker_names }}</p>
+            <a href="{% url 'talk_detail' talk.pk %}" class="link-title mb-1 pr-20">{{ talk.title }}</a>
+            <p class="text-muted mb-3">{{ talk.speaker_names }}</p>
             <div class="flex flex-wrap gap-2 mb-3">
-              <span class="inline-flex items-center px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full text-xs">
+              <span class="badge badge-gray text-xs">
                 {% svg 'location-marker' "h-3 w-3 mr-1" %}
                 {{ talk.room }}
               </span>
-              <span class="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs">
-                {{ talk.get_presentation_type_display }}
-              </span>
-              {% if talk.track %}
-                <span class="inline-flex items-center px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs">
-                  {{ talk.track }}
-                </span>
-              {% endif %}
+              <span class="badge badge-green text-xs">{{ talk.get_presentation_type_display }}</span>
+              {% if talk.track %}<span class="badge badge-blue text-xs">{{ talk.track }}</span>{% endif %}
             </div>
             <div class="flex gap-2">
               <a href="{{ talk.pretalx_link }}"
                  target="_blank"
                  rel="noopener noreferrer"
-                 class="inline-flex items-center px-2 py-1 text-xs rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
+                 class="btn-outline-primary inline-flex items-center px-2 py-1 text-xs rounded">
                 {% svg 'information-circle' "h-3 w-3 mr-1" %}
                 Details
               </a>
@@ -67,7 +59,7 @@
                 <a href="{{ talk.get_video_link }}"
                    target="_blank"
                    rel="noopener noreferrer"
-                   class="inline-flex items-center px-2 py-1 text-xs rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100">
+                   class="btn-danger inline-flex items-center px-2 py-1 text-xs rounded">
                   {% svg 'play-circle' "h-3 w-3 mr-1" %}
                   Video
                 </a>
@@ -76,7 +68,7 @@
                 <a href="{{ talk.get_slido_link }}"
                    target="_blank"
                    rel="noopener noreferrer"
-                   class="inline-flex items-center px-2 py-1 text-xs rounded bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100">
+                   class="btn-secondary inline-flex items-center px-2 py-1 text-xs rounded">
                   {% svg 'chat-bubble-left-ellipsis' "h-3 w-3 mr-1" %}
                   Q&amp;A
                 </a>
@@ -87,6 +79,6 @@
       {% endfor %}
     </div>
   {% else %}
-    <p class="text-gray-500">No upcoming talks scheduled.</p>
+    <p class="text-subtle">No upcoming talks scheduled.</p>
   {% endif %}
 </div>

@@ -5,12 +5,11 @@
 {% block content %}
   <div class="max-w-4xl mx-auto p-4">
     <!-- Back button -->
-    <a href="{% url 'talk_list' %}"
-       class="inline-flex items-center text-gray-600 mb-6 hover:text-blue-600">
+    <a href="{% url 'talk_list' %}" class="link-muted mb-6">
       {% svg 'chevron-left' "h-4 w-4 mr-2" %}
       Back to Talks
     </a>
-    <article class="bg-white rounded-lg shadow-sm overflow-hidden">
+    <article class="panel">
       {% if talk.get_image_url %}
         <div class="w-full h-96 overflow-hidden">
           <img src="{{ talk.get_image_url }}"
@@ -23,32 +22,32 @@
       <div class="p-6 {% if not talk.get_image_url %}pt-8{% endif %}">
         <!-- Title and Speaker -->
         <div class="mb-6">
-          <h1 class="text-3xl font-bold text-gray-900">{{ talk.title }}</h1>
-          <p class="text-xl text-gray-600 mt-2">{{ talk.speaker_names }}</p>
+          <h1 class="text-3xl font-bold text-heading">{{ talk.title }}</h1>
+          <p class="text-xl text-muted mt-2">{{ talk.speaker_names }}</p>
         </div>
         <!-- Time, Location, Type and Track -->
-        <div class="bg-gray-50 rounded-lg p-4 mb-8">
-          <div class="grid sm:grid-cols-3 gap-4 text-gray-600 mb-3">
+        <div class="box-muted mb-8">
+          <div class="grid sm:grid-cols-3 gap-4 text-muted mb-3">
             <div>
-              <div class="text-sm text-gray-500">Date</div>
+              <div class="text-sm text-subtle">Date</div>
               <div>{{ talk.start_time|date:"l, F j, Y" }}</div>
             </div>
             <div>
-              <div class="text-sm text-gray-500">Time</div>
+              <div class="text-sm text-subtle">Time</div>
               <div>{{ talk.start_time|date:"g:i A" }}</div>
             </div>
             <div>
-              <div class="text-sm text-gray-500">Room</div>
+              <div class="text-sm text-subtle">Room</div>
               <div>{{ talk.room }}</div>
             </div>
           </div>
           <div class="flex flex-wrap gap-2">
-            <span class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+            <span class="badge badge-green px-3 py-1">
               {% svg 'presentation-chart-bar' "h-4 w-4 mr-1" %}
               {{ talk.get_presentation_type_display }}
             </span>
             {% if talk.track %}
-              <span class="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+              <span class="badge badge-blue px-3 py-1">
                 {% svg 'tag' "h-4 w-4 mr-1" %}
                 {{ talk.track }}
               </span>
@@ -76,16 +75,15 @@
           {% if talk.get_video_start_time and not talk.is_upcoming %}
             <div class="mb-8 flex items-center">
               {% if talk.has_active_streaming %}
-                <div class="text-sm text-gray-600">
+                <div class="text-sm text-muted">
                   This is a live stream. Please skip manually to {{ talk.get_video_start_time|format_seconds }} to see the start of the talk.
                 </div>
               {% else %}
-                <button id="jump-to-time"
-                        class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
+                <button id="jump-to-time" class="btn-secondary btn-neutral">
                   Jump to {{ talk.get_video_start_time|format_seconds }}
                 </button>
               {% endif %}
-              <span class="ml-3 text-sm text-gray-500">(Skip to estimated talk start)</span>
+              <span class="ml-3 text-sm text-subtle">(Skip to estimated talk start)</span>
             </div>
           {% endif %}
         {% endif %}
@@ -96,7 +94,7 @@
           <a href="{{ talk.pretalx_link }}"
              target="_blank"
              rel="noopener noreferrer"
-             class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+             class="btn-primary inline-flex items-center px-4 py-2 rounded-lg">
             {% svg 'information-circle' "h-4 w-4 mr-2" %}
             View on Pretalx
           </a>
@@ -104,14 +102,14 @@
             <a href="{{ talk.get_video_link }}"
                target="_blank"
                rel="noopener noreferrer"
-               class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+               class="btn-danger inline-flex items-center px-4 py-2 rounded-lg">
               {% svg 'play-circle' "h-4 w-4 mr-2" %}
               Watch Video
             </a>
           {% endif %}
           <!-- Our Q&A section link -->
           <a href="{% url 'talk_questions' talk.id %}"
-             class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+             class="btn-secondary inline-flex items-center px-4 py-2 rounded-lg">
             {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-2" %}
             Questions & Answers
           </a>
