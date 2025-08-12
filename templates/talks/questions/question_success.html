@@ -17,15 +17,9 @@
        class="hidden"></div>
   <p class="text-brand-green">
     {% load i18n %}
-    {% if user_can_moderate %}
-      {% translate "Your question has been posted and is now visible." %}
-    {% else %}
-      {% translate "Your question has been submitted successfully and is now awaiting approval." %}
-    {% endif %}
+    {% translate "Your question has been posted and is now visible." %}
   </p>
-  {% if not user_can_moderate %}
-    <p class="text-sm text-brand-green mt-2">
-      {% translate "Once approved by a moderator, your question will appear in the list and others can vote on it." %}
-    </p>
-  {% endif %}
+  <p class="text-sm text-brand-green mt-2">
+    {% translate "Other participants can now see and vote on your question." %}
+  </p>
 </div>

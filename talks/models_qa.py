@@ -39,10 +39,6 @@ class QuestionQuerySet(models.QuerySet):
         """Return only answered questions."""
         return self.filter(status=Question.Status.ANSWERED)
 
-    def pending(self) -> QuerySet:
-        """Return only pending questions."""
-        return self.filter(status=Question.Status.PENDING)
-
     def not_rejected(self) -> QuerySet:
         """Return questions that haven't been rejected."""
         return self.exclude(status=Question.Status.REJECTED)
@@ -54,7 +50,6 @@ class Question(models.Model):
     class Status(models.TextChoices):
         """Status of a question."""
 
-        PENDING = "pending", _("Pending")
         APPROVED = "approved", _("Approved")
         ANSWERED = "answered", _("Answered")
         REJECTED = "rejected", _("Rejected")
@@ -82,7 +77,7 @@ class Question(models.Model):
     status = models.CharField(
         max_length=10,
         choices=Status.choices,
-        default=Status.PENDING,
+        default=Status.APPROVED,
         help_text=_("Status of the question"),
     )
 
@@ -151,11 +146,6 @@ class Question(models.Model):
     def mark_as_answered(self) -> None:
         """Mark the question as answered."""
         self.status = self.Status.ANSWERED
-        self.save(update_fields=["status", "updated_at"])
-
-    def approve(self) -> None:
-        """Approve the question."""
-        self.status = self.Status.APPROVED
         self.save(update_fields=["status", "updated_at"])
 
     def reject(self) -> None:
