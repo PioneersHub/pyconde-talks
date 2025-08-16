@@ -16,7 +16,7 @@ from django.db import DatabaseError, IntegrityError
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
 
-from pyconde_talks.utils.email_utils import hash_email
+from utils.email_utils import hash_email
 
 from .forms import ProfileForm
 

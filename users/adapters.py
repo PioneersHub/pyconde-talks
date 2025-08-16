@@ -14,7 +14,7 @@ from requests.exceptions import (
 )
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from pyconde_talks.utils.email_utils import hash_email
+from utils.email_utils import hash_email
 
 
 logger = structlog.get_logger(__name__)
