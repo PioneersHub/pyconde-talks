@@ -9,7 +9,7 @@ upstream django_talks_app {
 
 server {
     listen 80;
-    server_name talks.pycon.de;
+    server_name talks.example.com;
 
     # Redirect all HTTP traffic to HTTPS
     return 301 https://$host$request_uri;
@@ -17,11 +17,11 @@ server {
 
 server {
     listen 443 ssl http2;
-    server_name talks.pycon.de;
+    server_name talks.example.com;
 
     # SSL Configuration (Managed by Certbot)
-    ssl_certificate /etc/letsencrypt/live/talks.pycon.de/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/talks.pycon.de/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/talks.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/talks.example.com/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
@@ -44,7 +44,7 @@ server {
     # Static files with 30 days caching
     location /static/ {
         limit_req zone=general burst=30 nodelay;
-        alias /var/cache/talks.pycon.de/staticfiles/;
+        alias /var/cache/talks.example.com/staticfiles/;
         expires 30d;
         add_header Cache-Control "public, max-age=2592000, immutable";
     }
@@ -52,7 +52,7 @@ server {
     # Media files
     location /media/ {
         limit_req zone=general burst=20 nodelay;
-        alias /var/opt/talks.pycon.de/media/;
+        alias /var/opt/talks.example.com/media/;
         expires 30d;
     }
 
