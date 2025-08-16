@@ -274,7 +274,7 @@ STATICFILES_FINDERS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-root
 MEDIA_ROOT = BASE_DIR / env("DJANGO_MEDIA_ROOT", default="media")
 MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
-MEDIA_URL = env("MEDIA_URL", default="/media/")
+MEDIA_URL = env("DJANGO_MEDIA_URL", default="/media/")
 
 
 # --------------------------------------------------------------------------------------------------
