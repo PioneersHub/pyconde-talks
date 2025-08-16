@@ -93,7 +93,7 @@ check_untyped_defs = true
 plugins = ["mypy_django_plugin.main"]
 
 [tool.django-stubs]
-django_settings_module = "pyconde_talks.settings"
+django_settings_module = "event_talks.settings"
 
 [tool.djlint]
 profile = "django"
@@ -144,7 +144,7 @@ force-wrap-aliases = true
 lines-after-imports = 2
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "pyconde_talks.settings"
+DJANGO_SETTINGS_MODULE = "event_talks.settings"
 python_files = ["test_*.py"]
 addopts = [
     "-ra",

@@ -99,7 +99,7 @@ ENV PATH="/venv/bin:$PATH"
 
 # Copy only project files necessary for production
 COPY --from=builder --chown=django:django /app/manage.py /app/
-COPY --from=builder --chown=django:django /app/pyconde_talks /app/pyconde_talks/
+COPY --from=builder --chown=django:django /app/event_talks /app/event_talks/
 COPY --from=builder --chown=django:django /app/svg /app/svg/
 COPY --from=builder --chown=django:django /app/talks /app/talks/
 COPY --from=builder --chown=django:django /app/templates /app/templates/
@@ -121,4 +121,4 @@ COPY --chown=django:django ./docker/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "pyconde_talks.asgi:application"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "event_talks.asgi:application"]

@@ -1,4 +1,4 @@
-"""Django settings for pyconde_talks project."""
+"""Django settings for event_talks project."""
 
 from pathlib import Path
 
@@ -57,12 +57,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # URLS
 # --------------------------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#root-urlconf
-ROOT_URLCONF = "pyconde_talks.urls"
+ROOT_URLCONF = "event_talks.urls"
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#wsgi-application
-WSGI_APPLICATION = "pyconde_talks.wsgi.application"
+WSGI_APPLICATION = "event_talks.wsgi.application"
 # https://docs.djangoproject.com/en/dev/howto/deployment/asgi/
-ASGI_APPLICATION = "pyconde_talks.asgi.application"
+ASGI_APPLICATION = "event_talks.asgi.application"
 
 
 # --------------------------------------------------------------------------------------------------
@@ -415,7 +415,7 @@ LOGGING = {
             "handlers": ["error_file"],
             "propagate": False,
         },
-        "pyconde_talks": {
+        "event_talks": {
             "level": env("LOG_LEVEL", default="INFO"),
             "handlers": ["console", "json_file", "error_file"],
             "propagate": False,

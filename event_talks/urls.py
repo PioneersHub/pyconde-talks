@@ -1,4 +1,4 @@
-"""URL configuration for pyconde_talks project."""
+"""URL configuration for event_talks project."""
 
 from allauth.account.views import confirm_login_code, logout
 from django.conf import settings
