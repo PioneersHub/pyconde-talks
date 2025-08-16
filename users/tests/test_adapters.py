@@ -46,7 +46,6 @@ def test_superuser_authorization(
     adapter: AccountAdapter,
     user_model: type[Any],
     settings: SettingsWrapper,
-    mock_email_api_invalid: None,
 ) -> None:
     """
     Test email authorization for superusers.
@@ -64,8 +63,9 @@ def test_superuser_authorization(
         email="user@example.com",
     )
 
-    # Empty the whitelist to ensure we're testing the superuser check
+    # Empty the whitelist and disable API to ensure we're testing local checks only
     settings.AUTHORIZED_EMAILS_WHITELIST = []
+    settings.EMAIL_VALIDATION_API_URL = ""
 
     # Test superuser email is authorized
     assert adapter.is_email_authorized("admin@example.com") is True
