@@ -56,7 +56,7 @@ class SubmissionData:
         self.title = submission.title[:MAX_TALK_TITLE_LENGTH] if submission.title else ""
         self.abstract = submission.abstract or ""
         self.description = submission.description or ""
-        self.pretalx_link = f"https://pretalx.com/{event_slug}/talk/{submission.code}"
+        self.pretalx_link = f"{settings.PRETALX_BASE_URL}/{event_slug}/talk/{submission.code}"
         self.image_url = getattr(submission, "image", "") or ""
 
         # Extract room safely
