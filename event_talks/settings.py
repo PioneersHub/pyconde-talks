@@ -64,6 +64,18 @@ WSGI_APPLICATION = "event_talks.wsgi.application"
 # https://docs.djangoproject.com/en/dev/howto/deployment/asgi/
 ASGI_APPLICATION = "event_talks.asgi.application"
 
+# BRANDING / EVENT CONFIGURATION
+BRAND_EVENT_NAME = env("BRAND_EVENT_NAME", default="Python Event")
+BRAND_EVENT_YEAR = env("BRAND_EVENT_YEAR", default="2025")
+BRAND_MAIN_WEBSITE_URL = env("BRAND_MAIN_WEBSITE_URL", default="https://python.org/")
+BRAND_VENUE_URL = env("BRAND_VENUE_URL", default="https://python.org/")
+BRAND_LOGO_SVG_NAME = env("BRAND_LOGO_SVG_NAME", default="python-logo")
+BRAND_MADE_BY_NAME = env("BRAND_MADE_BY_NAME", default="Community")
+BRAND_MADE_BY_URL = env(
+    "BRAND_MADE_BY_URL",
+    default="https://github.com/PioneersHub/pyconde-talks/graphs/contributors",
+)
+
 
 # --------------------------------------------------------------------------------------------------
 # APPS
@@ -188,7 +200,7 @@ ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS = 3
 ACCOUNT_PREVENT_ENUMERATION = True
 ACCOUNT_EMAIL_SUBJECT_PREFIX = env(
     "ACCOUNT_EMAIL_SUBJECT_PREFIX",
-    default="[PyConDE & PyData 2025] ",
+    default=f"[{BRAND_EVENT_NAME} {BRAND_EVENT_YEAR}] ",
 )
 
 
@@ -522,6 +534,7 @@ MARKDOWNIFY = {
 # Pretalx
 # --------------------------------------------------------------------------------------------------
 PRETALX_API_TOKEN = env("PRETALX_API_TOKEN", default="0000000000000000000000000000000000000000")
+PRETALX_BASE_URL = env("PRETALX_BASE_URL", default="https://pretalx.com")
 PRETALX_EVENT_SLUG = env("PRETALX_EVENT_SLUG", default="pyconde-pydata-2025")
 
 # --------------------------------------------------------------------------------------------------
