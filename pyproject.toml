@@ -77,7 +77,7 @@ prod = [
 ]
 
 [project.urls]
-Homepage = "https://2025.pycon.de/talks/"
+Homepage = "https://github.com/PioneersHub/pyconde-talks"
 Documentation = "https://github.com/PioneersHub/pyconde-talks#readme"
 Repository = "https://github.com/PioneersHub/pyconde-talks"
 CI = "https://github.com/PioneersHub/pyconde-talks/actions"
