@@ -161,10 +161,7 @@ LOGIN_URL = "/accounts/login/"
 # ---------------------
 # E-mail validation API
 # ---------------------
-EMAIL_VALIDATION_API_URL = env(
-    "EMAIL_VALIDATION_API_URL",
-    default="https://val.pycon.de/tickets/validate_email/",
-)
+EMAIL_VALIDATION_API_URL = env("EMAIL_VALIDATION_API_URL", default="")
 EMAIL_VALIDATION_API_TIMEOUT = env.int("EMAIL_VALIDATION_API_TIMEOUT", default=10)
 
 # E-mails that will bypass API validation

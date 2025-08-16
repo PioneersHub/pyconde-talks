@@ -86,6 +86,11 @@ class AccountAdapter(DefaultAccountAdapter):
 
     def _validate_email_with_api(self, email: str, email_hash: str) -> bool:
         """Validate email using an external API."""
+        # Short-circuit when API URL is not configured
+        if not getattr(settings, "EMAIL_VALIDATION_API_URL", ""):
+            logger.info("Email validation API disabled; denying non-local auth", email=email_hash)
+            return False
+
         # Check the API
         is_valid = False
         try:
