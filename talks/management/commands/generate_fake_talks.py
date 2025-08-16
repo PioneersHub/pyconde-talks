@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
 from faker import Faker
 
@@ -412,7 +413,8 @@ class Command(BaseCommand):
                 track=track,
                 presentation_type=presentation_type,
                 pretalx_link=(
-                    f"https://pretalx.com/pyconde-pydata-2025/talk/"
+                    f"{getattr(settings, 'PRETALX_BASE_URL', 'https://pretalx.com').rstrip('/')}/"
+                    f"{getattr(settings, 'PRETALX_EVENT_SLUG', '').strip('/')}/talk/"
                     f"{fake.bothify(text='???###').upper()}"
                 ),
                 slido_link=slido_link,
