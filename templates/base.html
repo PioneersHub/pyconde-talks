@@ -6,17 +6,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description"
-          content="{% block meta_description %} PyCon DE and PyData 2025 Talks and Schedule {% endblock meta_description %}">
-    <meta name="author" content="PyCon DE and PyData 2025 Video Committee">
-    <meta name="keywords"
-          content="PyCon, PyData, 2025, Talks, Schedule, Python, Data Science, Video, Conference">
+          content="{% block meta_description %} {{ brand_meta_description }} {% endblock meta_description %}">
+    <meta name="author"
+          content="{{ brand_full_name }} {{ brand_made_by_name }}">
+    <meta name="keywords" content="Python, Data, Talks, Schedule, Conference">
     <link rel="icon" href="{% static 'images/favicon.ico' %}">
     <link rel="stylesheet"
           type="text/css"
           href="{% static 'css/tailwind.min.css' %}">
     <title>
       {% block title %}
-        PyCon DE 2025 Talks
+        {{ brand_title }}
       {% endblock title %}
     </title>
     <script src="{% static 'js/htmx.min.js' %}" defer></script>
@@ -24,7 +24,7 @@
   <body class="app-body">
     <nav class="app-nav">
       <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
-        <a href="{% url 'home' %}" aria-label="Home">{% svg 'pyconde-pydata-logo' "w-25 h-20 header-logo" %}</a>
+        <a href="{% url 'home' %}" aria-label="Home">{% svg brand_logo_svg_name "w-25 h-20 header-logo" %}</a>
         {% if user.is_authenticated %}
           <span>
             {{ user.email }} |
@@ -42,33 +42,41 @@
       <div class="container mx-auto">
         <div class="flex flex-col md:flex-row justify-between">
           <div>
-            <h2 class="text-xl font-bold mb-4">PyCon DE &amp; PyData 2025 Talks</h2>
-            <p>
-              Made with ❤️ by the <a href="https://2025.pycon.de/team/">Video Committee</a>
-            </p>
+            <h2 class="text-xl font-bold mb-4">{{ brand_title }}</h2>
+            {% if brand_made_by_url %}
+              <p>
+                Made with ❤️ by the <a href="{{ brand_made_by_url }}">{{ brand_made_by_name }}</a>
+              </p>
+            {% endif %}
           </div>
           <div class="mt-6 md:mt-0">
             <h3 class="text-lg font-semibold mb-2">Quick Links</h3>
             <ul>
-              <li>
-                <a href="https://2025.pycon.de/" class="hover:underline">Main website</a>
-              </li>
-              <li>
-                <a href="https://pretalx.com/pyconde-pydata-2025/schedule/"
-                   class="hover:underline">Schedule</a>
-              </li>
-              <li>
-                <a href="https://pretalx.com/pyconde-pydata-2025/speaker/"
-                   class="hover:underline">Speakers</a>
-              </li>
-              <li>
-                <a href="https://2025.pycon.de/venue/" class="hover:underline">Venue</a>
-              </li>
+              {% if brand_main_website_url %}
+                <li>
+                  <a href="{{ brand_main_website_url }}" class="hover:underline">Main website</a>
+                </li>
+              {% endif %}
+              {% if pretalx_schedule_url %}
+                <li>
+                  <a href="{{ pretalx_schedule_url }}" class="hover:underline">Schedule</a>
+                </li>
+              {% endif %}
+              {% if pretalx_speakers_url %}
+                <li>
+                  <a href="{{ pretalx_speakers_url }}" class="hover:underline">Speakers</a>
+                </li>
+              {% endif %}
+              {% if brand_venue_url %}
+                <li>
+                  <a href="{{ brand_venue_url }}" class="hover:underline">Venue</a>
+                </li>
+              {% endif %}
             </ul>
           </div>
         </div>
         <div class="mt-8 pt-4 border-t border-strong text-sm text-subtle">
-          © {% now "Y" %} PyCon DE &amp; PyData. All rights reserved.
+          © {% now "Y" %} {{ brand_event_name }}. All rights reserved.
         </div>
       </div>
     </footer>
