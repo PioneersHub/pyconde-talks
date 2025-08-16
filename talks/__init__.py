@@ -1,1 +1,1 @@
-"""Talks application for PyData Berlin Conference."""
+"""Talks application for conference events."""

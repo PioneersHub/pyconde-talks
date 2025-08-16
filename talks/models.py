@@ -1,5 +1,5 @@
 """
-Conference talk management module for PyCon DE & PyData 2025.
+Conference talk management module for the event talks site.
 
 This module provides the Talk model for storing and managing conference talks, including their
 metadata, scheduling information, and video links.

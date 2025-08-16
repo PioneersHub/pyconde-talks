@@ -1,5 +1,5 @@
 """
-Conference talk management module for PyCon DE & PyData 2025.
+Conference talk management module for the event talks site.
 
 This module provides unit tests for the custom validators that are used across the Talks model.
 """

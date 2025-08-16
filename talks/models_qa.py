@@ -1,5 +1,5 @@
 """
-Question and Answer management module for PyData Berlin Conference talks.
+Question and Answer management module for conference talks.
 
 This module provides models for allowing users to ask questions about talks, vote on questions, and
 receive answers from speakers or moderators.
