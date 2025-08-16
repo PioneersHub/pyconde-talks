@@ -139,4 +139,16 @@ class AccountAdapter(DefaultAccountAdapter):
         context["login_code_timeout_minutes"] = (
             int(timeout_minutes) if timeout_minutes.is_integer() else round(timeout_minutes, 1)
         )
+        # Inject branding variables
+        event_name = getattr(settings, "BRAND_EVENT_NAME", "Event")
+        event_year = getattr(settings, "BRAND_EVENT_YEAR", "")
+        full_name = f"{event_name} {event_year}".strip()
+        context.update(
+            {
+                "brand_event_name": event_name,
+                "brand_event_year": event_year,
+                "brand_full_name": full_name,
+                "brand_title": f"{full_name} Talks" if full_name else "Talks",
+            },
+        )
         return super().send_mail(template_prefix, email, context)
