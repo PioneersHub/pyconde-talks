@@ -1,5 +1,6 @@
 """Tests for the custom authentication views."""
 
+from http import HTTPStatus
 from typing import Any
 
 import pytest
@@ -118,11 +119,10 @@ def test_form_valid_authorized_new_user(  # noqa: PLR0913
     mocker.patch("users.views.get_adapter", return_value=mock_adapter)
 
     # Mock the parent class's form_valid method
-    mocker.patch.object(
-        view.__class__.__bases__[0],
-        "form_valid",
-        return_value="success",
+    mock_initiate = mocker.patch(
+        "users.views.flows.login_by_code.LoginCodeVerificationProcess.initiate",
     )
+    mocker.patch.object(view, "get_success_url", return_value="/success/")
 
     # Call our view's form_valid method
     response = view.form_valid(form)
@@ -133,8 +133,10 @@ def test_form_valid_authorized_new_user(  # noqa: PLR0913
     # Check that a new user was created
     assert user_model.objects.filter(email=login_form_data["email"].lower()).exists()
 
-    # Assert that the response is the one from the parent class
-    assert response == "success"
+    # Assert the flow was initiated and a redirect returned
+    mock_initiate.assert_called_once()
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == "/success/"
 
 
 @pytest.mark.django_db
