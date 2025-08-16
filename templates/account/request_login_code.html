@@ -56,9 +56,7 @@
     <div class="mt-4 p-4 bg-subtle rounded-lg border border-weak">
       <h2 class="font-medium text-strong mb-2">{% translate "Important Note" %}</h2>
       <div class="text-sm text-muted space-y-2">
-        <p>
-          {% translate "Please use the same email address that you used when purchasing your PyCon DE &amp; PyData ticket." %}
-        </p>
+        <p>{% translate "Please use the same email address that you used when purchasing your ticket." %}</p>
         <div class="flex items-start gap-2 mt-2">
           {% svg 'check-circle' "text-brand-blue mt-0.5" %}
           <p>{% translate "Your login code will be valid for" %} {{ login_code_timeout_minutes }} {% translate "minutes." %}</p>
