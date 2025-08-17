@@ -75,6 +75,7 @@ BRAND_MADE_BY_URL = env(
     "BRAND_MADE_BY_URL",
     default="https://github.com/PioneersHub/pyconde-talks/graphs/contributors",
 )
+BRAND_ASSETS_SUBDIR = env("BRAND_ASSETS_SUBDIR", default="")
 
 
 # --------------------------------------------------------------------------------------------------

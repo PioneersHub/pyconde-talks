@@ -30,6 +30,7 @@ def branding(_: Any) -> dict[str, Any]:
         "brand_main_website_url": getattr(settings, "BRAND_MAIN_WEBSITE_URL", ""),
         "brand_venue_url": getattr(settings, "BRAND_VENUE_URL", ""),
         "brand_logo_svg_name": getattr(settings, "BRAND_LOGO_SVG_NAME", ""),
+        "brand_assets_subdir": getattr(settings, "BRAND_ASSETS_SUBDIR", ""),
         "brand_made_by_name": getattr(settings, "BRAND_MADE_BY_NAME", ""),
         "brand_made_by_url": getattr(settings, "BRAND_MADE_BY_URL", ""),
         "pretalx_event_slug": pretalx_slug,
