@@ -244,7 +244,7 @@ class Command(BaseCommand):
             ),
         )
         def _retry_fetch_talks() -> tuple[int, Iterator[Submission]]:
-            return pretalx.talks(event_slug)
+            return pretalx.submissions(event_slug)
 
         return _retry_fetch_talks()
 
