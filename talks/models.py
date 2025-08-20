@@ -514,6 +514,10 @@ class Talk(models.Model):
         """
         return self.get_timing() == self.TalkTiming.UPCOMING
 
+    def is_current(self) -> bool:
+        """Return True if the talk is currently happening (within the timing margin)."""
+        return self.get_timing() == self.TalkTiming.CURRENT
+
     def has_active_streaming(self) -> bool:
         """
         Check if the streaming associated with this talk is still ongoing.
