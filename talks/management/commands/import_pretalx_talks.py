@@ -49,14 +49,22 @@ class PytanisCfg(BaseModel):
 class SubmissionData:
     """Extract and hold clean data from a submission."""
 
-    def __init__(self, submission: Submission, event_slug: str) -> None:
+    def __init__(
+        self,
+        submission: Submission,
+        event_slug: str,
+        pretalx_base_url: str | None = None,
+    ) -> None:
         """Initialize the SubmissionData object."""
         self.submission = submission
         self.code = submission.code
         self.title = submission.title[:MAX_TALK_TITLE_LENGTH] if submission.title else ""
         self.abstract = submission.abstract or ""
         self.description = submission.description or ""
-        self.pretalx_link = f"{settings.PRETALX_BASE_URL}/{event_slug}/talk/{submission.code}"
+        base_url = (
+            pretalx_base_url or getattr(settings, "PRETALX_BASE_URL", "https://pretalx.com")
+        ).rstrip("/")
+        self.pretalx_link = f"{base_url}/{event_slug}/talk/{submission.code}"
         self.image_url = getattr(submission, "image", "") or ""
 
         # Extract room safely
@@ -114,6 +122,12 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser: CommandParser) -> None:
         """Add command line arguments."""
+        parser.add_argument(
+            "--pretalx-base-url",
+            type=str,
+            default=getattr(settings, "PRETALX_BASE_URL", "https://pretalx.com"),
+            help="Base URL for Pretalx (used to build talk links)",
+        )
         parser.add_argument(
             "--event",
             type=str,
@@ -358,7 +372,7 @@ class Command(BaseCommand):
         no_update = options.get("no_update", False)
 
         # Extract structured data from submission
-        data = SubmissionData(submission, event_slug)
+        data = SubmissionData(submission, event_slug, options.get("pretalx_base_url"))
 
         # Check if talk exists
         existing_talk = Talk.objects.filter(pretalx_link=data.pretalx_link).first()
