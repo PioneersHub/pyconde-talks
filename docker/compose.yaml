@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:17-bookworm
-    container_name: pyconde-talks-postgres
+    container_name: ${CONTAINER_PREFIX}-postgres
     restart: unless-stopped
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -30,8 +30,8 @@ services:
         - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
         - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
         - DJANGO_STATIC_ROOT=${DJANGO_STATIC_ROOT}
-    container_name: pyconde-talks-django
-    image: pyconde-talks:latest
+    container_name: ${CONTAINER_PREFIX}-django
+    image: ${CONTAINER_PREFIX}-django:latest
     restart: unless-stopped
     depends_on:
       db:
@@ -60,9 +60,9 @@ services:
 volumes:
   pgdata:
     driver: local
-    name: pyconde-talks-pgdata
+    name: ${CONTAINER_PREFIX}-pgdata
 
 networks:
   app_network:
     driver: bridge
-    name: pyconde-talks-network
+    name: ${CONTAINER_PREFIX}-network
