@@ -33,6 +33,7 @@ wheels/
 .vscode/*
 !.vscode/extensions.json
 !.vscode/launch.json
+!.vscode/python.env
 !.vscode/scripts/
 !.vscode/settings.json
 !.vscode/tasks.json
