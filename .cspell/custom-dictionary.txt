@@ -85,6 +85,7 @@ pydata
 pyproject
 pytanis
 pytest
+pytestmark
 PYTHONDONTWRITEBYTECODE
 PYTHONUNBUFFERED
 regularuser
