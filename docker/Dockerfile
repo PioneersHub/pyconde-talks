@@ -59,7 +59,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 #
 # A folder called "staticfiles" will be created in the current directory.
 # Transfer it to the server:
-#      rsync -ave "ssh" --rsync-path="sudo rsync" /path/to/staticfiles/ pycon:/var/cache/talks.pycon.de/staticfiles/
+#      rsync -ave "ssh" --rsync-path="sudo rsync" /path/to/staticfiles/ server:/var/cache/${APP_NAME}/staticfiles/
 #
 # Then set the appropriate permissions:
 #   - Django does not need any permissions after collecting static files
