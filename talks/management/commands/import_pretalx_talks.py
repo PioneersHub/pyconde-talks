@@ -87,10 +87,11 @@ class SubmissionData:
         if (
             hasattr(submission, "track")
             and submission.track
-            and hasattr(submission.track, "en")
-            and submission.track.en
+            and hasattr(submission.track, "name")
+            and submission.track.name
+            and "en" in submission.track.name
         ):
-            self.track = submission.track.en[:MAX_TRACK_NAME_LENGTH]
+            self.track = submission.track.name["en"][:MAX_TRACK_NAME_LENGTH]
 
         # Extract start time safely
         self.start_time = FAR_FUTURE
