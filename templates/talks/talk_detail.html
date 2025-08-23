@@ -11,10 +11,10 @@
     </a>
     <article class="panel">
       {% if talk.get_image_url %}
-        <div class="w-full h-96 overflow-hidden">
+        <div class="w-full aspect-w-16 aspect-h-9 overflow-hidden">
           <img src="{{ talk.get_image_url }}"
                alt="Image for {{ talk.title }}"
-               class="w-full h-full object-cover"
+               class="w-full h-full object-cover object-center"
                width="1200"
                height="630" />
         </div>
