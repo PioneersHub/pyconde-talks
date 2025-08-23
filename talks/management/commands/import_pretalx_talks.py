@@ -38,6 +38,7 @@ class VerbosityLevel(Enum):
     NORMAL = 1
     DETAILED = 2
     DEBUG = 3
+    TRACE = 4
 
 
 class PytanisCfg(BaseModel):
