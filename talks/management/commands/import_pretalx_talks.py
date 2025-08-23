@@ -76,10 +76,11 @@ class SubmissionData:
             and submission.slot
             and hasattr(submission.slot, "room")
             and submission.slot.room
-            and hasattr(submission.slot.room, "en")
-            and submission.slot.room.en
+            and hasattr(submission.slot.room, "name")
+            and submission.slot.room.name
+            and "en" in submission.slot.room.name
         ):
-            self.room = submission.slot.room.en[:MAX_ROOM_NAME_LENGTH]
+            self.room = submission.slot.room.name["en"][:MAX_ROOM_NAME_LENGTH]
 
         # Extract track safely
         self.track = ""
