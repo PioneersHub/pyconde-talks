@@ -5,7 +5,7 @@ import traceback
 from collections.abc import Iterator
 from datetime import timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 import httpx
 from django.conf import settings
@@ -61,9 +61,11 @@ class SubmissionData:
         self.title = submission.title[:MAX_TALK_TITLE_LENGTH] if submission.title else ""
         self.abstract = submission.abstract or ""
         self.description = submission.description or ""
-        base_url = (
-            pretalx_base_url or getattr(settings, "PRETALX_BASE_URL", "https://pretalx.com")
-        ).rstrip("/")
+        base_url = cast(
+            "str",
+            pretalx_base_url or getattr(settings, "PRETALX_BASE_URL", "https://pretalx.com"),
+        )
+        base_url = base_url.rstrip("/")
         self.pretalx_link = f"{base_url}/{event_slug}/talk/{submission.code}"
         self.image_url = getattr(submission, "image", "") or ""
 
