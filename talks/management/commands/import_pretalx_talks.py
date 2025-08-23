@@ -738,8 +738,11 @@ class Command(BaseCommand):
             "Sponsored Talk (Keystone)": Talk.PresentationType.TUTORIAL,
             "Sponsored Talk (long)": Talk.PresentationType.TALK,
             "Sponsored Talk": Talk.PresentationType.TALK,
+            "Talk (long) [Sponsored]": Talk.PresentationType.TALK,
             "Talk (long)": Talk.PresentationType.TALK,
+            "Talk [Sponsored]": Talk.PresentationType.TALK,
             "Talk": Talk.PresentationType.TALK,
+            "Tutorial [Sponsored]": Talk.PresentationType.TUTORIAL,
             "Tutorial": Talk.PresentationType.TUTORIAL,
         }
 
