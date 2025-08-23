@@ -214,6 +214,7 @@ class Talk(models.Model):
         KIDS = "Kids", _("Kids")
         LIGHTNING = "Lightning", _("Lightning Talk")
         PANEL = "Panel", _("Panel")
+        PLENARY = "Plenary", _("Plenary")
         TALK = "Talk", _("Talk")
         TUTORIAL = "Tutorial", _("Tutorial")
 

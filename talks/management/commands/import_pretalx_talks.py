@@ -734,6 +734,7 @@ class Command(BaseCommand):
             "Kids Workshop": Talk.PresentationType.KIDS,
             "Lightning Talks": Talk.PresentationType.LIGHTNING,
             "Panel": Talk.PresentationType.PANEL,
+            "Plenary Session [Organizers]": Talk.PresentationType.PLENARY,
             "Sponsored Talk (Keystone)": Talk.PresentationType.TUTORIAL,
             "Sponsored Talk (long)": Talk.PresentationType.TALK,
             "Sponsored Talk": Talk.PresentationType.TALK,
