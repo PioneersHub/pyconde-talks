@@ -279,7 +279,7 @@ class Talk(models.Model):
         help_text=_("URL to an externally hosted image"),
     )
     image = models.ImageField(
-        upload_to="talk_images/",
+        upload_to=f"talk_images/{settings.BRAND_ASSETS_SUBDIR}/",
         blank=True,
         null=True,
         help_text=_("Image for the talk. Overrides the external image URL if provided."),
@@ -526,7 +526,10 @@ class Talk(models.Model):
             return cast("str", self.image.url)
         if self.external_image_url:
             return self.external_image_url
-        return f"{settings.MEDIA_URL}talk_images/default.jpg"
+        return (
+            f"{settings.MEDIA_URL.rstrip('/')}/talk_images/"
+            f"{settings.BRAND_ASSETS_SUBDIR}/default.jpg"
+        )
 
     def get_slido_link(self) -> str:
         """
