@@ -353,6 +353,15 @@ class Command(BaseCommand):
             )
 
         if not submission.speakers:
+            # Allow Lightning Talks without defined speakers
+            if self._submission_is_lightning_talk(submission):
+                self._log(
+                    f"Lightning Talk {submission.code} has no speakers",
+                    verbosity,
+                    VerbosityLevel.NORMAL,
+                    "WARNING",
+                )
+                return True
             valid = False
             self._log(
                 f"Submission {submission.code} has no speakers",
@@ -362,6 +371,36 @@ class Command(BaseCommand):
             )
 
         return valid
+
+    def _submission_is_lightning_talk(self, submission: Submission) -> bool:
+        """Check if a submission is a lightning talk."""
+        lightning_terms = frozenset(
+            {
+                "lightning",
+                "lightning talk",
+                "lightning talks",
+                "lightning talks (1/2)",
+                "lightning talks (2/2)",
+            },
+        )
+        fields = [
+            getattr(submission, "track", None),
+            getattr(submission, "title", None),
+            getattr(submission, "submission_type", None),
+        ]
+        for field in fields:
+            # If field is a string
+            if isinstance(field, str) and field.lower() in lightning_terms:
+                return True
+            # If field is a MultiLingualStr, check .en
+            if (
+                field is not None
+                and hasattr(field, "en")
+                and isinstance(field.en, str)
+                and field.en.lower() in lightning_terms
+            ):
+                return True
+        return False
 
     def _process_single_submission(
         self,
