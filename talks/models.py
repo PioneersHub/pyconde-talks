@@ -208,21 +208,7 @@ class Talk(models.Model):
     """Represents a conference talk."""
 
     class PresentationType(models.TextChoices):
-        """
-        Enumeration of presentation types.
-
-        Values in Pretalx:
-        - Keynote
-        - Kids Workshop
-        - Lightning Talks
-        - Panel
-        - Sponsored Talk
-        - Sponsored Talk (Keystone)
-        - Sponsored Talk (long)
-        - Talk
-        - Talk (long)
-        - Tutorial
-        """
+        """Enumeration of presentation types."""
 
         KEYNOTE = "Keynote", _("Keynote")
         KIDS = "Kids", _("Kids")
