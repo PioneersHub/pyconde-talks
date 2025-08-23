@@ -371,6 +371,18 @@ class Command(BaseCommand):
                 "ERROR",
             )
 
+        if (
+            not hasattr(submission, "slot")
+            or not hasattr(submission.slot, "room")
+            or not submission.slot.room
+        ):
+            self._log(
+                f"Submission {submission.code} has no room assigned",
+                verbosity,
+                VerbosityLevel.TRACE,
+                "WARNING",
+            )
+
         return valid
 
     def _submission_is_lightning_talk(self, submission: Submission) -> bool:
