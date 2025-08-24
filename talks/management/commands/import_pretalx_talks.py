@@ -1,10 +1,12 @@
 """Management command for one-way (Pretalx » Django) sync of speakers and talks via API."""
 # ruff: noqa: BLE001
 
+import pickle  # nosec: B403
 import traceback
 from collections.abc import Iterator
 from datetime import timedelta
 from enum import Enum
+from pathlib import Path
 from typing import Any, cast
 
 import httpx
@@ -248,8 +250,18 @@ class Command(BaseCommand):
                 (httpx.HTTPStatusError, httpx.RequestError, RuntimeError, ValidationError),
             ),
         )
-        def _retry_fetch_talks() -> tuple[int, Iterator[Submission]]:
-            return pretalx.submissions(event_slug)
+        def _retry_fetch_talks() -> tuple[int, list[Submission]]:
+            pickle_file = Path(".pretalx_cache")
+            if pickle_file.exists():
+                with pickle_file.open("rb") as f:
+                    return pickle.load(f)  # nosec: B301  # noqa: S301
+            count, submissions = pretalx.submissions(event_slug)
+            result = (count, list(submissions))
+
+            with pickle_file.open("wb") as f:
+                pickle.dump(result, f)
+
+            return result
 
         return _retry_fetch_talks()
 
