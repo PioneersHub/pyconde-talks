@@ -9,6 +9,7 @@ from typing import Any
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
 from django.db.models.functions import TruncDate
 from django.db.models.query import QuerySet
 from django.http import Http404, HttpRequest, HttpResponse
@@ -54,7 +55,7 @@ class TalkListView(LoginRequiredMixin, ListView):
         return [self.template_name]
 
     def get_queryset(self) -> QuerySet[Talk]:
-        """Get the list of talks filtered by room, date, track, and presentation type."""
+        """Get the list of talks filtered by room, date, track, presentation type, and query."""
         queryset: QuerySet[Talk] = Talk.objects.all()
 
         # Filter by room
@@ -77,10 +78,27 @@ class TalkListView(LoginRequiredMixin, ListView):
         if presentation_type:
             queryset = queryset.filter(presentation_type=presentation_type)
 
+        # Free-text search with scope
+        query = (self.request.GET.get("q") or "").strip()
+        raw_scopes = [s.strip() for s in self.request.GET.getlist("search_in") if s.strip()]
+        scopes = set(raw_scopes or ["all"])  # default to all when nothing selected
+        if query:
+            q_obj = Q()
+            if "all" in scopes or not scopes:
+                scopes = {"title", "author", "description"}
+            if "title" in scopes:
+                q_obj |= Q(title__icontains=query)
+            if "description" in scopes:
+                q_obj |= Q(description__icontains=query) | Q(abstract__icontains=query)
+            if "author" in scopes:
+                q_obj |= Q(speakers__name__icontains=query)
+
+            queryset = queryset.filter(q_obj).distinct()
+
         return queryset.order_by("start_time")
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        """Enhance the template context with additional data."""
+        """Enhance the template context with filter options and selected values."""
         context = super().get_context_data(**kwargs)
 
         # Get unique rooms
@@ -94,7 +112,7 @@ class TalkListView(LoginRequiredMixin, ListView):
         )
 
         # Check if there are multiple years
-        years = {date.year for date in context["dates"]}
+        years = {d.year for d in context["dates"]}
         context["has_multiple_years"] = len(years) > 1
 
         # Get unique tracks
@@ -111,11 +129,13 @@ class TalkListView(LoginRequiredMixin, ListView):
             (ptype, Talk.PresentationType(ptype).label) for ptype in existing_types
         ]
 
-        # Set the selected values for filters
+        # Selected values
         context["selected_room"] = self.request.GET.get("room", "")
         context["selected_date"] = self.request.GET.get("date", "")
         context["selected_track"] = self.request.GET.get("track", "")
         context["selected_type"] = self.request.GET.get("presentation_type", "")
+        context["search_query"] = self.request.GET.get("q", "")
+        context["search_in"] = self.request.GET.getlist("search_in") or ["all"]
 
         return context
 

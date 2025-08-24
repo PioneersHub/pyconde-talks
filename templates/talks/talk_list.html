@@ -1,16 +1,71 @@
 {% extends "base.html" %}
 {% load partials %}
 {% load svg_tags %}
+{% load highlight %}
 {% block content %}
   <div class="max-w-4xl mx-auto p-4">
+    <!-- Search -->
+    <div class="card-compact mb-4">
+      <form id="search-form"
+            hx-get="{% url 'talk_list' %}"
+            hx-target="#talks-container"
+            hx-push-url="true"
+            hx-trigger="keyup changed delay:300ms from:input[name='q'], change from:select"
+            hx-include="#filters-form, #search-form"
+            hx-indicator="#loading-indicator"
+            class="flex flex-wrap gap-3 items-center">
+        <input type="search"
+               name="q"
+               value="{{ search_query }}"
+               placeholder="Search talks"
+               class="form-input w-72"
+               aria-label="Search talks" />
+        <fieldset class="flex flex-wrap gap-3 items-center">
+          <legend class="sr-only">Search scope</legend>
+          <label class="inline-flex items-center gap-1">
+            <input type="checkbox"
+                   name="search_in"
+                   value="title"
+                   {% if 'all' in search_in or 'title' in search_in %}checked{% endif %} />
+            <span>Title</span>
+          </label>
+          <label class="inline-flex items-center gap-1">
+            <input type="checkbox"
+                   name="search_in"
+                   value="description"
+                   {% if 'all' in search_in or 'description' in search_in %}checked{% endif %} />
+            <span>Description</span>
+          </label>
+          <label class="inline-flex items-center gap-1">
+            <input type="checkbox"
+                   name="search_in"
+                   value="author"
+                   {% if 'all' in search_in or 'author' in search_in %}checked{% endif %} />
+            <span>Author</span>
+          </label>
+        </fieldset>
+        <button type="button"
+                class="btn-secondary"
+                hx-get="{% url 'talk_list' %}"
+                hx-target="#talks-container"
+                hx-push-url="true"
+                hx-indicator="#loading-indicator"
+                hx-include="#filters-form"
+                hx-vals='{"q":"","search_in":["title","description","author"]}'>Clear</button>
+        <!-- spinner -->
+        <div id="loading-indicator" class="htmx-indicator">{% svg 'spinner' "animate-spin h-5 w-5 text-brand-blue" %}</div>
+      </form>
+    </div>
     <!-- Filters -->
     <div class="card-compact mb-6">
-      <form hx-get="{% url 'talk_list' %}"
+      <form id="filters-form"
+            hx-get="{% url 'talk_list' %}"
             hx-target="#talks-container"
             hx-push-url="true"
             hx-trigger="change from:select"
+            hx-include="#filters-form, #search-form"
             hx-indicator="#loading-indicator"
-            class="flex flex-wrap gap-4">
+            class="flex flex-wrap gap-4 items-center">
         <select name="date" class="form-select">
           <option value="">All Days</option>
           {% for date in dates %}
@@ -45,8 +100,6 @@
                     {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
           {% endfor %}
         </select>
-        <!-- spinner -->
-        <div id="loading-indicator" class="htmx-indicator">{% svg 'spinner' "animate-spin h-5 w-5 text-brand-blue" %}</div>
       </form>
     </div>
     <!-- Define the talks partial -->
@@ -60,7 +113,7 @@
           <div class="p-4 {% if talk.is_current %} card-bg-current {% elif talk.is_upcoming %} card-bg-upcoming {% else %} card-bg-default {% endif %}">
             <!-- Title and status badge -->
             <div class="flex justify-between items-start">
-              <a href="{% url 'talk_detail' talk.pk %}" class="link-title pl-2">{{ talk.title }}</a>
+              <a href="{% url 'talk_detail' talk.pk %}" class="link-title pl-2">{{ talk.title|highlight:search_query }}</a>
               {% if talk.is_current %}
                 <span class="badge badge-orange px-2 py-0.5 text-xs font-medium flex items-center flex-shrink-0 whitespace-nowrap">
                   {% svg 'clock' "h-3 w-3 mr-1" %}
@@ -78,7 +131,7 @@
                 </span>
               {% endif %}
             </div>
-            <p class="text-muted pl-2">{{ talk.speaker_names }}</p>
+            <p class="text-muted pl-2">{{ talk.speaker_names|highlight:search_query }}</p>
             <!-- Date and Room info -->
             <div class="text-sm mt-2 pl-2">
               <span class="{% if talk.is_current %} badge badge-orange {% elif talk.is_upcoming %} badge badge-purple {% else %} badge badge-gray {% endif %}">{{ talk.start_time|date:"D, g:i A" }}</span>
@@ -124,7 +177,7 @@
   <div id="talks-container"
        class="space-y-4"
        hx-get="{% url 'talk_list' %}"
-       hx-include="form"
+       hx-include="#filters-form, #search-form"
        hx-trigger="every 300s">{% partial talk-list %}</div>
 </div>
 {% endblock content %}
