@@ -727,13 +727,13 @@ class Command(BaseCommand):
                 and not dry_run
                 and (
                     existing_speaker.biography != (speaker_data.biography or "")
-                    or existing_speaker.avatar != (speaker_data.avatar or "")
+                    or existing_speaker.avatar != (speaker_data.avatar_url or "")
                     or existing_speaker.name != speaker_data.name
                 )
             ):
                 existing_speaker.name = speaker_data.name
                 existing_speaker.biography = speaker_data.biography or ""
-                existing_speaker.avatar = speaker_data.avatar or ""
+                existing_speaker.avatar = speaker_data.avatar_url or ""
                 existing_speaker.save()
                 self._log(
                     f"Updated speaker: {speaker_data.name}",
@@ -762,14 +762,14 @@ class Command(BaseCommand):
             return Speaker(
                 name=speaker_data.name,
                 biography=speaker_data.biography or "",
-                avatar=speaker_data.avatar or "",
+                avatar=speaker_data.avatar_url or "",
                 pretalx_id=speaker_data.code,
             )
 
         speaker = Speaker.objects.create(
             name=speaker_data.name,
             biography=speaker_data.biography or "",
-            avatar=speaker_data.avatar or "",
+            avatar=speaker_data.avatar_url or "",
             pretalx_id=speaker_data.code,
         )
         self._log(
