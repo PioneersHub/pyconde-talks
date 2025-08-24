@@ -25,6 +25,7 @@ devcontainers
 dhparams
 djlint
 Dynamicum
+Ebene
 EDITMSG
 elts
 emailaddress
@@ -32,6 +33,7 @@ enablejsapi
 endfor
 endpartial
 esbenp
+evenodd
 extrahead
 fbsd
 formaction
@@ -40,14 +42,19 @@ fullchain
 fullscreen
 gcwv
 Genderqueer
+getbbox
+getbuffer
 ggpht
 googlevideo
 healthcheck
 htmlcov
 htmx
+inkscape
 ipython
 isort
 isready
+keepalive
+LANCZOS
 letsencrypt
 levelname
 libpq
@@ -62,6 +69,7 @@ miterlimit
 monosans
 msys
 mypy
+nbytes
 newrelic
 nodelay
 noinput
@@ -74,9 +82,11 @@ onclick
 openpyxl
 passwordless
 pgdata
+pilmoji
 pretalx
 privkey
 psycopg
+putalpha
 pycache
 pycon
 pyconde
@@ -88,6 +98,7 @@ pytest
 pytestmark
 PYTHONDONTWRITEBYTECODE
 PYTHONUNBUFFERED
+RAQM
 regularuser
 Reswap
 Retarget
@@ -106,6 +117,7 @@ stylesheet
 sunos
 tailwindcss
 tamasfe
+tspan
 venv
 videoteam
 vimeocdn

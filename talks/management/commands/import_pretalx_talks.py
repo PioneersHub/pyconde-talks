@@ -1,25 +1,27 @@
 """Management command for one-way (Pretalx » Django) sync of speakers and talks via API."""
 # ruff: noqa: BLE001
 
+import asyncio
+import hashlib
 import pickle  # nosec: B403
 import traceback
-from collections.abc import Iterator
+import warnings
 from datetime import timedelta
 from enum import Enum
+from io import BytesIO
 from pathlib import Path
 from typing import Any, cast
 
 import httpx
 from django.conf import settings
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.management.base import BaseCommand, CommandParser
+from PIL import Image, ImageDraw, ImageFont, ImageOps, features
+from pilmoji import Pilmoji
 from pydantic import BaseModel, ValidationError
 from pytanis import PretalxClient
 from pytanis.config import PretalxCfg
-from pytanis.pretalx.models import (
-    State,
-    Submission,
-    SubmissionSpeaker,
-)
+from pytanis.pretalx.models import State, Submission, SubmissionSpeaker
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from talks.models import (
@@ -163,6 +165,11 @@ class Command(BaseCommand):
             default=3,
             help="Maximum number of retries for API requests",
         )
+        parser.add_argument(
+            "--skip-images",
+            action="store_true",
+            help="Skip generating/updating talk social images",
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:  # noqa: ARG002
         """Execute the command to import talks from Pretalx."""
@@ -303,6 +310,17 @@ class Command(BaseCommand):
                 "WARNING",
             )
 
+        # Prefetch speaker avatar images to speed up talk image generation
+        try:
+            self._prefetch_avatars_for_submissions(submissions, options)
+        except Exception as e:  # Prefetch is best-effort
+            self._log(
+                f"Avatar prefetch failed (continuing without cache): {e!s}",
+                verbosity,
+                VerbosityLevel.DETAILED,
+                "WARNING",
+            )
+
         # Process each submission
         for idx, submission in enumerate(submissions):
             self._log(
@@ -343,6 +361,34 @@ class Command(BaseCommand):
             VerbosityLevel.NORMAL,
             "SUCCESS",
         )
+
+    def _prefetch_avatars_for_submissions(
+        self,
+        submissions: list[Submission],
+        options: dict[str, Any],
+    ) -> None:
+        """Collect unique avatar URLs (accepted/confirmed only) and prefetch them."""
+        # Don't prefetch if images are skipped
+        if options.get("skip_images", False):
+            return
+        urls: set[str] = set()
+        for sub in submissions:
+            if getattr(sub, "state", None) not in {State.accepted, State.confirmed}:
+                continue
+            if getattr(sub, "speakers", None):
+                for sp in sub.speakers:
+                    url = getattr(sp, "avatar_url", None) or ""
+                    if url:
+                        urls.add(url)
+
+        if not urls:
+            return
+        cache_dir = self._get_avatar_cache_dir()
+        asyncio.run(_prefetch_avatar_urls(urls, cache_dir))
+
+    def _get_avatar_cache_dir(self) -> Path:
+        """Return the on-disk avatar cache directory path."""
+        return settings.MEDIA_ROOT / "avatars"
 
     def _is_valid_submission(self, submission: Submission, verbosity: VerbosityLevel) -> bool:
         """Validate a submission."""
@@ -487,6 +533,8 @@ class Command(BaseCommand):
         if not dry_run:
             talk = self._create_talk(data, options)
             self._add_speakers_to_talk(talk, submission.speakers, options)
+            if not options.get("skip_images", False):
+                self._generate_talk_image(talk, options)
         return "created"
 
     def _create_talk(self, data: SubmissionData, options: dict[str, Any]) -> Talk:
@@ -826,3 +874,340 @@ class Command(BaseCommand):
             return Talk.PresentationType.TALK
 
         return type_mapping[submission_type]
+
+    def _download_speaker_photo(self, speaker: Speaker) -> Image.Image | None:
+        """Get the speaker photo from cache or download it if needed."""
+        url = speaker.avatar
+        if not url:
+            return None
+
+        cache_dir = self._get_avatar_cache_dir()
+        data = _get_cached_avatar_bytes(cache_dir, url)
+
+        # Download and persist if missing
+        if data is None:
+            data = _download_avatar_bytes_sync(url)
+            if data is None:
+                return None
+            _save_avatar_bytes(cache_dir, url, data)
+
+        try:
+            return Image.open(BytesIO(data))
+        except Exception:
+            return None
+
+    def _process_speaker_photo(self, photo: Image.Image, size: int = 200) -> Image.Image:
+        """Crop to square, resize, and apply a circular alpha mask."""
+        # Crop to centered square and resize in one go
+        img = ImageOps.fit(photo, (size, size), Image.Resampling.LANCZOS, centering=(0.5, 0.5))
+
+        # Build circular alpha mask
+        mask = Image.new("L", (size, size), 0)
+        ImageDraw.Draw(mask).ellipse((0, 0, size, size), fill=255)
+
+        # Compose RGBA
+        output = Image.new("RGBA", (size, size))
+        output.paste(img.convert("RGB"), (0, 0))
+        output.putalpha(mask)
+        return output
+
+    def _download_and_process_speaker_photos(
+        self,
+        speakers: list[Speaker],
+        limit: int = 2,
+    ) -> list[tuple[Image.Image, str]]:
+        """Download and process speaker photos."""
+        photos = []
+        for speaker in speakers:
+            photo = self._download_speaker_photo(speaker)
+            if photo:
+                photo = self._process_speaker_photo(photo)
+                photos.append((photo, speaker.pretalx_id))
+                if len(photos) >= limit:
+                    break
+        return photos
+
+    def _wrap_text(
+        self,
+        text: str,
+        fonts: dict[str, ImageFont.FreeTypeFont],
+        max_width: int,
+    ) -> list[str]:
+        """Greedy wrap within max_width using Pilmoji-based measurement for accuracy."""
+        words = text.split()
+        lines: list[str] = []
+        current: list[str] = []
+
+        for word in words:
+            trial = " ".join([*current, word])
+            width = self._pilmoji_text_width(trial, fonts["title"], max_width)
+
+            if width <= max_width:
+                current.append(word)
+            else:
+                if current:
+                    lines.append(" ".join(current))
+                current = [word]
+
+        if current:
+            lines.append(" ".join(current))
+
+        return lines
+
+    def _pilmoji_text_width(
+        self,
+        text: str,
+        font: ImageFont.FreeTypeFont,
+        max_width: int,
+    ) -> int:
+        """
+        Measure rendered width by drawing with Pilmoji on a temporary image.
+
+        We render into a transparent canvas and inspect the bounding box, which accounts for emoji
+        images and shaped text.
+        """
+        # Heuristic canvas size: twice the max width and ~2x font size height
+        canvas_w = max(64, max_width * 2)
+        canvas_h = max(64, int(font.size * 2))
+        img = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
+        with Pilmoji(img) as pilmoji:
+            pilmoji.text((0, 0), text, (255, 255, 255), font)
+        bbox = img.getbbox()
+        return 0 if bbox is None else bbox[2]
+
+    def _load_fonts(self) -> dict[str, ImageFont.FreeTypeFont]:
+        """
+        Load the configured font for the social card.
+
+        Configuration:
+        - Django setting TALK_CARD_FONT must point to an existing .ttf/.otf file.
+        """
+        font_path = getattr(settings, "TALK_CARD_FONT", None)
+        if not font_path or not Path(font_path).exists():
+            msg = "TALK_CARD_FONT must be configured and point to an existing font file"
+            raise FileNotFoundError(msg)
+
+        layout = ImageFont.Layout.RAQM if features.check_feature("raqm") else ImageFont.Layout.BASIC
+        fonts: dict[str, ImageFont.FreeTypeFont] = {
+            "title": ImageFont.truetype(font_path, 46, layout_engine=layout),
+            "subtitle": ImageFont.truetype(font_path, 28, layout_engine=layout),
+            "small": ImageFont.truetype(font_path, 24, layout_engine=layout),
+            "event_info": ImageFont.truetype(font_path, 42, layout_engine=layout),
+        }
+        return fonts
+
+    def _generate_talk_image(
+        self,
+        talk: Talk,
+        options: dict[str, Any],
+        card_width: int = 1200,
+    ) -> Image:
+        """Generate a talk image based on the title and speakers and save as WebP."""
+        verbosity = VerbosityLevel(options.get("verbosity", VerbosityLevel.NORMAL.value))
+
+        template_path = (
+            settings.BASE_DIR
+            / "assets"
+            / "img"
+            / settings.BRAND_ASSETS_SUBDIR
+            / "talk_template.png"
+        )
+        img = Image.open(template_path).copy().convert("RGBA")
+
+        # Get template dimensions
+        width, height = img.size
+
+        # Convert to RGB for final output
+        final_img = Image.new("RGB", (width, height), (255, 255, 255))
+        final_img.paste(img, (0, 0), img)
+
+        draw = ImageDraw.Draw(final_img)
+
+        # Use exact positions
+        speaker_margin_x = 40
+        speaker_margin_y = 50
+
+        # Download up to 4 speaker photos
+        limit = 4
+        speaker_photos = self._download_and_process_speaker_photos(
+            list(talk.speakers.all()),
+            limit=limit,
+        )
+        avatar_count = len(speaker_photos)
+
+        # Decide layout and sizes
+        spacing = 20
+        area_side = int(height * 0.5)  # square area for speakers at top-left
+
+        if avatar_count <= 1:
+            speaker_size = area_side
+            grid_cols = 1
+        elif avatar_count == 2:  # noqa: PLR2004
+            area_width = int(height * 0.7)
+            speaker_size = (area_width - spacing) // 2
+            grid_cols = 2
+        else:
+            speaker_size = (area_side - spacing) // 2
+            grid_cols = 2
+
+        # Process photos to the computed size
+        processed_photos = [
+            self._process_speaker_photo(p, size=speaker_size) for p, _ in speaker_photos[:limit]
+        ]
+
+        # Paste photos in grid at upper-left
+        for idx, photo in enumerate(processed_photos):
+            row = idx // grid_cols
+            col = idx % grid_cols
+            x = speaker_margin_x + col * (speaker_size + spacing)
+            y = speaker_margin_y + row * (speaker_size + spacing)
+            final_img.paste(photo, (x, y), photo)
+
+        # Session title: align at bottom of safe zone box
+        full_width = card_width - 80  # 1120px
+
+        # Fonts and colors
+        fonts = self._load_fonts()
+        colors = {"text": (255, 255, 255)}
+
+        self._draw_title_block(
+            canvas=final_img,
+            title=talk.title,
+            fonts=fonts,
+            full_width=full_width,
+        )
+
+        # Speaker names at bottom
+        speakers_text = talk.speaker_names
+        if speakers_text:
+            speaker_y = height - 80
+            draw.text(
+                (40, speaker_y),
+                speakers_text,
+                font=fonts["subtitle"],
+                fill=colors["text"],
+            )
+
+        # Save WebP
+        buffer = BytesIO()
+        final_img.save(buffer, format="WEBP", quality=82, method=6)
+        buffer.seek(0)
+        image_file = InMemoryUploadedFile(
+            buffer,
+            None,
+            f"talk_{talk.pk}.webp",
+            "image/webp",
+            buffer.getbuffer().nbytes,
+            None,
+        )
+        talk.image = image_file
+        talk.save()
+
+        self._log(
+            f"Generated talk image for: {talk.title}",
+            verbosity,
+            VerbosityLevel.DETAILED,
+            "SUCCESS",
+        )
+
+        return final_img
+
+    def _draw_title_block(
+        self,
+        canvas: Image.Image,
+        title: str,
+        fonts: dict[str, ImageFont.FreeTypeFont],
+        full_width: int,
+    ) -> None:
+        """Draw wrapped title text aligned to bottom of safe area."""
+        title_lines = self._wrap_text(title, fonts, full_width)
+        line_height = 60
+        title_block_height = len(title_lines[:5]) * line_height
+        title_y = 540 - title_block_height
+        with Pilmoji(canvas) as pilmoji:
+            for line in title_lines[:5]:
+                pilmoji.text((40, title_y), line, (255, 255, 255), fonts["title"])
+                title_y += line_height
+
+
+# In-memory avatar cache
+AVATAR_CACHE: dict[str, bytes] = {}
+
+
+def _url_to_cache_path(cache_dir: Path, url: str) -> Path:
+    """Return on-disk cache path for a URL using SHA-256 hash."""
+    h = hashlib.sha256(url.encode("utf-8")).hexdigest()
+    return cache_dir / f"{h}.img"
+
+
+def _get_cached_avatar_bytes(cache_dir: Path, url: str) -> bytes | None:
+    """Return cached bytes from memory or disk (and hydrate memory if from disk)."""
+    data = AVATAR_CACHE.get(url)
+    if data is not None:
+        return data
+    path = _url_to_cache_path(cache_dir, url)
+    if path.exists():
+        try:
+            data = path.read_bytes()
+        except Exception as exc:
+            warnings.warn(f"Failed to read avatar from disk cache: {exc!s}", stacklevel=2)
+        else:
+            AVATAR_CACHE[url] = data
+            return data
+    return None
+
+
+def _save_avatar_bytes(cache_dir: Path, url: str, data: bytes) -> None:
+    """Persist avatar bytes to disk and memory cache."""
+    path = _url_to_cache_path(cache_dir, url)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+    except Exception as exc:
+        warnings.warn(f"Avatar cache write failed: {exc!s}", stacklevel=2)
+    AVATAR_CACHE[url] = data
+
+
+def _download_avatar_bytes_sync(url: str, request_timeout: float = 15) -> bytes | None:
+    """Download avatar bytes synchronously; return None on failure."""
+    try:
+        resp = httpx.get(url, timeout=request_timeout)
+        resp.raise_for_status()
+    except httpx.HTTPError:
+        return None
+    else:
+        return resp.content
+
+
+async def _download_avatar_bytes_async(
+    client: httpx.AsyncClient,
+    url: str,
+    request_timeout: float = 15,
+) -> bytes | None:
+    """Download avatar bytes asynchronously; return None on failure."""
+    try:
+        resp = await client.get(url, timeout=request_timeout)
+        resp.raise_for_status()
+    except httpx.HTTPError:
+        return None
+    else:
+        return resp.content
+
+
+async def _prefetch_avatar_urls(urls: set[str], cache_dir: Path, concurrency: int = 8) -> None:
+    """Prefetch avatar URLs into memory and disk cache using httpx.AsyncClient."""
+
+    async def _fetch(client: httpx.AsyncClient, url: str) -> None:
+        # Skip if already cached (memory or disk)
+        if _get_cached_avatar_bytes(cache_dir, url) is not None:
+            return
+        try:
+            data = await _download_avatar_bytes_async(client, url)
+            if data is not None:
+                _save_avatar_bytes(cache_dir, url, data)
+        except Exception as exc:
+            warnings.warn(f"Avatar prefetch failed: {exc!s}", stacklevel=2)
+
+    limits = httpx.Limits(max_connections=concurrency, max_keepalive_connections=concurrency)
+    async with httpx.AsyncClient(limits=limits) as client:
+        await asyncio.gather(*(_fetch(client, u) for u in urls))
