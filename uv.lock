@@ -512,6 +512,12 @@ wheels = [
 ]
 
 [[package]]
+name = "emoji"
+version = "1.7.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/68/8a/b08dd0b946f0843cba782e3784cd979c33f144e5e7c37fb0162dc47acd43/emoji-1.7.0.tar.gz", hash = "sha256:65c54533ea3c78f30d0729288998715f418d7467de89ec258a31c0ce8660a1d1", size = 175436, upload-time = "2022-03-08T17:51:05.642Z" }
+
+[[package]]
 name = "et-xmlfile"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1038,6 +1044,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pilmoji"
+version = "2.0.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "emoji" },
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e1/04/e463218cffa0d8e145aa3c5fb409e483134df69ccfdce02bff0e05bce08e/pilmoji-2.0.4.tar.gz", hash = "sha256:3861c09999f36bb32dd559e181b63a8a9c8068b2cddcac32637581e48de2d11f", size = 9952, upload-time = "2023-08-10T02:56:10.878Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/47/7c/b7139e422e460889077d34b8e668b7b61af19e303b7a66adc736313fb71a/pilmoji-2.0.4-py3-none-any.whl", hash = "sha256:2fcb2116226ed8aa600fcf6e65d7693b5d08d60715f8c460553130081a5adc26", size = 9709, upload-time = "2023-08-10T02:56:09.123Z" },
+]
+
+[[package]]
 name = "platformdirs"
 version = "4.3.8"
 source = { registry = "https://pypi.org/simple" }
@@ -1166,10 +1185,12 @@ dependencies = [
     { name = "django-markdownify" },
     { name = "django-structlog" },
     { name = "django-template-partials" },
+    { name = "emoji" },
     { name = "furl" },
     { name = "model-bakery" },
     { name = "openpyxl" },
     { name = "pillow" },
+    { name = "pilmoji" },
     { name = "pytanis" },
     { name = "requests" },
     { name = "structlog" },
@@ -1214,10 +1235,12 @@ requires-dist = [
     { name = "django-markdownify", specifier = ">=0.9.5" },
     { name = "django-structlog", specifier = ">=9.1.1" },
     { name = "django-template-partials", specifier = ">=25.1" },
+    { name = "emoji", specifier = ">=1.7,<2" },
     { name = "furl", specifier = ">=2.1.4" },
     { name = "model-bakery", specifier = ">=1.20.5" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pillow", specifier = ">=11.3.0" },
+    { name = "pilmoji", specifier = ">=2.0.4" },
     { name = "pytanis", specifier = ">=0.9.1" },
     { name = "requests", specifier = ">=2.32.4" },
     { name = "structlog", specifier = ">=25.4.0" },
