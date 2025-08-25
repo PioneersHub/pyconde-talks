@@ -18,6 +18,7 @@ SKIP_STEPS="${SKIP_STEPS:-}"
 GEN_FAKE_DATA="${GEN_FAKE_DATA:-true}"
 PRETALX_SYNC="${PRETALX_SYNC:-false}"
 IMPORT_STREAMS="${IMPORT_STREAMS:-false}"
+DOWNLOAD_FONT="${DOWNLOAD_FONT:-true}"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -255,6 +256,13 @@ initialize_django() {
         log "Creating test users..."
         "$VENV_PYTHON" manage.py createuser --email=user1@example.com || warn "User1 creation failed"
         "$VENV_PYTHON" manage.py createuser --email=user2@example.com || warn "User2 creation failed"
+    fi
+
+    # Download Noto font
+    if [ "$DOWNLOAD_FONT" = "true" ]; then
+        log "Downloading Noto font..."
+        mkdir -p "./assets/fonts"
+        curl -sL "https://github.com/notofonts/notofonts.github.io/raw/refs/heads/main/fonts/NotoSans/full/variable-ttf/NotoSans%5Bwdth,wght%5D.ttf" -o "./assets/fonts/NotoSans.ttf"
     fi
 
     # Generate test data if requested
