@@ -70,9 +70,14 @@
                    rel="noopener noreferrer"
                    class="btn-secondary inline-flex items-center px-2 py-1 text-xs rounded">
                   {% svg 'chat-bubble-left-ellipsis' "h-3 w-3 mr-1" %}
-                  Q&amp;A
+                  Slido
                 </a>
               {% endif %}
+              <a href="{% url 'talk_questions' talk.pk %}"
+                 class="btn-secondary inline-flex items-center px-3 py-1 rounded">
+                {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-1" %}
+                Q&amp;A
+              </a>
             </div>
           </div>
         </div>
