@@ -18,6 +18,7 @@ from django.utils import timezone
 from django.views.generic import DetailView, ListView
 
 from .models import Room, Talk
+from .utils import get_talk_by_id_or_pretalx
 
 
 class TalkDetailView(LoginRequiredMixin, DetailView):
@@ -163,30 +164,9 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
 
 
 def talk_redirect_view(_: HttpRequest, talk_id: str) -> HttpResponse:
-    """
-    Get talk detail view by Talk ID or pretalx_id.
-
-    The chance of collision is very small.
-    It's not clear if the pretalx_id is unique across all events or if it can be a small number like
-    the primary key of a talk.
-    """
-    # Try to interpret as primary key
-    try:
-        pk = int(talk_id)
-        talk = Talk.objects.filter(pk=pk).first()
-        if talk:
-            return redirect("talk_detail", pk=pk)
-    except ValueError:
-        # Not an integer, so can only be a pretalx_id
-        pass
-
-    # 1. talk_id was an integer but no talk with that pk exists, or
-    # 2. talk_id was not an integer
-    # Try to interpret as pretalx_id
-    talk = Talk.objects.filter(pretalx_link__contains=f"/talk/{talk_id}").first()
+    """Get talk detail view by Talk ID or Pretalx ID."""
+    talk = get_talk_by_id_or_pretalx(talk_id)
     if talk:
         return redirect("talk_detail", pk=talk.pk)
-
-    # Talk not found
-    msg = f"No talk found with ID or pretalx ID: {talk_id}"
+    msg = f"No talk found with ID or Pretalx ID: {talk_id}"
     raise Http404(msg)
