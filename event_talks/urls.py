@@ -20,6 +20,7 @@ from talks.views_qa import (
     QuestionUpdateView,
     delete_question,
     mark_question_answered,
+    question_redirect_view,
     reject_question,
     vote_question,
 )
@@ -47,6 +48,7 @@ urlpatterns = [
     path("upcoming-talks/", upcoming_talks, name="upcoming_talks"),
     # Q&A URLs
     path("talks/<int:talk_id>/questions/", QuestionListView.as_view(), name="talk_questions"),
+    path("talks/<str:talk_id>/questions/", question_redirect_view, name="question_redirect"),
     path(
         "talks/<int:talk_id>/questions/new/",
         QuestionCreateView.as_view(),

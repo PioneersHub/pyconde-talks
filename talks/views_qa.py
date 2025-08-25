@@ -13,7 +13,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 from django.db.models.query import QuerySet
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -22,6 +22,7 @@ from django.views.generic import CreateView, ListView, UpdateView
 
 from .models import Talk
 from .models_qa import Question, QuestionVote
+from .utils import get_talk_by_id_or_pretalx
 
 
 class QuestionListView(LoginRequiredMixin, ListView):
@@ -354,3 +355,12 @@ def mark_question_answered(request: HttpRequest, question_id: int) -> HttpRespon
         return render_question_list_fragment(request, talk, status_filter)
 
     return redirect("talk_questions", talk_id=question.talk.id)
+
+
+def question_redirect_view(_: HttpRequest, talk_id: str) -> HttpResponse:
+    """Get talk question view by Talk ID or pretalx_id."""
+    talk = get_talk_by_id_or_pretalx(talk_id)
+    if talk:
+        return redirect("talk_questions", talk_id=talk.pk)
+    msg = f"No talk found with ID or pretalx ID: {talk_id}"
+    raise Http404(msg)
