@@ -3,7 +3,6 @@
 
 import asyncio
 import hashlib
-import pickle  # nosec: B403
 import traceback
 import warnings
 from datetime import timedelta
@@ -258,15 +257,31 @@ class Command(BaseCommand):
             ),
         )
         def _retry_fetch_talks() -> tuple[int, list[Submission]]:
+            if not settings.PICKLE_PRETALX_TALKS:
+                count, submissions = pretalx.submissions(event_slug)
+                return (count, list(submissions))
+
+            import pickle  # nosec: B403
+
             pickle_file = Path(".pretalx_cache")
+
+            # Try cache first
             if pickle_file.exists():
-                with pickle_file.open("rb") as f:
-                    return pickle.load(f)  # nosec: B301  # noqa: S301
+                try:
+                    with pickle_file.open("rb") as f:
+                        return pickle.load(f)  # nosec: B301  # noqa: S301
+                except (pickle.PickleError, OSError):
+                    pass
+
+            # Fetch and cache
             count, submissions = pretalx.submissions(event_slug)
             result = (count, list(submissions))
 
-            with pickle_file.open("wb") as f:
-                pickle.dump(result, f)
+            try:
+                with pickle_file.open("wb") as f:
+                    pickle.dump(result, f)
+            except OSError:
+                pass
 
             return result
 

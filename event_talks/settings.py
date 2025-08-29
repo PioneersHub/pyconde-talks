@@ -563,3 +563,4 @@ TALK_CARD_FONT = env(
 # Extra settings
 # --------------------------------------------------------------------------------------------------
 SHOW_UPCOMING_TALKS_LINKS = env.bool("SHOW_UPCOMING_TALKS_LINKS", default=False)
+PICKLE_PRETALX_TALKS = env.bool("PICKLE_PRETALX_TALKS", default=False)
