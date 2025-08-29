@@ -37,7 +37,7 @@ services:
       db:
         condition: service_healthy
     env_file:
-      - docker/.env
+      - .env
     volumes:
       - ${MOUNT_MEDIA_ROOT}:${DJANGO_MEDIA_ROOT}
       - ${MOUNT_LOGS_DIR}:${DJANGO_LOGS_DIR}
