@@ -43,14 +43,14 @@ RUN curl -sL \
 # Copy project
 COPY . /app/
 
-# Generate minified CSS with Tailwind
-RUN tailwindcss -i ./assets/css/input.css -o ./static/css/tailwind.min.css --minify
-
 # Install project and collect static files into STATIC_ROOT
 ENV DJANGO_STATIC_ROOT=/staticfiles
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-default-groups --group prod && \
-    python manage.py collectstatic --noinput
+    python manage.py collectstatic --noinput && \
+    # Generate minified CSS with Tailwind
+    mkdir -p ${DJANGO_STATIC_ROOT}/css && \
+    /usr/local/bin/tailwindcss -i /app/assets/css/input.css -o ${DJANGO_STATIC_ROOT}/css/tailwind.min.css --minify
 
 # Stage 2: extract static files
 #
