@@ -106,6 +106,12 @@ COPY --from=builder --chown=django:django /app/templates /app/templates/
 COPY --from=builder --chown=django:django /app/users /app/users/
 COPY --from=builder --chown=django:django /app/utils /app/utils/
 
+# Install font
+RUN mkdir -p /usr/share/fonts/truetype/noto && \
+    curl -sL \
+    "https://github.com/notofonts/notofonts.github.io/raw/refs/heads/main/fonts/NotoSans/full/variable-ttf/NotoSans%5Bwdth,wght%5D.ttf" \
+    -o "/usr/share/fonts/truetype/noto/NotoSans.ttf"
+
 # Switch to non-root user
 USER django:django
 
