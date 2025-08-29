@@ -67,7 +67,7 @@ cd docker
 docker buildx bake --allow=fs.read=..
 
 mv staticfiles/* ${STATIC_DIR}/
-sudo ./ensure_permissions.sh
+sudo APP_DOMAIN=my.example.com ./ensure_permissions.sh
 docker compose up -d
 
 sudo vi /etc/nginx/sites-available/${APP_DOMAIN}
