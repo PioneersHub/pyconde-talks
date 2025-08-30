@@ -1302,7 +1302,7 @@ requires-dist = [
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pillow", specifier = ">=11.3.0" },
     { name = "pilmoji", specifier = ">=2.0.4" },
-    { name = "pytanis", specifier = ">=0.9.6" },
+    { name = "pytanis", git = "https://github.com/jbsilva/pytanis" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "structlog", specifier = ">=25.4.0" },
     { name = "tenacity", specifier = ">=9.1.2" },
@@ -1421,7 +1421,7 @@ wheels = [
 [[package]]
 name = "pytanis"
 version = "0.9.6"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/jbsilva/pytanis#458c3cb694d1d93bf2d14ad841e5f273789bfecf" }
 dependencies = [
     { name = "httpx" },
     { name = "httpx-auth" },
@@ -1432,10 +1432,6 @@ dependencies = [
     { name = "structlog" },
     { name = "tomli" },
     { name = "tqdm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/67/6e/989949790c2219e41244bafaa7adfdadda07f272e1243b3016329e6bcbe9/pytanis-0.9.6.tar.gz", hash = "sha256:0624a15637c4d787734c8ebf9acd16ef26715269622cd663778066d54f12c7cf", size = 51034, upload-time = "2025-08-11T07:26:37.155Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f4/c2/4cf60ee703731662ad2fae43b181b8308ea921aac3360feace6808ef7f91/pytanis-0.9.6-py3-none-any.whl", hash = "sha256:444da0c59da89beecb55a1f2ee65d9ec42991cdf9551fef29fc5518d049b5a1a", size = 57884, upload-time = "2025-08-11T07:26:35.681Z" },
 ]
 
 [[package]]
