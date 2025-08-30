@@ -357,6 +357,22 @@ def mark_question_answered(request: HttpRequest, question_id: int) -> HttpRespon
     return redirect("talk_questions", talk_id=question.talk.id)
 
 
+@require_POST
+@user_passes_test(is_moderator)
+def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
+    """Approve a question."""
+    question = get_object_or_404(Question, pk=question_id)
+    question.approve()
+    messages.success(request, _("Question has been approved."))
+
+    if request.headers.get("HX-Request"):
+        talk = question.talk
+        status_filter = request.GET.get("status_filter", "all")
+        return render_question_list_fragment(request, talk, status_filter)
+
+    return redirect("talk_questions", talk_id=question.talk.id)
+
+
 def question_redirect_view(_: HttpRequest, talk_id: str) -> HttpResponse:
     """Get talk question view by Talk ID or pretalx_id."""
     talk = get_talk_by_id_or_pretalx(talk_id)

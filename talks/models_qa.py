@@ -153,6 +153,11 @@ class Question(models.Model):
         self.status = self.Status.REJECTED
         self.save(update_fields=["status", "updated_at"])
 
+    def approve(self) -> None:
+        """Approve the question."""
+        self.status = self.Status.APPROVED
+        self.save(update_fields=["status", "updated_at"])
+
 
 class QuestionVote(models.Model):
     """Represents a user's vote on a question."""

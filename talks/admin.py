@@ -376,7 +376,7 @@ class QuestionAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "created_at", "talk__title")
     search_fields = ("content", "user__email", "user__first_name", "user__last_name", "talk__title")
-    actions: ClassVar[list[str]] = ["reject_questions", "mark_as_answered"]
+    actions: ClassVar[list[str]] = ["approve_questions", "reject_questions", "mark_as_answered"]
     readonly_fields = ("vote_count", "created_at", "updated_at")
     inlines: ClassVar[list[type[admin.TabularInline]]] = [AnswerInline]
 
@@ -435,6 +435,13 @@ class QuestionAdmin(admin.ModelAdmin):
         for question in queryset:
             question.mark_as_answered()
         self.message_user(request, _("Questions have been marked as answered."))
+
+    @admin.action(description=_("Approve selected questions"))
+    def approve_questions(self, request: HttpRequest, queryset: QuerySet) -> None:
+        """Mark selected questions as approved."""
+        for question in queryset:
+            question.approve()
+        self.message_user(request, _("Questions have been approved."))
 
 
 @admin.register(QuestionVote)

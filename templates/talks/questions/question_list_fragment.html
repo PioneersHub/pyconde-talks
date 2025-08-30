@@ -23,18 +23,13 @@
                 hx-push-url="true">
           <option value="all" {% if status_filter == 'all' %}selected{% endif %}>{% translate "All" %}</option>
           <option value="mine" {% if status_filter == 'mine' %}selected{% endif %}>{% translate "My questions" %}</option>
+          <option value="approved"
+                  {% if status_filter == 'approved' %}selected{% endif %}>{% translate "Active" %}</option>
+          <option value="answered"
+                  {% if status_filter == 'answered' %}selected{% endif %}>{% translate "Answered" %}</option>
           {% if user_can_moderate %}
-            <option value="approved"
-                    {% if status_filter == 'approved' %}selected{% endif %}>{% translate "Active" %}</option>
-            <option value="answered"
-                    {% if status_filter == 'answered' %}selected{% endif %}>{% translate "Answered" %}</option>
             <option value="rejected"
                     {% if status_filter == 'rejected' %}selected{% endif %}>{% translate "Rejected" %}</option>
-          {% else %}
-            <option value="approved"
-                    {% if status_filter == 'approved' %}selected{% endif %}>{% translate "Active" %}</option>
-            <option value="answered"
-                    {% if status_filter == 'answered' %}selected{% endif %}>{% translate "Answered" %}</option>
           {% endif %}
         </select>
         <button class="btn-outline-primary inline-flex items-center gap-1.5 text-sm px-2.5 py-1.5"
@@ -109,6 +104,15 @@
                           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                           hx-target="#question-list"
                           hx-swap="outerHTML">{% svg 'x-mark' "h-4 w-4" %} {% translate "Reject Question" %}</button>
+                {% endif %}
+                {# Rejected: can move to approved (eg.: misclick) #}
+                {% if question.status == 'rejected' %}
+                  <button class="text-sm inline-flex items-center gap-1 badge badge-green hover:bg-green-200 px-2 py-1"
+                          hx-post="{% url 'question_approve' question.id %}"
+                          hx-vals='{"status_filter":"{{ status_filter }}"}'
+                          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                          hx-target="#question-list"
+                          hx-swap="outerHTML">{% svg 'check-circle' "h-4 w-4" %} {% translate "Approve" %}</button>
                 {% endif %}
               {% endif %}
               {% if question.user_id == request.user.id %}

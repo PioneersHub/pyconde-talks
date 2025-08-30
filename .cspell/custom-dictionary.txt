@@ -71,6 +71,7 @@ mailgun
 mailpit
 makemigrations
 markdownify
+misclick
 miterlimit
 monosans
 msys
