@@ -106,6 +106,10 @@ COPY --from=builder --chown=django:django /app/templates /app/templates/
 COPY --from=builder --chown=django:django /app/users /app/users/
 COPY --from=builder --chown=django:django /app/utils /app/utils/
 
+# Get only relevant assets
+ARG APP_DOMAIN
+COPY --from=builder --chown=django:django /app/assets/img/${APP_DOMAIN} /app/assets/img/${APP_DOMAIN}
+
 # Install font
 RUN mkdir -p /usr/share/fonts/truetype/noto && \
     curl -sL \
