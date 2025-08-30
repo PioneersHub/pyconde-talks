@@ -8,3 +8,9 @@ class UsersConfig(AppConfig):
 
     default_auto_field = "django.db.models.BigAutoField"
     name = "users"
+
+    def ready(self) -> None:
+        """Django app initialization hook: connect signal handlers."""
+        from . import signals  # noqa: F401
+
+        return super().ready()

@@ -400,6 +400,14 @@ LOGGING = {
             "backupCount": 90,
             "level": "ERROR",
         },
+        "auth_file": {
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": log_dir / "auth.log",
+            "formatter": "json_formatter",
+            "when": "midnight",
+            "backupCount": 90,
+            "level": "INFO",
+        },
     },
     "root": {
         "handlers": ["console", "json_file"],
@@ -439,6 +447,11 @@ LOGGING = {
         "talks": {
             "level": env("LOG_LEVEL", default="INFO"),
             "handlers": ["console", "json_file", "error_file"],
+            "propagate": False,
+        },
+        "auth": {
+            "level": env("AUTH_LOG_LEVEL", default="INFO"),
+            "handlers": ["auth_file"],
             "propagate": False,
         },
     },
