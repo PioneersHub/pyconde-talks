@@ -80,15 +80,20 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form: forms.ModelForm) -> HttpResponse:
         """Process the form submission."""
-        # Set the talk and user
-        form.instance.talk = get_object_or_404(Talk, pk=self.kwargs["talk_id"])
-        form.instance.user = self.request.user
+        question: Question = form.instance
 
-        # All questions are now approved by default
-        # This happens automatically due to the model default
+        # Set the talk and user
+        question.talk = get_object_or_404(Talk, pk=self.kwargs["talk_id"])
+        question.user = self.request.user
 
         # Save the question
         response = super().form_valid(form)
+
+        # Auto vote your own question
+        QuestionVote.objects.get_or_create(
+            question=question,
+            user=self.request.user,
+        )
 
         # Show success message
         messages.success(self.request, _("Your question has been posted."))
@@ -101,7 +106,7 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
                 self.request,
                 "talks/questions/question_success.html",
                 {
-                    "question": form.instance,
+                    "question": question,
                     "user_can_moderate": user_can_moderate,
                     "status_filter": status_filter,
                 },
@@ -287,8 +292,8 @@ class QuestionUpdateView(LoginRequiredMixin, QuestionOwnerRequiredMixin, UpdateV
         """Persist changes and clear all existing votes, notifying the user."""
         # Save updated content
         response = super().form_valid(form)
-        # Clear all votes after content change
-        QuestionVote.objects.filter(question=self.object).delete()
+        # Clear all votes (except your own) after content change
+        QuestionVote.objects.filter(question=self.object).exclude(user=self.request.user).delete()
         messages.warning(
             self.request,
             _("Your question was updated and all previous votes were cleared."),
