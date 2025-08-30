@@ -76,15 +76,15 @@ class SubmissionData:
         # Extract room safely
         self.room = ""
         if (
-            hasattr(submission, "slot")
-            and submission.slot
-            and hasattr(submission.slot, "room")
-            and submission.slot.room
-            and hasattr(submission.slot.room, "name")
-            and submission.slot.room.name
-            and "en" in submission.slot.room.name
+            hasattr(submission, "slots")
+            and submission.slots
+            and hasattr(submission.slots[0], "room")
+            and submission.slots[0].room
+            and hasattr(submission.slots[0].room, "name")
+            and submission.slots[0].room.name
+            and "en" in submission.slots[0].room.name
         ):
-            self.room = submission.slot.room.name["en"][:MAX_ROOM_NAME_LENGTH]
+            self.room = submission.slots[0].room.name["en"][:MAX_ROOM_NAME_LENGTH]
 
         # Extract track safely
         self.track = ""
@@ -93,19 +93,19 @@ class SubmissionData:
             and submission.track
             and hasattr(submission.track, "name")
             and submission.track.name
-            and "en" in submission.track.name
+            and hasattr(submission.track.name, "en")
         ):
-            self.track = submission.track.name["en"][:MAX_TRACK_NAME_LENGTH]
+            self.track = submission.track.name.en[:MAX_TRACK_NAME_LENGTH]
 
         # Extract start time safely
         self.start_time = FAR_FUTURE
         if (
-            hasattr(submission, "slot")
-            and submission.slot
-            and hasattr(submission.slot, "start")
-            and submission.slot.start
+            hasattr(submission, "slots")
+            and submission.slots
+            and hasattr(submission.slots[0], "start")
+            and submission.slots[0].start
         ):
-            self.start_time = submission.slot.start
+            self.start_time = submission.slots[0].start
 
         # Extract duration safely
         self.duration = None
@@ -445,9 +445,10 @@ class Command(BaseCommand):
             )
 
         if (
-            not hasattr(submission, "slot")
-            or not hasattr(submission.slot, "room")
-            or not submission.slot.room
+            not hasattr(submission, "slots")
+            or not submission.slots
+            or not hasattr(submission.slots[0], "room")
+            or not submission.slots[0].room
         ):
             self._log(
                 f"Submission {submission.code} has no room assigned",
