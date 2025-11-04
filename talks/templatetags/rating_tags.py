@@ -1,7 +1,8 @@
 """Template tags for rendering talk ratings."""
 
 from django import template
-from django.utils.safestring import mark_safe
+from django.utils.html import format_html
+from django.utils.safestring import SafeString
 
 
 register = template.Library()
@@ -18,7 +19,7 @@ STAR_PATH = (
 
 
 @register.simple_tag
-def star_rating(average_rating: float | None, rating_count: int = 0) -> str:
+def star_rating(average_rating: float | None, rating_count: int = 0) -> SafeString:
     """
     Render a star rating display.
 
@@ -31,29 +32,34 @@ def star_rating(average_rating: float | None, rating_count: int = 0) -> str:
 
     """
     if average_rating is None or rating_count == 0:
-        return mark_safe(
-            '<span class="text-sm text-subtle">No ratings yet</span>',
+        return format_html(
+            "{}",
+            SafeString(  # nosec: B703 - Static HTML string, no user input
+                '<span class="text-sm text-subtle">No ratings yet</span>',
+            ),
         )
 
     # Round to nearest 0.5
     rounded_rating = round(average_rating * 2) / 2
 
-    stars_html = '<div class="flex items-center gap-1">'
-
     # Generate star icons
     full_stars = int(rounded_rating)
     half_star = rounded_rating - full_stars >= HALF_STAR_THRESHOLD
+    empty_stars = 5 - full_stars - (1 if half_star else 0)
+
+    # Build star HTML parts
+    stars_parts = []
 
     # Full stars
-    for _ in range(full_stars):
-        stars_html += (
-            f'<svg class="h-4 w-4 text-yellow-400 fill-current" '
-            f'viewBox="0 0 20 20"><path d="{STAR_PATH}"/></svg>'
-        )
+    full_star_svg = (
+        '<svg class="h-4 w-4 text-yellow-400 fill-current" '
+        f'viewBox="0 0 20 20"><path d="{STAR_PATH}"/></svg>'
+    )
+    stars_parts.extend([full_star_svg] * full_stars)
 
     # Half star
     if half_star:
-        stars_html += (
+        half_star_svg = (
             '<svg class="h-4 w-4 text-yellow-400" viewBox="0 0 20 20">'
             '<defs><linearGradient id="half">'
             '<stop offset="50%" stop-color="currentColor"/>'
@@ -61,19 +67,28 @@ def star_rating(average_rating: float | None, rating_count: int = 0) -> str:
             "</linearGradient></defs>"
             f'<path fill="url(#half)" d="{STAR_PATH}"/></svg>'
         )
+        stars_parts.append(half_star_svg)
 
     # Empty stars
-    empty_stars = 5 - full_stars - (1 if half_star else 0)
-    for _ in range(empty_stars):
-        stars_html += (
-            f'<svg class="h-4 w-4 text-gray-300 fill-current" '
-            f'viewBox="0 0 20 20"><path d="{STAR_PATH}"/></svg>'
-        )
-
-    # Add rating text
-    stars_html += (
-        f'<span class="text-sm text-muted ml-1">{average_rating:.1f} ({rating_count})</span>'
+    empty_star_svg = (
+        '<svg class="h-4 w-4 text-gray-300 fill-current" '
+        f'viewBox="0 0 20 20"><path d="{STAR_PATH}"/></svg>'
     )
-    stars_html += "</div>"
+    stars_parts.extend([empty_star_svg] * empty_stars)
 
-    return mark_safe(stars_html)  # noqa: S308
+    # Combine all parts using format_html to ensure proper escaping of the rating values
+    # The SVG HTML is safe as it contains only constants, no user input
+    stars_html = "".join(stars_parts)
+
+    # Use format_html which automatically escapes the numeric values
+    # SafeString is used only for the static SVG content (no user input)
+    # Format the rating value first since format_html doesn't support format specs
+    formatted_rating = f"{average_rating:.1f}"
+
+    return format_html(
+        '<div class="flex items-center gap-1">{}<span class="text-sm text-muted ml-1">'
+        "{} ({})</span></div>",
+        SafeString(stars_html),  # nosec: B703 - SVGs contain only static constants
+        formatted_rating,  # Pre-formatted, will be escaped
+        rating_count,  # Will be properly escaped
+    )
