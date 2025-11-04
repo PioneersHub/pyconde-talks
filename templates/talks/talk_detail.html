@@ -2,176 +2,179 @@
 {% load time_filters %}
 {% load svg_tags %}
 {% load markdownify %}
+{% load rating_tags %}
 {% block content %}
   <div class="max-w-4xl mx-auto p-4">
     <!-- Back button -->
-    <a href="{% url 'talk_list' %}" class="link-muted mb-6">
+    <a href="{% url 'talk_list' %}"
+       class="link-muted mb-6 inline-flex items-center">
       {% svg 'chevron-left' "h-4 w-4 mr-2" %}
       Back to Talks
     </a>
-    <article class="panel">
-      {% if talk.get_image_url %}
-        <div class="w-full h-96 overflow-hidden">
-          <img src="{{ talk.get_image_url }}"
-               alt="Image for {{ talk.title }}"
-               class="w-full h-full object-cover"
-               width="1200"
-               height="630" />
-        </div>
-      {% endif %}
-      <div class="p-6 {% if not talk.get_image_url %}pt-8{% endif %}">
-        <!-- Title and Speaker -->
-        <div class="mb-6">
-          <h1 class="text-3xl font-bold text-heading">{{ talk.title }}</h1>
-          <p class="text-xl text-muted mt-2">{{ talk.speaker_names }}</p>
-        </div>
-        <!-- Time, Location, Type and Track -->
-        <div class="box-muted mb-8">
-          <div class="grid sm:grid-cols-3 gap-4 text-muted mb-3">
-            <div>
-              <div class="text-sm text-subtle">Date</div>
-              <div>{{ talk.start_time|date:"l, F j, Y" }}</div>
-            </div>
-            <div>
-              <div class="text-sm text-subtle">Time</div>
-              <div>{{ talk.start_time|date:"g:i A" }}</div>
-            </div>
-            <div>
-              <div class="text-sm text-subtle">Room</div>
-              <div>{{ talk.room }}</div>
-            </div>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <span class="badge badge-green px-3 py-1">
-              {% svg 'presentation-chart-bar' "h-4 w-4 mr-1" %}
-              {{ talk.get_presentation_type_display }}
+    <!-- Talk Card with same design as list -->
+    <div class="relative rounded shadow overflow-hidden {% if talk.get_timing == talk.TalkTiming.CURRENT %} ring-current {% elif talk.get_timing == talk.TalkTiming.UPCOMING %} ring-upcoming {% endif %} mb-6">
+      <!-- Status indicator bar -->
+      <div class="absolute left-0 top-0 bottom-0 w-1.5 {% if talk.get_timing == talk.TalkTiming.CURRENT %} status-bar-current {% elif talk.get_timing == talk.TalkTiming.UPCOMING %} status-bar-upcoming {% else %} status-bar-default {% endif %}">
+      </div>
+      <div class="p-6 {% if talk.get_timing == talk.TalkTiming.CURRENT %} card-bg-current {% elif talk.get_timing == talk.TalkTiming.UPCOMING %} card-bg-upcoming {% else %} card-bg-default {% endif %}">
+        <!-- Title and status badge -->
+        <div class="flex justify-between items-start mb-4">
+          <h1 class="text-3xl font-bold text-heading pl-2">{{ talk.title }}</h1>
+          {% if talk.get_timing == talk.TalkTiming.CURRENT %}
+            <span class="badge badge-orange px-2 py-0.5 text-xs font-medium flex items-center flex-shrink-0 whitespace-nowrap">
+              {% svg 'clock' "h-3 w-3 mr-1" %}
+              HAPPENING NOW
             </span>
-            {% if talk.track %}
-              <span class="badge badge-blue px-3 py-1">
-                {% svg 'tag' "h-4 w-4 mr-1" %}
-                {{ talk.track }}
-              </span>
-            {% endif %}
-          </div>
-        </div>
-        <!-- Video Container -->
-        {% if talk.get_video_link %}
-          <div id="video-container"
-               style="padding:56.25% 0 0 0;
-                      position:relative"
-               class="mb-8 rounded-lg overflow-hidden shadow-lg">
-            <iframe src="{{ talk.get_video_link }}"
-                    id="video-iframe"
-                    frameborder="0"
-                    allow="autoplay; fullscreen; picture-in-picture"
-                    style="position:absolute;
-                           top:0;
-                           left:0;
-                           width:100%;
-                           height:100%">
-            </iframe>
-          </div>
-          <!-- Video Start Time Controls -->
-          {% if talk.get_video_start_time and not talk.is_upcoming %}
-            <div class="mb-8 flex items-center">
-              {% if talk.has_active_streaming %}
-                <div class="text-sm text-muted">
-                  This is a live stream. Please skip manually to {{ talk.get_video_start_time|format_seconds }} to see the start of the talk.
-                </div>
-              {% else %}
-                <button id="jump-to-time" class="btn-secondary btn-neutral">
-                  Jump to {{ talk.get_video_start_time|format_seconds }}
-                </button>
-              {% endif %}
-              <span class="ml-3 text-sm text-subtle">(Skip to estimated talk start)</span>
-            </div>
-          {% endif %}
-        {% endif %}
-        <!-- Description -->
-        <div class="prose max-w-none mb-8">{{ talk.description|markdownify }}</div>
-        <!-- Rating Section -->
-        <div class="box-muted mb-8">
-          <h2 class="text-2xl font-bold text-heading mb-4">Rate this Talk</h2>
-          {% if average_rating %}
-            <div class="mb-4">
-              <div class="flex items-center gap-2">
-                <span class="text-3xl font-bold text-heading">{{ average_rating|floatformat:1 }}</span>
-                <span class="text-muted">/ 5 stars</span>
-                <span class="text-sm text-subtle">({{ rating_count }} rating{{ rating_count|pluralize }})</span>
-              </div>
-            </div>
+          {% elif talk.get_timing == talk.TalkTiming.UPCOMING %}
+            <span class="badge badge-blue text-xs font-medium flex items-center flex-shrink-0 whitespace-nowrap">
+              {% svg 'calendar' "h-3 w-3 mr-1" %}
+              UPCOMING
+            </span>
           {% else %}
-            <p class="text-muted mb-4">No ratings yet. Be the first to rate this talk!</p>
+            <span class="badge badge-gray text-xs font-medium flex items-center flex-shrink-0 whitespace-nowrap">
+              {% svg 'check-circle' "h-3 w-3 mr-1" %}
+              COMPLETED
+            </span>
           {% endif %}
-          <!-- Rating Form -->
-          <form method="post"
-                action="{% url 'rate_talk' talk.id %}"
-                class="space-y-4">
-            {% csrf_token %}
-            <div>
-              <label class="block text-sm font-medium text-muted mb-2">Your Rating</label>
-              <div class="flex gap-2">
-                {% for i in "12345" %}
-                  <label class="cursor-pointer">
-                    <input type="radio"
-                           name="score"
-                           value="{{ i }}"
-                           class="sr-only peer"
-                           {% if user_rating and user_rating.score|stringformat:"s" == i %}checked{% endif %}
-                           required />
-                    <div class="w-12 h-12 flex items-center justify-center border-2 border-gray-300 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-blue-300 transition-colors">
-                      <span class="text-xl font-bold peer-checked:text-blue-600">{{ i }}</span>
-                    </div>
-                  </label>
-                {% endfor %}
-              </div>
-            </div>
-            <div>
-              <label for="comment" class="block text-sm font-medium text-muted mb-2">Comment (optional)</label>
-              <textarea id="comment"
-                        name="comment"
-                        rows="3"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Share your thoughts about this talk...">{% if user_rating %}{{ user_rating.comment }}{% endif %}</textarea>
-            </div>
-            <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
-              {% if user_rating %}
-                Update Rating
-              {% else %}
-                Submit Rating
-              {% endif %}
-            </button>
-          </form>
         </div>
-        <!-- Action Buttons -->
-        <div class="flex flex-wrap gap-4">
-          <a href="{{ talk.pretalx_link }}"
-             target="_blank"
-             rel="noopener noreferrer"
-             class="btn-primary inline-flex items-center px-4 py-2 rounded-lg">
-            {% svg 'information-circle' "h-4 w-4 mr-2" %}
-            View on Pretalx
-          </a>
-          {% if talk.get_video_link %}
-            <a href="{{ talk.get_video_link }}"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="btn-danger inline-flex items-center px-4 py-2 rounded-lg">
-              {% svg 'play-circle' "h-4 w-4 mr-2" %}
-              Watch Video
-            </a>
-          {% endif %}
-          <!-- Our Q&A section link -->
-          <a href="{% url 'talk_questions' talk.id %}"
-             class="btn-secondary inline-flex items-center px-4 py-2 rounded-lg">
-            {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-2" %}
-            Questions & Answers
-          </a>
+        <!-- Speaker Names -->
+        <p class="text-xl text-muted pl-2 mb-2">{{ talk.speaker_names }}</p>
+        <!-- Rating -->
+        <div class="mb-4 pl-2">{% star_rating average_rating rating_count %}</div>
+        <!-- Date and Room info -->
+        <div class="text-sm mb-2 pl-2">
+          <span class="{% if talk.get_timing == talk.TalkTiming.CURRENT %} badge badge-orange {% elif talk.get_timing == talk.TalkTiming.UPCOMING %} badge badge-purple {% else %} badge badge-gray {% endif %}">{{ talk.start_time|date:"D, g:i A" }}</span>
+          <span class="ml-2 badge badge-gray">{{ talk.room }}</span>
+        </div>
+        <!-- Presentation Type and Track info -->
+        <div class="text-sm mb-4 pl-2">
+          <span class="badge badge-green">{{ talk.get_presentation_type_display }}</span>
+          <span class="ml-2 badge badge-blue">{{ talk.track }}</span>
         </div>
       </div>
-    </article>
+    </div>
+    <!-- Image -->
+    {% if talk.get_image_url %}
+      <div class="w-full h-96 overflow-hidden rounded-lg shadow-lg mb-6">
+        <img src="{{ talk.get_image_url }}"
+             alt="Image for {{ talk.title }}"
+             class="w-full h-full object-cover"
+             width="1200"
+             height="630" />
+      </div>
+    {% endif %}
+    <!-- Video Container -->
+    {% if talk.get_video_link %}
+      <div class="panel mb-6">
+        <div id="video-container"
+             style="padding:56.25% 0 0 0;
+                    position:relative"
+             class="rounded-lg overflow-hidden">
+          <iframe src="{{ talk.get_video_link }}"
+                  id="video-iframe"
+                  frameborder="0"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  style="position:absolute;
+                         top:0;
+                         left:0;
+                         width:100%;
+                         height:100%">
+          </iframe>
+        </div>
+        <!-- Video Start Time Controls -->
+        {% if talk.get_video_start_time and not talk.is_upcoming %}
+          <div class="mt-4 flex items-center">
+            {% if talk.has_active_streaming %}
+              <div class="text-sm text-muted">
+                This is a live stream. Please skip manually to {{ talk.get_video_start_time|format_seconds }} to see the start of the talk.
+              </div>
+            {% else %}
+              <button id="jump-to-time" class="btn-secondary btn-neutral">
+                Jump to {{ talk.get_video_start_time|format_seconds }}
+              </button>
+            {% endif %}
+            <span class="ml-3 text-sm text-subtle">(Skip to estimated talk start)</span>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+    <!-- Description -->
+    <div class="panel mb-6">
+      <h2 class="text-2xl font-bold text-heading mb-4">About this Talk</h2>
+      <div class="prose max-w-none">{{ talk.description|markdownify }}</div>
+    </div>
+    <!-- Rating Section -->
+    <div class="panel mb-6">
+      <h2 class="text-2xl font-bold text-heading mb-4">Rate this Talk</h2>
+      <!-- Rating Form -->
+      <form method="post"
+            action="{% url 'rate_talk' talk.id %}"
+            class="space-y-4">
+        {% csrf_token %}
+        <div>
+          <label class="block text-sm font-medium text-muted mb-2">Your Rating</label>
+          <div class="flex gap-2">
+            {% for i in "12345" %}
+              <label class="cursor-pointer">
+                <input type="radio"
+                       name="score"
+                       value="{{ i }}"
+                       class="sr-only peer"
+                       {% if user_rating and user_rating.score|stringformat:"s" == i %}checked{% endif %}
+                       required />
+                <div class="w-12 h-12 flex items-center justify-center border-2 border-gray-300 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-blue-300 transition-colors">
+                  <span class="text-xl font-bold peer-checked:text-blue-600">{{ i }}</span>
+                </div>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+        <div>
+          <label for="comment" class="block text-sm font-medium text-muted mb-2">Comment (optional)</label>
+          <textarea id="comment"
+                    name="comment"
+                    rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Share your thoughts about this talk...">{% if user_rating %}{{ user_rating.comment }}{% endif %}</textarea>
+        </div>
+        <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+          {% if user_rating %}
+            Update Rating
+          {% else %}
+            Submit Rating
+          {% endif %}
+        </button>
+      </form>
+    </div>
+    <!-- Action Buttons -->
+    <div class="panel">
+      <h2 class="text-2xl font-bold text-heading mb-4">Links</h2>
+      <div class="flex flex-wrap gap-3">
+        <a href="{{ talk.pretalx_link }}"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="btn-primary inline-flex items-center px-4 py-2 rounded-lg">
+          {% svg 'information-circle' "h-4 w-4 mr-2" %}
+          View on Pretalx
+        </a>
+        {% if talk.get_video_link %}
+          <a href="{{ talk.get_video_link }}"
+             target="_blank"
+             rel="noopener noreferrer"
+             class="btn-danger inline-flex items-center px-4 py-2 rounded-lg">
+            {% svg 'play-circle' "h-4 w-4 mr-2" %}
+            Watch Video
+          </a>
+        {% endif %}
+        <a href="{% url 'talk_questions' talk.id %}"
+           class="btn-secondary inline-flex items-center px-4 py-2 rounded-lg">
+          {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-2" %}
+          Questions & Answers
+        </a>
+      </div>
+    </div>
   </div>
-  {% if talk.get_video_link and talk.video_streaming_provider.lower == "vimeo" %}
+  {% if talk.get_video_link and talk.video_provider.lower == "vimeo" %}
     <script src="https://player.vimeo.com/api/player.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -197,7 +200,7 @@
     });
     </script>
   {% endif %}
-  {% if talk.get_video_link and talk.video_streaming_provider.lower == "youtube" %}
+  {% if talk.get_video_link and talk.video_provider.lower == "youtube" %}
     <script src="https://www.youtube.com/iframe_api"></script>
     <script defer>
         document.addEventListener('DOMContentLoaded', function() {
