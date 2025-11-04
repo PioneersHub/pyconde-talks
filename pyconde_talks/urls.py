@@ -11,6 +11,8 @@ from talks.views import (
     TalkDetailView,
     TalkListView,
     dashboard_stats,
+    get_talk_rating_stats,
+    rate_talk,
     talk_redirect_view,
     upcoming_talks,
 )
@@ -46,6 +48,9 @@ urlpatterns = [
     path("talks/<str:talk_id>/", talk_redirect_view, name="talk_redirect"),
     path("dashboard-stats/", dashboard_stats, name="dashboard_stats"),
     path("upcoming-talks/", upcoming_talks, name="upcoming_talks"),
+    # Rating URLs
+    path("talks/<int:talk_id>/rate/", rate_talk, name="rate_talk"),
+    path("talks/<int:talk_id>/rating-stats/", get_talk_rating_stats, name="talk_rating_stats"),
     # Q&A URLs
     path("talks/<int:talk_id>/questions/", QuestionListView.as_view(), name="talk_questions"),
     path(

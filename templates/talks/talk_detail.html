@@ -89,6 +89,60 @@
         {% endif %}
         <!-- Description -->
         <div class="prose max-w-none mb-8">{{ talk.description|markdownify }}</div>
+        <!-- Rating Section -->
+        <div class="box-muted mb-8">
+          <h2 class="text-2xl font-bold text-heading mb-4">Rate this Talk</h2>
+          {% if average_rating %}
+            <div class="mb-4">
+              <div class="flex items-center gap-2">
+                <span class="text-3xl font-bold text-heading">{{ average_rating|floatformat:1 }}</span>
+                <span class="text-muted">/ 5 stars</span>
+                <span class="text-sm text-subtle">({{ rating_count }} rating{{ rating_count|pluralize }})</span>
+              </div>
+            </div>
+          {% else %}
+            <p class="text-muted mb-4">No ratings yet. Be the first to rate this talk!</p>
+          {% endif %}
+          <!-- Rating Form -->
+          <form method="post"
+                action="{% url 'rate_talk' talk.id %}"
+                class="space-y-4">
+            {% csrf_token %}
+            <div>
+              <label class="block text-sm font-medium text-muted mb-2">Your Rating</label>
+              <div class="flex gap-2">
+                {% for i in "12345" %}
+                  <label class="cursor-pointer">
+                    <input type="radio"
+                           name="score"
+                           value="{{ i }}"
+                           class="sr-only peer"
+                           {% if user_rating and user_rating.score|stringformat:"s" == i %}checked{% endif %}
+                           required />
+                    <div class="w-12 h-12 flex items-center justify-center border-2 border-gray-300 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-blue-300 transition-colors">
+                      <span class="text-xl font-bold peer-checked:text-blue-600">{{ i }}</span>
+                    </div>
+                  </label>
+                {% endfor %}
+              </div>
+            </div>
+            <div>
+              <label for="comment" class="block text-sm font-medium text-muted mb-2">Comment (optional)</label>
+              <textarea id="comment"
+                        name="comment"
+                        rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Share your thoughts about this talk...">{% if user_rating %}{{ user_rating.comment }}{% endif %}</textarea>
+            </div>
+            <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+              {% if user_rating %}
+                Update Rating
+              {% else %}
+                Submit Rating
+              {% endif %}
+            </button>
+          </form>
+        </div>
         <!-- Action Buttons -->
         <div class="flex flex-wrap gap-4">
           <a href="{{ talk.pretalx_link }}"

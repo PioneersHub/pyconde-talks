@@ -551,3 +551,76 @@ class Talk(models.Model):
             return self.room.slido_link
 
         return ""
+
+    def get_average_rating(self) -> float | None:
+        """
+        Calculate the average rating for this talk.
+
+        Returns None if there are no ratings, otherwise returns the average as a float.
+        """
+        ratings = self.ratings.all()
+        if not ratings:
+            return None
+        total = sum(rating.score for rating in ratings)
+        return total / len(ratings)
+
+    def get_rating_count(self) -> int:
+        """Return the total number of ratings for this talk."""
+        return self.ratings.count()
+
+
+class Rating(models.Model):
+    """Represents a user's rating of a talk."""
+
+    talk = models.ForeignKey(
+        Talk,
+        on_delete=models.CASCADE,
+        related_name="ratings",
+        help_text=_("The talk being rated"),
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ratings",
+        help_text=_("The user who submitted the rating"),
+    )
+    score = models.PositiveSmallIntegerField(
+        help_text=_("Rating score from 1 to 5"),
+    )
+    comment = models.TextField(
+        blank=True,
+        help_text=_("Optional comment about the talk"),
+    )
+    created_at = models.DateTimeField(
+        default=timezone.now,
+        help_text=_("When this rating was created"),
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text=_("When this rating was last modified"),
+    )
+
+    class Meta:
+        """Metadata for the Rating model."""
+
+        verbose_name = _("Rating")
+        verbose_name_plural = _("Ratings")
+        ordering: ClassVar[list[str]] = ["-created_at"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["talk", "user"]),
+            models.Index(fields=["talk", "-created_at"]),
+        ]
+        constraints: ClassVar[list[models.CheckConstraint | models.UniqueConstraint]] = [
+            models.UniqueConstraint(
+                fields=["talk", "user"],
+                name="unique_user_talk_rating",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(score__gte=1, score__lte=5),
+                name="rating_score_range",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        """Return a string representation of the rating."""
+        return f"{self.user.email} rated {self.talk.title}: {self.score}/5"
