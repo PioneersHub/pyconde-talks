@@ -14,7 +14,7 @@ from requests.exceptions import (
 )
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from pyconde_talks.utils.email_utils import hash_email
+from utils.email_utils import hash_email
 
 
 logger = structlog.get_logger(__name__)
@@ -86,6 +86,11 @@ class AccountAdapter(DefaultAccountAdapter):
 
     def _validate_email_with_api(self, email: str, email_hash: str) -> bool:
         """Validate email using an external API."""
+        # Short-circuit when API URL is not configured
+        if not getattr(settings, "EMAIL_VALIDATION_API_URL", ""):
+            logger.info("Email validation API disabled; denying non-local auth", email=email_hash)
+            return False
+
         # Check the API
         is_valid = False
         try:
@@ -133,5 +138,17 @@ class AccountAdapter(DefaultAccountAdapter):
         timeout_minutes = round(timeout_seconds / 60, 1)
         context["login_code_timeout_minutes"] = (
             int(timeout_minutes) if timeout_minutes.is_integer() else round(timeout_minutes, 1)
+        )
+        # Inject branding variables
+        event_name = getattr(settings, "BRAND_EVENT_NAME", "Event")
+        event_year = getattr(settings, "BRAND_EVENT_YEAR", "")
+        full_name = f"{event_name} {event_year}".strip()
+        context.update(
+            {
+                "brand_event_name": event_name,
+                "brand_event_year": event_year,
+                "brand_full_name": full_name,
+                "brand_title": f"{full_name} Talks" if full_name else "Talks",
+            },
         )
         return super().send_mail(template_prefix, email, context)

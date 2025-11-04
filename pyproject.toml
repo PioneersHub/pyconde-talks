@@ -1,7 +1,7 @@
 [project]
 name = "pyconde-talks"
 version = "0.1.0"
-description = "Website for PyCon DE & PyData 2025 talks"
+description = "Website for conference talks"
 readme = "README.md"
 requires-python = ">=3.13,<4"
 authors = [{ name = "Julio Batista Silva", email = "python@juliobs.com" }]
@@ -33,7 +33,7 @@ dependencies = [
     "argon2-cffi>=25.1.0",
     "daphne>=4.2.1",
     "django>=5.2.5",
-    "django-allauth[socialaccount]>=65.10.0",
+    "django-allauth[socialaccount]>=65.11.1",
     "django-anymail[mailgun]>=13.0.1",
     "django-environ>=0.12.0",
     "django-health-check>=3.20.0",
@@ -45,8 +45,10 @@ dependencies = [
     "model-bakery>=1.20.5",
     "openpyxl>=3.1.5",
     "pillow>=11.3.0",
-    "pytanis>=0.9.1",
-    "requests>=2.32.4",
+    "pilmoji>=2.0.4",
+    "emoji>=1.7,<2",
+    "pytanis>=0.9.6",
+    "requests>=2.32.5",
     "structlog>=25.4.0",
     "tenacity>=9.1.2",
 ]
@@ -77,7 +79,7 @@ prod = [
 ]
 
 [project.urls]
-Homepage = "https://2025.pycon.de/talks/"
+Homepage = "https://github.com/PioneersHub/pyconde-talks"
 Documentation = "https://github.com/PioneersHub/pyconde-talks#readme"
 Repository = "https://github.com/PioneersHub/pyconde-talks"
 CI = "https://github.com/PioneersHub/pyconde-talks/actions"
@@ -93,7 +95,7 @@ check_untyped_defs = true
 plugins = ["mypy_django_plugin.main"]
 
 [tool.django-stubs]
-django_settings_module = "pyconde_talks.settings"
+django_settings_module = "event_talks.settings"
 
 [tool.djlint]
 profile = "django"
@@ -144,7 +146,7 @@ force-wrap-aliases = true
 lines-after-imports = 2
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "pyconde_talks.settings"
+DJANGO_SETTINGS_MODULE = "event_talks.settings"
 python_files = ["test_*.py"]
 addopts = [
     "-ra",
@@ -160,3 +162,6 @@ exclude_dirs = [".git", ".venv", "__pycache__", "generate_fake_talks.py", "migra
 
 [tool.bandit.assert_used]
 skips = ['*_test.py', '*/test_*.py']
+
+[tool.uv.sources]
+pytanis = { git = "https://github.com/jbsilva/pytanis" }

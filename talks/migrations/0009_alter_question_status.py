@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='question',
             name='status',
-            field=models.CharField(choices=[('pending', 'Pending'), ('approved', 'Approved'), ('answered', 'Answered'), ('rejected', 'Rejected')], default='approved', help_text='Status of the question', max_length=10),
+            field=models.CharField(choices=[('approved', 'Approved'), ('answered', 'Answered'), ('rejected', 'Rejected')], default='approved', help_text='Status of the question', max_length=10),
         ),
     ]

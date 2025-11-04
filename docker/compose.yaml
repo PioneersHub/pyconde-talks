@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:17-bookworm
-    container_name: pyconde-talks-postgres
+    container_name: ${CONTAINER_PREFIX}-postgres
     restart: unless-stopped
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -30,32 +30,14 @@ services:
         - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
         - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
         - DJANGO_STATIC_ROOT=${DJANGO_STATIC_ROOT}
-    container_name: pyconde-talks-django
-    image: pyconde-talks:latest
+    container_name: ${CONTAINER_PREFIX}-django
+    image: ${CONTAINER_PREFIX}-django:latest
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-      - ADMIN_NAMES=${ADMIN_NAMES}
-      - ADMIN_EMAILS=${ADMIN_EMAILS}
-      - ACCOUNT_EMAIL_SUBJECT_PREFIX=${ACCOUNT_EMAIL_SUBJECT_PREFIX}
-      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
-      - DJANGO_MEDIA_ROOT=${DJANGO_MEDIA_ROOT}
-      - DJANGO_STATIC_ROOT=${DJANGO_STATIC_ROOT}
-      - DJANGO_STATICFILES_DIRS=${DJANGO_STATICFILES_DIRS}
-      - DJANGO_LOGS_DIR=${DJANGO_LOGS_DIR}
-      - DJANGO_EMAIL_BACKEND=${DJANGO_EMAIL_BACKEND}
-      - MAILGUN_API_KEY=${MAILGUN_API_KEY}
-      - MAILGUN_API_URL=${MAILGUN_API_URL}
-      - MAILGUN_SENDER_DOMAIN=${MAILGUN_SENDER_DOMAIN}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
-      - PRETALX_API_TOKEN=${PRETALX_API_TOKEN}
-      - PRETALX_EVENT_SLUG=${PRETALX_EVENT_SLUG}
-      - SHOW_UPCOMING_TALKS_LINKS=${SHOW_UPCOMING_TALKS_LINKS}
+    env_file:
+      - .env
     volumes:
       - ${MOUNT_MEDIA_ROOT}:${DJANGO_MEDIA_ROOT}
       - ${MOUNT_LOGS_DIR}:${DJANGO_LOGS_DIR}
@@ -78,9 +60,9 @@ services:
 volumes:
   pgdata:
     driver: local
-    name: pyconde-talks-pgdata
+    name: ${CONTAINER_PREFIX}-pgdata
 
 networks:
   app_network:
     driver: bridge
-    name: pyconde-talks-network
+    name: ${CONTAINER_PREFIX}-network

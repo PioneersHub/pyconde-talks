@@ -13,7 +13,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 from django.db.models.query import QuerySet
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -22,6 +22,7 @@ from django.views.generic import CreateView, ListView, UpdateView
 
 from .models import Talk
 from .models_qa import Question, QuestionVote
+from .utils import get_talk_by_id_or_pretalx
 
 
 class QuestionListView(LoginRequiredMixin, ListView):
@@ -79,26 +80,23 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form: forms.ModelForm) -> HttpResponse:
         """Process the form submission."""
-        # Set the talk and user
-        form.instance.talk = get_object_or_404(Talk, pk=self.kwargs["talk_id"])
-        form.instance.user = self.request.user
+        question: Question = form.instance
 
-        # Questions start as pending and require admin approval
-        # If the user is a moderator, auto-approve before saving
-        if is_moderator(self.request.user):
-            form.instance.status = Question.Status.APPROVED
+        # Set the talk and user
+        question.talk = get_object_or_404(Talk, pk=self.kwargs["talk_id"])
+        question.user = self.request.user
 
         # Save the question
         response = super().form_valid(form)
 
-        # Show success message (different for moderators)
-        if is_moderator(self.request.user):
-            messages.success(self.request, _("Your question has been posted."))
-        else:
-            messages.success(
-                self.request,
-                _("Your question has been submitted and is awaiting approval."),
-            )
+        # Auto vote your own question
+        QuestionVote.objects.get_or_create(
+            question=question,
+            user=self.request.user,
+        )
+
+        # Show success message
+        messages.success(self.request, _("Your question has been posted."))
 
         # If this is an HTMX request, return to the question list
         if self.request.headers.get("HX-Request"):
@@ -108,7 +106,7 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
                 self.request,
                 "talks/questions/question_success.html",
                 {
-                    "question": form.instance,
+                    "question": question,
                     "user_can_moderate": user_can_moderate,
                     "status_filter": status_filter,
                 },
@@ -143,25 +141,23 @@ def get_filtered_questions(
 
     # For moderators, respect the filter if provided
     if is_moderator:
-        if status_filter == "pending":
-            queryset = queryset.filter(status=Question.Status.PENDING)
-        elif status_filter == "approved":
+        if status_filter == "approved":
             queryset = queryset.filter(status=Question.Status.APPROVED)
         elif status_filter == "answered":
             queryset = queryset.filter(status=Question.Status.ANSWERED)
         elif status_filter == "rejected":
             queryset = queryset.filter(status=Question.Status.REJECTED)
         # "all" doesn't need filtering as it shows everything
-    # Regular users can only see approved and answered questions
+    # Regular users can see approved, answered, and their own rejected questions
     elif status_filter == "approved":
         queryset = queryset.filter(status=Question.Status.APPROVED)
     elif status_filter == "answered":
         queryset = queryset.filter(status=Question.Status.ANSWERED)
     else:
-        # Default for regular users: show approved and answered, plus their own pending
+        # Default for regular users: show approved and answered, plus their own rejected questions
         queryset = queryset.filter(
             Q(status__in=[Question.Status.APPROVED, Question.Status.ANSWERED])
-            | Q(status=Question.Status.PENDING, user=request.user),
+            | Q(status=Question.Status.REJECTED, user=request.user),
         )
 
     return queryset.sorted_by_votes()
@@ -296,8 +292,8 @@ class QuestionUpdateView(LoginRequiredMixin, QuestionOwnerRequiredMixin, UpdateV
         """Persist changes and clear all existing votes, notifying the user."""
         # Save updated content
         response = super().form_valid(form)
-        # Clear all votes after content change
-        QuestionVote.objects.filter(question=self.object).delete()
+        # Clear all votes (except your own) after content change
+        QuestionVote.objects.filter(question=self.object).exclude(user=self.request.user).delete()
         messages.warning(
             self.request,
             _("Your question was updated and all previous votes were cleared."),
@@ -336,22 +332,6 @@ class ModeratorRequiredMixin(UserPassesTestMixin):
 
 @require_POST
 @user_passes_test(is_moderator)
-def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
-    """Approve a question."""
-    question = get_object_or_404(Question, pk=question_id)
-    question.approve()
-    messages.success(request, _("Question has been approved."))
-
-    if request.headers.get("HX-Request"):
-        talk = question.talk
-        status_filter = request.GET.get("status_filter", "all")
-        return render_question_list_fragment(request, talk, status_filter)
-
-    return redirect("talk_questions", talk_id=question.talk.id)
-
-
-@require_POST
-@user_passes_test(is_moderator)
 def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """Reject a question."""
     question = get_object_or_404(Question, pk=question_id)
@@ -380,3 +360,28 @@ def mark_question_answered(request: HttpRequest, question_id: int) -> HttpRespon
         return render_question_list_fragment(request, talk, status_filter)
 
     return redirect("talk_questions", talk_id=question.talk.id)
+
+
+@require_POST
+@user_passes_test(is_moderator)
+def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
+    """Approve a question."""
+    question = get_object_or_404(Question, pk=question_id)
+    question.approve()
+    messages.success(request, _("Question has been approved."))
+
+    if request.headers.get("HX-Request"):
+        talk = question.talk
+        status_filter = request.GET.get("status_filter", "all")
+        return render_question_list_fragment(request, talk, status_filter)
+
+    return redirect("talk_questions", talk_id=question.talk.id)
+
+
+def question_redirect_view(_: HttpRequest, talk_id: str) -> HttpResponse:
+    """Get talk question view by Talk ID or pretalx_id."""
+    talk = get_talk_by_id_or_pretalx(talk_id)
+    if talk:
+        return redirect("talk_questions", talk_id=talk.pk)
+    msg = f"No talk found with ID or pretalx ID: {talk_id}"
+    raise Http404(msg)

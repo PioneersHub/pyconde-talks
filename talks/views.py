@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import IntegrityError
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Q
 from django.db.models.functions import TruncDate
 from django.db.models.query import QuerySet
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
@@ -21,6 +21,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView
 
 from .models import Rating, Room, Talk
+from .utils import get_talk_by_id_or_pretalx
 
 
 # Constants
@@ -85,7 +86,7 @@ class TalkListView(LoginRequiredMixin, ListView):
         return [self.template_name]
 
     def get_queryset(self) -> QuerySet[Talk]:
-        """Get the list of talks filtered by room, date, track, and presentation type."""
+        """Get the list of talks filtered by room, date, track, presentation type, and query."""
         queryset: QuerySet[Talk] = Talk.objects.all()
 
         # Filter by room
@@ -108,6 +109,23 @@ class TalkListView(LoginRequiredMixin, ListView):
         if presentation_type:
             queryset = queryset.filter(presentation_type=presentation_type)
 
+        # Free-text search with scope
+        query = (self.request.GET.get("q") or "").strip()
+        raw_scopes = [s.strip() for s in self.request.GET.getlist("search_in") if s.strip()]
+        scopes = set(raw_scopes or ["all"])  # default to all when nothing selected
+        if query:
+            q_obj = Q()
+            if "all" in scopes or not scopes:
+                scopes = {"title", "author", "description"}
+            if "title" in scopes:
+                q_obj |= Q(title__icontains=query)
+            if "description" in scopes:
+                q_obj |= Q(description__icontains=query) | Q(abstract__icontains=query)
+            if "author" in scopes:
+                q_obj |= Q(speakers__name__icontains=query)
+
+            queryset = queryset.filter(q_obj).distinct()
+
         # Annotate with rating statistics
         queryset = queryset.annotate(
             average_rating=Avg("ratings__score"),
@@ -117,7 +135,7 @@ class TalkListView(LoginRequiredMixin, ListView):
         return queryset.order_by("start_time")
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        """Enhance the template context with additional data."""
+        """Enhance the template context with filter options and selected values."""
         context = super().get_context_data(**kwargs)
 
         # Get unique rooms
@@ -131,7 +149,7 @@ class TalkListView(LoginRequiredMixin, ListView):
         )
 
         # Check if there are multiple years
-        years = {date.year for date in context["dates"]}
+        years = {d.year for d in context["dates"]}
         context["has_multiple_years"] = len(years) > 1
 
         # Get unique tracks
@@ -148,11 +166,13 @@ class TalkListView(LoginRequiredMixin, ListView):
             (ptype, Talk.PresentationType(ptype).label) for ptype in existing_types
         ]
 
-        # Set the selected values for filters
+        # Selected values
         context["selected_room"] = self.request.GET.get("room", "")
         context["selected_date"] = self.request.GET.get("date", "")
         context["selected_track"] = self.request.GET.get("track", "")
         context["selected_type"] = self.request.GET.get("presentation_type", "")
+        context["search_query"] = self.request.GET.get("q", "")
+        context["search_in"] = self.request.GET.getlist("search_in") or ["all"]
 
         return context
 
@@ -180,32 +200,11 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
 
 
 def talk_redirect_view(_: HttpRequest, talk_id: str) -> HttpResponse:
-    """
-    Get talk detail view by Talk ID or pretalx_id.
-
-    The chance of collision is very small.
-    It's not clear if the pretalx_id is unique across all events or if it can be a small number like
-    the primary key of a talk.
-    """
-    # Try to interpret as primary key
-    try:
-        pk = int(talk_id)
-        talk = Talk.objects.filter(pk=pk).first()
-        if talk:
-            return redirect("talk_detail", pk=pk)
-    except ValueError:
-        # Not an integer, so can only be a pretalx_id
-        pass
-
-    # 1. talk_id was an integer but no talk with that pk exists, or
-    # 2. talk_id was not an integer
-    # Try to interpret as pretalx_id
-    talk = Talk.objects.filter(pretalx_link__contains=f"/talk/{talk_id}").first()
+    """Get talk detail view by Talk ID or Pretalx ID."""
+    talk = get_talk_by_id_or_pretalx(talk_id)
     if talk:
         return redirect("talk_detail", pk=talk.pk)
-
-    # Talk not found
-    msg = f"No talk found with ID or pretalx ID: {talk_id}"
+    msg = f"No talk found with ID or Pretalx ID: {talk_id}"
     raise Http404(msg)
 
 

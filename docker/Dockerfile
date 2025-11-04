@@ -43,14 +43,14 @@ RUN curl -sL \
 # Copy project
 COPY . /app/
 
-# Generate minified CSS with Tailwind
-RUN tailwindcss -i ./assets/css/input.css -o ./static/css/tailwind.min.css --minify
-
 # Install project and collect static files into STATIC_ROOT
 ENV DJANGO_STATIC_ROOT=/staticfiles
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-default-groups --group prod && \
-    python manage.py collectstatic --noinput
+    python manage.py collectstatic --noinput && \
+    # Generate minified CSS with Tailwind
+    mkdir -p ${DJANGO_STATIC_ROOT}/css && \
+    /usr/local/bin/tailwindcss -i /app/assets/css/input.css -o ${DJANGO_STATIC_ROOT}/css/tailwind.min.css --minify
 
 # Stage 2: extract static files
 #
@@ -59,7 +59,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 #
 # A folder called "staticfiles" will be created in the current directory.
 # Transfer it to the server:
-#      rsync -ave "ssh" --rsync-path="sudo rsync" /path/to/staticfiles/ pycon:/var/cache/talks.pycon.de/staticfiles/
+#      rsync -ave "ssh" --rsync-path="sudo rsync" /path/to/staticfiles/ server:/var/cache/${APP_NAME}/staticfiles/
 #
 # Then set the appropriate permissions:
 #   - Django does not need any permissions after collecting static files
@@ -99,12 +99,22 @@ ENV PATH="/venv/bin:$PATH"
 
 # Copy only project files necessary for production
 COPY --from=builder --chown=django:django /app/manage.py /app/
-COPY --from=builder --chown=django:django /app/pyconde_talks /app/pyconde_talks/
+COPY --from=builder --chown=django:django /app/event_talks /app/event_talks/
 COPY --from=builder --chown=django:django /app/svg /app/svg/
 COPY --from=builder --chown=django:django /app/talks /app/talks/
 COPY --from=builder --chown=django:django /app/templates /app/templates/
 COPY --from=builder --chown=django:django /app/users /app/users/
 COPY --from=builder --chown=django:django /app/utils /app/utils/
+
+# Get only relevant assets
+ARG APP_DOMAIN
+COPY --from=builder --chown=django:django /app/assets/img/${APP_DOMAIN} /app/assets/img/${APP_DOMAIN}
+
+# Install font
+RUN mkdir -p /usr/share/fonts/truetype/noto && \
+    curl -sL \
+    "https://github.com/notofonts/notofonts.github.io/raw/refs/heads/main/fonts/NotoSans/full/variable-ttf/NotoSans%5Bwdth,wght%5D.ttf" \
+    -o "/usr/share/fonts/truetype/noto/NotoSans.ttf"
 
 # Switch to non-root user
 USER django:django
@@ -121,4 +131,4 @@ COPY --chown=django:django ./docker/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "pyconde_talks.asgi:application"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "event_talks.asgi:application"]

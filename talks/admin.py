@@ -419,19 +419,15 @@ class QuestionAdmin(admin.ModelAdmin):
         """Display the number of votes for this question."""
         return obj.vote_count
 
-    @admin.action(description=_("Approve selected questions"))
-    def approve_questions(self, request: HttpRequest, queryset: QuerySet) -> None:
-        """Mark selected questions as approved."""
-        for question in queryset:
-            question.approve()
-        self.message_user(request, _("Questions have been approved."))
-
-    @admin.action(description=_("Reject selected questions"))
+    @admin.action(description=_("Reject selected questions (hide from public)"))
     def reject_questions(self, request: HttpRequest, queryset: QuerySet) -> None:
-        """Mark selected questions as rejected."""
+        """Mark selected questions as rejected, hiding them from public view."""
         for question in queryset:
             question.reject()
-        self.message_user(request, _("Questions have been rejected."))
+        self.message_user(
+            request,
+            _("Questions have been rejected and will not appear in public view."),
+        )
 
     @admin.action(description=_("Mark selected questions as answered"))
     def mark_as_answered(self, request: HttpRequest, queryset: QuerySet) -> None:
@@ -439,6 +435,13 @@ class QuestionAdmin(admin.ModelAdmin):
         for question in queryset:
             question.mark_as_answered()
         self.message_user(request, _("Questions have been marked as answered."))
+
+    @admin.action(description=_("Approve selected questions"))
+    def approve_questions(self, request: HttpRequest, queryset: QuerySet) -> None:
+        """Mark selected questions as approved."""
+        for question in queryset:
+            question.approve()
+        self.message_user(request, _("Questions have been approved."))
 
 
 @admin.register(QuestionVote)

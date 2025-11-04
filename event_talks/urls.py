@@ -1,4 +1,4 @@
-"""URL configuration for pyconde_talks project."""
+"""URL configuration for event_talks project."""
 
 from allauth.account.views import confirm_login_code, logout
 from django.conf import settings
@@ -23,6 +23,7 @@ from talks.views_qa import (
     approve_question,
     delete_question,
     mark_question_answered,
+    question_redirect_view,
     reject_question,
     vote_question,
 )
@@ -53,6 +54,7 @@ urlpatterns = [
     path("talks/<int:talk_id>/rating-stats/", get_talk_rating_stats, name="talk_rating_stats"),
     # Q&A URLs
     path("talks/<int:talk_id>/questions/", QuestionListView.as_view(), name="talk_questions"),
+    path("talks/<str:talk_id>/questions/", question_redirect_view, name="question_redirect"),
     path(
         "talks/<int:talk_id>/questions/new/",
         QuestionCreateView.as_view(),
@@ -61,13 +63,13 @@ urlpatterns = [
     path("questions/<int:question_id>/vote/", vote_question, name="question_vote"),
     path("questions/<int:question_id>/edit/", QuestionUpdateView.as_view(), name="question_edit"),
     path("questions/<int:question_id>/delete/", delete_question, name="question_delete"),
-    path("questions/<int:question_id>/approve/", approve_question, name="question_approve"),
     path("questions/<int:question_id>/reject/", reject_question, name="question_reject"),
     path(
         "questions/<int:question_id>/mark-answered/",
         mark_question_answered,
         name="question_mark_answered",
     ),
+    path("questions/<int:question_id>/approve/", approve_question, name="question_approve"),
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
     path("profile/", profile_view, name="user_profile"),
     path("ht/", include("health_check.urls")),

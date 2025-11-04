@@ -1,4 +1,4 @@
-Your PyCon DE and PyData 2025 login code is: {{ code }}
+Your {{ brand_full_name }} login code is: {{ code }}
 
 This code will expire in {{ login_code_timeout_minutes }} minutes.
 

@@ -1,68 +1,87 @@
-# PyCon DE & PyData 2025 talks website
+# Conference Talks Website
 
-This is the repository for the PyCon DE & PyData 2025 talks website.
+This repository provides a reusable Django app to publish talks, schedules, and Q&A for different
+events (e.g., PyConDE, PyData Berlin).
+
+## Event configuration
+
+All configuration variables are listed in the `django-vars.env` file. If you set
+`DJANGO_READ_VARS_FILE=true`, the values will be read from that file otherwise you'll need to export
+them as environment variables.
 
 ## Development
 
-To run the project locally, you need to have Python 3.13 installed.
-This project uses [uv](https://docs.astral.sh/uv) to manage the dependencies
-and the virtual environment. You can still use other tools like `pip` to manage
-the dependencies though.
+The most straightforward way to run the project is to open it in a dev container or run the
+`dev-setup.sh` script locally:
 
-### Virtual environment
-
-Create a virtual environment and install the dependencies:
-
-```bash
-uv venv
-uv sync
-```
-
-Activate the virtual environment:
-
-```bash
-source .venv/bin/activate
-```
-
-### Django
-
-Assuming you have the virtual environment activated, you can now run the Django
-commands to run the development server locally:
-
-```bash
-python manage.py makemigrations
-python manage.py migrate
-python manage.py runserver
-```
-
-Other commands are available, like creating a superuser or creating regular users:
-
-```bash
-python manage.py createsuperuser --email admin@example.com
-python manage.py createuser --email user1@example.com
-```
-
-Fill the database with testing data:
-
-```bash
-python manage.py generate_fake_talks --count 50
-```
-
-How to run locally:
 ```
 RUN_SERVER=true PRETALX_SYNC=false IMPORT_STREAMS=false GEN_FAKE_DATA=true .vscode/scripts/dev-setup.sh
 ```
 
-How to connect as admin:
-* open this [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
-* log in with admin:
-    * email: `admin@example.com`
-    * password: `PyConDE_2025`
-* browse to [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+It will download [uv] and create a virtual environment (`.venv`) with [tailwindCSS], [Mailpit],
+[Python] and all other dependencies required for development and testing.
 
+It will also run migrations, create test users (`user1@example.com`, `user2@example.com` and
+`admin@example.com`), generate fake data and start the server in debug mode (on port
+[8000](http://127.0.0.1:8000/)) and a Mailpit instance to test emails (on port
+[8025](http://127.0.0.1:8025/)).
 
-How to connect as user:
-* go to [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
-* enter `user1@example.com` or `user2@example.com`
-* go to [http://localhost:8025/](http://localhost:8025/) to see the emails sent.
-* copy the validation code to the form.
+## Authentication
+
+All users can login via email, including admins:
+
+- go to [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- enter `user1@example.com`, `user2@example.com` or `admin@example.com`
+- go to [http://localhost:8025/](http://localhost:8025/) to see the emails sent
+- copy the validation code to the form
+
+Admins can also login with password in the admin interface:
+
+- open http://127.0.0.1:8000/admin/
+- login with admin:
+  - email: `admin@example.com`
+  - password: `admin`
+- browse to http://127.0.0.1:8000/
+
+## Testing
+
+The project uses [pytest] for testing. To run the tests, run:
+
+```
+uv run pytest
+```
+
+## Deployment
+
+This repository includes example files for a deployment using [Docker], [PostgreSQL], [Nginx], and
+[Mailgun]. Adapt them to your needs.
+
+Example:
+
+```bash
+sudo mkdir -p ${MEDIA_DIR}
+sudo mkdir -p ${STATIC_DIR}
+sudo mkdir -p ${LOGS_DIR}
+
+cd docker
+docker buildx bake --allow=fs.read=..
+
+mv staticfiles/* ${STATIC_DIR}/
+sudo APP_DOMAIN=my.example.com ./ensure_permissions.sh
+docker compose up -d
+
+sudo vi /etc/nginx/sites-available/${APP_DOMAIN}
+sudo ln -s /etc/nginx/sites-available/${APP_DOMAIN} /etc/nginx/sites-enabled/${APP_DOMAIN}
+sudo certbot --nginx -d ${APP_DOMAIN}
+sudo systemctl reload nginx
+```
+
+[Docker]: https://www.docker.com/
+[Mailgun]: https://www.mailgun.com/
+[Mailpit]: https://mailpit.axllent.org
+[Nginx]: https://nginx.org/
+[PostgreSQL]: https://www.postgresql.org/
+[Python]: https://www.python.org/
+[pytest]: https://docs.pytest.org/en/stable/
+[tailwindCSS]: https://tailwindcss.com/
+[uv]: https://docs.astral.sh/uv

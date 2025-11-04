@@ -1,5 +1,5 @@
 """
-Conference talk management module for PyCon DE & PyData 2025.
+Conference talk management module for the event talks site.
 
 This module provides the Talk model for storing and managing conference talks, including their
 metadata, scheduling information, and video links.
@@ -208,26 +208,13 @@ class Talk(models.Model):
     """Represents a conference talk."""
 
     class PresentationType(models.TextChoices):
-        """
-        Enumeration of presentation types.
-
-        Values in Pretalx:
-        - Keynote
-        - Kids Workshop
-        - Lightning Talks
-        - Panel
-        - Sponsored Talk
-        - Sponsored Talk (Keystone)
-        - Sponsored Talk (long)
-        - Talk
-        - Talk (long)
-        - Tutorial
-        """
+        """Enumeration of presentation types."""
 
         KEYNOTE = "Keynote", _("Keynote")
         KIDS = "Kids", _("Kids")
         LIGHTNING = "Lightning", _("Lightning Talk")
         PANEL = "Panel", _("Panel")
+        PLENARY = "Plenary", _("Plenary")
         TALK = "Talk", _("Talk")
         TUTORIAL = "Tutorial", _("Tutorial")
 
@@ -292,7 +279,7 @@ class Talk(models.Model):
         help_text=_("URL to an externally hosted image"),
     )
     image = models.ImageField(
-        upload_to="talk_images/",
+        upload_to=f"talk_images/{settings.BRAND_ASSETS_SUBDIR}/",
         blank=True,
         null=True,
         help_text=_("Image for the talk. Overrides the external image URL if provided."),
@@ -514,6 +501,10 @@ class Talk(models.Model):
         """
         return self.get_timing() == self.TalkTiming.UPCOMING
 
+    def is_current(self) -> bool:
+        """Return True if the talk is currently happening (within the timing margin)."""
+        return self.get_timing() == self.TalkTiming.CURRENT
+
     def has_active_streaming(self) -> bool:
         """
         Check if the streaming associated with this talk is still ongoing.
@@ -535,7 +526,10 @@ class Talk(models.Model):
             return cast("str", self.image.url)
         if self.external_image_url:
             return self.external_image_url
-        return f"{settings.MEDIA_URL}talk_images/default.jpg"
+        return (
+            f"{settings.MEDIA_URL.rstrip('/')}/talk_images/"
+            f"{settings.BRAND_ASSETS_SUBDIR}/default.jpg"
+        )
 
     def get_slido_link(self) -> str:
         """

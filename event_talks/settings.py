@@ -1,4 +1,4 @@
-"""Django settings for pyconde_talks project."""
+"""Django settings for event_talks project."""
 
 from pathlib import Path
 
@@ -57,12 +57,25 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # URLS
 # --------------------------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#root-urlconf
-ROOT_URLCONF = "pyconde_talks.urls"
+ROOT_URLCONF = "event_talks.urls"
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#wsgi-application
-WSGI_APPLICATION = "pyconde_talks.wsgi.application"
+WSGI_APPLICATION = "event_talks.wsgi.application"
 # https://docs.djangoproject.com/en/dev/howto/deployment/asgi/
-ASGI_APPLICATION = "pyconde_talks.asgi.application"
+ASGI_APPLICATION = "event_talks.asgi.application"
+
+# BRANDING / EVENT CONFIGURATION
+BRAND_EVENT_NAME = env("BRAND_EVENT_NAME", default="Python Event")
+BRAND_EVENT_YEAR = env("BRAND_EVENT_YEAR", default="2025")
+BRAND_MAIN_WEBSITE_URL = env("BRAND_MAIN_WEBSITE_URL", default="https://python.org/")
+BRAND_VENUE_URL = env("BRAND_VENUE_URL", default="https://python.org/")
+BRAND_LOGO_SVG_NAME = env("BRAND_LOGO_SVG_NAME", default="python-logo")
+BRAND_MADE_BY_NAME = env("BRAND_MADE_BY_NAME", default="Community")
+BRAND_MADE_BY_URL = env(
+    "BRAND_MADE_BY_URL",
+    default="https://github.com/PioneersHub/pyconde-talks/graphs/contributors",
+)
+BRAND_ASSETS_SUBDIR = env("BRAND_ASSETS_SUBDIR", default="")
 
 
 # --------------------------------------------------------------------------------------------------
@@ -119,7 +132,7 @@ X_FRAME_OPTIONS = "DENY"
 # https://docs.djangoproject.com/en/dev/ref/settings/#std-setting-CSRF_TRUSTED_ORIGINS
 CSRF_TRUSTED_ORIGINS = env.list(
     "DJANGO_CSRF_TRUSTED_ORIGINS",
-    default=["http://localhost", "https://talks.pycon.de"],
+    default=["http://localhost", "http://127.0.0.1"],
 )
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -161,10 +174,7 @@ LOGIN_URL = "/accounts/login/"
 # ---------------------
 # E-mail validation API
 # ---------------------
-EMAIL_VALIDATION_API_URL = env(
-    "EMAIL_VALIDATION_API_URL",
-    default="https://val.pycon.de/tickets/validate_email/",
-)
+EMAIL_VALIDATION_API_URL = env("EMAIL_VALIDATION_API_URL", default="")
 EMAIL_VALIDATION_API_TIMEOUT = env.int("EMAIL_VALIDATION_API_TIMEOUT", default=10)
 
 # E-mails that will bypass API validation
@@ -191,7 +201,7 @@ ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS = 3
 ACCOUNT_PREVENT_ENUMERATION = True
 ACCOUNT_EMAIL_SUBJECT_PREFIX = env(
     "ACCOUNT_EMAIL_SUBJECT_PREFIX",
-    default="[PyConDE & PyData 2025] ",
+    default=f"[{BRAND_EVENT_NAME} {BRAND_EVENT_YEAR}] ",
 )
 
 
@@ -265,7 +275,7 @@ STATICFILES_FINDERS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-root
 MEDIA_ROOT = BASE_DIR / env("DJANGO_MEDIA_ROOT", default="media")
 MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
-MEDIA_URL = env("MEDIA_URL", default="/media/")
+MEDIA_URL = env("DJANGO_MEDIA_URL", default="/media/")
 
 
 # --------------------------------------------------------------------------------------------------
@@ -302,6 +312,7 @@ TEMPLATES = [
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
+                "event_talks.context_processors.branding",
             ],
         },
     },
@@ -389,6 +400,14 @@ LOGGING = {
             "backupCount": 90,
             "level": "ERROR",
         },
+        "auth_file": {
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": log_dir / "auth.log",
+            "formatter": "json_formatter",
+            "when": "midnight",
+            "backupCount": 90,
+            "level": "INFO",
+        },
     },
     "root": {
         "handlers": ["console", "json_file"],
@@ -415,7 +434,7 @@ LOGGING = {
             "handlers": ["error_file"],
             "propagate": False,
         },
-        "pyconde_talks": {
+        "event_talks": {
             "level": env("LOG_LEVEL", default="INFO"),
             "handlers": ["console", "json_file", "error_file"],
             "propagate": False,
@@ -428,6 +447,11 @@ LOGGING = {
         "talks": {
             "level": env("LOG_LEVEL", default="INFO"),
             "handlers": ["console", "json_file", "error_file"],
+            "propagate": False,
+        },
+        "auth": {
+            "level": env("AUTH_LOG_LEVEL", default="INFO"),
+            "handlers": ["auth_file"],
             "propagate": False,
         },
     },
@@ -525,6 +549,7 @@ MARKDOWNIFY = {
 # Pretalx
 # --------------------------------------------------------------------------------------------------
 PRETALX_API_TOKEN = env("PRETALX_API_TOKEN", default="0000000000000000000000000000000000000000")
+PRETALX_BASE_URL = env("PRETALX_BASE_URL", default="https://pretalx.com")
 PRETALX_EVENT_SLUG = env("PRETALX_EVENT_SLUG", default="pyconde-pydata-2025")
 
 # --------------------------------------------------------------------------------------------------
@@ -540,6 +565,15 @@ LIVESTREAMS_WORKSHEET_NAME = env(
 )
 
 # --------------------------------------------------------------------------------------------------
+# Talk card
+# --------------------------------------------------------------------------------------------------
+TALK_CARD_FONT = env(
+    "TALK_CARD_FONT",
+    default=BASE_DIR / "assets" / "fonts" / "NotoSans.ttf",
+)
+
+# --------------------------------------------------------------------------------------------------
 # Extra settings
 # --------------------------------------------------------------------------------------------------
 SHOW_UPCOMING_TALKS_LINKS = env.bool("SHOW_UPCOMING_TALKS_LINKS", default=False)
+PICKLE_PRETALX_TALKS = env.bool("PICKLE_PRETALX_TALKS", default=False)
