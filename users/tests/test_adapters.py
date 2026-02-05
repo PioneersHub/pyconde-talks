@@ -173,3 +173,56 @@ def test_api_authorization_exceptions(
     # Verify that a request attempt was made
     assert len(responses.calls) == 1
     assert responses.calls[0].request.url == mock_email_api_exception  # Check URL matches
+
+
+@pytest.mark.django_db
+class TestSendMail:
+    """Tests for AccountAdapter.send_mail context injection."""
+
+    def test_send_mail_adds_context(
+        self,
+        adapter: AccountAdapter,
+        mocker: Any,
+        settings: Any,
+    ) -> None:
+        """send_mail injects branding and timeout context values."""
+        settings.ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 300  # 5 minutes
+        settings.BRAND_EVENT_NAME = "PyConDE"
+        settings.BRAND_EVENT_YEAR = "2025"
+
+        mock_super = mocker.patch(
+            "allauth.account.adapter.DefaultAccountAdapter.send_mail",
+        )
+
+        adapter.send_mail("account/email/login_code", "user@test.com", {"key": "value"})
+
+        mock_super.assert_called_once()
+        ctx = mock_super.call_args[0][2]
+        expected_timeout_minutes = 300 // 60
+        assert ctx["login_code_timeout_minutes"] == expected_timeout_minutes
+        assert ctx["brand_event_name"] == "PyConDE"
+        assert ctx["brand_event_year"] == "2025"
+        assert ctx["brand_full_name"] == "PyConDE 2025"
+        assert ctx["brand_title"] == "PyConDE 2025 Talks"
+
+
+@pytest.mark.django_db
+@responses.activate
+def test_api_authorization_valid_false(
+    adapter: AccountAdapter,
+    settings: SettingsWrapper,
+) -> None:
+    """Test API returns valid=false — hits the warning branch."""
+    api_url = "https://fake-api.example.com/validate"
+    settings.EMAIL_VALIDATION_API_URL = api_url
+    settings.AUTHORIZED_EMAILS_WHITELIST = []
+
+    responses.add(
+        responses.POST,
+        api_url,
+        json={"valid": False},
+        status=200,
+    )
+
+    assert adapter.is_email_authorized("rejected@example.com") is False
+    assert len(responses.calls) == 1
