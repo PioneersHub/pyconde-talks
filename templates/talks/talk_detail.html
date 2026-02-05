@@ -98,15 +98,6 @@
             {% svg 'information-circle' "h-4 w-4 mr-2" %}
             View on Pretalx
           </a>
-          {% if talk.get_video_link %}
-            <a href="{{ talk.get_video_link }}"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="btn-danger inline-flex items-center px-4 py-2 rounded-lg">
-              {% svg 'play-circle' "h-4 w-4 mr-2" %}
-              Watch Video
-            </a>
-          {% endif %}
           <!-- Our Q&A section link -->
           <a href="{% url 'talk_questions' talk.id %}"
              class="btn-secondary inline-flex items-center px-4 py-2 rounded-lg">

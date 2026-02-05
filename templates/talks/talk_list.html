@@ -152,7 +152,7 @@
                 Details
               </a>
               {% if talk.get_video_link %}
-                <a href="{{ talk.get_video_link }}"
+                <a href="{% url 'talk_detail' talk.pk %}"
                    target="_blank"
                    rel="noopener noreferrer"
                    class="btn-danger inline-flex items-center px-3 py-1 rounded">
