@@ -135,6 +135,7 @@ videoteam
 vimeocdn
 webp
 worktree
+wsgi
 xlink
 ytimg
 zuban

@@ -170,6 +170,15 @@ addopts = [
     "--verbose",
 ]
 
+[tool.coverage.run]
+omit = [
+    "manage.py",
+    "event_talks/asgi.py",
+    "event_talks/wsgi.py",
+    "event_talks/settings.py",
+    "*/migrations/*",
+]
+
 [tool.bandit]
 exclude_dirs = [".git", ".venv", "__pycache__", "generate_fake_talks.py", "migrations", "tests"]
 
