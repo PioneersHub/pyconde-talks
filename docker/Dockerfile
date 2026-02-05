@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.9
 
 # Stage 1: Builder
-FROM python:3.13-slim AS builder
+FROM python:3.14-slim AS builder
 
 # Copy uv package manager
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -74,7 +74,7 @@ COPY --from=builder ${DJANGO_STATIC_ROOT} ${DJANGO_STATIC_ROOT}
 # Make sure to set the correct permissions for them:
 #   - Django (UID 10000) needs read and write permissions to media files
 #   - Nginx (www-data, UID 33) only needs read permissions to serve media files
-FROM python:3.13-slim AS final
+FROM python:3.14-slim AS final
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \

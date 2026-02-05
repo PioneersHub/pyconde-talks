@@ -3,7 +3,7 @@ name = "pyconde-talks"
 version = "0.1.0"
 description = "Website for conference talks"
 readme = "README.md"
-requires-python = ">=3.13,<4"
+requires-python = ">=3.14,<4"
 authors = [{ name = "Julio Batista Silva", email = "python@juliobs.com" }]
 license = "MIT"
 keywords = [
@@ -86,7 +86,7 @@ CI = "https://github.com/PioneersHub/pyconde-talks/actions"
 Issues = "https://github.com/PioneersHub/pyconde-talks/issues"
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -106,7 +106,7 @@ ignore = "H014,H021"
 [tool.ruff]
 line-length = 100
 indent-width = 4
-target-version = "py313"
+target-version = "py314"
 extend-exclude = ["migrations"]
 fix = true
 unsafe-fixes = false
