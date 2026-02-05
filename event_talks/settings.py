@@ -568,6 +568,8 @@ LIVESTREAMS_WORKSHEET_NAME = env(
     "LIVESTREAMS_WORKSHEET_NAME",
     default="Livestreams",
 )
+VIMEO_ACCESS_TOKEN = env("VIMEO_ACCESS_TOKEN", default="")
+VIMEO_PROJECT_IDS = env("VIMEO_PROJECT_IDS", default="")
 
 # --------------------------------------------------------------------------------------------------
 # Talk card
