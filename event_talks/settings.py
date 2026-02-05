@@ -582,3 +582,4 @@ TALK_CARD_FONT = env(
 # --------------------------------------------------------------------------------------------------
 SHOW_UPCOMING_TALKS_LINKS = env.bool("SHOW_UPCOMING_TALKS_LINKS", default=False)
 PICKLE_PRETALX_TALKS = env.bool("PICKLE_PRETALX_TALKS", default=False)
+IMPORT_TALKS_WITHOUT_SPEAKERS = env.bool("IMPORT_TALKS_WITHOUT_SPEAKERS", default=True)

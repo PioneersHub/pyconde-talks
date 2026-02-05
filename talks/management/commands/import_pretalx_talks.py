@@ -431,23 +431,28 @@ class Command(BaseCommand):
             )
 
         if not submission.speakers:
-            # Allow Lightning Talks without defined speakers
-            if self._submission_is_lightning_talk(submission):
+            if self._submission_is_lightning_talk(submission) or self._submission_is_announcement(
+                submission,
+            ):
+                # Always allow Lightning Talks and announcements without defined speakers
+                valid = True
                 self._log(
-                    f"Lightning Talk {submission.code} has no speakers",
+                    f"Submission {submission.code} has no speakers",
                     verbosity,
                     VerbosityLevel.NORMAL,
                     "WARNING",
                 )
-                return True
-            valid = False
-            self._log(
-                f"Submission {submission.code} has no speakers",
-                verbosity,
-                VerbosityLevel.NORMAL,
-                "ERROR",
-            )
+            else:
+                # Maybe allow other submissions without defined speakers
+                valid = settings.IMPORT_TALKS_WITHOUT_SPEAKERS
+                self._log(
+                    f"Submission {submission.code} has no speakers",
+                    verbosity,
+                    VerbosityLevel.NORMAL,
+                    "WARNING",
+                )
 
+        # Rooms are mandatory
         if (
             not hasattr(submission, "slots")
             or not submission.slots
@@ -489,6 +494,33 @@ class Command(BaseCommand):
                 and hasattr(field, "en")
                 and isinstance(field.en, str)
                 and field.en.lower() in lightning_terms
+            ):
+                return True
+        return False
+
+    def _submission_is_announcement(self, submission: Submission) -> bool:
+        """Check if a submission is an announcement (like opening and closing sessions)."""
+        announcement_terms = frozenset(
+            {
+                "opening session",
+                "closing session",
+            },
+        )
+        fields = [
+            getattr(submission, "track", None),
+            getattr(submission, "title", None),
+            getattr(submission, "submission_type", None),
+        ]
+        for field in fields:
+            # If field is a string
+            if isinstance(field, str) and field.lower() in announcement_terms:
+                return True
+            # If field is a MultiLingualStr, check .en
+            if (
+                field is not None
+                and hasattr(field, "en")
+                and isinstance(field.en, str)
+                and field.en.lower() in announcement_terms
             ):
                 return True
         return False
