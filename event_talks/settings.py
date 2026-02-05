@@ -150,6 +150,8 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_CONTENT_TYPE_NOSNIFF = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-referrer-policy
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-cross-origin-opener-policy
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 
 
 # --------------------------------------------------------------------------------------------------
@@ -214,6 +216,12 @@ ACCOUNT_LOGIN_BY_CODE_ENABLED = True
 ACCOUNT_LOGIN_BY_CODE_TIMEOUT = env.int("ACCOUNT_LOGIN_BY_CODE_TIMEOUT", default=300)
 ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS = 3
 ACCOUNT_PREVENT_ENUMERATION = True
+# Rate limits for authentication to prevent brute force attacks
+# https://docs.allauth.org/en/latest/account/rate_limits.html
+ACCOUNT_RATE_LIMITS = {
+    "login_failed": "5/5m",  # 5 failed login attempts per 5 minutes
+    "confirm_email": "3/3m",  # 3 email confirmation requests per 3 minutes
+}
 ACCOUNT_EMAIL_SUBJECT_PREFIX = env(
     "ACCOUNT_EMAIL_SUBJECT_PREFIX",
     default=f"[{BRAND_EVENT_NAME} {BRAND_EVENT_YEAR}] ",
