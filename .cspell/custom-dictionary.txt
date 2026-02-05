@@ -127,6 +127,7 @@ stylesheet
 sunos
 tailwindcss
 tamasfe
+trixie
 tspan
 venv
 videoteam
