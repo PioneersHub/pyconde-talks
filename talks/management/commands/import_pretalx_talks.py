@@ -347,6 +347,11 @@ class Command(BaseCommand):
                 "WARNING",
             )
 
+        # Batch create rooms and speakers before processing talks (optimization)
+        if not dry_run:
+            self._batch_create_rooms(submissions, event_slug, options)
+            self._batch_create_or_update_speakers(submissions, options)
+
         # Process each submission
         for idx, submission in enumerate(submissions):
             self._log(
@@ -387,6 +392,135 @@ class Command(BaseCommand):
             VerbosityLevel.NORMAL,
             "SUCCESS",
         )
+
+    def _batch_create_rooms(
+        self,
+        submissions: list[Submission],
+        event_slug: str,
+        options: dict[str, Any],
+    ) -> None:
+        """Batch create all rooms needed for submissions to reduce database queries."""
+        verbosity = VerbosityLevel(options.get("verbosity", VerbosityLevel.NORMAL.value))
+
+        # Collect unique room names from submissions
+        room_names: set[str] = set()
+        for submission in submissions:
+            # Only process accepted/confirmed submissions
+            if submission.state not in [State.confirmed, State.accepted]:
+                continue
+
+            data = SubmissionData(submission, event_slug, options.get("pretalx_base_url"))
+            if data.room:
+                room_names.add(data.room)
+
+        if not room_names:
+            return
+
+        # Get existing rooms
+        existing_rooms = set(
+            Room.objects.filter(name__in=room_names).values_list("name", flat=True),
+        )
+
+        # Create rooms that don't exist
+        rooms_to_create = room_names - existing_rooms
+        if rooms_to_create:
+            Room.objects.bulk_create(
+                [
+                    Room(name=name, description=f"Room imported from Pretalx: {name}")
+                    for name in rooms_to_create
+                ],
+                ignore_conflicts=True,
+            )
+            self._log(
+                f"Batch created {len(rooms_to_create)} rooms",
+                verbosity,
+                VerbosityLevel.DETAILED,
+                "SUCCESS",
+            )
+
+    def _collect_speakers_from_submissions(
+        self,
+        submissions: list[Submission],
+    ) -> dict[str, SubmissionSpeaker]:
+        """Collect unique speakers from accepted/confirmed submissions."""
+        speakers_data: dict[str, SubmissionSpeaker] = {}
+        valid_states = {State.confirmed, State.accepted}
+        for submission in submissions:
+            if submission.state not in valid_states or not submission.speakers:
+                continue
+            for speaker in submission.speakers:
+                speakers_data[speaker.code] = speaker
+        return speakers_data
+
+    def _batch_create_or_update_speakers(
+        self,
+        submissions: list[Submission],
+        options: dict[str, Any],
+    ) -> None:
+        """Batch create or update all speakers to reduce database queries."""
+        verbosity = VerbosityLevel(options.get("verbosity", VerbosityLevel.NORMAL.value))
+        no_update = options.get("no_update", False)
+
+        # Collect unique speakers from submissions
+        speakers_data = self._collect_speakers_from_submissions(submissions)
+        if not speakers_data:
+            return
+
+        # Get existing speakers by pretalx_id
+        existing_speakers = {
+            s.pretalx_id: s for s in Speaker.objects.filter(pretalx_id__in=speakers_data.keys())
+        }
+
+        # Separate new speakers from existing ones
+        speakers_to_create: list[Speaker] = []
+        speakers_to_update: list[Speaker] = []
+
+        for code, speaker_data in speakers_data.items():
+            if code not in existing_speakers:
+                speakers_to_create.append(
+                    Speaker(
+                        name=speaker_data.name,
+                        biography=speaker_data.biography or "",
+                        avatar=speaker_data.avatar_url or "",
+                        pretalx_id=speaker_data.code,
+                    ),
+                )
+            elif not no_update:
+                existing = existing_speakers[code]
+                bio = speaker_data.biography or ""
+                avatar = speaker_data.avatar_url or ""
+                if (
+                    existing.name != speaker_data.name
+                    or existing.biography != bio
+                    or existing.avatar != avatar
+                ):
+                    existing.name = speaker_data.name
+                    existing.biography = bio
+                    existing.avatar = avatar
+                    speakers_to_update.append(existing)
+
+        # Bulk create new speakers
+        if speakers_to_create:
+            Speaker.objects.bulk_create(speakers_to_create, ignore_conflicts=True)
+            self._log(
+                f"Batch created {len(speakers_to_create)} speakers",
+                verbosity,
+                VerbosityLevel.DETAILED,
+                "SUCCESS",
+            )
+
+        # Bulk update existing speakers
+        if speakers_to_update:
+            Speaker.objects.bulk_update(
+                speakers_to_update,
+                ["name", "biography", "avatar"],
+            )
+            self._log(
+                f"Batch updated {len(speakers_to_update)} speakers",
+                verbosity,
+                VerbosityLevel.DETAILED,
+                "SUCCESS",
+            )
 
     def _prefetch_avatars_for_submissions(
         self,
