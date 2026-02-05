@@ -505,12 +505,6 @@ structlog.configure(
     cache_logger_on_first_use=True,
 )
 
-structlog.configure(
-    processors=processors,
-    logger_factory=structlog.stdlib.LoggerFactory(),
-    cache_logger_on_first_use=True,
-)
-
 # --------------------------------------------------------------------------------------------------
 # Markdownify
 # --------------------------------------------------------------------------------------------------
