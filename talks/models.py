@@ -338,6 +338,10 @@ class Talk(models.Model):
         indexes: ClassVar[list[models.Index]] = [
             models.Index(fields=["start_time"]),
             models.Index(fields=["room"]),
+            # Composite indexes for common query patterns
+            models.Index(fields=["room", "start_time"]),
+            models.Index(fields=["hide", "start_time"]),
+            models.Index(fields=["presentation_type", "start_time"]),
         ]
 
     def __str__(self) -> str:
