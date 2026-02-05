@@ -14,6 +14,7 @@ from django.db.models.functions import TruncDate
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.views.decorators.cache import cache_page
 from django.views.generic import DetailView, ListView
 
 from .models import Room, Talk
@@ -154,6 +155,7 @@ class TalkListView(LoginRequiredMixin, ListView[Talk]):
 
 
 @login_required
+@cache_page(60)  # Cache for 60 seconds to reduce database queries
 def dashboard_stats(request: HttpRequest) -> HttpResponse:
     """Generate statistics for the dashboard."""
     current_time = timezone.now()
