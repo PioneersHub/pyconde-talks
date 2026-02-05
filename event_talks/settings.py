@@ -542,16 +542,16 @@ MARKDOWNIFY = {
 # --------------------------------------------------------------------------------------------------
 # Pretalx
 # --------------------------------------------------------------------------------------------------
-PRETALX_API_TOKEN = env("PRETALX_API_TOKEN", default="0000000000000000000000000000000000000000")
-PRETALX_BASE_URL = env("PRETALX_BASE_URL", default="https://pretalx.com")
-PRETALX_EVENT_SLUG = env("PRETALX_EVENT_SLUG", default="pyconde-pydata-2025")
+PRETALX_API_TOKEN = env("PRETALX_API_TOKEN", default="")
+PRETALX_BASE_URL = env("PRETALX_BASE_URL", default="")
+PRETALX_EVENT_SLUG = env("PRETALX_EVENT_SLUG", default="")
 
 # --------------------------------------------------------------------------------------------------
 # Livestreams
 # --------------------------------------------------------------------------------------------------
 LIVESTREAMS_SHEET_ID = env(
     "LIVESTREAMS_SHEET_ID",
-    default="0000000000000000000000000000000000000000000",
+    default="",
 )
 LIVESTREAMS_WORKSHEET_NAME = env(
     "LIVESTREAMS_WORKSHEET_NAME",
