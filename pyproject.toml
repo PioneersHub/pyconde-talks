@@ -39,6 +39,7 @@ dependencies = [
     "django-htmx>=1.27.0",
     "django-markdownify>=0.9.6",
     "django-structlog>=10.0.0",
+    "django-stubs-ext>=5.2.9",
     "django-template-partials>=25.3",
     "django>=6.0.2",
     "emoji>=1.7,<2",
