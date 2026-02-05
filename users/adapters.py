@@ -8,6 +8,7 @@ import structlog
 from allauth.account.adapter import DefaultAccountAdapter
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db import DatabaseError, OperationalError
 from requests.exceptions import (
     ConnectionError as RequestsConnectionError,
     RequestException,
@@ -85,8 +86,10 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
                 return True
         except UserModel.DoesNotExist:
             logger.debug("User with email does not exist", email=email_hash)
-        except Exception:
-            logger.exception("Error checking user authorization for email", email=email_hash)
+        except DatabaseError:
+            logger.exception("Database error checking user authorization", email=email_hash)
+        except OperationalError:
+            logger.exception("Operational error checking user authorization", email=email_hash)
         return False
 
     def _validate_email_with_api(self, email: str, email_hash: str) -> bool:
