@@ -170,6 +170,13 @@ class Command(BaseCommand):
             action="store_true",
             help="Skip generating/updating talk social images",
         )
+        parser.add_argument(
+            "--image-format",
+            type=str,
+            choices=["webp", "jpeg"],
+            default="webp",
+            help="Output format for generated talk images (webp or jpeg). Default: webp",
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:  # noqa: ARG002
         """Execute the command to import talks from Pretalx."""
@@ -1048,14 +1055,27 @@ class Command(BaseCommand):
         }
         return fonts
 
-    def _generate_talk_image(
+    def _generate_talk_image(  # noqa: PLR0915
         self,
         talk: Talk,
         options: dict[str, Any],
-        card_width: int = 1200,
+        card_width: int = 1920,
     ) -> Image.Image:
         """Generate a talk image based on the title and speakers and save as WebP."""
         verbosity = VerbosityLevel(options.get("verbosity", VerbosityLevel.NORMAL.value))
+        # Determine output format (default to webp)
+        image_format_raw = cast("str | None", options.get("image_format", "webp")) or "webp"
+        image_format = image_format_raw.lower()
+        if image_format == "jpg":  # allow common alias
+            image_format = "jpeg"
+        if image_format not in {"webp", "jpeg"}:
+            self._log(
+                f"Unsupported image format '{image_format_raw}', defaulting to 'webp'",
+                verbosity,
+                VerbosityLevel.DETAILED,
+                "WARNING",
+            )
+            image_format = "webp"
 
         template_path = (
             settings.BASE_DIR
@@ -1116,7 +1136,7 @@ class Command(BaseCommand):
             final_img.paste(photo, (x, y), photo)
 
         # Session title: align at bottom of safe zone box
-        full_width = card_width - 80  # 1120px
+        full_width = card_width - 80
 
         # Fonts and colors
         fonts = self._load_fonts()
@@ -1134,7 +1154,7 @@ class Command(BaseCommand):
         if speakers_text:
             speaker_y = height - 80
             draw.text(
-                (40, speaker_y),
+                (60, speaker_y),
                 speakers_text,
                 font=fonts["subtitle"],
                 fill=colors["text"],
@@ -1142,13 +1162,27 @@ class Command(BaseCommand):
 
         # Save WebP
         buffer = BytesIO()
-        final_img.save(buffer, format="WEBP", quality=82, method=6)
+        if image_format == "webp":
+            final_img.save(buffer, format="WEBP", quality=82, method=6)
+            content_type = "image/webp"
+            ext = "webp"
+        else:  # JPEG
+            # JPEG doesn't support alpha; final_img is RGB already
+            final_img.save(
+                buffer,
+                format="JPEG",
+                quality=88,
+                optimize=True,
+                progressive=True,
+            )
+            content_type = "image/jpeg"
+            ext = "jpeg"
         buffer.seek(0)
         image_file = InMemoryUploadedFile(
             buffer,
             None,
-            f"talk_{talk.pk}.webp",
-            "image/webp",
+            f"talk_{talk.pk}.{ext}",
+            content_type,
             buffer.getbuffer().nbytes,
             None,
         )
@@ -1173,12 +1207,12 @@ class Command(BaseCommand):
     ) -> None:
         """Draw wrapped title text aligned to bottom of safe area."""
         title_lines = self._wrap_text(title, fonts, full_width)
-        line_height = 60
+        line_height = 80
         title_block_height = len(title_lines[:5]) * line_height
-        title_y = 540 - title_block_height
+        title_y = 900 - title_block_height
         with Pilmoji(canvas) as pilmoji:
             for line in title_lines[:5]:
-                pilmoji.text((40, title_y), line, (255, 255, 255), fonts["title"])
+                pilmoji.text((60, title_y), line, (255, 255, 255), fonts["title"])
                 title_y += line_height
 
 

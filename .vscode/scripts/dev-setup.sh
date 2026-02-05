@@ -19,6 +19,7 @@ GEN_FAKE_DATA="${GEN_FAKE_DATA:-true}"
 PRETALX_SYNC="${PRETALX_SYNC:-false}"
 IMPORT_STREAMS="${IMPORT_STREAMS:-false}"
 DOWNLOAD_FONT="${DOWNLOAD_FONT:-true}"
+IMAGE_FORMAT="${IMAGE_FORMAT:-webp}"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -274,7 +275,7 @@ initialize_django() {
     # Sync with Pretalx
     if [ "$PRETALX_SYNC" = "true" ]; then
         log "Syncing with Pretalx..."
-        "$VENV_PYTHON" manage.py import_pretalx_talks --verbosity 3 || warn "Failed to import talks from Pretalx"
+        "$VENV_PYTHON" manage.py import_pretalx_talks --verbosity 3 --image-format "$IMAGE_FORMAT" || warn "Failed to import talks from Pretalx"
     fi
 
     # Sync with Google Sheets
