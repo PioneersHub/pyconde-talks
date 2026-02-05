@@ -18,16 +18,17 @@ keywords = [
     "videos",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Web Environment",
+    "Framework :: Django :: 6",
     "Framework :: Django",
-    "Framework :: Django :: 5.1",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.13",
-    "Topic :: Internet :: WWW/HTTP",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Education",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
-    "Topic :: Conference",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Multimedia :: Video",
 ]
 dependencies = [
     "argon2-cffi>=25.1.0",
