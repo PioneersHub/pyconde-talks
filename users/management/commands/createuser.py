@@ -1,6 +1,6 @@
 """Management command to create a regular user with email."""
 
-from typing import Any
+from typing import Any, cast
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -46,11 +46,11 @@ class Command(BaseCommand):
             **options: Command options including the email address
 
         """
-        User = get_user_model()  # noqa: N806
+        User = cast("type[CustomUser]", get_user_model())  # noqa: N806
         email = options["email"]
 
         try:
-            user: CustomUser = User.objects.create_user(
+            user = User.objects.create_user(
                 email=email,
                 is_active=True,
             )
@@ -64,8 +64,8 @@ class Command(BaseCommand):
                 self.style.ERROR(f"Invalid email format: {email}"),
             )
             raise
-        except ValidationError as e:
+        except ValidationError as exc:
             self.stdout.write(
-                self.style.ERROR(f"Validation error: {e}"),
+                self.style.ERROR(f"Validation error: {exc}"),
             )
             raise

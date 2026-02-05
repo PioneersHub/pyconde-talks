@@ -14,4 +14,5 @@ class VideoProvider(StrEnum):
     """Enumeration of video providers."""
 
     Youtube = "youtube.com"
+    YoutubeShort = "youtu.be"
     Vimeo = "vimeo.com"

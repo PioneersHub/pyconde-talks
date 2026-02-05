@@ -7,7 +7,7 @@ metadata, scheduling information, and video links.
 
 from datetime import UTC, datetime, timedelta
 from enum import IntEnum
-from typing import Any, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -18,6 +18,10 @@ from django.utils.translation import gettext_lazy as _
 from talks.types import VideoProvider
 from talks.validators import validate_video_link
 from utils.url import add_query_param
+
+
+if TYPE_CHECKING:
+    from django_stubs_ext.db.models.manager import RelatedManager
 
 
 # Constants
@@ -56,6 +60,10 @@ class Room(models.Model):
         default="",
         help_text=_("Link to Slido for this room"),
     )
+
+    if TYPE_CHECKING:
+        streamings: RelatedManager[Streaming]
+        talks: RelatedManager[Talk]
 
     class Meta:
         """Metadata for the Room model."""
@@ -199,6 +207,9 @@ class Speaker(models.Model):
         help_text=_("Unique identifier for the speaker in the Pretalx system"),
     )
 
+    if TYPE_CHECKING:
+        talks: RelatedManager[Talk]
+
     def __str__(self) -> str:
         """Return the speaker name."""
         return self.name
@@ -218,7 +229,7 @@ class Talk(models.Model):
         TALK = "Talk", _("Talk")
         TUTORIAL = "Tutorial", _("Tutorial")
 
-    DEFAULT_DURATIONS: ClassVar[dict] = {
+    DEFAULT_DURATIONS: ClassVar[dict[str, timedelta]] = {
         PresentationType.KEYNOTE: timedelta(minutes=45),
         PresentationType.KIDS: timedelta(minutes=30),
         PresentationType.PANEL: timedelta(minutes=45),
@@ -236,7 +247,7 @@ class Talk(models.Model):
         max_length=MAX_TALK_TITLE_LENGTH,
         help_text=_("Title of the talk"),
     )
-    speakers = models.ManyToManyField(
+    speakers: models.ManyToManyField[Speaker, Speaker] = models.ManyToManyField(
         Speaker,
         related_name="talks",
         help_text=_("Speakers giving this talk"),
@@ -298,9 +309,7 @@ class Talk(models.Model):
         validators=[validate_video_link],
         blank=True,
         default="",
-        help_text=_(
-            "Link to talk recording. Overrides the calculated streaming link if provided.",
-        ),
+        help_text=_("Link to talk recording. Overrides the calculated streaming link if provided."),
     )
     video_start_time = models.PositiveIntegerField(
         blank=True,
@@ -452,7 +461,7 @@ class Talk(models.Model):
         - 3 speakers: "Jane Smith, John Doe & Julio Batista"
         - 4 or more: "Jane Smith, John Doe & 3 more"
         """
-        speakers_list = list(self.speakers.all().values_list("name", flat=True))
+        speakers_list: list[str] = list(self.speakers.all().values_list("name", flat=True))
 
         match speakers_list:
             case [single_name]:
@@ -513,7 +522,7 @@ class Talk(models.Model):
         False: the talk was not streamed or the video is a recording.
         """
         streaming = self.get_streaming()
-        return streaming and streaming.is_active()
+        return bool(streaming and streaming.is_active())
 
     def get_image_url(self) -> str:
         """

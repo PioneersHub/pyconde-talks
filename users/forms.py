@@ -6,7 +6,7 @@ Regular users do not have password fields, as they authenticate via email codes 
 Admins can login via email and password, so they have password fields.
 """
 
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django import forms
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
@@ -15,7 +15,11 @@ from django.utils.translation import gettext_lazy as _
 from .models import CustomUser
 
 
-class SuperUserCreationForm(forms.ModelForm):
+if TYPE_CHECKING:
+    from django_stubs_ext import StrOrPromise
+
+
+class SuperUserCreationForm(forms.ModelForm[CustomUser]):
     """A form for creating new superusers with required password fields."""
 
     password1 = forms.CharField(
@@ -49,9 +53,9 @@ class SuperUserCreationForm(forms.ModelForm):
                 "Superusers have full access to the admin site.",
             )
 
-    def clean(self) -> dict[str, str]:
+    def clean(self) -> dict[str, Any]:
         """Validate form input, ensuring passwords match."""
-        cleaned_data = super().clean()
+        cleaned_data = super().clean() or {}
         password1 = cleaned_data.get("password1", "")
         password2 = cleaned_data.get("password2", "")
 
@@ -75,7 +79,7 @@ class SuperUserCreationForm(forms.ModelForm):
         return user
 
 
-class RegularUserCreationForm(forms.ModelForm):
+class RegularUserCreationForm(forms.ModelForm[CustomUser]):
     """A form for creating new regular users with no password fields."""
 
     class Meta:
@@ -83,7 +87,7 @@ class RegularUserCreationForm(forms.ModelForm):
 
         model = CustomUser
         fields = ("email", "first_name", "last_name", "is_active", "is_staff")
-        help_texts: ClassVar[dict[str, str]] = {
+        help_texts: ClassVar[dict[str, StrOrPromise]] = {
             "is_staff": _(
                 "Staff users can access the admin site but cannot login without being superusers.",
             ),
@@ -104,7 +108,7 @@ class RegularUserCreationForm(forms.ModelForm):
         return user
 
 
-class CustomUserChangeForm(forms.ModelForm):
+class CustomUserChangeForm(forms.ModelForm[CustomUser]):
     """
     A form for updating users.
 
@@ -147,10 +151,10 @@ class CustomUserChangeForm(forms.ModelForm):
     def clean_password(self) -> str:
         """Return the initial value regardless of user input."""
         # Password field is not meant to be changed here
-        return self.initial.get("password", "")
+        return str(self.initial.get("password", ""))
 
 
-class ProfileForm(forms.ModelForm):
+class ProfileForm(forms.ModelForm[CustomUser]):
     """Form for users to edit their profile (name and display name)."""
 
     class Meta:
@@ -158,7 +162,7 @@ class ProfileForm(forms.ModelForm):
 
         model = CustomUser
         fields = ("first_name", "last_name", "display_name")
-        help_texts: ClassVar[dict[str, str]] = {
+        help_texts: ClassVar[dict[str, StrOrPromise]] = {
             "display_name": _(
                 "Name shown publicly when asking questions. "
                 "If empty, we'll use your full name or email.",

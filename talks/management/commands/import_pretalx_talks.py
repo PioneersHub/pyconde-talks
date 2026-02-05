@@ -94,6 +94,7 @@ class SubmissionData:
             and hasattr(submission.track, "name")
             and submission.track.name
             and hasattr(submission.track.name, "en")
+            and submission.track.name.en
         ):
             self.track = submission.track.name.en[:MAX_TRACK_NAME_LENGTH]
 
@@ -120,7 +121,7 @@ class SubmissionData:
             and hasattr(submission.submission_type, "en")
             and submission.submission_type.en
         ):
-            self.submission_type = submission.submission_type.en
+            self.submission_type = str(submission.submission_type.en)
 
 
 class Command(BaseCommand):
@@ -200,15 +201,15 @@ class Command(BaseCommand):
                     VerbosityLevel.NORMAL,
                     style="SUCCESS",
                 )
-            except Exception as e:
-                self.stderr.write(self.style.ERROR(f"Failed to fetch talks: {e!s}"))
+            except Exception as exc:
+                self.stderr.write(self.style.ERROR(f"Failed to fetch talks: {exc!s}"))
                 return
 
             # Process submissions
             self._process_submissions(list(submissions), event_slug, options)
 
-        except Exception as e:
-            self.stderr.write(self.style.ERROR(f"An unexpected error occurred: {e!s}"))
+        except Exception as exc:
+            self.stderr.write(self.style.ERROR(f"An unexpected error occurred: {exc!s}"))
             if verbosity.value >= VerbosityLevel.DEBUG.value:
                 self.stderr.write(traceback.format_exc())
 
@@ -269,7 +270,10 @@ class Command(BaseCommand):
             if pickle_file.exists():
                 try:
                     with pickle_file.open("rb") as f:
-                        return pickle.load(f)  # nosec: B301  # noqa: S301
+                        return cast(
+                            "tuple[int, list[Submission]]",
+                            pickle.load(f),  # noqa: S301  # nosec: B301
+                        )
                 except (pickle.PickleError, OSError):  # fmt: skip
                     pass
 
@@ -278,8 +282,8 @@ class Command(BaseCommand):
             result = (count, list(submissions))
 
             try:
-                with pickle_file.open("wb") as f:
-                    pickle.dump(result, f)
+                with pickle_file.open("wb") as wb_file:
+                    pickle.dump(result, wb_file)
             except OSError:
                 pass
 
@@ -328,9 +332,9 @@ class Command(BaseCommand):
         # Prefetch speaker avatar images to speed up talk image generation
         try:
             self._prefetch_avatars_for_submissions(submissions, options)
-        except Exception as e:  # Prefetch is best-effort
+        except Exception as exc:  # Prefetch is best-effort
             self._log(
-                f"Avatar prefetch failed (continuing without cache): {e!s}",
+                f"Avatar prefetch failed (continuing without cache): {exc!s}",
                 verbosity,
                 VerbosityLevel.DETAILED,
                 "WARNING",
@@ -356,10 +360,10 @@ class Command(BaseCommand):
                 # Update stats
                 stats[result] += 1
 
-            except Exception as e:
+            except Exception as exc:
                 stats["failed"] += 1
                 self._log(
-                    f"Error processing submission {submission.code}: {e!s}",
+                    f"Error processing submission {submission.code}: {exc!s}",
                     verbosity,
                     VerbosityLevel.NORMAL,
                     "ERROR",
@@ -403,7 +407,7 @@ class Command(BaseCommand):
 
     def _get_avatar_cache_dir(self) -> Path:
         """Return the on-disk avatar cache directory path."""
-        return settings.MEDIA_ROOT / "avatars"
+        return Path(settings.MEDIA_ROOT) / "avatars"
 
     def _is_valid_submission(self, submission: Submission, verbosity: VerbosityLevel) -> bool:
         """Validate a submission."""
@@ -1017,7 +1021,7 @@ class Command(BaseCommand):
         talk: Talk,
         options: dict[str, Any],
         card_width: int = 1200,
-    ) -> Image:
+    ) -> Image.Image:
         """Generate a talk image based on the title and speakers and save as WebP."""
         verbosity = VerbosityLevel(options.get("verbosity", VerbosityLevel.NORMAL.value))
 

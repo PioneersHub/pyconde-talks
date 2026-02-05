@@ -16,6 +16,7 @@ from .models import CustomUser
 
 if TYPE_CHECKING:
     from django.db.models.query import QuerySet
+    from django_stubs_ext import StrOrPromise
 
 
 class EmailVerificationListFilter(admin.SimpleListFilter):
@@ -24,14 +25,18 @@ class EmailVerificationListFilter(admin.SimpleListFilter):
     title = _("Email verification")
     parameter_name = "verified"
 
-    def lookups(self, request: HttpRequest, model_admin: Any) -> list[tuple[str, str]]:  # noqa: ARG002
+    def lookups(self, _request: HttpRequest, _model_admin: Any) -> list[tuple[str, StrOrPromise]]:
         """Return filter options."""
         return [
             ("yes", _("Verified")),
             ("no", _("Not verified")),
         ]
 
-    def queryset(self, request: HttpRequest, queryset: QuerySet) -> QuerySet:  # noqa: ARG002
+    def queryset(
+        self,
+        _request: HttpRequest,
+        queryset: QuerySet[CustomUser],
+    ) -> QuerySet[CustomUser]:
         """Filter queryset based on selected option."""
         if self.value() == "yes":
             return queryset.filter(emailaddress__verified=True)
@@ -40,7 +45,7 @@ class EmailVerificationListFilter(admin.SimpleListFilter):
         return queryset
 
 
-class EmailAddressInline(admin.TabularInline):
+class EmailAddressInline(admin.TabularInline[EmailAddress, CustomUser]):
     """Inline admin interface for EmailAddress objects."""
 
     model = EmailAddress
@@ -57,12 +62,12 @@ class EmailAddressInline(admin.TabularInline):
 
 
 @admin.register(CustomUser)
-class CustomUserAdmin(UserAdmin):
+class CustomUserAdmin(UserAdmin[CustomUser]):
     """Admin configuration for the CustomUser model using UserAdmin."""
 
     # Form configuration
     form = CustomUserChangeForm
-    add_form = SuperUserCreationForm  # Default, will be changed based on user type
+    add_form: type[SuperUserCreationForm | RegularUserCreationForm] = SuperUserCreationForm
 
     # Override UserAdmin username handling
     username_field = "email"
@@ -91,7 +96,7 @@ class CustomUserAdmin(UserAdmin):
 
     search_fields = ("email", "first_name", "last_name")
     ordering = ("-date_joined",)
-    actions: ClassVar[list[str]] = ["verify_email", "activate_users", "deactivate_users"]
+    actions = ("verify_email", "activate_users", "deactivate_users")
 
     # Override UserAdmin fieldsets to use email instead of username
     fieldsets = (
@@ -204,7 +209,7 @@ class CustomUserAdmin(UserAdmin):
     )
 
     readonly_fields = ("date_joined", "last_login")
-    inlines: ClassVar[list[admin.TabularInline]] = [EmailAddressInline]
+    inlines = (EmailAddressInline,)
     list_per_page = 25
 
     def get_urls(self) -> list[URLPattern]:
@@ -248,16 +253,16 @@ class CustomUserAdmin(UserAdmin):
         user_type = request.GET.get("user_type")
         if user_type == "regular":
             self.add_form = RegularUserCreationForm
-            self.add_fieldsets = self.regular_user_add_fieldsets
+            self.add_fieldsets = self.regular_user_add_fieldsets  # type: ignore[assignment]
         elif user_type == "super":
             self.add_form = SuperUserCreationForm
-            self.add_fieldsets = self.superuser_add_fieldsets
+            self.add_fieldsets = self.superuser_add_fieldsets  # type: ignore[assignment]
 
         # Handle POST data for superusers
         if request.method == "POST" and user_type == "super":
             post_data = request.POST.copy()
             post_data["is_superuser"] = "on"
-            request.POST = post_data
+            request.POST = post_data  # type: ignore[assignment]
 
         return super().add_view(request, form_url, extra_context)
 
@@ -282,16 +287,15 @@ class CustomUserAdmin(UserAdmin):
             f"{reverse('admin:users_customuser_add')}?user_type=super",
         )
 
-    def get_queryset(self, request: HttpRequest) -> QuerySet:
+    def get_queryset(self, request: HttpRequest) -> QuerySet[CustomUser]:
         """Optimize query by prefetching related email addresses and groups."""
         queryset = super().get_queryset(request)
         return queryset.prefetch_related("emailaddress_set", "groups")
 
+    @admin.display(description=_("Full Name"))
     def full_name(self, obj: CustomUser) -> str:
         """Display the user's full name."""
         return f"{obj.first_name} {obj.last_name}".strip() or "-"
-
-    full_name.short_description = _("Full Name")
 
     @admin.display(boolean=True, description=_("Email Verified"))
     def email_verified(self, obj: CustomUser) -> bool:
@@ -301,29 +305,25 @@ class CustomUserAdmin(UserAdmin):
         except (AttributeError, IndexError):  # fmt: skip
             return False
         else:
-            return email_address and email_address.verified
+            return bool(email_address and email_address.verified)
 
+    @admin.display(description=_("Joined"), ordering="-date_joined")
     def date_joined_display(self, obj: CustomUser) -> str:
         """Format date joined for better readability."""
         return obj.date_joined.strftime("%Y-%m-%d %H:%M")
 
-    date_joined_display.short_description = _("Joined")
-    date_joined_display.admin_order_field = "date_joined"
-
-    def last_login_display(self, obj: CustomUser) -> str:
+    @admin.display(description=_("Last Login"), ordering="-last_login")
+    def last_login_display(self, obj: CustomUser) -> StrOrPromise:
         """Format last login date for better readability."""
         if obj.last_login:
             return obj.last_login.strftime("%Y-%m-%d %H:%M")
         return _("Never")
 
-    last_login_display.short_description = _("Last Login")
-    last_login_display.admin_order_field = "last_login"
-
     def get_fieldsets(
         self,
         _: HttpRequest,
         obj: Any | None = None,
-    ) -> tuple[tuple[None, dict[str, Any]]]:
+    ) -> Any:
         """Use different fieldsets for regular users vs superusers."""
         if not obj:
             # Use add_fieldsets when creating a new user
@@ -334,7 +334,8 @@ class CustomUserAdmin(UserAdmin):
             return self.fieldsets
         return self.regular_user_fieldsets
 
-    def verify_email(self, request: HttpRequest, queryset: QuerySet) -> None:
+    @admin.action(description=_("Mark selected users' emails as verified"))
+    def verify_email(self, request: HttpRequest, queryset: QuerySet[CustomUser]) -> None:
         """Mark selected user emails as verified."""
         count = 0
         for user in queryset:
@@ -349,9 +350,8 @@ class CustomUserAdmin(UserAdmin):
         else:
             messages.info(request, _("No unverified email addresses found."))
 
-    verify_email.short_description = _("Mark selected users' emails as verified")
-
-    def activate_users(self, request: HttpRequest, queryset: QuerySet) -> None:
+    @admin.action(description=_("Activate selected users"))
+    def activate_users(self, request: HttpRequest, queryset: QuerySet[CustomUser]) -> None:
         """Activate selected users."""
         count = queryset.filter(is_active=False).update(is_active=True)
         if count:
@@ -362,12 +362,15 @@ class CustomUserAdmin(UserAdmin):
         else:
             messages.info(request, _("All selected users were already active."))
 
-    activate_users.short_description = _("Activate selected users")
-
-    def deactivate_users(self, request: HttpRequest, queryset: QuerySet) -> None:
+    @admin.action(description=_("Deactivate selected users"))
+    def deactivate_users(
+        self,
+        request: HttpRequest,
+        queryset: QuerySet[CustomUser],
+    ) -> None:
         """Deactivate selected users."""
         # Don't allow deactivating your own account
-        if request.user.id in queryset.values_list("id", flat=True):
+        if request.user.pk in queryset.values_list("pk", flat=True):
             messages.error(request, _("You cannot deactivate your own account."))
             return
 
@@ -379,8 +382,6 @@ class CustomUserAdmin(UserAdmin):
             )
         else:
             messages.info(request, _("All selected users were already inactive."))
-
-    deactivate_users.short_description = _("Deactivate selected users")
 
     def save_model(self, request: HttpRequest, obj: CustomUser, form: Any, change: bool) -> None:  # noqa: FBT001
         """Save user and handle email verification and password logic."""

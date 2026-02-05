@@ -5,41 +5,45 @@ This module provides models for allowing users to ask questions about talks, vot
 receive answers from speakers or moderators.
 """
 
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Count, QuerySet
+from django.db.models import Count
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .models import Talk
 
 
+if TYPE_CHECKING:
+    from django_stubs_ext import StrOrPromise
+    from django_stubs_ext.db.models.manager import RelatedManager
+
 # Constants
 CONTENT_PREVIEW_LENGTH = 50
 
 
-class QuestionQuerySet(models.QuerySet):
+class QuestionQuerySet(models.QuerySet["Question"]):
     """Custom QuerySet for Question model with additional methods."""
 
-    def with_vote_count(self) -> QuerySet:
+    def with_vote_count(self) -> Self:
         """Annotate queryset with the count of votes."""
         return self.annotate(votes_count=Count("votes"))
 
-    def sorted_by_votes(self) -> QuerySet:
+    def sorted_by_votes(self) -> Self:
         """Return questions sorted by vote count (descending)."""
         return self.with_vote_count().order_by("-votes_count", "-created_at")
 
-    def approved(self) -> QuerySet:
+    def approved(self) -> Self:
         """Return only approved questions."""
         return self.filter(status=Question.Status.APPROVED)
 
-    def answered(self) -> QuerySet:
+    def answered(self) -> Self:
         """Return only answered questions."""
         return self.filter(status=Question.Status.ANSWERED)
 
-    def not_rejected(self) -> QuerySet:
+    def not_rejected(self) -> Self:
         """Return questions that haven't been rejected."""
         return self.exclude(status=Question.Status.REJECTED)
 
@@ -92,7 +96,13 @@ class Question(models.Model):
     )
 
     # Use our custom QuerySet manager
-    objects = QuestionQuerySet.as_manager()
+    objects: ClassVar[QuestionQuerySet] = QuestionQuerySet.as_manager()  # type: ignore[assignment]
+
+    if TYPE_CHECKING:
+        user_voted: bool  # Set in build_question_list_context
+        votes_count: int  # Set by with_vote_count() queryset annotation
+        votes: RelatedManager[QuestionVote]
+        answers: RelatedManager[Answer]
 
     class Meta:
         """Metadata for the Question model."""
@@ -112,7 +122,7 @@ class Question(models.Model):
         return self.content
 
     @property
-    def display_name(self) -> str:
+    def display_name(self) -> StrOrPromise:
         """Return the author's display name based on related user."""
         if not self.user:
             return _("Anonymous")
@@ -139,7 +149,7 @@ class Question(models.Model):
 
     def user_has_voted(self, user: models.Model | None) -> bool:
         """Check if a specific user has voted for this question."""
-        if not user or user.is_anonymous:
+        if not user or getattr(user, "is_anonymous", True):
             return False
         return self.votes.filter(user=user).exists()
 
@@ -194,7 +204,7 @@ class QuestionVote(models.Model):
 
     def __str__(self) -> str:
         """Return a string representation of the vote."""
-        return f"Vote by {self.user} on question {self.question.id}"
+        return f"Vote by {self.user} on question {self.question.pk}"
 
 
 class Answer(models.Model):

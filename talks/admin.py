@@ -20,6 +20,7 @@ from .models_qa import Answer, Question, QuestionVote
 if TYPE_CHECKING:
     from django.db.models import QuerySet
     from django.http import HttpRequest
+    from django_stubs_ext import StrOrPromise
 
 
 # Constants
@@ -27,7 +28,7 @@ CONTENT_PREVIEW_LENGTH = 50
 
 
 @admin.register(Room)
-class RoomAdmin(admin.ModelAdmin):
+class RoomAdmin(admin.ModelAdmin[Room]):
     """
     Admin configuration for the Room model.
 
@@ -80,7 +81,7 @@ class RoomAdmin(admin.ModelAdmin):
 
 
 @admin.register(Streaming)
-class StreamingAdmin(admin.ModelAdmin):
+class StreamingAdmin(admin.ModelAdmin[Streaming]):
     """
     Admin configuration for the Streaming model.
 
@@ -127,7 +128,7 @@ class StreamingAdmin(admin.ModelAdmin):
 
 
 @admin.register(Speaker)
-class SpeakerAdmin(admin.ModelAdmin):
+class SpeakerAdmin(admin.ModelAdmin[Speaker]):
     """
     Admin configuration for the Speaker model.
 
@@ -189,7 +190,7 @@ class SpeakerAdmin(admin.ModelAdmin):
 
 
 @admin.register(Talk)
-class TalkAdmin(admin.ModelAdmin):
+class TalkAdmin(admin.ModelAdmin[Talk]):
     """
     Admin configuration for the Talk model.
 
@@ -319,10 +320,10 @@ class TalkAdmin(admin.ModelAdmin):
         return bool(obj.get_video_link())
 
     @admin.display(description=_("Active Streaming"))
-    def display_active_streaming(self, obj: Talk) -> str:
+    def display_active_streaming(self, obj: Talk) -> StrOrPromise:
         """Display information about the active streaming for this talk's time slot."""
         if not obj.room or not obj.start_time:
-            return _("No room or time scheduled")
+            return str(_("No room or time scheduled"))
 
         margin = timedelta(minutes=1)
         min_duration = obj.duration / 2
@@ -335,7 +336,7 @@ class TalkAdmin(admin.ModelAdmin):
 
         if streaming:
             return format_html(
-                _('Streaming from {} to {} - <a href="{}" target="_blank">Video Link</a>'),
+                str(_('Streaming from {} to {} - <a href="{}" target="_blank">Video Link</a>')),
                 timezone.localtime(streaming.start_time).strftime("%H:%M"),
                 timezone.localtime(streaming.end_time).strftime("%H:%M %Z"),
                 streaming.video_link,
@@ -344,7 +345,7 @@ class TalkAdmin(admin.ModelAdmin):
         return _("No active streaming found for this time slot")
 
 
-class AnswerInline(admin.TabularInline):
+class AnswerInline(admin.TabularInline[Answer, Question]):
     """Inline admin for Answer model."""
 
     model = Answer
@@ -354,7 +355,7 @@ class AnswerInline(admin.TabularInline):
 
 
 @admin.register(Question)
-class QuestionAdmin(admin.ModelAdmin):
+class QuestionAdmin(admin.ModelAdmin[Question]):
     """
     Admin configuration for the Question model.
 
@@ -379,9 +380,9 @@ class QuestionAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "created_at", "talk__title")
     search_fields = ("content", "user__email", "user__first_name", "user__last_name", "talk__title")
-    actions: ClassVar[list[str]] = ["approve_questions", "reject_questions", "mark_as_answered"]
+    actions = ("approve_questions", "reject_questions", "mark_as_answered")
     readonly_fields = ("vote_count", "created_at", "updated_at")
-    inlines: ClassVar[list[type[admin.TabularInline]]] = [AnswerInline]
+    inlines = (AnswerInline,)
 
     fieldsets = (
         (
@@ -423,7 +424,7 @@ class QuestionAdmin(admin.ModelAdmin):
         return obj.vote_count
 
     @admin.action(description=_("Reject selected questions (hide from public)"))
-    def reject_questions(self, request: HttpRequest, queryset: QuerySet) -> None:
+    def reject_questions(self, request: HttpRequest, queryset: QuerySet[Question]) -> None:
         """Mark selected questions as rejected, hiding them from public view."""
         for question in queryset:
             question.reject()
@@ -433,14 +434,14 @@ class QuestionAdmin(admin.ModelAdmin):
         )
 
     @admin.action(description=_("Mark selected questions as answered"))
-    def mark_as_answered(self, request: HttpRequest, queryset: QuerySet) -> None:
+    def mark_as_answered(self, request: HttpRequest, queryset: QuerySet[Question]) -> None:
         """Mark selected questions as answered."""
         for question in queryset:
             question.mark_as_answered()
         self.message_user(request, _("Questions have been marked as answered."))
 
     @admin.action(description=_("Approve selected questions"))
-    def approve_questions(self, request: HttpRequest, queryset: QuerySet) -> None:
+    def approve_questions(self, request: HttpRequest, queryset: QuerySet[Question]) -> None:
         """Mark selected questions as approved."""
         for question in queryset:
             question.approve()
@@ -448,7 +449,7 @@ class QuestionAdmin(admin.ModelAdmin):
 
 
 @admin.register(QuestionVote)
-class QuestionVoteAdmin(admin.ModelAdmin):
+class QuestionVoteAdmin(admin.ModelAdmin[QuestionVote]):
     """
     Admin configuration for the QuestionVote model.
 
@@ -475,7 +476,7 @@ class QuestionVoteAdmin(admin.ModelAdmin):
 
 
 @admin.register(Answer)
-class AnswerAdmin(admin.ModelAdmin):
+class AnswerAdmin(admin.ModelAdmin[Answer]):
     """
     Admin configuration for the Answer model.
 

@@ -7,7 +7,7 @@ register = template.Library()
 
 
 @register.inclusion_tag("talks/partials/_stat_card.html")
-def stat_card(title: str, value: str | float) -> dict[str, str]:
+def stat_card(title: str, value: str | float) -> dict[str, str | float]:
     """
     Render a statistic card with title and value.
 

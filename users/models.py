@@ -7,14 +7,17 @@ This module provides:
 - InvalidEmailError: Exception for email validation errors
 """
 
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, Unpack
 
 from allauth.account.models import EmailAddress
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+
+
+if TYPE_CHECKING:
+    from django_stubs_ext.db.models.manager import RelatedManager
 
 
 class InvalidEmailError(Exception):
@@ -32,14 +35,22 @@ class InvalidEmailError(Exception):
         super().__init__(f"Invalid email address: {email}")
 
 
-class CustomUserManager(BaseUserManager):
+class CreateUserExtraFields(TypedDict, total=False):
+    """Extra fields for create_user (excludes email/password)."""
+
+    is_active: bool
+    is_staff: bool
+    is_superuser: bool
+
+
+class CustomUserManager(BaseUserManager["CustomUser"]):
     """Manage user operations with email-based authentication."""
 
     def create_user(
         self,
         email: str,
         password: str | None = None,
-        **extra_fields: dict[str, Any],
+        **extra_fields: Unpack[CreateUserExtraFields],
     ) -> CustomUser:
         """
         Create and save a new user with a verified email address.
@@ -88,7 +99,7 @@ class CustomUserManager(BaseUserManager):
         self,
         email: str,
         password: str,
-        **extra_fields: dict[str, Any],
+        **extra_fields: Unpack[CreateUserExtraFields],
     ) -> CustomUser:
         """
         Create and save a new superuser with a verified email address.
@@ -139,7 +150,7 @@ class Meta:
 class CustomUser(AbstractUser):
     """Custom user model using email-based authentication instead of username."""
 
-    username = None
+    username = None  # type: ignore[assignment]
     email = models.EmailField(
         "email address",
         unique=True,
@@ -155,18 +166,20 @@ class CustomUser(AbstractUser):
             "If blank, we'll use your full name or email.",
         ),
     )
-    date_joined = models.DateTimeField(default=timezone.now)
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS: ClassVar[list] = []
+    REQUIRED_FIELDS: ClassVar[list[str]] = []
 
-    objects = CustomUserManager()
+    objects: ClassVar[CustomUserManager] = CustomUserManager()  # type: ignore[assignment]
+
+    if TYPE_CHECKING:
+        emailaddress_set: RelatedManager[EmailAddress]
 
     Meta = Meta
 
     def __str__(self) -> str:
         """Return string representation of the user."""
-        return self.email
+        return str(self.email)
 
     def clean(self) -> None:
         """

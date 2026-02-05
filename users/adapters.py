@@ -1,6 +1,7 @@
 """Custom adapter for django-allauth that validates e-mails using an external API."""
 
 from json.decoder import JSONDecodeError
+from typing import TYPE_CHECKING, Any, cast
 
 import requests
 import structlog
@@ -17,10 +18,14 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 from utils.email_utils import hash_email
 
 
+if TYPE_CHECKING:
+    from users.models import CustomUser
+
+
 logger = structlog.get_logger(__name__)
 
 
-class AccountAdapter(DefaultAccountAdapter):
+class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
     """
     Custom adapter for django-allauth that validates emails using an external API.
 
@@ -69,7 +74,7 @@ class AccountAdapter(DefaultAccountAdapter):
 
         # Check if this email belongs to an administrator or active user
         # Note: admins can also login from /admin/login/ using their password
-        UserModel = get_user_model()  # noqa: N806
+        UserModel = cast("type[CustomUser]", get_user_model())  # noqa: N806
         try:
             user = UserModel.objects.get(email=email)
             if user.is_superuser:
@@ -108,8 +113,8 @@ class AccountAdapter(DefaultAccountAdapter):
             logger.warning("Connection error validating email", email=email_hash)
         except JSONDecodeError:
             logger.warning("Invalid JSON response validating email", email=email_hash)
-        except RequestException as e:
-            logger.warning("Request error validating email", email=email_hash, error=str(e))
+        except RequestException as exc:
+            logger.warning("Request error validating email", email=email_hash, error=str(exc))
         except Exception:
             logger.exception("Unexpected error validating email", email=email_hash)
 
@@ -122,7 +127,7 @@ class AccountAdapter(DefaultAccountAdapter):
         retry=retry_if_exception_type((Timeout, RequestsConnectionError)),
         reraise=True,
     )
-    def _call_validation_api(email: str) -> dict:
+    def _call_validation_api(email: str) -> dict[str, Any]:
         """Call the validation API with retry."""
         response = requests.post(  # nosec: B113
             settings.EMAIL_VALIDATION_API_URL,
@@ -130,9 +135,9 @@ class AccountAdapter(DefaultAccountAdapter):
             timeout=getattr(settings, "EMAIL_VALIDATION_API_TIMEOUT", 5),
         )
         response.raise_for_status()
-        return response.json()
+        return dict(response.json())
 
-    def send_mail(self, template_prefix: str, email: str, context: dict) -> None:
+    def send_mail(self, template_prefix: str, email: str, context: dict[str, Any]) -> None:
         """Add custom variables to the email context before sending."""
         timeout_seconds = getattr(settings, "ACCOUNT_LOGIN_BY_CODE_TIMEOUT", 180)
         timeout_minutes = round(timeout_seconds / 60, 1)
@@ -151,4 +156,4 @@ class AccountAdapter(DefaultAccountAdapter):
                 "brand_title": f"{full_name} Talks" if full_name else "Talks",
             },
         )
-        return super().send_mail(template_prefix, email, context)
+        super().send_mail(template_prefix, email, context)

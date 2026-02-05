@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from model_bakery import baker
 
-from talks.models import Talk
+from talks.models import Speaker, Talk
 
 
 if TYPE_CHECKING:
@@ -72,8 +72,8 @@ class TestTalkListSearch:
         # Create two talks with different speakers
         talk1 = baker.make(Talk, title="Introduction to Silly Walks a1b2")
         talk2 = baker.make(Talk, title="Self-Defence Against Fresh Fruit c3d4")
-        speaker1 = baker.make("talks.Speaker", name="Graham Chapman")
-        speaker2 = baker.make("talks.Speaker", name="John Cleese")
+        speaker1: Speaker = baker.make(Speaker, name="Graham Chapman")
+        speaker2: Speaker = baker.make(Speaker, name="John Cleese")
         talk1.speakers.add(speaker1)
         talk2.speakers.add(speaker2)
 
@@ -99,7 +99,7 @@ class TestTalkListSearch:
         talk_a = baker.make(Talk, title="Brian and the Holy Grail")  # noqa: F841
         talk_b = baker.make(Talk, title="The Bright Side of Life")
         # Speaker name contains token for talk B, but should be ignored with title scope
-        sp = baker.make("talks.Speaker", name="Brian Cohen")
+        sp: Speaker = baker.make(Speaker, name="Brian Cohen")
         talk_b.speakers.add(sp)
 
         url = reverse("talk_list") + "?q=brian&search_in=title"

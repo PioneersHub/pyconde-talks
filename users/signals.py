@@ -33,11 +33,11 @@ def _hash_or_plain(value: str | None) -> str | None:
 def _client_ip(request: Any | None) -> str | None:
     if request is None:
         return None
-    xff = request.META.get("HTTP_X_FORWARDED_FOR")
+    xff: str | None = request.META.get("HTTP_X_FORWARDED_FOR")
     if xff:
         # take first IP in list
         return xff.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR")
+    return str(addr) if (addr := request.META.get("REMOTE_ADDR")) else None
 
 
 @receiver(user_logged_in)

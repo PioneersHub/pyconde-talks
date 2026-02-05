@@ -5,8 +5,9 @@ This module provides class-based and function-based views for handling Question 
 listing, creating, voting, and moderation actions.
 """
 
-from typing import TYPE_CHECKING, Any, ClassVar, Protocol
+from typing import TYPE_CHECKING, Any
 
+from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -19,16 +20,15 @@ from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, ListView, UpdateView
 
 from .models import Talk
-from .models_qa import Question, QuestionVote
+from .models_qa import Question, QuestionQuerySet, QuestionVote
 from .utils import get_talk_by_id_or_pretalx
 
 
 if TYPE_CHECKING:
-    from django import forms
-    from django.db.models.query import QuerySet
+    from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 
 
-class QuestionListView(LoginRequiredMixin, ListView):
+class QuestionListView(LoginRequiredMixin, ListView[Question]):
     """
     Display a list of questions for a specific talk.
 
@@ -52,7 +52,7 @@ class QuestionListView(LoginRequiredMixin, ListView):
             return [self.fragment_template]
         return [self.template_name]
 
-    def get_queryset(self) -> QuerySet[Question]:
+    def get_queryset(self) -> QuestionQuerySet:
         """Get questions for the specific talk, sorted by votes."""
         self.talk = get_object_or_404(Talk, pk=self.kwargs["talk_id"])
 
@@ -60,7 +60,11 @@ class QuestionListView(LoginRequiredMixin, ListView):
         self.status_filter = self.request.GET.get("status_filter", "all")
 
         # Use the shared function to get filtered questions
-        return get_filtered_questions(self.request, self.talk, self.status_filter)
+        return get_filtered_questions(
+            self.request,
+            self.talk,
+            self.status_filter,
+        )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Enhance the template context with additional data."""
@@ -70,7 +74,7 @@ class QuestionListView(LoginRequiredMixin, ListView):
         return context
 
 
-class QuestionCreateView(LoginRequiredMixin, CreateView):
+class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelForm[Question]]):
     """
     Create a new question for a talk.
 
@@ -79,9 +83,9 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
 
     model = Question
     template_name = "talks/questions/question_form.html"
-    fields: ClassVar[list[str]] = ["content"]
+    fields = ("content",)
 
-    def form_valid(self, form: forms.ModelForm) -> HttpResponse:
+    def form_valid(self, form: forms.ModelForm[Question]) -> HttpResponse:
         """Process the form submission."""
         question: Question = form.instance
 
@@ -126,7 +130,7 @@ def get_filtered_questions(
     request: HttpRequest,
     talk: Talk,
     status_filter: str = "all",
-) -> QuerySet:
+) -> QuestionQuerySet:
     """
     Get filtered questions based on user permissions and filter selection.
 
@@ -140,10 +144,14 @@ def get_filtered_questions(
         return queryset.filter(user=request.user).sorted_by_votes()
 
     # Apply filtering based on user permissions and filter selection
-    is_moderator = request.user.is_staff or request.user.is_superuser
+    user_is_moderator = getattr(request.user, "is_staff", False) or getattr(
+        request.user,
+        "is_superuser",
+        False,
+    )
 
     # For moderators, respect the filter if provided
-    if is_moderator:
+    if user_is_moderator:
         if status_filter == "approved":
             queryset = queryset.filter(status=Question.Status.APPROVED)
         elif status_filter == "answered":
@@ -170,7 +178,7 @@ def build_question_list_context(
     request: HttpRequest,
     talk: Talk,
     status_filter: str,
-) -> dict:
+) -> dict[str, Any]:
     """Build context for rendering the question list partial."""
     questions = get_filtered_questions(request, talk, status_filter)
 
@@ -182,7 +190,7 @@ def build_question_list_context(
             ).values_list("question_id", flat=True),
         )
         for q in questions:
-            q.user_voted = q.id in user_voted_questions
+            q.user_voted = q.pk in user_voted_questions
 
     return {
         "questions": questions,
@@ -262,11 +270,15 @@ def delete_question(request: HttpRequest, question_id: int) -> HttpResponse:
     if request.headers.get("HX-Request"):
         status_filter = request.GET.get("status_filter", "all")
         return render_question_list_fragment(request, talk, status_filter)
-    return redirect("talk_questions", talk_id=talk.id)
+    return redirect("talk_questions", talk_id=talk.pk)
 
 
 class QuestionOwnerRequiredMixin(UserPassesTestMixin):
     """Mixin to require that the current user owns the question."""
+
+    if TYPE_CHECKING:
+        request: HttpRequest
+        kwargs: dict[str, Any]
 
     def test_func(self) -> bool:
         """Return True if the current user is the owner of the target question."""
@@ -275,11 +287,15 @@ class QuestionOwnerRequiredMixin(UserPassesTestMixin):
         return question.user == self.request.user
 
 
-class QuestionUpdateView(LoginRequiredMixin, QuestionOwnerRequiredMixin, UpdateView):
+class QuestionUpdateView(
+    LoginRequiredMixin,
+    QuestionOwnerRequiredMixin,
+    UpdateView[Question, forms.ModelForm[Question]],
+):
     """Allow a question owner to edit content; clears votes upon successful update."""
 
     model = Question
-    fields: ClassVar[list[str]] = ["content"]
+    fields = ("content",)
     template_name = "talks/questions/question_edit_form.html"
     pk_url_kwarg = "question_id"
 
@@ -291,7 +307,10 @@ class QuestionUpdateView(LoginRequiredMixin, QuestionOwnerRequiredMixin, UpdateV
         )
         return ctx
 
-    def form_valid(self, form: forms.ModelForm) -> HttpResponse:
+    def form_valid(
+        self,
+        form: forms.ModelForm[Question],
+    ) -> HttpResponse:
         """Persist changes and clear all existing votes, notifying the user."""
         # Save updated content
         response = super().form_valid(form)
@@ -309,24 +328,22 @@ class QuestionUpdateView(LoginRequiredMixin, QuestionOwnerRequiredMixin, UpdateV
 
     def get_success_url(self) -> str:
         """Redirect back to the talk's questions list after a successful update."""
-        return reverse("talk_questions", args=[self.object.talk_id])
+        return reverse("talk_questions", args=[self.object.talk.pk])
 
 
 # Moderator views
-class UserWithPermissions(Protocol):
-    """Protocol for objects with permission attributes."""
-
-    is_staff: bool
-    is_superuser: bool
-
-
-def is_moderator(user: UserWithPermissions) -> bool:
+def is_moderator(user: AbstractBaseUser | AnonymousUser) -> bool:
     """Check if the user is a moderator (staff or superuser)."""
-    return user.is_staff or user.is_superuser
+    if not getattr(user, "is_authenticated", False):
+        return False
+    return getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)
 
 
 class ModeratorRequiredMixin(UserPassesTestMixin):
     """Mixin to require moderator permissions."""
+
+    if TYPE_CHECKING:
+        request: HttpRequest
 
     def test_func(self) -> bool:
         """Check if the user is a moderator."""
@@ -346,7 +363,7 @@ def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
         status_filter = request.GET.get("status_filter", "all")
         return render_question_list_fragment(request, talk, status_filter)
 
-    return redirect("talk_questions", talk_id=question.talk.id)
+    return redirect("talk_questions", talk_id=question.talk.pk)
 
 
 @require_POST
@@ -362,7 +379,7 @@ def mark_question_answered(request: HttpRequest, question_id: int) -> HttpRespon
         status_filter = request.GET.get("status_filter", "all")
         return render_question_list_fragment(request, talk, status_filter)
 
-    return redirect("talk_questions", talk_id=question.talk.id)
+    return redirect("talk_questions", talk_id=question.talk.pk)
 
 
 @require_POST
@@ -378,7 +395,7 @@ def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
         status_filter = request.GET.get("status_filter", "all")
         return render_question_list_fragment(request, talk, status_filter)
 
-    return redirect("talk_questions", talk_id=question.talk.id)
+    return redirect("talk_questions", talk_id=question.talk.pk)
 
 
 def question_redirect_view(_: HttpRequest, talk_id: str) -> HttpResponse:

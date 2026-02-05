@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
-from django.contrib.messages.storage.fallback import FallbackStorage
+from django.contrib.messages.middleware import MessageMiddleware
+from django.contrib.sessions.middleware import SessionMiddleware
+from django.http import HttpResponse, HttpResponseRedirect
 from django.test import RequestFactory
 from django.urls import reverse
 
@@ -73,7 +75,7 @@ def test_form_valid_authorized_existing_user(  # noqa: PLR0913
     mocker.patch.object(
         view.__class__.__bases__[0],
         "form_valid",
-        return_value="success",
+        return_value=HttpResponse("success"),
     )
 
     # Call our view's form_valid method
@@ -83,7 +85,7 @@ def test_form_valid_authorized_existing_user(  # noqa: PLR0913
     mock_adapter.is_email_authorized.assert_called_once_with(login_form_data["email"].lower())
 
     # Assert that the response is the one from the parent class
-    assert response == "success"
+    assert response.content == b"success"
 
 
 @pytest.mark.django_db
@@ -138,8 +140,9 @@ def test_form_valid_authorized_new_user(  # noqa: PLR0913
 
     # Assert the flow was initiated and a redirect returned
     mock_initiate.assert_called_once()
+    assert isinstance(response, HttpResponseRedirect)
     assert response.status_code == HTTPStatus.FOUND
-    assert response.url == "/success/"
+    assert response["Location"] == "/success/"
 
 
 @pytest.mark.django_db
@@ -173,11 +176,11 @@ def test_form_valid_unauthorized_email(
     # Patch get_adapter to return our mock adapter
     mocker.patch("users.views.get_adapter", return_value=mock_adapter)
 
-    # Mock the form_invalid method
-    mocker.patch.object(view, "form_invalid", return_value="form_invalid")
+    # Mock form_invalid
+    mock_form_invalid = mocker.patch.object(view, "form_invalid")
 
     # Call our view's form_valid method
-    response = view.form_valid(form)
+    view.form_valid(form)
 
     # Check that the adapter's is_email_authorized was called
     mock_adapter.is_email_authorized.assert_called_once_with(login_form_data["email"].lower())
@@ -185,8 +188,8 @@ def test_form_valid_unauthorized_email(
     # Check that the form has an error
     form.add_error.assert_called_once_with("email", "This email is not authorized for access.")
 
-    # Assert that form_invalid was called
-    assert response == "form_invalid"
+    # Assert that form_invalid was called with the form
+    mock_form_invalid.assert_called_once_with(form)
 
 
 @pytest.mark.django_db
@@ -211,9 +214,16 @@ def test_form_valid_user_creation_error(
 
     # Mock the request with all necessary attributes
     request = request_factory.post(reverse("account_login"))
-    request.session = {}
-    messages = FallbackStorage(request)
-    request._messages = messages  # noqa: SLF001
+
+    # Add session using middleware
+    middleware = SessionMiddleware(lambda x: x)
+    middleware.process_request(request)
+    request.session.save()
+
+    # Add message middleware
+    message_middleware = MessageMiddleware(lambda x: x)
+    message_middleware.process_request(request)
+
     request.user = AnonymousUser()
     view.request = request
 
@@ -235,11 +245,11 @@ def test_form_valid_user_creation_error(
     # Patch at the exact point it's used in the view
     mocker.patch("users.views.get_user_model", return_value=mock_user_model)
 
-    # Mock form_invalid to return a predictable value
-    mocker.patch.object(view, "form_invalid", return_value="form_invalid")
+    # Mock form_invalid
+    mock_form_invalid = mocker.patch.object(view, "form_invalid")
 
     # Call the method being tested
-    response = view.form_valid(form)
+    view.form_valid(form)
 
     # Verify error was added to the form
     form.add_error.assert_called_once()
@@ -247,5 +257,5 @@ def test_form_valid_user_creation_error(
     assert args[0] == "email"  # First arg should be field name
     assert "Error creating user" in args[1]  # Second arg is error message
 
-    # Verify form_invalid was called
-    assert response == "form_invalid"
+    # Verify form_invalid was called with the form
+    mock_form_invalid.assert_called_once_with(form)

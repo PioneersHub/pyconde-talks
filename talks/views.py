@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from django.db.models.query import QuerySet
 
 
-class TalkDetailView(LoginRequiredMixin, DetailView):
+class TalkDetailView(LoginRequiredMixin, DetailView[Talk]):
     """
     Display detailed information about a specific Talk.
 
@@ -36,7 +36,7 @@ class TalkDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "talk"
 
 
-class TalkListView(LoginRequiredMixin, ListView):
+class TalkListView(LoginRequiredMixin, ListView[Talk]):
     """
     Display a list of Talk objects with filtering capabilities.
 

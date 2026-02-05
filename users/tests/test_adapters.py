@@ -97,7 +97,9 @@ def test_api_authorization_success(
 
     # Check request was properly formed
     assert len(responses.calls) == 1
-    assert json.loads(responses.calls[0].request.body) == {"email": "user@example.com"}
+    request_body = responses.calls[0].request.body
+    assert request_body is not None
+    assert json.loads(request_body) == {"email": "user@example.com"}
 
 
 @pytest.mark.django_db
@@ -116,7 +118,9 @@ def test_api_authorization_failure(
 
     # Check request was properly formed
     assert len(responses.calls) == 1
-    assert json.loads(responses.calls[0].request.body) == {"email": "user@example.com"}
+    request_body = responses.calls[0].request.body
+    assert request_body is not None
+    assert json.loads(request_body) == {"email": "user@example.com"}
 
 
 @pytest.mark.django_db
@@ -143,7 +147,9 @@ def test_api_authorization_validation_error(
 
     # Verify the request was made
     assert len(responses.calls) == 1
-    assert json.loads(responses.calls[0].request.body) == {"email": test_email}
+    request_body = responses.calls[0].request.body
+    assert request_body is not None
+    assert json.loads(request_body) == {"email": test_email}
 
 
 @pytest.mark.django_db

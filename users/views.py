@@ -23,12 +23,14 @@ from .forms import ProfileForm
 if TYPE_CHECKING:
     from allauth.account.forms import LoginForm
 
+    from .models import CustomUser
+
 
 # Get logger
 logger = structlog.get_logger(__name__)
 
 
-class CustomRequestLoginCodeView(RequestLoginCodeView):
+class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
     """
     Custom view that overrides the default login code request process.
 
@@ -53,14 +55,14 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):
         if not adapter.is_email_authorized(email):
             logger.warning("Unauthorized access attempt", email=email)
             form.add_error("email", "This email is not authorized for access.")
-            return self.form_invalid(form)
+            return cast("HttpResponse", self.form_invalid(form))
 
         # If the email is authorized, create user if needed
         UserModel = get_user_model()  # noqa: N806
         if not UserModel.objects.filter(email=email).exists():
             try:
                 logger.info("Creating new user account", email=email_hash)
-                user = UserModel.objects.create_user(email=email, is_active=True)
+                user = UserModel.objects.create_user(email=email, is_active=True)  # type: ignore[attr-defined]
                 form.user = user
                 logger.info("Successfully created user account", email=email_hash, form=form.user)
                 # Trigger the login code flow
@@ -71,28 +73,28 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):
                 )
                 # Redirect to success page
                 return HttpResponseRedirect(self.get_success_url())
-            except (IntegrityError, ValidationError) as e:
-                logger.warning("Failed to create user", email=email_hash, error=str(e))
+            except (IntegrityError, ValidationError) as exc:
+                logger.warning("Failed to create user", email=email_hash, error=str(exc))
                 form.add_error(
                     "email",
                     "Unable to create account. Please ensure your email is valid.",
                 )
-                return self.form_invalid(form)
+                return cast("HttpResponse", self.form_invalid(form))
             except DatabaseError:
                 logger.exception("Database error creating user", email=email_hash)
                 form.add_error(
                     "email",
                     "System error while creating account. Please try again later.",
                 )
-                return self.form_invalid(form)
+                return cast("HttpResponse", self.form_invalid(form))
             except Exception:
                 logger.exception("Unexpected error creating user", email=email_hash)
                 form.add_error("email", "Error creating user. Please try again later.")
-                return self.form_invalid(form)
+                return cast("HttpResponse", self.form_invalid(form))
 
         # Proceed with standard login code process
         logger.info("Form is valid", email=email_hash)
-        return super().form_valid(form)
+        return cast("HttpResponse", super().form_valid(form))
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """
@@ -113,7 +115,7 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):
 @login_required
 def profile_view(request: HttpRequest) -> HttpResponse:
     """Allow the authenticated user to edit their profile information."""
-    user = request.user
+    user = cast("CustomUser", request.user)
     if request.method == "POST":
         form = ProfileForm(request.POST, instance=user)
         if form.is_valid():

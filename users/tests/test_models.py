@@ -1,15 +1,22 @@
 """Tests for the custom user model and its manager class."""
 
-from typing import Any
+from typing import Any, Required
 
 import pytest
 from django.core.exceptions import ValidationError
 
-from users.models import CustomUser, InvalidEmailError
+from users.models import CreateUserExtraFields, CustomUser, InvalidEmailError
+
+
+class UserTestData(CreateUserExtraFields, total=False):
+    """Complete user creation data."""
+
+    email: Required[str]
+    password: str
 
 
 @pytest.fixture()
-def user_data() -> dict[str, str]:
+def user_data() -> UserTestData:
     """Return test data for creating a regular user."""
     return {
         "email": "test@example.com",
@@ -17,7 +24,7 @@ def user_data() -> dict[str, str]:
 
 
 @pytest.fixture()
-def superuser_data() -> dict[str, Any]:
+def superuser_data() -> UserTestData:
     """Return test data for creating a superuser."""
     return {
         "email": "admin@example.com",
@@ -28,7 +35,7 @@ def superuser_data() -> dict[str, Any]:
 
 
 @pytest.mark.django_db
-def test_create_user(user_data: dict[str, Any]) -> None:
+def test_create_user(user_data: UserTestData) -> None:
     """
     Test creating a regular user with the CustomUserManager.
 
@@ -51,7 +58,7 @@ def test_create_user(user_data: dict[str, Any]) -> None:
 
     # Check if email address was verified
     assert user.emailaddress_set.count() == 1
-    email_obj = user.emailaddress_set.first()
+    email_obj = user.emailaddress_set.get()
     assert email_obj.email == user_data["email"]
     assert email_obj.verified
     assert email_obj.primary
@@ -134,7 +141,7 @@ def test_create_superuser_without_password() -> None:
     with pytest.raises(ValueError, match="Superuser must have a password"):
         CustomUser.objects.create_superuser(
             email="admin@example.com",
-            password=None,
+            password="",
         )
 
 

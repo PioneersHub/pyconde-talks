@@ -1,9 +1,20 @@
 """Django settings for event_talks project."""
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
+import django_stubs_ext
 import environ
 import structlog
+
+
+# Monkeypatch Django classes to support generic type parameters at runtime
+# (e.g., ModelForm[CustomUser], QuerySet[CustomUser]). Required for django-stubs.
+django_stubs_ext.monkeypatch()
+
+
+if TYPE_CHECKING:
+    from structlog.typing import Processor
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -458,7 +469,7 @@ LOGGING = {
 }
 
 # Structlog configuration
-processors = []
+processors: list[Processor] = []
 
 # Add CallsiteParameterAdder in debug mode
 if DEBUG:

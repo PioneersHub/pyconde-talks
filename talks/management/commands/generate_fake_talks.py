@@ -4,7 +4,7 @@
 import random
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
-from typing import Any
+from typing import Any, cast
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
@@ -178,7 +178,7 @@ class Command(BaseCommand):
         """Preload and sort streaming sessions per room to avoid N+1 queries."""
         streaming_by_room: dict[int, list[Streaming]] = {}
         for session in Streaming.objects.select_related("room").all():
-            streaming_by_room.setdefault(session.room_id, []).append(session)
+            streaming_by_room.setdefault(session.room.pk, []).append(session)
         for sessions in streaming_by_room.values():
             sessions.sort(key=lambda s: (s.start_time, s.end_time))
         return streaming_by_room
@@ -329,7 +329,7 @@ class Command(BaseCommand):
 
         streaming: Streaming | None = None
         if room:
-            sessions = ctx.streaming_by_room.get(room.id, [])
+            sessions = ctx.streaming_by_room.get(room.pk, [])
             for session in sessions:
                 if session.start_time <= talk_date <= session.end_time:
                     streaming = session
@@ -649,9 +649,9 @@ class Command(BaseCommand):
         # Base date: 09:00 of the first day
         try:
             base_date = date.fromisoformat(str(options["date"]))
-        except ValueError as err:
+        except ValueError as exc:
             message = "--date must be in YYYY-MM-DD format"
-            raise ValueError(message) from err
+            raise ValueError(message) from exc
         base_time = timezone.make_aware(
             datetime.combine(base_date, time(9, 0)),
             timezone.get_current_timezone(),
@@ -692,10 +692,13 @@ class Command(BaseCommand):
         now = timezone.now()
 
         # Find a streaming session covering 'now' (guaranteed by _create_streaming_sessions)
-        streaming_now = Streaming.objects.filter(
-            start_time__lte=now,
-            end_time__gte=now,
-        ).first()
+        streaming_now = cast(
+            "Streaming",
+            Streaming.objects.filter(
+                start_time__lte=now,
+                end_time__gte=now,
+            ).first(),
+        )
         special_slots = self._build_special_slots(
             talk_count=talk_count,
             now=now,
