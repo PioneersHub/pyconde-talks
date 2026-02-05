@@ -44,3 +44,7 @@ logs/*
 # Collected static files
 staticfiles/
 static/css/tailwind.min.css
+
+# Test coverage
+.coverage
+lcov.info

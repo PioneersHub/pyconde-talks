@@ -10,6 +10,7 @@
     "ms-python.mypy-type-checker",
     "ms-python.python",
     "pycqa.bandit-pycqa",
+    "ryanluker.vscode-coverage-gutters",
     "streetsidesoftware.code-spell-checker",
     "tamasfe.even-better-toml"
   ]
