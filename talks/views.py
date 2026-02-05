@@ -35,6 +35,10 @@ class TalkDetailView(LoginRequiredMixin, DetailView[Talk]):
     template_name = "talks/talk_detail.html"
     context_object_name = "talk"
 
+    def get_queryset(self) -> QuerySet[Talk]:
+        """Optimize query with related data."""
+        return Talk.objects.select_related("room").prefetch_related("speakers")
+
 
 class TalkListView(LoginRequiredMixin, ListView[Talk]):
     """
@@ -60,7 +64,9 @@ class TalkListView(LoginRequiredMixin, ListView[Talk]):
 
     def get_queryset(self) -> QuerySet[Talk]:
         """Get the list of talks filtered by room, date, track, presentation type, and query."""
-        queryset: QuerySet[Talk] = Talk.objects.all()
+        queryset: QuerySet[Talk] = Talk.objects.select_related("room").prefetch_related(
+            "speakers",
+        )
 
         # Filter by room
         room = self.request.GET.get("room")
@@ -161,8 +167,13 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
 def upcoming_talks(request: HttpRequest) -> HttpResponse:
     """Display the next 8 upcoming talks."""
     current_time = timezone.now()
-    upcoming_talks = Talk.objects.filter(start_time__gt=current_time).order_by("start_time")[:8]
-    context = {"upcoming_talks": upcoming_talks}
+    talks = (
+        Talk.objects.select_related("room")
+        .prefetch_related("speakers")
+        .filter(start_time__gt=current_time)
+        .order_by("start_time")[:8]
+    )
+    context = {"upcoming_talks": talks}
     return render(request, "talks/partials/upcoming_talks.html", context)
 
 
