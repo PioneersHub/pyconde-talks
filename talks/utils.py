@@ -13,7 +13,7 @@ def get_talk_by_id_or_pretalx(talk_id: str) -> Talk | None:
     # Try to interpret as primary key
     try:
         pk = int(talk_id)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError):  # fmt: skip
         pk = None
 
     if pk is not None:

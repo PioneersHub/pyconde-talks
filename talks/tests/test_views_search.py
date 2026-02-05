@@ -2,14 +2,18 @@
 
 import re
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.test.client import Client
 from django.urls import reverse
 from model_bakery import baker
 
 from talks.models import Talk
+
+
+if TYPE_CHECKING:
+    from django.test.client import Client
 
 
 @pytest.mark.django_db

@@ -75,7 +75,7 @@ class TestTalkModel:
         """Test that video_link validation correctly handles valid and invalid providers."""
         talk = baker.prepare(Talk, video_link=video_link)
         if expected_validation_error:
-            with pytest.raises(ValidationError, match="URL must be from a valid video provider."):
+            with pytest.raises(ValidationError, match=r"URL must be from a valid video provider\."):
                 talk.full_clean()
         else:
             try:

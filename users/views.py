@@ -1,10 +1,9 @@
 """Views for user authentication and profile management."""
 
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import structlog
 from allauth.account.adapter import get_adapter
-from allauth.account.forms import LoginForm
 from allauth.account.internal import flows
 from allauth.account.views import RequestLoginCodeView
 from django.conf import settings
@@ -19,6 +18,10 @@ from django.shortcuts import redirect, render
 from utils.email_utils import hash_email
 
 from .forms import ProfileForm
+
+
+if TYPE_CHECKING:
+    from allauth.account.forms import LoginForm
 
 
 # Get logger

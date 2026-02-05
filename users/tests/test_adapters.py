@@ -1,14 +1,17 @@
 """Tests for the custom allauth adapter that validates emails using an external API."""
 
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 import responses
 from django.conf import settings
-from pytest_django.fixtures import SettingsWrapper
 
 from users.adapters import AccountAdapter
+
+
+if TYPE_CHECKING:
+    from pytest_django.fixtures import SettingsWrapper
 
 
 @pytest.fixture()

@@ -18,7 +18,6 @@ Notes:
     - All SVG files are assumed to be safe and will be marked as safe HTML
 
 """
-# ruff: noqa: S308
 
 from pathlib import Path
 
@@ -60,8 +59,8 @@ def svg(name: str, css_class: str = "") -> SafeString:
         if css_class:
             svg_content = svg_content.replace("<svg", f'<svg class="{css_class}"')
 
-        return mark_safe(svg_content)  # nosec: B308, B703
+        return mark_safe(svg_content)  # nosec: B308, B703  # noqa: S308
 
-    except (OSError, FileNotFoundError):
+    except OSError:
         # Return empty string if file doesn't exist or can't be read
         return mark_safe("")  # nosec: B308

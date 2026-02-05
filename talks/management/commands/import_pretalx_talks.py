@@ -261,7 +261,7 @@ class Command(BaseCommand):
                 count, submissions = pretalx.submissions(event_slug)
                 return (count, list(submissions))
 
-            import pickle  # nosec: B403
+            import pickle  # nosec: B403  # noqa: PLC0415
 
             pickle_file = Path(".pretalx_cache")
 
@@ -270,7 +270,7 @@ class Command(BaseCommand):
                 try:
                     with pickle_file.open("rb") as f:
                         return pickle.load(f)  # nosec: B301  # noqa: S301
-                except (pickle.PickleError, OSError):
+                except (pickle.PickleError, OSError):  # fmt: skip
                     pass
 
             # Fetch and cache

@@ -5,14 +5,12 @@ This module provides class-based and function-based views for handling Question 
 listing, creating, voting, and moderation actions.
 """
 
-from typing import Any, ClassVar, Protocol
+from typing import TYPE_CHECKING, Any, ClassVar, Protocol
 
-from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
-from django.db.models.query import QuerySet
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -23,6 +21,11 @@ from django.views.generic import CreateView, ListView, UpdateView
 from .models import Talk
 from .models_qa import Question, QuestionVote
 from .utils import get_talk_by_id_or_pretalx
+
+
+if TYPE_CHECKING:
+    from django import forms
+    from django.db.models.query import QuerySet
 
 
 class QuestionListView(LoginRequiredMixin, ListView):

@@ -1,16 +1,19 @@
 """Tests for the custom authentication views."""
 
 from http import HTTPStatus
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.test import RequestFactory
 from django.urls import reverse
-from pytest_mock import MockerFixture
 
 from users.views import CustomRequestLoginCodeView
+
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 @pytest.fixture()

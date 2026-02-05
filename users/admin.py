@@ -1,11 +1,10 @@
 """Admin interface for users."""
 
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from allauth.account.models import EmailAddress
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
-from django.db.models.query import QuerySet
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import URLPattern, path, reverse
@@ -13,6 +12,10 @@ from django.utils.translation import gettext_lazy as _
 
 from .forms import CustomUserChangeForm, RegularUserCreationForm, SuperUserCreationForm
 from .models import CustomUser
+
+
+if TYPE_CHECKING:
+    from django.db.models.query import QuerySet
 
 
 class EmailVerificationListFilter(admin.SimpleListFilter):
@@ -295,7 +298,7 @@ class CustomUserAdmin(UserAdmin):
         """Display email verification status with standard Django boolean icon."""
         try:
             email_address = obj.emailaddress_set.first()
-        except (AttributeError, IndexError):
+        except (AttributeError, IndexError):  # fmt: skip
             return False
         else:
             return email_address and email_address.verified

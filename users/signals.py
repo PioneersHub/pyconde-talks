@@ -5,8 +5,6 @@ This module listens to Django's auth signals and emits structured JSON logs to a
 configured via the "auth" logger.
 """
 
-from __future__ import annotations
-
 import hashlib
 from typing import Any
 

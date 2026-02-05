@@ -5,13 +5,12 @@ This module provides class-based and function-based views for handling Talk-rela
 including listing, detail views, and statistics.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.db.models.functions import TruncDate
-from django.db.models.query import QuerySet
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -19,6 +18,10 @@ from django.views.generic import DetailView, ListView
 
 from .models import Room, Talk
 from .utils import get_talk_by_id_or_pretalx
+
+
+if TYPE_CHECKING:
+    from django.db.models.query import QuerySet
 
 
 class TalkDetailView(LoginRequiredMixin, DetailView):

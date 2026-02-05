@@ -40,7 +40,7 @@ class CustomUserManager(BaseUserManager):
         email: str,
         password: str | None = None,
         **extra_fields: dict[str, Any],
-    ) -> "CustomUser":
+    ) -> CustomUser:
         """
         Create and save a new user with a verified email address.
 
@@ -89,7 +89,7 @@ class CustomUserManager(BaseUserManager):
         email: str,
         password: str,
         **extra_fields: dict[str, Any],
-    ) -> "CustomUser":
+    ) -> CustomUser:
         """
         Create and save a new superuser with a verified email address.
 

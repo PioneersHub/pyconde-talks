@@ -67,7 +67,7 @@ class Migration(migrations.Migration):
                 ('title', models.CharField(help_text='Title of the talk', max_length=250)),
                 ('abstract', models.TextField(blank=True, help_text='Talk abstract')),
                 ('description', models.TextField(blank=True, help_text='Full description of the talk')),
-                ('start_time', models.DateTimeField(blank=True, default=datetime.datetime(2050, 1, 1, 0, 0, tzinfo=datetime.timezone.utc), help_text='Date and time when the talk is scheduled')),
+                ('start_time', models.DateTimeField(blank=True, default=datetime.datetime(2050, 1, 1, 0, 0, tzinfo=datetime.UTC), help_text='Date and time when the talk is scheduled')),
                 ('duration', models.DurationField(blank=True, default=datetime.timedelta(0), help_text='Duration of the talk')),
                 ('track', models.CharField(blank=True, default='No track', help_text='Track or category of the talk', max_length=100)),
                 ('external_image_url', models.URLField(blank=True, default='', help_text='URL to an externally hosted image')),

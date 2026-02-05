@@ -6,17 +6,20 @@ Question, QuestionVote, and Answer models.
 """
 
 from datetime import timedelta
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from django.contrib import admin
-from django.db.models import QuerySet
-from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from .models import Room, Speaker, Streaming, Talk
 from .models_qa import Answer, Question, QuestionVote
+
+
+if TYPE_CHECKING:
+    from django.db.models import QuerySet
+    from django.http import HttpRequest
 
 
 # Constants

@@ -11,6 +11,6 @@ class UsersConfig(AppConfig):
 
     def ready(self) -> None:
         """Django app initialization hook: connect signal handlers."""
-        from . import signals  # noqa: F401
+        from . import signals  # noqa: F401, PLC0415
 
         return super().ready()

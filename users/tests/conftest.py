@@ -1,11 +1,14 @@
 """Shared test fixtures for the users app."""
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 import responses
 from django.contrib.auth import get_user_model
-from pytest_django.fixtures import SettingsWrapper
+
+
+if TYPE_CHECKING:
+    from pytest_django.fixtures import SettingsWrapper
 
 
 @pytest.fixture()
