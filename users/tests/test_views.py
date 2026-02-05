@@ -7,14 +7,16 @@ import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages.middleware import MessageMiddleware
 from django.contrib.sessions.middleware import SessionMiddleware
+from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
 from users.views import CustomRequestLoginCodeView
 
 
 if TYPE_CHECKING:
+    from django.test.client import Client
     from pytest_mock import MockerFixture
 
 
@@ -259,3 +261,63 @@ def test_form_valid_user_creation_error(
 
     # Verify form_invalid was called with the form
     mock_form_invalid.assert_called_once_with(form)
+
+
+@pytest.mark.django_db
+def test_form_valid_user_creation_integrity_error(
+    request_factory: RequestFactory,
+    login_form_data: dict[str, str],
+    view: CustomRequestLoginCodeView,
+    mocker: MockerFixture,
+    allauth_settings: None,
+) -> None:
+    """Test form_valid when user creation raises IntegrityError (duplicate email)."""
+    form = mocker.MagicMock()
+    form.is_valid.return_value = True
+    form.cleaned_data = {"email": login_form_data["email"].lower()}
+    form.add_error = mocker.MagicMock()
+
+    request = request_factory.post(reverse("account_login"))
+    middleware = SessionMiddleware(lambda x: x)
+    middleware.process_request(request)
+    request.session.save()
+    message_middleware = MessageMiddleware(lambda x: x)
+    message_middleware.process_request(request)
+    request.user = AnonymousUser()
+    view.request = request
+
+    mock_adapter = mocker.MagicMock()
+    mock_adapter.is_email_authorized.return_value = True
+    mocker.patch("users.views.get_adapter", return_value=mock_adapter)
+
+    mock_filter = mocker.MagicMock()
+    mock_filter.exists.return_value = False
+    mock_qs = mocker.MagicMock()
+    mock_qs.filter.return_value = mock_filter
+
+    mock_user_model = mocker.MagicMock()
+    mock_user_model.objects = mock_qs
+    mock_user_model.objects.create_user.side_effect = IntegrityError("Duplicate email")
+
+    mocker.patch("users.views.get_user_model", return_value=mock_user_model)
+    mock_form_invalid = mocker.patch.object(view, "form_invalid")
+
+    view.form_valid(form)
+
+    form.add_error.assert_called_once()
+    args = form.add_error.call_args[0]
+    assert args[0] == "email"
+    assert "Unable to create account" in args[1]
+    mock_form_invalid.assert_called_once_with(form)
+
+
+@pytest.mark.django_db
+def test_get_context_data_includes_timeout(
+    client: Client,
+) -> None:
+    """Test that login page context includes login_code_timeout_minutes."""
+    with override_settings(ACCOUNT_LOGIN_BY_CODE_TIMEOUT=300):
+        response = client.get(reverse("account_login"))
+        assert response.status_code == HTTPStatus.OK
+        expected_timeout_minutes = 300 // 60
+        assert response.context["login_code_timeout_minutes"] == expected_timeout_minutes
