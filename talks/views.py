@@ -180,6 +180,7 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
+@cache_page(30)  # Cache for 30 seconds - talks list changes infrequently
 def upcoming_talks(request: HttpRequest) -> HttpResponse:
     """Display the next 8 upcoming talks."""
     current_time = timezone.now()
