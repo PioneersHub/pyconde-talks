@@ -9,6 +9,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, ClassVar
 
 from django.contrib import admin
+from django.db.models import Count
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
@@ -64,15 +65,26 @@ class RoomAdmin(admin.ModelAdmin[Room]):
         ),
     )
 
-    @admin.display(description=_("Talk Count"))
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Room]:
+        """Annotate queryset with counts to avoid N+1 queries."""
+        return (
+            super()
+            .get_queryset(request)
+            .annotate(
+                _talk_count=Count("talks", distinct=True),
+                _streaming_count=Count("streamings", distinct=True),
+            )
+        )
+
+    @admin.display(description=_("Talk Count"), ordering="_talk_count")
     def talk_count(self, obj: Room) -> int:
         """Display the number of talks in this room."""
-        return obj.talks.count()
+        return getattr(obj, "_talk_count", obj.talks.count())
 
-    @admin.display(description=_("Streaming Count"))
+    @admin.display(description=_("Streaming Count"), ordering="_streaming_count")
     def streaming_count(self, obj: Room) -> int:
         """Display the number of streaming sessions for this room."""
-        return obj.streamings.count()
+        return getattr(obj, "_streaming_count", obj.streamings.count())
 
     @admin.display(boolean=True, description=_("Has Slido"))
     def has_slido_link(self, obj: Room) -> bool:
@@ -172,6 +184,10 @@ class SpeakerAdmin(admin.ModelAdmin[Speaker]):
         ),
     )
 
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Speaker]:
+        """Annotate queryset with talk count to avoid N+1 queries."""
+        return super().get_queryset(request).annotate(_talk_count=Count("talks", distinct=True))
+
     @admin.display(description=_("Avatar"))
     def display_avatar(self, obj: Speaker) -> str:
         """Display a thumbnail of the speaker's avatar in the admin list view."""
@@ -183,10 +199,10 @@ class SpeakerAdmin(admin.ModelAdmin[Speaker]):
             )
         return "-"
 
-    @admin.display(description=_("Talk Count"))
+    @admin.display(description=_("Talk Count"), ordering="_talk_count")
     def talk_count(self, obj: Speaker) -> int:
         """Display the number of talks by this speaker."""
-        return obj.talks.count()
+        return getattr(obj, "_talk_count", obj.talks.count())
 
 
 @admin.register(Talk)
