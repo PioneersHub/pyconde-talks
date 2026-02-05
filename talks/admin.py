@@ -366,6 +366,7 @@ class QuestionAdmin(admin.ModelAdmin[Question]):
         actions: Custom admin actions.
         readonly_fields: Fields that cannot be edited in the admin.
         inlines: Related models to display inline.
+        list_select_related: Related models to prefetch for list view optimization.
 
     """
 
@@ -383,6 +384,7 @@ class QuestionAdmin(admin.ModelAdmin[Question]):
     actions = ("approve_questions", "reject_questions", "mark_as_answered")
     readonly_fields = ("vote_count", "created_at", "updated_at")
     inlines = (AnswerInline,)
+    list_select_related = ("talk", "user")
 
     fieldsets = (
         (
@@ -485,6 +487,7 @@ class AnswerAdmin(admin.ModelAdmin[Answer]):
         list_filter: Fields to filter by in the admin list view.
         search_fields: Fields to search by in the admin list view.
         readonly_fields: Fields that cannot be edited in the admin.
+        list_select_related: Related models to prefetch for list view optimization.
 
     """
 
@@ -492,6 +495,7 @@ class AnswerAdmin(admin.ModelAdmin[Answer]):
     list_filter = ("is_official", "created_at")
     search_fields = ("content", "question__content", "user__email")
     readonly_fields = ("created_at", "updated_at")
+    list_select_related = ("question", "user")
 
     fieldsets = (
         (
