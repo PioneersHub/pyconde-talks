@@ -5,7 +5,7 @@ description = "Website for conference talks"
 readme = "README.md"
 requires-python = ">=3.13,<4"
 authors = [{ name = "Julio Batista Silva", email = "python@juliobs.com" }]
-license = { text = "MIT" }
+license = "MIT"
 keywords = [
     "conference",
     "django",
