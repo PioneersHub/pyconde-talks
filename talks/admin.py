@@ -444,26 +444,30 @@ class QuestionAdmin(admin.ModelAdmin[Question]):
     @admin.action(description=_("Reject selected questions (hide from public)"))
     def reject_questions(self, request: HttpRequest, queryset: QuerySet[Question]) -> None:
         """Mark selected questions as rejected, hiding them from public view."""
-        for question in queryset:
-            question.reject()
+        # Use bulk update for efficiency
+        updated = queryset.update(status=Question.Status.REJECTED, updated_at=timezone.now())
         self.message_user(
             request,
-            _("Questions have been rejected and will not appear in public view."),
+            _("%(count)d question(s) have been rejected.") % {"count": updated},
         )
 
     @admin.action(description=_("Mark selected questions as answered"))
     def mark_as_answered(self, request: HttpRequest, queryset: QuerySet[Question]) -> None:
         """Mark selected questions as answered."""
-        for question in queryset:
-            question.mark_as_answered()
-        self.message_user(request, _("Questions have been marked as answered."))
+        updated = queryset.update(status=Question.Status.ANSWERED, updated_at=timezone.now())
+        self.message_user(
+            request,
+            _("%(count)d question(s) have been marked as answered.") % {"count": updated},
+        )
 
     @admin.action(description=_("Approve selected questions"))
     def approve_questions(self, request: HttpRequest, queryset: QuerySet[Question]) -> None:
         """Mark selected questions as approved."""
-        for question in queryset:
-            question.approve()
-        self.message_user(request, _("Questions have been approved."))
+        updated = queryset.update(status=Question.Status.APPROVED, updated_at=timezone.now())
+        self.message_user(
+            request,
+            _("%(count)d question(s) have been approved.") % {"count": updated},
+        )
 
 
 @admin.register(QuestionVote)
