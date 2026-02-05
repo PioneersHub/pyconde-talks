@@ -215,6 +215,7 @@ def render_question_list_fragment(
 
 
 @login_required
+@require_POST
 def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """
     Handle voting for a question.
@@ -245,7 +246,7 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
     # Return HTML for HTMX to replace the question list with sorted questions
     if request.headers.get("HX-Request"):
         talk = question.talk
-        status_filter = request.GET.get("status_filter", "all")
+        status_filter = request.POST.get("status_filter") or request.GET.get("status_filter", "all")
         return render_question_list_fragment(request, talk, status_filter)
 
     # Fallback to JSON response for non-HTMX requests
