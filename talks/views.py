@@ -160,10 +160,21 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
     """Generate statistics for the dashboard."""
     current_time = timezone.now()
 
+    # Optimize recorded_talks: only fetch fields needed for get_video_link()
+    # Use select_related for room to avoid N+1 queries
+    talks_for_video_check = Talk.objects.select_related("room").only(
+        "id",
+        "video_link",
+        "start_time",
+        "duration",
+        "room",
+        "room__id",
+    )
+
     context = {
         "total_talks": Talk.objects.count(),
         "todays_talks": Talk.objects.filter(start_time__date=current_time.date()).count(),
-        "recorded_talks": sum(1 for talk in Talk.objects.all() if talk.get_video_link()),
+        "recorded_talks": sum(1 for talk in talks_for_video_check if talk.get_video_link()),
     }
     return render(request, "talks/partials/dashboard_stats.html", context)
 
