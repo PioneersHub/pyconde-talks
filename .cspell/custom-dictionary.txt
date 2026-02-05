@@ -107,6 +107,7 @@ pytest
 pytestmark
 PYTHONDONTWRITEBYTECODE
 PYTHONUNBUFFERED
+pyupgrade
 RAQM
 regularuser
 Reswap
