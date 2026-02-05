@@ -64,8 +64,11 @@ class TalkListView(LoginRequiredMixin, ListView[Talk]):
 
     def get_queryset(self) -> QuerySet[Talk]:
         """Get the list of talks filtered by room, date, track, presentation type, and query."""
-        queryset: QuerySet[Talk] = Talk.objects.select_related("room").prefetch_related(
-            "speakers",
+        # Defer large text fields not needed in list view to reduce memory usage
+        queryset: QuerySet[Talk] = (
+            Talk.objects.select_related("room")
+            .prefetch_related("speakers")
+            .defer("description", "abstract")
         )
 
         # Filter by room
