@@ -136,8 +136,8 @@ def get_filtered_questions(
 
     This function centralizes the filtering logic used in both QuestionListView and vote_question.
     """
-    # Get base queryset of questions for this talk
-    queryset = Question.objects.filter(talk=talk)
+    # Get base queryset of questions for this talk with user prefetched to avoid N+1
+    queryset = Question.objects.filter(talk=talk).select_related("user")
 
     # Filter for user's own questions
     if status_filter == "mine":
