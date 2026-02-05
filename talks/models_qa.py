@@ -256,12 +256,14 @@ class QuestionVote(models.Model):
     class Meta:
         """Metadata for the QuestionVote model."""
 
-        unique_together: ClassVar[list[str]] = ["question", "user"]
         verbose_name = _("Question Vote")
         verbose_name_plural = _("Question Votes")
         indexes: ClassVar[list[models.Index]] = [
             models.Index(fields=["question"]),
             models.Index(fields=["user"]),
+        ]
+        constraints: ClassVar[list[models.UniqueConstraint]] = [
+            models.UniqueConstraint(fields=["question", "user"], name="unique_question_vote"),
         ]
 
     def __str__(self) -> str:
