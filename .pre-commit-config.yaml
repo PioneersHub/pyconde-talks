@@ -55,3 +55,12 @@ repos:
     hooks:
       - id: pyupgrade
         args: [--py314-plus]
+
+  - repo: local
+    hooks:
+      - id: zuban
+        name: zuban type check
+        entry: zuban check
+        language: system
+        types: [python]
+        pass_filenames: true
