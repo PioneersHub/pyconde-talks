@@ -146,6 +146,10 @@ CSRF_TRUSTED_ORIGINS = env.list(
     default=["http://localhost", "http://127.0.0.1"],
 )
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-content-type-nosniff
+SECURE_CONTENT_TYPE_NOSNIFF = True
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-referrer-policy
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 
 # --------------------------------------------------------------------------------------------------
