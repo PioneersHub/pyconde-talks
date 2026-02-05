@@ -53,7 +53,7 @@ class Command(BaseCommand):
             s_df["Start Time"] = pd.to_datetime(s_df["Start Time"]).dt.tz_localize("Europe/Berlin")
             s_df["End Time"] = pd.to_datetime(s_df["End Time"]).dt.tz_localize("Europe/Berlin")
         except Exception as exc:
-            self.stdout.write(self.style.ERROR(f"Error fetching spreadsheet data: {exc}"))
+            self.stderr.write(self.style.ERROR(f"Error fetching spreadsheet data: {exc}"))
             raise
         else:
             return s_df
@@ -148,6 +148,6 @@ class Command(BaseCommand):
                 )
 
         except Exception as exc:
-            self.stdout.write(self.style.ERROR(f"Command failed: {exc!s}"))
+            self.stderr.write(self.style.ERROR(f"Command failed: {exc!s}"))
             logger.exception("Error importing streaming sessions")
             raise
