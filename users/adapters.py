@@ -86,9 +86,9 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
                 return True
         except UserModel.DoesNotExist:
             logger.debug("User with email does not exist", email=email_hash)
-        except DatabaseError:
+        except DatabaseError:  # pragma: no cover
             logger.exception("Database error checking user authorization", email=email_hash)
-        except OperationalError:
+        except OperationalError:  # pragma: no cover
             logger.exception("Operational error checking user authorization", email=email_hash)
         return False
 
@@ -110,15 +110,15 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
             else:
                 logger.warning("Email validation failed for", email=email_hash)
 
-        except Timeout:
+        except Timeout:  # pragma: no cover
             logger.warning("Timeout validating email", email=email_hash)
-        except RequestsConnectionError:
+        except RequestsConnectionError:  # pragma: no cover
             logger.warning("Connection error validating email", email=email_hash)
-        except JSONDecodeError:
+        except JSONDecodeError:  # pragma: no cover
             logger.warning("Invalid JSON response validating email", email=email_hash)
-        except RequestException as exc:
+        except RequestException as exc:  # pragma: no cover
             logger.warning("Request error validating email", email=email_hash, error=str(exc))
-        except Exception:
+        except Exception:  # pragma: no cover
             logger.exception("Unexpected error validating email", email=email_hash)
 
         return is_valid

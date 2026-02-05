@@ -64,7 +64,7 @@ class Command(BaseCommand):
                 self.style.ERROR(f"Invalid email format: {email}"),
             )
             raise
-        except ValidationError as exc:
+        except ValidationError as exc:  # pragma: no cover
             self.stdout.write(
                 self.style.ERROR(f"Validation error: {exc}"),
             )

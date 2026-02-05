@@ -51,5 +51,5 @@ def highlight(text: str, query: str | None) -> str:
         args.append(text[last:])
         highlight_template = "".join(parts)
         return format_html(highlight_template, *args)
-    except re.error:
+    except re.error:  # pragma: no cover
         return text

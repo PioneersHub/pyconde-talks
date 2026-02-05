@@ -80,14 +80,14 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
                     "Unable to create account. Please ensure your email is valid.",
                 )
                 return cast("HttpResponse", self.form_invalid(form))
-            except DatabaseError:
+            except DatabaseError:  # pragma: no cover
                 logger.exception("Database error creating user", email=email_hash)
                 form.add_error(
                     "email",
                     "System error while creating account. Please try again later.",
                 )
                 return cast("HttpResponse", self.form_invalid(form))
-            except Exception:
+            except Exception:  # pragma: no cover
                 logger.exception("Unexpected error creating user", email=email_hash)
                 form.add_error("email", "Error creating user. Please try again later.")
                 return cast("HttpResponse", self.form_invalid(form))

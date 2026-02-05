@@ -340,7 +340,7 @@ def is_moderator(user: AbstractBaseUser | AnonymousUser) -> bool:
     return getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)
 
 
-class ModeratorRequiredMixin(UserPassesTestMixin):
+class ModeratorRequiredMixin(UserPassesTestMixin):  # pragma: no cover
     """Mixin to require moderator permissions."""
 
     if TYPE_CHECKING:

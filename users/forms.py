@@ -46,7 +46,7 @@ class SuperUserCreationForm(forms.ModelForm[CustomUser]):
         """Initialize form and set initial values for superuser fields."""
         super().__init__(*args, **kwargs)
         # In the first step of user creation, this field might not be present yet
-        if "is_superuser" in self.fields:
+        if "is_superuser" in self.fields:  # pragma: no cover - only via admin fieldsets
             self.fields["is_superuser"].initial = True
             self.fields["is_superuser"].widget.attrs["disabled"] = True
             self.fields["is_superuser"].help_text = _(

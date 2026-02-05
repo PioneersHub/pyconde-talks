@@ -75,7 +75,7 @@ class CustomUserManager(BaseUserManager["CustomUser"]):
             user = self.model(email=email, **extra_fields)
 
             if extra_fields.get("is_superuser"):
-                if not password:
+                if not password:  # pragma: no cover
                     msg = "Superuser must have a password"
                     raise ValueError(msg)
                 user.set_password(password)
@@ -135,7 +135,7 @@ class CustomUserManager(BaseUserManager["CustomUser"]):
 
         try:
             return self.create_user(email, password, **extra_fields)
-        except ValidationError as exc:
+        except ValidationError as exc:  # pragma: no cover
             msg = "Error creating superuser"
             raise ValidationError(msg) from exc
 

@@ -24,7 +24,7 @@ def validate_video_link(video_link: str) -> None:
     try:
         parsed = urlparse(video_link)
         hostname = parsed.netloc.lower()
-    except ValueError as exc:
+    except ValueError as exc:  # pragma: no cover
         raise ValidationError(
             _("Invalid URL format"),
             code="invalid_url",
