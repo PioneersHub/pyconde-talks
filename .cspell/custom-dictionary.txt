@@ -84,6 +84,7 @@ noopener
 noreferrer
 noreload
 nosniff
+notanemail
 Noto
 nowrap
 OCSP

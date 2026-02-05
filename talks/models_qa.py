@@ -129,9 +129,71 @@ class Question(models.Model):
         name = (
             self.user.display_name.strip()
             or self.user.get_full_name().strip()
-            or self.user.email.strip()
+            or self._obfuscate_email(self.user.email)
         )
         return name or _("Anonymous")
+
+    @staticmethod
+    def _obfuscate_email(email: str) -> str:
+        """
+        Lightly obfuscate an email address (mask local and part of domain).
+
+        >>> Question._obfuscate_email("")
+        ''
+        >>> Question._obfuscate_email("notanemail")
+        'n***l'
+        >>> Question._obfuscate_email("a@b.com")
+        '*@*.com'
+        >>> Question._obfuscate_email("ab@xy.org")
+        'a*@x*.org'
+        >>> Question._obfuscate_email("john.doe@example.com")
+        'j***e@e***e.com'
+        >>> Question._obfuscate_email("user@mail.example.co.uk")
+        'u***r@c*.uk'
+        """
+        value = (email or "").strip()
+        if not value:
+            return ""
+
+        local, sep, domain = value.partition("@")
+        if not sep:
+            return Question._mask_token(value)
+
+        masked_local = Question._mask_token(local)
+
+        # Mask domain: keep TLD, mask SLD; ignore deeper subdomains for simplicity
+        labels = domain.split(".")
+        min_labels_for_tld = 2
+        if len(labels) >= min_labels_for_tld:
+            masked_domain = f"{Question._mask_token(labels[-2])}.{labels[-1]}"
+        else:
+            masked_domain = Question._mask_token(domain)
+
+        return f"{masked_local}@{masked_domain}"
+
+    @staticmethod
+    def _mask_token(s: str) -> str:
+        """
+        Mask middle of a token: a -> *, ab -> a*, abc+ -> a***c.
+
+        >>> Question._mask_token("")
+        ''
+        >>> Question._mask_token("a")
+        '*'
+        >>> Question._mask_token("ab")
+        'a*'
+        >>> Question._mask_token("john")
+        'j***n'
+        """
+        s = (s or "").strip()
+        n = len(s)
+        if n <= 0:
+            return ""
+        if n == 1:
+            return "*"
+        if n == 2:  # noqa: PLR2004
+            return f"{s[0]}*"
+        return f"{s[0]}***{s[-1]}"
 
     @property
     def has_answer(self) -> bool:

@@ -165,6 +165,6 @@ class ProfileForm(forms.ModelForm[CustomUser]):
         help_texts: ClassVar[dict[str, StrOrPromise]] = {
             "display_name": _(
                 "Name shown publicly when asking questions. "
-                "If empty, we'll use your full name or email.",
+                "If empty, we'll use your full name or email (masked).",
             ),
         }
