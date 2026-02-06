@@ -558,3 +558,68 @@ class Talk(models.Model):
             return self.room.slido_link
 
         return ""
+
+
+# Rating constants
+MIN_RATING_SCORE = 1
+MAX_RATING_SCORE = 5
+
+
+class Rating(models.Model):
+    """Represents a user's rating of a talk, with an optional comment visible only to admins."""
+
+    talk = models.ForeignKey(
+        Talk,
+        on_delete=models.CASCADE,
+        related_name="ratings",
+        help_text=_("The talk being rated"),
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ratings",
+        help_text=_("The user who submitted the rating"),
+    )
+    score = models.PositiveSmallIntegerField(
+        help_text=_("Rating score from 1 to 5"),
+    )
+    comment = models.TextField(
+        blank=True,
+        help_text=_("Optional comment about the talk (visible only to admins)"),
+    )
+    created_at = models.DateTimeField(
+        default=timezone.now,
+        help_text=_("When this rating was created"),
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text=_("When this rating was last modified"),
+    )
+
+    if TYPE_CHECKING:
+        from django_stubs_ext.db.models.manager import RelatedManager  # noqa: PLC0415
+
+    class Meta:
+        """Metadata for the Rating model."""
+
+        verbose_name = _("Rating")
+        verbose_name_plural = _("Ratings")
+        ordering: ClassVar[list[str]] = ["-created_at"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["talk", "user"]),
+            models.Index(fields=["talk", "-created_at"]),
+        ]
+        constraints: ClassVar[list[models.CheckConstraint | models.UniqueConstraint]] = [
+            models.UniqueConstraint(
+                fields=["talk", "user"],
+                name="unique_user_talk_rating",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(score__gte=MIN_RATING_SCORE, score__lte=MAX_RATING_SCORE),
+                name="rating_score_range",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        """Return a string representation of the rating."""
+        return f"{self.user} rated {self.talk}: {self.score}/{MAX_RATING_SCORE}"
