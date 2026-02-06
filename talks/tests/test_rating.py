@@ -454,7 +454,8 @@ class TestStarRatingTag:
         """Render a half star for a 3.5 rating."""
         html = self._render(3.5, 5)
         assert "3.5" in html
-        assert "half-star" in html
+        # Half star uses a clipped overlay with 50% width
+        assert "width:50%" in html
 
     def test_partial_rating(self) -> None:
         """Render correct stars for a 2.0 rating."""
