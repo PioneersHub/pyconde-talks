@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import Room, Speaker, Streaming, Talk
+from .models import Rating, Room, Speaker, Streaming, Talk
 from .models_qa import Answer, Question, QuestionVote
 
 
@@ -547,3 +547,47 @@ class AnswerAdmin(admin.ModelAdmin[Answer]):
         if len(content) > CONTENT_PREVIEW_LENGTH:
             return f"{content[:CONTENT_PREVIEW_LENGTH]}..."
         return content
+
+
+@admin.register(Rating)
+class RatingAdmin(admin.ModelAdmin[Rating]):
+    """
+    Admin configuration for the Rating model.
+
+    Displays ratings with their comments (visible only to admins).
+
+    Attributes:
+        list_display: Fields to display in the admin list view.
+        list_filter: Fields to filter by in the admin list view.
+        search_fields: Fields to search by in the admin list view.
+        readonly_fields: Fields that cannot be edited in the admin.
+        list_select_related: Related models to prefetch for list view optimization.
+
+    """
+
+    list_display = ("talk", "user", "score", "has_comment", "created_at")
+    list_filter = ("score", "created_at")
+    search_fields = ("talk__title", "user__email", "comment")
+    readonly_fields = ("created_at", "updated_at")
+    list_select_related = ("talk", "user")
+
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": ("talk", "user", "score", "comment"),
+            },
+        ),
+        (
+            _("Metadata"),
+            {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    @admin.display(boolean=True, description=_("Has Comment"))
+    def has_comment(self, obj: Rating) -> bool:
+        """Display whether the rating has a comment."""
+        return bool(obj.comment)
