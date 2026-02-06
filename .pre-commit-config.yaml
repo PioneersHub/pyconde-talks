@@ -11,7 +11,7 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.9.29
+    rev: 0.10.0
     hooks:
       - id: uv-lock
 
