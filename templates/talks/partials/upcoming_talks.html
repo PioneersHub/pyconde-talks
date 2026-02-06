@@ -1,4 +1,4 @@
-{% load svg_tags %}
+{% load svg_tags rating_tags %}
 <div class="card">
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-xl font-bold">Coming Up Next</h2>
@@ -39,6 +39,7 @@
           <div class="p-4 pl-5">
             <a href="{% url 'talk_detail' talk.pk %}" class="link-title mb-1 pr-20">{{ talk.title }}</a>
             <p class="text-muted mb-3">{{ talk.speaker_names }}</p>
+            <div class="mb-2">{% star_rating talk.average_rating talk.rating_count %}</div>
             <div class="flex flex-wrap gap-2 mb-3">
               <span class="badge badge-gray text-xs">
                 {% svg 'location-marker' "h-3 w-3 mr-1" %}
