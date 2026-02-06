@@ -34,7 +34,7 @@ def star_rating(average_rating: float | None, rating_count: int = 0) -> SafeStri
 
     """
     if average_rating is None or rating_count == 0:
-        return format_html(
+        return SafeString(  # nosec: B703 - Static HTML, no user input
             '<span class="text-sm text-subtle">No ratings yet</span>',
         )
 
