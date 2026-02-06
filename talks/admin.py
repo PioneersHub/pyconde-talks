@@ -9,7 +9,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, ClassVar
 
 from django.contrib import admin
-from django.db.models import Count
+from django.db.models import Avg, Count
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
@@ -233,6 +233,8 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
         "is_upcoming",
         "has_video",
         "hide",
+        "avg_rating",
+        "num_ratings",
     )
     list_filter = (
         "presentation_type",
@@ -301,7 +303,29 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Talk]:
         """Prefetch related speakers and room to optimize database queries."""
-        return super().get_queryset(request).prefetch_related("speakers").select_related("room")
+        return (
+            super()
+            .get_queryset(request)
+            .prefetch_related("speakers")
+            .select_related("room")
+            .annotate(
+                _average_rating=Avg("ratings__score"),
+                _rating_count=Count("ratings"),
+            )
+        )
+
+    @admin.display(description=_("Avg Rating"), ordering="_average_rating")
+    def avg_rating(self, obj: Talk) -> str:
+        """Display the average rating for this talk."""
+        avg = getattr(obj, "_average_rating", None)
+        if avg is None:
+            return "-"
+        return f"{avg:.1f}"
+
+    @admin.display(description=_("# Ratings"), ordering="_rating_count")
+    def num_ratings(self, obj: Talk) -> int:
+        """Display the number of ratings for this talk."""
+        return getattr(obj, "_rating_count", 0)
 
     @admin.display(description=_("Room"))
     def room_name(self, obj: Talk) -> str:
