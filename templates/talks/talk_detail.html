@@ -2,6 +2,7 @@
 {% load time_filters %}
 {% load svg_tags %}
 {% load markdownify %}
+{% load rating_tags %}
 {% block content %}
   <div class="max-w-4xl mx-auto p-4">
     <!-- Back button -->
@@ -24,6 +25,7 @@
         <div class="mb-6">
           <h1 class="text-3xl font-bold text-heading">{{ talk.title }}</h1>
           <p class="text-xl text-muted mt-2">{{ talk.speaker_names }}</p>
+          <div class="mt-2">{% star_rating average_rating rating_count %}</div>
         </div>
         <!-- Time, Location, Type and Track -->
         <div class="box-muted mb-8">
@@ -89,6 +91,50 @@
         {% endif %}
         <!-- Description -->
         <div class="prose max-w-none mb-8">{{ talk.description|markdownify }}</div>
+        <!-- Rating Section -->
+        <div class="box-muted mb-8">
+          <h2 class="text-lg font-bold text-heading mb-4">Rate this Talk</h2>
+          <form method="post"
+                action="{% url 'rate_talk' talk.id %}"
+                class="space-y-4">
+            {% csrf_token %}
+            <div>
+              <label class="block text-sm font-medium text-muted mb-2">Your Rating</label>
+              <div class="flex gap-2">
+                {% for i in "12345" %}
+                  <label class="cursor-pointer">
+                    <input type="radio"
+                           name="score"
+                           value="{{ i }}"
+                           class="sr-only peer"
+                           {% if user_rating and user_rating.score|stringformat:"s" == i %}checked{% endif %}
+                           required />
+                    <div class="w-12 h-12 flex items-center justify-center border-2 border-gray-300 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-blue-300 transition-colors">
+                      <span class="text-xl font-bold">{{ i }}</span>
+                    </div>
+                  </label>
+                {% endfor %}
+              </div>
+            </div>
+            <div>
+              <label for="comment" class="block text-sm font-medium text-muted mb-2">
+                Comment (optional, visible only to organizers)
+              </label>
+              <textarea id="comment"
+                        name="comment"
+                        rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Share your thoughts about this talk...">{% if user_rating %}{{ user_rating.comment }}{% endif %}</textarea>
+            </div>
+            <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+              {% if user_rating %}
+                Update Rating
+              {% else %}
+                Submit Rating
+              {% endif %}
+            </button>
+          </form>
+        </div>
         <!-- Action Buttons -->
         <div class="flex flex-wrap gap-4">
           <a href="{{ talk.pretalx_link }}"

@@ -2,6 +2,7 @@
 {% load partials %}
 {% load svg_tags %}
 {% load highlight %}
+{% load rating_tags %}
 {% block content %}
   <div class="max-w-4xl mx-auto p-4">
     <!-- Search -->
@@ -132,6 +133,8 @@
               {% endif %}
             </div>
             <p class="text-muted pl-2">{{ talk.speaker_names|highlight:search_query }}</p>
+            <!-- Rating -->
+            <div class="mt-1 pl-2">{% star_rating talk.average_rating talk.rating_count %}</div>
             <!-- Date and Room info -->
             <div class="text-sm mt-2 pl-2">
               <span class="{% if talk.is_current %} badge badge-orange {% elif talk.is_upcoming %} badge badge-purple {% else %} badge badge-gray {% endif %}">{{ talk.start_time|date:"D, g:i A" }}</span>
