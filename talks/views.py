@@ -7,17 +7,20 @@ including listing, detail views, and statistics.
 
 from typing import TYPE_CHECKING, Any
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
+from django.db import IntegrityError
+from django.db.models import Avg, Count, Q
 from django.db.models.functions import TruncDate
-from django.http import Http404, HttpRequest, HttpResponse
-from django.shortcuts import redirect, render
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.cache import cache_page
+from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView
 
-from .models import Room, Talk
+from .models import MAX_RATING_SCORE, MIN_RATING_SCORE, Rating, Room, Talk
 from .utils import get_talk_by_id_or_pretalx
 
 
@@ -39,6 +42,28 @@ class TalkDetailView(LoginRequiredMixin, DetailView[Talk]):
     def get_queryset(self) -> QuerySet[Talk]:
         """Optimize query with related data."""
         return Talk.objects.select_related("room").prefetch_related("speakers")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Enhance context with rating statistics and user's existing rating."""
+        context = super().get_context_data(**kwargs)
+        talk = self.object
+
+        # Aggregate rating stats in a single query
+        stats = Rating.objects.filter(talk=talk).aggregate(
+            avg=Avg("score"),
+            count=Count("id"),
+        )
+        context["rating_count"] = stats["count"]
+        context["average_rating"] = stats["avg"]
+
+        # Get user's existing rating if authenticated
+        if self.request.user.is_authenticated:
+            context["user_rating"] = Rating.objects.filter(
+                talk=talk,
+                user=self.request.user,
+            ).first()
+
+        return context
 
 
 class TalkListView(LoginRequiredMixin, ListView[Talk]):
@@ -108,6 +133,12 @@ class TalkListView(LoginRequiredMixin, ListView[Talk]):
                 q_obj |= Q(speakers__name__icontains=query)
 
             queryset = queryset.filter(q_obj).distinct()
+
+        # Annotate with rating statistics for list display
+        queryset = queryset.annotate(
+            average_rating=Avg("ratings__score"),
+            rating_count=Count("ratings"),
+        )
 
         return queryset.order_by("start_time")
 
@@ -201,3 +232,79 @@ def talk_redirect_view(_: HttpRequest, talk_id: str) -> HttpResponse:
         return redirect("talk_detail", pk=talk.pk)
     msg = f"No talk found with ID or Pretalx ID: {talk_id}"
     raise Http404(msg)
+
+
+@login_required
+@require_POST
+def rate_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
+    """
+    Handle talk rating submission.
+
+    Users can rate a talk from 1 to 5 stars with an optional comment.
+    If a rating already exists, it is updated.
+    """
+    talk = get_object_or_404(Talk, pk=talk_id)
+    raw_score = request.POST.get("score")
+    comment = request.POST.get("comment", "").strip()
+
+    # Validate score
+    try:
+        score = int(raw_score)  # type: ignore[arg-type]
+    except (TypeError, ValueError):  # fmt: skip
+        messages.error(request, "Invalid rating value.")
+        return redirect("talk_detail", pk=talk_id)
+
+    if score < MIN_RATING_SCORE or score > MAX_RATING_SCORE:
+        messages.error(
+            request,
+            f"Rating must be between {MIN_RATING_SCORE} and {MAX_RATING_SCORE} stars.",
+        )
+        return redirect("talk_detail", pk=talk_id)
+
+    # Create or update rating
+    try:
+        _rating, created = Rating.objects.update_or_create(
+            talk=talk,
+            user=request.user,
+            defaults={"score": score, "comment": comment},
+        )
+        if created:
+            messages.success(request, "Your rating has been submitted!")
+        else:
+            messages.success(request, "Your rating has been updated!")
+    except IntegrityError:
+        messages.error(request, "Error submitting rating. Please try again.")
+
+    return redirect("talk_detail", pk=talk_id)
+
+
+@login_required
+def get_talk_rating_stats(request: HttpRequest, talk_id: int) -> JsonResponse:
+    """
+    Return rating statistics for a talk as JSON.
+
+    Returns average_rating, rating_count, and the current user's rating if it exists.
+    """
+    talk = get_object_or_404(Talk, pk=talk_id)
+
+    stats = Rating.objects.filter(talk=talk).aggregate(
+        average=Avg("score"),
+        count=Count("id"),
+    )
+
+    user_rating = None
+    if request.user.is_authenticated:
+        rating = Rating.objects.filter(talk=talk, user=request.user).first()
+        if rating:
+            user_rating = {
+                "score": rating.score,
+                "comment": rating.comment,
+            }
+
+    return JsonResponse(
+        {
+            "average_rating": round(stats["average"], 1) if stats["average"] else None,
+            "rating_count": stats["count"],
+            "user_rating": user_rating,
+        },
+    )
