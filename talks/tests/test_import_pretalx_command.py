@@ -15,11 +15,18 @@ import pytest
 from model_bakery import baker
 from pytanis.pretalx.models import State
 
-from talks.management.commands.import_pretalx_talks import (
-    Command,
-    SubmissionData,
-    VerbosityLevel,
+from talks.management.commands._pretalx.rooms import batch_create_rooms
+from talks.management.commands._pretalx.speakers import (
+    batch_create_or_update_speakers,
+    collect_speakers_from_submissions,
 )
+from talks.management.commands._pretalx.submission import (
+    SubmissionData,
+    submission_is_announcement,
+    submission_is_lightning_talk,
+)
+from talks.management.commands._pretalx.types import VerbosityLevel
+from talks.management.commands.import_pretalx_talks import Command
 from talks.models import FAR_FUTURE, MAX_TALK_TITLE_LENGTH, Room, Speaker, Talk
 
 
@@ -294,24 +301,24 @@ class TestMapPresentationType:
         assert result == Talk.PresentationType.TALK
 
 
-# ---------------------- _batch_create_rooms Tests ----------------------
+# ---------------------- batch_create_rooms Tests ----------------------
 
 
 @pytest.mark.django_db
 class TestBatchCreateRooms:
-    """Tests for the _batch_create_rooms method."""
+    """Tests for the batch_create_rooms function."""
 
-    def test_creates_new_rooms(self, command: Command, mock_submission: Mock) -> None:
+    def test_creates_new_rooms(self, mock_submission: Mock) -> None:
         """Test that new rooms are created via bulk_create."""
         mock_submission.state = State.confirmed
         submissions = [mock_submission]
         options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
 
-        command._batch_create_rooms(submissions, "pyconde2024", options)
+        batch_create_rooms(submissions, "pyconde2024", options)
 
         assert Room.objects.filter(name="Main Hall").exists()
 
-    def test_skips_existing_rooms(self, command: Command, mock_submission: Mock) -> None:
+    def test_skips_existing_rooms(self, mock_submission: Mock) -> None:
         """Test that existing rooms are not recreated."""
         # Create existing room
         Room.objects.create(name="Main Hall", description="Original description")
@@ -320,7 +327,7 @@ class TestBatchCreateRooms:
         submissions = [mock_submission]
         options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
 
-        command._batch_create_rooms(submissions, "pyconde2024", options)
+        batch_create_rooms(submissions, "pyconde2024", options)
 
         # Should still be only one room
         assert Room.objects.filter(name="Main Hall").count() == 1
@@ -329,7 +336,6 @@ class TestBatchCreateRooms:
 
     def test_skips_non_confirmed_submissions(
         self,
-        command: Command,
         mock_submission: Mock,
     ) -> None:
         """Test that submissions not in confirmed/accepted state are skipped."""
@@ -337,11 +343,11 @@ class TestBatchCreateRooms:
         submissions = [mock_submission]
         options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
 
-        command._batch_create_rooms(submissions, "pyconde2024", options)
+        batch_create_rooms(submissions, "pyconde2024", options)
 
         assert not Room.objects.filter(name="Main Hall").exists()
 
-    def test_handles_multiple_unique_rooms(self, command: Command, mock_submission: Mock) -> None:
+    def test_handles_multiple_unique_rooms(self, mock_submission: Mock) -> None:
         """Test creating multiple unique rooms from submissions."""
         # First submission
         mock_submission.state = State.confirmed
@@ -368,33 +374,33 @@ class TestBatchCreateRooms:
         submissions = [mock_submission, submission2]
         options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
 
-        command._batch_create_rooms(submissions, "pyconde2024", options)
+        batch_create_rooms(submissions, "pyconde2024", options)
 
         assert Room.objects.count() == 2
         assert Room.objects.filter(name="Main Hall").exists()
         assert Room.objects.filter(name="Workshop Room").exists()
 
 
-# ---------------------- _batch_create_or_update_speakers Tests ----------------------
+# ---------------------- batch_create_or_update_speakers Tests ----------------------
 
 
 @pytest.mark.django_db
 class TestBatchCreateOrUpdateSpeakers:
-    """Tests for the _batch_create_or_update_speakers method."""
+    """Tests for the batch_create_or_update_speakers function."""
 
-    def test_creates_new_speakers(self, command: Command, mock_submission: Mock) -> None:
+    def test_creates_new_speakers(self, mock_submission: Mock) -> None:
         """Test that new speakers are bulk created."""
         mock_submission.state = State.confirmed
         submissions = [mock_submission]
         options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
 
-        command._batch_create_or_update_speakers(submissions, options)
+        batch_create_or_update_speakers(submissions, options)
 
         assert Speaker.objects.filter(pretalx_id="SPK001").exists()
         assert Speaker.objects.filter(pretalx_id="SPK002").exists()
         assert Speaker.objects.count() == 2
 
-    def test_updates_existing_speakers(self, command: Command, mock_submission: Mock) -> None:
+    def test_updates_existing_speakers(self, mock_submission: Mock) -> None:
         """Test that existing speakers are bulk updated."""
         # Create existing speaker with old data
         Speaker.objects.create(
@@ -408,7 +414,7 @@ class TestBatchCreateOrUpdateSpeakers:
         submissions = [mock_submission]
         options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value, "no_update": False}
 
-        command._batch_create_or_update_speakers(submissions, options)
+        batch_create_or_update_speakers(submissions, options)
 
         speaker = Speaker.objects.get(pretalx_id="SPK001")
         assert speaker.name == "John Cleese"
@@ -416,7 +422,6 @@ class TestBatchCreateOrUpdateSpeakers:
 
     def test_skips_update_with_no_update_flag(
         self,
-        command: Command,
         mock_submission: Mock,
     ) -> None:
         """Test that existing speakers are not updated when no_update is True."""
@@ -432,14 +437,13 @@ class TestBatchCreateOrUpdateSpeakers:
         submissions = [mock_submission]
         options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value, "no_update": True}
 
-        command._batch_create_or_update_speakers(submissions, options)
+        batch_create_or_update_speakers(submissions, options)
 
         speaker = Speaker.objects.get(pretalx_id="SPK001")
         assert speaker.name == "Old Name"  # Should not be updated
 
     def test_deduplicates_speakers_across_submissions(
         self,
-        command: Command,
         mock_submission: Mock,
     ) -> None:
         """Test that the same speaker appearing in multiple submissions is only created once."""
@@ -459,43 +463,42 @@ class TestBatchCreateOrUpdateSpeakers:
         submissions = [mock_submission, submission2]
         options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
 
-        command._batch_create_or_update_speakers(submissions, options)
+        batch_create_or_update_speakers(submissions, options)
 
         # SPK001 should only be created once
         assert Speaker.objects.filter(pretalx_id="SPK001").count() == 1
 
 
-# ---------------------- _collect_speakers_from_submissions Tests ----------------------
+# ---------------------- collect_speakers_from_submissions Tests ----------------------
 
 
 class TestCollectSpeakersFromSubmissions:
-    """Tests for the _collect_speakers_from_submissions method."""
+    """Tests for the collect_speakers_from_submissions function."""
 
     def test_collects_speakers_from_valid_submissions(
         self,
-        command: Command,
         mock_submission: Mock,
     ) -> None:
         """Test that speakers are collected from confirmed/accepted submissions."""
         mock_submission.state = State.confirmed
         submissions = [mock_submission]
 
-        result = command._collect_speakers_from_submissions(submissions)
+        result = collect_speakers_from_submissions(submissions)
 
         assert len(result) == 2
         assert "SPK001" in result
         assert "SPK002" in result
 
-    def test_skips_invalid_states(self, command: Command, mock_submission: Mock) -> None:
+    def test_skips_invalid_states(self, mock_submission: Mock) -> None:
         """Test that speakers from non-confirmed submissions are skipped."""
         mock_submission.state = State.submitted
         submissions = [mock_submission]
 
-        result = command._collect_speakers_from_submissions(submissions)
+        result = collect_speakers_from_submissions(submissions)
 
         assert len(result) == 0
 
-    def test_deduplicates_speakers(self, command: Command, mock_submission: Mock) -> None:
+    def test_deduplicates_speakers(self, mock_submission: Mock) -> None:
         """Test that duplicate speakers are deduplicated."""
         mock_submission.state = State.confirmed
 
@@ -507,7 +510,7 @@ class TestCollectSpeakersFromSubmissions:
 
         submissions = [mock_submission, submission2]
 
-        result = command._collect_speakers_from_submissions(submissions)
+        result = collect_speakers_from_submissions(submissions)
 
         assert len(result) == 2  # Only 2 unique speakers
 
@@ -516,61 +519,56 @@ class TestCollectSpeakersFromSubmissions:
 
 
 class TestHelperMethods:
-    """Tests for helper methods."""
+    """Tests for helper functions."""
 
     def test_submission_is_lightning_talk_with_type(
         self,
-        command: Command,
         mock_submission: Mock,
     ) -> None:
         """Test lightning talk detection via submission_type."""
         mock_submission.submission_type.en = "Lightning Talks"
 
-        result = command._submission_is_lightning_talk(mock_submission)
+        result = submission_is_lightning_talk(mock_submission)
 
         assert result is True
 
     def test_submission_is_lightning_talk_with_track(
         self,
-        command: Command,
         mock_submission: Mock,
     ) -> None:
         """Test lightning talk detection via track."""
         mock_submission.track.en = "Lightning"
 
-        result = command._submission_is_lightning_talk(mock_submission)
+        result = submission_is_lightning_talk(mock_submission)
 
         assert result is True
 
     def test_submission_is_not_lightning_talk(
         self,
-        command: Command,
         mock_submission: Mock,
     ) -> None:
         """Test that regular talks are not detected as lightning talks."""
-        result = command._submission_is_lightning_talk(mock_submission)
+        result = submission_is_lightning_talk(mock_submission)
 
         assert result is False
 
     def test_submission_is_announcement(
         self,
-        command: Command,
         mock_submission: Mock,
     ) -> None:
         """Test announcement detection."""
         mock_submission.title = "Opening Session"
 
-        result = command._submission_is_announcement(mock_submission)
+        result = submission_is_announcement(mock_submission)
 
         assert result is True
 
     def test_submission_is_not_announcement(
         self,
-        command: Command,
         mock_submission: Mock,
     ) -> None:
         """Test that regular talks are not detected as announcements."""
-        result = command._submission_is_announcement(mock_submission)
+        result = submission_is_announcement(mock_submission)
 
         assert result is False
 
