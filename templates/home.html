@@ -4,13 +4,12 @@
   <div class="max-w-4xl mx-auto p-4">
     {% if user.is_authenticated %}
       <div class="card mb-6">
-        <h1 class="text-2xl font-bold mb-2">Welcome to {{ brand_full_name }}!</h1>
+        <h1 class="text-2xl font-bold mb-2">Welcome to {{ brand_event_name }}!</h1>
         <p class="text-muted mb-4">Logged in as {{ user.email }}</p>
         <div class="flex gap-4">
           <a href="{% url 'talk_list' %}"
              class="btn-primary inline-flex items-center px-4 py-2 rounded-lg">
-            {% svg 'rectangle-stack' "w-4 h-4 mr-2" %}
-            Browse Talks
+            {% svg 'rectangle-stack' "w-4 h-4 mr-2" %} Browse Talks
           </a>
           <a href="{% url 'account_logout' %}" class="btn-outline-primary">Sign Out</a>
         </div>
@@ -24,9 +23,8 @@
           <!-- Initial placeholder state -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             {% load stat_tags %}
-            {% stat_card "Total Talks" "Loading..." %}
-            {% stat_card "Today's Talks" "Loading..." %}
-            {% stat_card "Available Recordings" "Loading..." %}
+            {% stat_card "Total Talks" "Loading..." %} {% stat_card "Today's Talks"
+            "Loading..." %} {% stat_card "Available Recordings" "Loading..." %}
           </div>
         </div>
       </div>
@@ -47,7 +45,7 @@
       </div>
     {% else %}
       <div class="card text-center">
-        <h1 class="text-2xl font-bold mb-4">Welcome to {{ brand_full_name }}</h1>
+        <h1 class="text-2xl font-bold mb-4">Welcome to {{ brand_event_name }}</h1>
         <p class="text-muted mb-6">Please sign in to access the conference talks.</p>
         <a href="{% url 'account_request_login_code' %}"
            class="btn-primary inline-flex items-center px-6 py-3 rounded-lg">Sign In</a>

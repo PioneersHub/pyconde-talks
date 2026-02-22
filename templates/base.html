@@ -6,32 +6,32 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description"
-          content="{% block meta_description %} {{ brand_meta_description }} {% endblock meta_description %}">
+          content="{% block meta_description %} {{ brand_meta_description }} {% endblock meta_description %}" />
     <meta name="author"
-          content="{{ brand_full_name }} {{ brand_made_by_name }}">
-    <meta name="keywords" content="Python, Data, Talks, Schedule, Conference">
+          content="{{ brand_event_name }} {{ brand_made_by_name }}" />
+    <meta name="keywords" content="Python, Data, Talks, Schedule, Conference" />
     {% if brand_assets_subdir %}
       {% with base_path="images/"|add:brand_assets_subdir|add:"/" %}
-        <link rel="icon" href="{% static base_path|add:'favicon.ico' %}">
+        <link rel="icon" href="{% static base_path|add:'favicon.ico' %}" />
         <link rel="apple-touch-icon"
               sizes="180x180"
-              href="{% static base_path|add:'apple-touch-icon.png' %}">
+              href="{% static base_path|add:'apple-touch-icon.png' %}" />
         <link rel="icon"
               type="image/png"
               sizes="32x32"
-              href="{% static base_path|add:'favicon-32x32.png' %}">
+              href="{% static base_path|add:'favicon-32x32.png' %}" />
         <link rel="icon"
               type="image/png"
               sizes="16x16"
-              href="{% static base_path|add:'favicon-16x16.png' %}">
-        <link rel="manifest" href="{% static base_path|add:'site.webmanifest' %}">
+              href="{% static base_path|add:'favicon-16x16.png' %}" />
+        <link rel="manifest" href="{% static base_path|add:'site.webmanifest' %}" />
       {% endwith %}
     {% else %}
-      <link rel="icon" href="{% static 'images/favicon.ico' %}">
+      <link rel="icon" href="{% static 'images/favicon.ico' %}" />
     {% endif %}
     <link rel="stylesheet"
           type="text/css"
-          href="{% static 'css/tailwind.min.css' %}">
+          href="{% static 'css/tailwind.min.css' %}" />
     <title>
       {% block title %}
         {{ brand_title }}

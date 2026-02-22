@@ -20,6 +20,20 @@
       {% endif %}
       <form method="post" action="{% url 'account_request_login_code' %}">
         {% csrf_token %}
+        {% if events %}
+          <div class="mb-4">
+            <label for="id_event" class="text-sm font-medium text-label mb-1 block">{% translate "Event" %}</label>
+            <select name="event"
+                    id="id_event"
+                    class="w-full py-2 px-3 border border-weak rounded-md focus-ring-primary outline-none">
+              {% for event in events %}
+                <option value="{{ event.slug }}"
+                        {% if event.slug == default_event_slug %}selected{% endif %}>{{ event.name }}</option>
+              {% endfor %}
+            </select>
+            <p class="mt-1 text-xs text-subtle">{% translate "Select the event you purchased a ticket for" %}</p>
+          </div>
+        {% endif %}
         <div class="mb-6">
           <div class="flex justify-between items-center mb-1">
             <label for="{{ form.email.id_for_label }}"
