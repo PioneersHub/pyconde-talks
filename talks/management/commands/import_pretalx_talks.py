@@ -12,6 +12,7 @@ from django.core.management.base import BaseCommand, CommandParser
 from django.utils import timezone
 from pydantic import ValidationError
 from pytanis import PretalxClient
+from pytanis.config import PretalxCfg
 from pytanis.pretalx.models import State
 from tenacity import (
     retry,
@@ -69,10 +70,16 @@ class Command(BaseCommand):
             "Falls back to the Event's pretalx_url field.",
         )
         parser.add_argument(
-            "--event",
+            "--event-slug",
             type=str,
             default=getattr(settings, "DEFAULT_EVENT", ""),
             help="Event slug in the Django app (not necessarily the same as the Pretalx slug).",
+        )
+        parser.add_argument(
+            "--event-name",
+            type=str,
+            default="",
+            help="Human-readable name for the event (used when creating a new Event).",
         )
         parser.add_argument(
             "--api-token",
@@ -122,7 +129,8 @@ class Command(BaseCommand):
         - If the event slug does not exist in the database yet, it will be created automatically.
         - The --pretalx-event-url CLI flag takes precedence over the Event's pretalx_url field.
         """
-        event_slug: str = options["event"]
+        event_slug: str = options["event_slug"]
+        event_name: str = options["event_name"]
         pretalx_event_url: str = options["pretalx_event_url"]
         verbosity = VerbosityLevel(options["verbosity"])
         max_retries: int = options["max_retries"]
@@ -149,7 +157,7 @@ class Command(BaseCommand):
         event_obj, created = Event.objects.get_or_create(
             slug=event_slug,
             defaults={
-                "name": event_slug,
+                "name": event_name or event_slug,
                 "year": timezone.now().year,
                 "pretalx_url": pretalx_event_url,
             },
@@ -165,12 +173,45 @@ class Command(BaseCommand):
 
         # Resolve pretalx_event_url: CLI flag takes precedence, then Event field
         if not pretalx_event_url:
-            options["pretalx_event_url"] = (
-                event_obj.pretalx_url or f"https://pretalx.com/{event_slug}"
-            )
+            pretalx_event_url = event_obj.pretalx_url or f"https://pretalx.com/{event_slug}"
+            options["pretalx_event_url"] = pretalx_event_url
+
+        # Split pretalx_event_url into base URL and event slug because Pytanis needs them separately
+        pretalx_base_url, pretalx_event_slug = pretalx_event_url.rstrip("/").rsplit("/", 1)
 
         try:
-            pretalx = self._setup_pretalx_client(options["api_token"], verbosity)
+            pretalx_client = self._setup_pretalx_client(
+                api_token=options["api_token"],
+                api_base_url=pretalx_base_url,
+            )
+
+            # If event name is not provided, try to fetch it from the API
+            if not event_name:
+                event = pretalx_client.event(pretalx_event_slug)
+                if (
+                    hasattr(event, "name")
+                    and event.name
+                    and hasattr(event.name, "en")
+                    and event.name.en
+                ):
+                    event_name = event.name.en
+
+                self._log(
+                    f"Fetched event name from Pretalx API: '{event_name}'",
+                    verbosity,
+                    VerbosityLevel.NORMAL,
+                )
+                if created and event_name and event_name != event_slug:
+                    event_obj.name = event_name
+                    event_obj.save()
+                    self._log(
+                        f"Updated Event name to '{event_name}'",
+                        verbosity,
+                        VerbosityLevel.NORMAL,
+                        "SUCCESS",
+                    )
+
+            # Fetch talks from API
             self._log(
                 f"Fetching talks from Pretalx event '{event_slug}'...",
                 verbosity,
@@ -178,9 +219,10 @@ class Command(BaseCommand):
             )
             try:
                 talk_count, submissions = self._fetch_talks_with_retry(
-                    pretalx,
-                    event_slug,
+                    pretalx_client,
+                    pretalx_event_slug,
                     max_retries,
+                    verbosity,
                 )
                 self._log(
                     f"Fetched {talk_count} talks from Pretalx event '{event_slug}'",
@@ -244,13 +286,15 @@ class Command(BaseCommand):
     @staticmethod
     def _setup_pretalx_client(
         api_token: str,
-        verbosity: VerbosityLevel,
+        api_base_url: str = "https://pretalx.com/",
+        timeout: int | None = None,
+        calls_per_second: int = 2,
     ) -> PretalxClient:
         """Set up and configure the Pretalx client."""
-        config = PytanisCfg(Pretalx={"api_token": api_token})  # type: ignore[arg-type]
+        pretalx_cfg = PretalxCfg(api_token=api_token, api_base_url=api_base_url, timeout=timeout)
+        config = PytanisCfg(Pretalx=pretalx_cfg)
         client = PretalxClient(config)  # type: ignore[arg-type]
-        if verbosity.value >= VerbosityLevel.DETAILED.value:
-            client.set_throttling(calls=5, seconds=1)
+        client.set_throttling(calls=calls_per_second, seconds=1)
         return client
 
     def _fetch_talks_with_retry(
@@ -258,6 +302,7 @@ class Command(BaseCommand):
         pretalx: PretalxClient,
         pretalx_event_slug: str,
         max_retries: int,
+        verbosity: VerbosityLevel,
     ) -> tuple[int, Any]:
         """Fetch talks with retry logic."""
 
@@ -287,13 +332,19 @@ class Command(BaseCommand):
                 except (pickle.PickleError, OSError):  # fmt: skip
                     pass
 
+            # Pickle doesn't exist or failed to load, fetch from API and cache it
             count, submissions = pretalx.submissions(pretalx_event_slug)
             result = (count, list(submissions))
             try:
                 with pickle_file.open("wb") as wb_file:
                     pickle.dump(result, wb_file)
             except OSError:
-                pass
+                self._log(
+                    f"Failed to cache Pretalx talks to {pickle_file}",
+                    verbosity,
+                    VerbosityLevel.NORMAL,
+                    "WARNING",
+                )
             return result
 
         return _retry_fetch_talks()
