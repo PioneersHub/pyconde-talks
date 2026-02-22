@@ -75,19 +75,6 @@ WSGI_APPLICATION = "event_talks.wsgi.application"
 # https://docs.djangoproject.com/en/dev/howto/deployment/asgi/
 ASGI_APPLICATION = "event_talks.asgi.application"
 
-# BRANDING / EVENT CONFIGURATION
-BRAND_EVENT_NAME = env("BRAND_EVENT_NAME", default="Python Event")
-BRAND_EVENT_YEAR = env("BRAND_EVENT_YEAR", default="2025")
-BRAND_MAIN_WEBSITE_URL = env("BRAND_MAIN_WEBSITE_URL", default="https://python.org/")
-BRAND_VENUE_URL = env("BRAND_VENUE_URL", default="https://python.org/")
-BRAND_LOGO_SVG_NAME = env("BRAND_LOGO_SVG_NAME", default="python-logo")
-BRAND_MADE_BY_NAME = env("BRAND_MADE_BY_NAME", default="Community")
-BRAND_MADE_BY_URL = env(
-    "BRAND_MADE_BY_URL",
-    default="https://github.com/PioneersHub/pyconde-talks/graphs/contributors",
-)
-BRAND_ASSETS_SUBDIR = env("BRAND_ASSETS_SUBDIR", default="")
-
 
 # --------------------------------------------------------------------------------------------------
 # APPS
@@ -115,6 +102,7 @@ THIRD_PARTY_APPS = [
     "anymail",
 ]
 LOCAL_APPS = [
+    "events",
     "users",
     "talks",
 ]
@@ -190,7 +178,7 @@ LOGIN_URL = "/accounts/login/"
 # ---------------------
 # E-mail validation API
 # ---------------------
-EMAIL_VALIDATION_API_URL = env("EMAIL_VALIDATION_API_URL", default="")
+EMAIL_VALIDATION_API_URL_FALLBACK = env("EMAIL_VALIDATION_API_URL_FALLBACK", default="")
 EMAIL_VALIDATION_API_TIMEOUT = env.int("EMAIL_VALIDATION_API_TIMEOUT", default=10)
 
 # E-mails that will bypass API validation
@@ -223,7 +211,7 @@ ACCOUNT_RATE_LIMITS = {
 }
 ACCOUNT_EMAIL_SUBJECT_PREFIX = env(
     "ACCOUNT_EMAIL_SUBJECT_PREFIX",
-    default=f"[{BRAND_EVENT_NAME} {BRAND_EVENT_YEAR}] ",
+    default="",
 )
 
 
@@ -565,8 +553,9 @@ MARKDOWNIFY = {
 # Pretalx
 # --------------------------------------------------------------------------------------------------
 PRETALX_API_TOKEN = env("PRETALX_API_TOKEN", default="")
-PRETALX_BASE_URL = env("PRETALX_BASE_URL", default="")
-PRETALX_EVENT_SLUG = env("PRETALX_EVENT_SLUG", default="")
+
+# Default event slug shown pre-selected on the login page
+DEFAULT_EVENT = env("DEFAULT_EVENT", default="")
 
 # --------------------------------------------------------------------------------------------------
 # Livestreams
