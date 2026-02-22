@@ -139,10 +139,16 @@ class Command(BaseCommand):
             help="Comma-separated list of tutorial rooms",
         )
         parser.add_argument(
-            "--event",
+            "--event-slug",
             type=str,
             default=getattr(settings, "DEFAULT_EVENT", ""),
             help="Event slug to associate generated talks with (default: DEFAULT_EVENT)",
+        )
+        parser.add_argument(
+            "--event-name",
+            type=str,
+            default="",
+            help="Human-readable name for the event (used when creating a new Event).",
         )
 
     # --------------------
@@ -694,11 +700,12 @@ class Command(BaseCommand):
 
         # Resolve or create Event
         event_obj: Event | None = None
-        event_slug = str(options.get("event", "")).strip()
+        event_slug = str(options.get("event_slug", "")).strip()
+        event_name = str(options.get("event_name", "")).strip()
         if event_slug:
             event_obj, created = Event.objects.get_or_create(
                 slug=event_slug,
-                defaults={"name": event_slug, "year": 2025},
+                defaults={"name": event_name or event_slug, "year": 2025},
             )
             verb = "Created" if created else "Using existing"
             self.stdout.write(f"{verb} event '{event_obj.name}' (slug={event_obj.slug})")
