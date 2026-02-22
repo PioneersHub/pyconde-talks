@@ -320,6 +320,32 @@ initialize_django() {
 
     # Sync with Pretalx
     if [ "$PRETALX_SYNC" = "true" ]; then
+        # Ensure the default event exists before importing talks
+        log "Creating default event..."
+		run_django_shell <<-'PYTHON' || warn "Failed to create default event"
+            from django.conf import settings
+            from events.models import Event
+
+            Event.objects.get_or_create(
+                slug=settings.DEFAULT_EVENT,
+                defaults={
+                    'name': 'PyCon DE & PyData 2026',
+                    'year': 2026,
+                    'is_active': True,
+                    'pretalx_url': 'https://pretalx.com/pyconde-pydata-2026',
+                    'main_website_url': 'https://2026.pycon.de',
+                    'validation_api_url': '',
+                    'venue_url': 'https://www.darmstadtium.de',
+                    'logo_svg_name': 'pyconde-pydata-logo',
+                    'made_by_name': 'PyCon DE & PyData Team',
+                    'made_by_url': 'https://2026.pycon.de/team',
+                },
+            )
+
+            print(f"Default event '{settings.DEFAULT_EVENT}' is ready")
+		PYTHON
+
+        # Import talks from Pretalx
         log "Syncing with Pretalx..."
         "$VENV_PYTHON" manage.py import_pretalx_talks --verbosity 3 --image-format "$IMAGE_FORMAT" || warn "Failed to import talks from Pretalx"
     fi
