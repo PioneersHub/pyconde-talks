@@ -54,6 +54,7 @@ googlevideo
 healthcheck
 htmlcov
 htmx
+httpx
 inkscape
 ipython
 isort
@@ -114,6 +115,7 @@ pyupgrade
 RAQM
 redef
 regularuser
+respx
 Reswap
 Retarget
 rgba

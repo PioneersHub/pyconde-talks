@@ -1308,13 +1308,13 @@ dependencies = [
     { name = "django-template-partials" },
     { name = "emoji" },
     { name = "furl" },
+    { name = "httpx" },
     { name = "model-bakery" },
     { name = "openpyxl" },
     { name = "pandas" },
     { name = "pillow" },
     { name = "pilmoji" },
     { name = "pytanis" },
-    { name = "requests" },
     { name = "structlog" },
     { name = "tenacity" },
 ]
@@ -1331,7 +1331,6 @@ dev = [
     { name = "prek" },
     { name = "psycopg2-binary" },
     { name = "ruff" },
-    { name = "types-requests" },
     { name = "zuban" },
 ]
 prod = [
@@ -1343,7 +1342,7 @@ test = [
     { name = "pytest-django" },
     { name = "pytest-mock" },
     { name = "pytest-random-order" },
-    { name = "responses" },
+    { name = "respx" },
 ]
 
 [package.metadata]
@@ -1362,13 +1361,13 @@ requires-dist = [
     { name = "django-template-partials", specifier = ">=25.3" },
     { name = "emoji", specifier = ">=1.7,<2" },
     { name = "furl", specifier = ">=2.1.4" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "model-bakery", specifier = ">=1.23.3" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=2.3.3,<3" },
     { name = "pillow", specifier = ">=12.1.1" },
     { name = "pilmoji", specifier = ">=2.0.5" },
     { name = "pytanis", git = "https://github.com/jbsilva/pytanis" },
-    { name = "requests", specifier = ">=2.32.5" },
     { name = "structlog", specifier = ">=25.5.0" },
     { name = "tenacity", specifier = ">=9.1.4" },
 ]
@@ -1385,7 +1384,6 @@ dev = [
     { name = "prek", specifier = ">=0.3.3" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
     { name = "ruff", specifier = ">=0.15.2" },
-    { name = "types-requests", specifier = ">=2.32.4.20260107" },
     { name = "zuban", specifier = ">=0.6.0" },
 ]
 prod = [{ name = "psycopg2", specifier = ">=2.9.11" }]
@@ -1395,7 +1393,7 @@ test = [
     { name = "pytest-django", specifier = ">=4.12.0" },
     { name = "pytest-mock", specifier = ">=3.15.1" },
     { name = "pytest-random-order", specifier = ">=1.2.0" },
-    { name = "responses", specifier = ">=0.26.0" },
+    { name = "respx", specifier = ">=0.22.0" },
 ]
 
 [[package]]
@@ -1689,17 +1687,15 @@ wheels = [
 ]
 
 [[package]]
-name = "responses"
-version = "0.26.0"
+name = "respx"
+version = "0.22.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pyyaml" },
-    { name = "requests" },
-    { name = "urllib3" },
+    { name = "httpx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9f/b4/b7e040379838cc71bf5aabdb26998dfbe5ee73904c92c1c161faf5de8866/responses-0.26.0.tar.gz", hash = "sha256:c7f6923e6343ef3682816ba421c006626777893cb0d5e1434f674b649bac9eb4", size = 81303, upload-time = "2026-02-19T14:38:05.574Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/7c/96bd0bc759cf009675ad1ee1f96535edcb11e9666b985717eb8c87192a95/respx-0.22.0.tar.gz", hash = "sha256:3c8924caa2a50bd71aefc07aa812f2466ff489f1848c96e954a5362d17095d91", size = 28439, upload-time = "2024-12-19T22:33:59.374Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ce/04/7f73d05b556da048923e31a0cc878f03be7c5425ed1f268082255c75d872/responses-0.26.0-py3-none-any.whl", hash = "sha256:03ec4409088cd5c66b71ecbbbd27fe2c58ddfad801c66203457b3e6a04868c37", size = 35099, upload-time = "2026-02-19T14:38:03.847Z" },
+    { url = "https://files.pythonhosted.org/packages/8e/67/afbb0978d5399bc9ea200f1d4489a23c9a1dad4eee6376242b8182389c79/respx-0.22.0-py2.py3-none-any.whl", hash = "sha256:631128d4c9aba15e56903fb5f66fb1eff412ce28dd387ca3a81339e52dbd3ad0", size = 25127, upload-time = "2024-12-19T22:33:57.837Z" },
 ]
 
 [[package]]
@@ -1924,18 +1920,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/7e/69/3c51b36d04da19b92f9e815be12753125bd8bc247ba0470a982e6979e71c/types_pyyaml-6.0.12.20250915.tar.gz", hash = "sha256:0f8b54a528c303f0e6f7165687dd33fafa81c807fcac23f632b63aa624ced1d3", size = 17522, upload-time = "2025-09-15T03:01:00.728Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bd/e0/1eed384f02555dde685fff1a1ac805c1c7dcb6dd019c916fe659b1c1f9ec/types_pyyaml-6.0.12.20250915-py3-none-any.whl", hash = "sha256:e7d4d9e064e89a3b3cae120b4990cd370874d2bf12fa5f46c97018dd5d3c9ab6", size = 20338, upload-time = "2025-09-15T03:00:59.218Z" },
-]
-
-[[package]]
-name = "types-requests"
-version = "2.32.4.20260107"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "urllib3" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0f/f3/a0663907082280664d745929205a89d41dffb29e89a50f753af7d57d0a96/types_requests-2.32.4.20260107.tar.gz", hash = "sha256:018a11ac158f801bfa84857ddec1650750e393df8a004a8a9ae2a9bec6fcb24f", size = 23165, upload-time = "2026-01-07T03:20:54.091Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1c/12/709ea261f2bf91ef0a26a9eed20f2623227a8ed85610c1e54c5805692ecb/types_requests-2.32.4.20260107-py3-none-any.whl", hash = "sha256:b703fe72f8ce5b31ef031264fe9395cac8f46a04661a79f7ed31a80fb308730d", size = 20676, upload-time = "2026-01-07T03:20:52.929Z" },
 ]
 
 [[package]]
