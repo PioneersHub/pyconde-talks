@@ -38,6 +38,8 @@ from talks.models import MAX_TALK_TITLE_LENGTH, Room, Speaker, Talk
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pytanis.pretalx.models import Submission, SubmissionSpeaker
 
 
@@ -234,8 +236,8 @@ class Command(BaseCommand):
 
     def _process_submissions(
         self,
-        submissions: list[Submission],
         event_slug: str,
+        submissions: Sequence[Submission],
         options: dict[str, Any],
     ) -> None:
         """Process a list of submissions."""
@@ -328,7 +330,7 @@ class Command(BaseCommand):
 
     @staticmethod
     def _prefetch_avatars_for_submissions(
-        submissions: list[Submission],
+        submissions: Sequence[Submission],
         options: dict[str, Any],
     ) -> None:
         """Collect unique avatar URLs and prefetch them into cache."""

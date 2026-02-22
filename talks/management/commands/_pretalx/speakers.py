@@ -9,11 +9,13 @@ from talks.models import Speaker
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pytanis.pretalx.models import Submission, SubmissionSpeaker
 
 
 def collect_speakers_from_submissions(
-    submissions: list[Submission],
+    submissions: Sequence[Submission],
 ) -> dict[str, SubmissionSpeaker]:
     """Collect unique speakers from accepted/confirmed submissions."""
     speakers_data: dict[str, SubmissionSpeaker] = {}
@@ -27,7 +29,7 @@ def collect_speakers_from_submissions(
 
 
 def batch_create_or_update_speakers(
-    submissions: list[Submission],
+    submissions: Sequence[Submission],
     options: dict[str, Any],
     *,
     log_fn: Any = None,

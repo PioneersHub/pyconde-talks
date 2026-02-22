@@ -10,12 +10,14 @@ from talks.models import Room
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pytanis.pretalx.models import Submission
 
 
 def batch_create_rooms(
-    submissions: list[Submission],
     event_slug: str,
+    submissions: Sequence[Submission],
     options: dict[str, Any],
     *,
     log_fn: Any = None,
