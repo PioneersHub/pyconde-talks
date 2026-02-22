@@ -911,6 +911,7 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
 
     _TYPE_MAPPING: ClassVar[dict[str, str]] = {
+        "Invited Talk": "Talk",
         "Keynote": "Keynote",
         "Kids Workshop": "Kids",
         "Lightning Talks": "Lightning",
