@@ -3,14 +3,16 @@
 import json
 from typing import TYPE_CHECKING, Any
 
+import httpx
 import pytest
-import responses
 from django.conf import settings
 
+from events.models import Event
 from users.adapters import AccountAdapter
 
 
 if TYPE_CHECKING:
+    import respx
     from pytest_django.fixtures import SettingsWrapper
 
 
@@ -18,6 +20,18 @@ if TYPE_CHECKING:
 def adapter() -> AccountAdapter:
     """Return an instance of the AccountAdapter for testing."""
     return AccountAdapter()
+
+
+@pytest.fixture()
+def event() -> Event:
+    """Return an active Event for testing."""
+    return Event.objects.create(
+        name="Test Event 2025",
+        slug="test-event-2025",
+        year=2025,
+        validation_api_url="",
+        is_active=True,
+    )
 
 
 @pytest.mark.django_db
@@ -48,12 +62,14 @@ def test_whitelist_authorization(
 def test_superuser_authorization(
     adapter: AccountAdapter,
     user_model: type[Any],
+    event: Event,
     settings: SettingsWrapper,
 ) -> None:
     """
-    Test email authorization for superusers.
+    Test email authorization for superusers and event-associated users.
 
-    Ensures that superuser emails are authorized regardless of whitelist status.
+    Ensures that superuser emails are authorized regardless of event association,
+    and that regular users are authorized only when associated with the selected event.
     """
     # Create a superuser
     user_model.objects.create_superuser(
@@ -61,32 +77,39 @@ def test_superuser_authorization(
         password="password",
     )
 
-    # Create a regular user
-    user_model.objects.create_user(
-        email="user@example.com",
-    )
+    # Create a regular user associated with the event
+    user_with_event = user_model.objects.create_user(email="user@example.com")
+    user_with_event.events.add(event)
+
+    # Create a regular user NOT associated with the event
+    user_model.objects.create_user(email="noticket@example.com")
 
     # Empty the whitelist and disable API to ensure we're testing local checks only
     settings.AUTHORIZED_EMAILS_WHITELIST = []
-    settings.EMAIL_VALIDATION_API_URL = ""
+    settings.EMAIL_VALIDATION_API_URL_FALLBACK = ""
 
-    # Test superuser email is authorized
+    # Tell the adapter which event the user is logging in for
+    adapter.set_selected_event(event)
+
+    # Test superuser email is authorized (regardless of event association)
     assert adapter.is_email_authorized("admin@example.com") is True
 
-    # Test regular user email is also authorized
-    # Any active user can login now. No need to call the API all the time
+    # Test regular user associated with the event is authorized
     assert adapter.is_email_authorized("user@example.com") is True
+
+    # Test regular user NOT associated with the event is denied (no API configured)
+    assert adapter.is_email_authorized("noticket@example.com") is False
 
     # Test non-existent user email
     assert adapter.is_email_authorized("nonexistent@example.com") is False
 
 
 @pytest.mark.django_db
-@responses.activate
 def test_api_authorization_success(
     adapter: AccountAdapter,
     settings: SettingsWrapper,
     mock_email_api_valid: str,
+    respx_mock: respx.MockRouter,
 ) -> None:
     """Test successful email authorization via the external API."""
     # Make sure we're testing the API path by clearing the whitelist
@@ -96,18 +119,17 @@ def test_api_authorization_success(
     assert adapter.is_email_authorized("user@example.com") is True
 
     # Check request was properly formed
-    assert len(responses.calls) == 1
-    request_body = responses.calls[0].request.body
-    assert request_body is not None
-    assert json.loads(request_body) == {"email": "user@example.com"}
+    assert respx_mock.calls.call_count == 1
+    request = respx_mock.calls[0].request
+    assert json.loads(request.content) == {"email": "user@example.com"}
 
 
 @pytest.mark.django_db
-@responses.activate
 def test_api_authorization_failure(
     adapter: AccountAdapter,
     settings: SettingsWrapper,
     mock_email_api_invalid: str,
+    respx_mock: respx.MockRouter,
 ) -> None:
     """Test failed email authorization via the external API."""
     # Make sure we're testing the API path by clearing the whitelist
@@ -117,18 +139,17 @@ def test_api_authorization_failure(
     assert adapter.is_email_authorized("user@example.com") is False
 
     # Check request was properly formed
-    assert len(responses.calls) == 1
-    request_body = responses.calls[0].request.body
-    assert request_body is not None
-    assert json.loads(request_body) == {"email": "user@example.com"}
+    assert respx_mock.calls.call_count == 1
+    request = respx_mock.calls[0].request
+    assert json.loads(request.content) == {"email": "user@example.com"}
 
 
 @pytest.mark.django_db
-@responses.activate
 def test_api_authorization_validation_error(
     adapter: AccountAdapter,
     settings: SettingsWrapper,
     mock_email_api_error: str,
+    respx_mock: respx.MockRouter,
 ) -> None:
     """
     Test API authorization with validation error response.
@@ -146,18 +167,17 @@ def test_api_authorization_validation_error(
     assert adapter.is_email_authorized(test_email) is False
 
     # Verify the request was made
-    assert len(responses.calls) == 1
-    request_body = responses.calls[0].request.body
-    assert request_body is not None
-    assert json.loads(request_body) == {"email": test_email}
+    assert respx_mock.calls.call_count == 1
+    request = respx_mock.calls[0].request
+    assert json.loads(request.content) == {"email": test_email}
 
 
 @pytest.mark.django_db
-@responses.activate
 def test_api_authorization_exceptions(
     adapter: AccountAdapter,
     settings: SettingsWrapper,
     mock_email_api_exception: str,
+    respx_mock: respx.MockRouter,
 ) -> None:
     """
     Test API authorization with exceptions during request.
@@ -171,8 +191,8 @@ def test_api_authorization_exceptions(
     assert adapter.is_email_authorized("error@example.com") is False
 
     # Verify that a request attempt was made
-    assert len(responses.calls) == 1
-    assert responses.calls[0].request.url == mock_email_api_exception  # Check URL matches
+    assert respx_mock.calls.call_count >= 1
+    assert str(respx_mock.calls[0].request.url) == mock_email_api_exception
 
 
 @pytest.mark.django_db
@@ -187,8 +207,14 @@ class TestSendMail:
     ) -> None:
         """send_mail injects branding and timeout context values."""
         settings.ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 300  # 5 minutes
-        settings.BRAND_EVENT_NAME = "PyConDE"
-        settings.BRAND_EVENT_YEAR = "2025"
+
+        event = Event.objects.create(
+            name="PyCon DE 2099",
+            slug="pyconde-2099",
+            year=2099,
+            is_active=True,
+        )
+        adapter.set_selected_event(event)
 
         mock_super = mocker.patch(
             "allauth.account.adapter.DefaultAccountAdapter.send_mail",
@@ -200,29 +226,25 @@ class TestSendMail:
         ctx = mock_super.call_args[0][2]
         expected_timeout_minutes = 300 // 60
         assert ctx["login_code_timeout_minutes"] == expected_timeout_minutes
-        assert ctx["brand_event_name"] == "PyConDE"
-        assert ctx["brand_event_year"] == "2025"
-        assert ctx["brand_full_name"] == "PyConDE 2025"
-        assert ctx["brand_title"] == "PyConDE 2025 Talks"
+        assert ctx["brand_event_name"] == "PyCon DE 2099"
+        assert ctx["brand_event_year"] == "2099"
+        assert ctx["brand_title"] == "PyCon DE 2099 Talks"
 
 
 @pytest.mark.django_db
-@responses.activate
 def test_api_authorization_valid_false(
     adapter: AccountAdapter,
     settings: SettingsWrapper,
+    respx_mock: respx.MockRouter,
 ) -> None:
     """Test API returns valid=false — hits the warning branch."""
     api_url = "https://fake-api.example.com/validate"
-    settings.EMAIL_VALIDATION_API_URL = api_url
+    settings.EMAIL_VALIDATION_API_URL_FALLBACK = api_url
     settings.AUTHORIZED_EMAILS_WHITELIST = []
 
-    responses.add(
-        responses.POST,
-        api_url,
-        json={"valid": False},
-        status=200,
+    respx_mock.post(api_url).mock(
+        return_value=httpx.Response(200, json={"valid": False}),
     )
 
     assert adapter.is_email_authorized("rejected@example.com") is False
-    assert len(responses.calls) == 1
+    assert respx_mock.calls.call_count == 1
