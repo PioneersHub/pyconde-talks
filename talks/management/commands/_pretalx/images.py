@@ -132,8 +132,7 @@ class TalkImageGenerator:
         """
         Download, crop, and paste speaker avatar photos onto *canvas*.
 
-        Arranges up to four circular avatars in a grid in the upper-left
-        region of the card.
+        Arranges up to four circular avatars in a grid in the upper-left region of the card.
         """
         speaker_margin_x = 40
         speaker_margin_y = 50
@@ -214,10 +213,18 @@ class TalkImageGenerator:
     def _process_speaker_photo(photo: Image.Image, size: int = 200) -> Image.Image:
         """Crop to square, resize, and apply a circular alpha mask."""
         img = ImageOps.fit(photo, (size, size), Image.Resampling.LANCZOS, centering=(0.5, 0.5))
+
+        # Flatten transparency onto a white background to avoid border artifacts.
+        background = Image.new("RGB", (size, size), (255, 255, 255))
+        if img.mode == "RGBA":
+            background.paste(img, mask=img.split()[3])
+        else:
+            background.paste(img.convert("RGB"))
+
         mask = Image.new("L", (size, size), 0)
         ImageDraw.Draw(mask).ellipse((0, 0, size, size), fill=255)
         output = Image.new("RGBA", (size, size))
-        output.paste(img.convert("RGB"), (0, 0))
+        output.paste(background, (0, 0))
         output.putalpha(mask)
         return output
 
