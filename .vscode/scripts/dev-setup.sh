@@ -160,7 +160,7 @@ setup_dependencies() {
     uv sync --group dev --group test
 
     log "Installing pre-commit hooks..."
-    $VENV_DIR/bin/pre-commit install
+    $VENV_DIR/bin/prek install
 
     if [ ! -f "django-vars.env" ]; then
         warn "django-vars.env file not found. Reading settings from environment variables..."

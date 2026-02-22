@@ -93,6 +93,7 @@ openpyxl
 passwordless
 pgdata
 pilmoji
+prek
 pretalx
 privkey
 psycopg
