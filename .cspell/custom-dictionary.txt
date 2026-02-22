@@ -96,6 +96,7 @@ pilmoji
 prek
 pretalx
 privkey
+psutil
 psycopg
 putalpha
 pycache
