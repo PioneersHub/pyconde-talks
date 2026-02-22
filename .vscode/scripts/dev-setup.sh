@@ -35,6 +35,12 @@ error() {
     exit 1
 }
 
+# Helper to run Django shell with dedented input
+run_django_shell() {
+    "$VENV_PYTHON" -c "import sys, textwrap; sys.stdout.write(textwrap.dedent(sys.stdin.read()))" \
+        | "$VENV_PYTHON" manage.py shell
+}
+
 # Detect operating system
 detect_os() {
     local format="${1:-default}"
@@ -268,8 +274,48 @@ initialize_django() {
 
     # Generate test data if requested
     if [ "$GEN_FAKE_DATA" = "true" ]; then
+        log "Creating sample events..."
+		run_django_shell <<-'PYTHON' || warn "Failed to create default event"
+            from events.models import Event
+
+            Event.objects.get_or_create(
+                slug='pyconde-pydata-2026',
+                defaults={
+                    'name': 'PyCon DE & PyData 2026',
+                    'year': 2026,
+                    'is_active': True,
+                    'pretalx_url': 'https://pretalx.com/pyconde-pydata-2026',
+                    'main_website_url': 'https://2026.pycon.de',
+                    'validation_api_url': '',
+                    'venue_url': 'https://www.darmstadtium.de',
+                    'logo_svg_name': 'pyconde-pydata-logo',
+                    'made_by_name': 'PyCon DE & PyData Team',
+                    'made_by_url': 'https://2026.pycon.de/team',
+                },
+            )
+
+            Event.objects.get_or_create(
+                slug='pydata-berlin-2026',
+                defaults={
+                    'name': 'PyData Berlin 2026',
+                    'year': 2026,
+                    'is_active': True,
+                    'pretalx_url': 'https://pretalx.com/berlin2026',
+                    'main_website_url': 'https://berlin.pydata.org',
+                    'validation_api_url': '',
+                    'venue_url': 'https://bcc-berlin.de',
+                    'logo_svg_name': 'pydata-berlin-logo',
+                    'made_by_name': 'PyData Berlin Team',
+                    'made_by_url': 'https://pydata.org/berlin2026/team',
+                },
+            )
+
+            print('Event ready')
+		PYTHON
+
         log "Generating fake talks..."
-        "$VENV_PYTHON" manage.py generate_fake_talks --count "$FAKE_DATA_COUNT" || warn "Failed to generate fake data"
+        "$VENV_PYTHON" manage.py generate_fake_talks --count "$FAKE_DATA_COUNT" --event pyconde-pydata-2026 || warn "Failed to generate fake data"
+        "$VENV_PYTHON" manage.py generate_fake_talks --count "$FAKE_DATA_COUNT" --event pydata-berlin-2026 || warn "Failed to generate fake data"
     fi
 
     # Sync with Pretalx

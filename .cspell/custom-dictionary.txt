@@ -23,6 +23,7 @@ createuser
 csrf
 Darmstadium
 debugpy
+dedented
 Defence
 devcontainers
 dhparams
@@ -135,6 +136,7 @@ stylesheet
 sunos
 tailwindcss
 tamasfe
+textwrap
 trixie
 tspan
 venv
