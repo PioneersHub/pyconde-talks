@@ -39,10 +39,10 @@ AVATAR_CACHE: dict[str, bytes] = {}
 # ---------------------------------------------------------------------------
 
 
-def _url_to_cache_path(cache_dir: Path, url: str) -> Path:
+def _url_to_cache_path(cache_dir: Path, url: str, ext: str = "webp") -> Path:
     """Return on-disk cache path for *url*, hashed with SHA-256 to avoid filename issues."""
     h = hashlib.sha256(url.encode("utf-8")).hexdigest()
-    return cache_dir / f"{h}.img"
+    return cache_dir / f"{h}.{ext}"
 
 
 def get_avatar_cache_dir() -> Path:
