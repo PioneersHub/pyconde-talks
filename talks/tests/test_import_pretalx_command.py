@@ -15,6 +15,7 @@ import pytest
 from model_bakery import baker
 from pytanis.pretalx.models import State
 
+from talks.management.commands._pretalx.context import ImportContext
 from talks.management.commands._pretalx.rooms import batch_create_rooms
 from talks.management.commands._pretalx.speakers import (
     batch_create_or_update_speakers,
@@ -25,9 +26,28 @@ from talks.management.commands._pretalx.submission import (
     submission_is_announcement,
     submission_is_lightning_talk,
 )
-from talks.management.commands._pretalx.types import VerbosityLevel
+from talks.management.commands._pretalx.talks import map_presentation_type
+from talks.management.commands._pretalx.types import LogFn, VerbosityLevel
+from talks.management.commands._pretalx.validation import is_valid_submission
 from talks.management.commands.import_pretalx_talks import Command
 from talks.models import FAR_FUTURE, MAX_TALK_TITLE_LENGTH, Room, Speaker, Talk
+
+
+def _noop_log(
+    message: str,
+    verbosity: VerbosityLevel,
+    min_level: VerbosityLevel,
+    style: str | None = None,
+) -> None:
+    """Silent log function for tests that don't need logging output."""
+
+
+_noop: LogFn = _noop_log
+
+
+def _ctx(log_fn: LogFn = _noop, **overrides: Any) -> ImportContext:
+    """Build an :class:`ImportContext` with sensible test defaults."""
+    return ImportContext(verbosity=VerbosityLevel.NORMAL, log_fn=log_fn, **overrides)
 
 
 # ---------------------- Fixtures ----------------------
@@ -207,19 +227,20 @@ class TestIsValidSubmission:
 
     def test_valid_submission(self, command: Command, mock_submission: Mock) -> None:
         """Test that valid submission passes validation."""
-        result = command._is_valid_submission(mock_submission, VerbosityLevel.NORMAL)
+        ctx = _ctx(log_fn=command._log)
+        result = is_valid_submission(mock_submission, ctx)
 
         assert result is True
 
     def test_missing_title(self, command: Command, mock_submission: Mock) -> None:
         """Test that submission without title fails validation."""
         mock_submission.title = None
-
-        result = command._is_valid_submission(mock_submission, VerbosityLevel.NORMAL)
+        ctx = _ctx(log_fn=command._log)
+        result = is_valid_submission(mock_submission, ctx)
 
         assert result is False
 
-    @patch("talks.management.commands.import_pretalx_talks.settings")
+    @patch("talks.management.commands._pretalx.validation.settings")
     def test_missing_speakers_regular_talk(
         self,
         mock_settings: Mock,
@@ -229,10 +250,11 @@ class TestIsValidSubmission:
         """Test that submission without speakers follows IMPORT_TALKS_WITHOUT_SPEAKERS setting."""
         mock_settings.IMPORT_TALKS_WITHOUT_SPEAKERS = False
         mock_submission_no_speakers.submission_type.en = "Talk"
+        ctx = _ctx(log_fn=command._log)
 
-        result = command._is_valid_submission(
+        result = is_valid_submission(
             mock_submission_no_speakers,
-            VerbosityLevel.NORMAL,
+            ctx,
         )
 
         assert result is False
@@ -243,7 +265,11 @@ class TestIsValidSubmission:
         mock_submission_lightning: Mock,
     ) -> None:
         """Test that Lightning Talks are allowed without speakers."""
-        result = command._is_valid_submission(mock_submission_lightning, VerbosityLevel.NORMAL)
+        ctx = _ctx(log_fn=command._log)
+        result = is_valid_submission(
+            mock_submission_lightning,
+            ctx,
+        )
 
         assert result is True
 
@@ -270,31 +296,35 @@ class TestMapPresentationType:
     )
     def test_known_type_mapping(
         self,
-        command: Command,
         input_type: str,
         expected: str,
     ) -> None:
         """Test mapping of known presentation types."""
-        result = command._map_presentation_type(input_type, "ABC123", VerbosityLevel.NORMAL)
+        result = map_presentation_type(
+            input_type,
+            "ABC123",
+            _ctx(),
+        )
 
         assert result == expected
 
-    def test_unknown_type_defaults_to_talk(self, command: Command) -> None:
+    def test_unknown_type_defaults_to_talk(self) -> None:
         """Test that unknown types default to Talk."""
-        result = command._map_presentation_type(
+        result = map_presentation_type(
             "Unknown Type",
             "ABC123",
-            VerbosityLevel.NORMAL,
+            _ctx(),
         )
 
         assert result == Talk.PresentationType.TALK
 
-    def test_empty_type_defaults_to_talk(self, command: Command) -> None:
+    def test_empty_type_defaults_to_talk(self) -> None:
         """Test that empty/None types default to Talk."""
-        result = command._map_presentation_type("", "ABC123", VerbosityLevel.NORMAL)
+        ctx = _ctx()
+        result = map_presentation_type("", "ABC123", ctx)
         assert result == Talk.PresentationType.TALK
 
-        result = command._map_presentation_type(None, "ABC123", VerbosityLevel.NORMAL)
+        result = map_presentation_type(None, "ABC123", ctx)
         assert result == Talk.PresentationType.TALK
 
 
@@ -309,9 +339,9 @@ class TestBatchCreateRooms:
         """Test that new rooms are created via bulk_create."""
         mock_submission.state = State.confirmed
         submissions = [mock_submission]
-        options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
+        ctx = _ctx()
 
-        batch_create_rooms(submissions, options)
+        batch_create_rooms(submissions, ctx)
 
         assert Room.objects.filter(name="Main Hall").exists()
 
@@ -322,12 +352,9 @@ class TestBatchCreateRooms:
 
         mock_submission.state = State.confirmed
         submissions = [mock_submission]
-        options: dict[str, Any] = {
-            "verbosity": VerbosityLevel.NORMAL.value,
-            "pretalx_event_url": "https://pretalx.com/pyconde2099",
-        }
+        ctx = _ctx(pretalx_event_url="https://pretalx.com/pyconde2099")
 
-        batch_create_rooms(submissions, options)
+        batch_create_rooms(submissions, ctx)
 
         # Should still be only one room
         assert Room.objects.filter(name="Main Hall").count() == 1
@@ -341,9 +368,9 @@ class TestBatchCreateRooms:
         """Test that submissions not in confirmed/accepted state are skipped."""
         mock_submission.state = State.submitted
         submissions = [mock_submission]
-        options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
+        ctx = _ctx()
 
-        batch_create_rooms(submissions, options)
+        batch_create_rooms(submissions, ctx)
 
         assert not Room.objects.filter(name="Main Hall").exists()
 
@@ -372,9 +399,9 @@ class TestBatchCreateRooms:
         submission2.speakers = mock_submission.speakers
 
         submissions = [mock_submission, submission2]
-        options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
+        ctx = _ctx()
 
-        batch_create_rooms(submissions, options)
+        batch_create_rooms(submissions, ctx)
 
         assert Room.objects.count() == 2
         assert Room.objects.filter(name="Main Hall").exists()
@@ -392,9 +419,9 @@ class TestBatchCreateOrUpdateSpeakers:
         """Test that new speakers are bulk created."""
         mock_submission.state = State.confirmed
         submissions = [mock_submission]
-        options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
+        ctx = _ctx()
 
-        batch_create_or_update_speakers(submissions, options)
+        batch_create_or_update_speakers(submissions, ctx)
 
         assert Speaker.objects.filter(pretalx_id="SPK001").exists()
         assert Speaker.objects.filter(pretalx_id="SPK002").exists()
@@ -412,9 +439,9 @@ class TestBatchCreateOrUpdateSpeakers:
 
         mock_submission.state = State.confirmed
         submissions = [mock_submission]
-        options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value, "no_update": False}
+        ctx = _ctx(no_update=False)
 
-        batch_create_or_update_speakers(submissions, options)
+        batch_create_or_update_speakers(submissions, ctx)
 
         speaker = Speaker.objects.get(pretalx_id="SPK001")
         assert speaker.name == "John Cleese"
@@ -435,9 +462,9 @@ class TestBatchCreateOrUpdateSpeakers:
 
         mock_submission.state = State.confirmed
         submissions = [mock_submission]
-        options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value, "no_update": True}
+        ctx = _ctx(no_update=True)
 
-        batch_create_or_update_speakers(submissions, options)
+        batch_create_or_update_speakers(submissions, ctx)
 
         speaker = Speaker.objects.get(pretalx_id="SPK001")
         assert speaker.name == "Old Name"  # Should not be updated
@@ -461,9 +488,9 @@ class TestBatchCreateOrUpdateSpeakers:
         submission2.slots = [slot]
 
         submissions = [mock_submission, submission2]
-        options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
+        ctx = _ctx()
 
-        batch_create_or_update_speakers(submissions, options)
+        batch_create_or_update_speakers(submissions, ctx)
 
         # SPK001 should only be created once
         assert Speaker.objects.filter(pretalx_id="SPK001").count() == 1
@@ -620,12 +647,10 @@ class TestLogMethod:
 class TestProcessSingleSubmission:
     """Tests for _process_single_submission method."""
 
-    @patch.object(Command, "_create_talk")
-    @patch.object(Command, "_add_speakers_to_talk")
-    @patch.object(Command, "_generate_talk_image")
+    @patch("talks.management.commands._pretalx.mixins.create_talk")
+    @patch("talks.management.commands._pretalx.mixins.add_speakers_to_talk")
     def test_creates_new_talk(
         self,
-        mock_update_image: Mock,
         mock_add_speakers: Mock,
         mock_create_talk: Mock,
         command: Command,
@@ -638,19 +663,17 @@ class TestProcessSingleSubmission:
         room = Room.objects.create(name="Main Hall")
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
-        # Mock _create_talk to return a Talk
+        # Mock create_talk to return a Talk
         talk = baker.make(Talk, title="Test Talk", room=room)
         mock_create_talk.return_value = talk
 
-        options: dict[str, Any] = {
-            "verbosity": VerbosityLevel.NORMAL.value,
-            "dry_run": False,
-            "no_update": False,
-            "skip_images": True,
-            "pretalx_event_url": "https://pretalx.com/pyconde2099",
-        }
+        ctx = _ctx(
+            log_fn=command._log,
+            skip_images=True,
+            pretalx_event_url="https://pretalx.com/pyconde2099",
+        )
 
-        result = command._process_single_submission(mock_submission, options)
+        result = command._process_single_submission(mock_submission, ctx)
 
         assert result == "created"
         mock_create_talk.assert_called_once()
@@ -664,15 +687,14 @@ class TestProcessSingleSubmission:
         mock_submission.state = State.confirmed
         Room.objects.create(name="Main Hall")
 
-        options: dict[str, Any] = {
-            "verbosity": VerbosityLevel.NORMAL.value,
-            "dry_run": True,
-            "no_update": False,
-            "skip_images": True,
-            "pretalx_event_url": "https://pretalx.com",
-        }
+        ctx = _ctx(
+            log_fn=command._log,
+            dry_run=True,
+            skip_images=True,
+            pretalx_event_url="https://pretalx.com",
+        )
 
-        result = command._process_single_submission(mock_submission, options)
+        result = command._process_single_submission(mock_submission, ctx)
 
         # Returns "created" to indicate what would happen, but no DB changes
         assert result == "created"

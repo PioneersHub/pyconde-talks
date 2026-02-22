@@ -1,4 +1,10 @@
-"""Extract clean data from a Pretalx Submission and classify submissions."""
+"""
+Extract clean data from a Pretalx ``Submission`` and classify submissions.
+
+:class:`SubmissionData` normalizes the deeply-nested Pretalx model into flat,
+truncated, safe-to-persist fields.  The classification helpers detect lightning
+talks and announcements to allow speaker-less submissions.
+"""
 
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
@@ -16,14 +22,19 @@ if TYPE_CHECKING:
 
 
 class SubmissionData:
-    """Extract and hold clean data from a Pretalx :class:`Submission`."""
+    """
+    Flat, truncated representation of a Pretalx :class:`Submission`.
+
+    All string fields are capped to the corresponding model max-length so they
+    can be persisted without validation errors.
+    """
 
     def __init__(
         self,
         submission: Submission,
         pretalx_event_url: str,
     ) -> None:
-        """Initialize the SubmissionData object."""
+        """Extract and normalize fields from *submission*."""
         self.submission = submission
         self.code = submission.code
         self.title = submission.title[:MAX_TALK_TITLE_LENGTH] if submission.title else ""

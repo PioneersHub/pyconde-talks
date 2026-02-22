@@ -1,11 +1,15 @@
-"""Social-card image generation for talks (Pillow / Pilmoji)."""
+"""
+Social-card image generation for talks (Pillow / Pilmoji).
+
+Each social card is assembled from a per-event template image, the talk
+title, speaker avatar(s), and speaker names.
+"""
 
 # ruff: noqa: BLE001
 
-import sys
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -22,11 +26,23 @@ from talks.management.commands._pretalx.types import VerbosityLevel
 
 
 if TYPE_CHECKING:
+    from talks.management.commands._pretalx.context import ImportContext
     from talks.models import Speaker, Talk
 
 
+#: Supported output formats for generated talk images.
+type _ImageFormat = Literal["webp", "jpeg"]
+
+
 class TalkImageGenerator:
-    """Generate social-card images for talks."""
+    """
+    Generate social-card images for talks.
+
+    Usage::
+
+        generator = TalkImageGenerator()
+        img = generator.generate(talk, ctx)
+    """
 
     # ------------------------------------------------------------------
     # Public entry-point
@@ -35,12 +51,11 @@ class TalkImageGenerator:
     def generate(
         self,
         talk: Talk,
-        options: dict[str, Any],
+        ctx: ImportContext,
         card_width: int = 1920,
     ) -> Image.Image:
         """Generate a social card for *talk*, save it, and return the :class:`Image`."""
-        verbosity = VerbosityLevel(options.get("verbosity", VerbosityLevel.NORMAL.value))
-        image_format = self._resolve_image_format(options, verbosity)
+        image_format = self._resolve_image_format(ctx)
 
         template_path = (
             settings.BASE_DIR
@@ -77,7 +92,7 @@ class TalkImageGenerator:
             draw.text((60, speaker_y), speakers_text, font=fonts["subtitle"], fill=(255, 255, 255))
 
         # Save to model
-        self._save_image_to_talk(talk, final_img, image_format, verbosity)
+        self._save_image_to_talk(talk, final_img, image_format, ctx)
         return final_img
 
     # ------------------------------------------------------------------
@@ -85,16 +100,24 @@ class TalkImageGenerator:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _resolve_image_format(options: dict[str, Any], verbosity: VerbosityLevel) -> str:
-        raw = cast("str | None", options.get("image_format", "webp")) or "webp"
-        fmt = raw.lower()
+    def _resolve_image_format(ctx: ImportContext) -> _ImageFormat:
+        """
+        Normalize the user-supplied format string to a supported value.
+
+        Falls back to ``"webp"`` when the format is unrecognized.
+        """
+        fmt = ctx.image_format.lower()
         if fmt == "jpg":
             fmt = "jpeg"
         if fmt not in {"webp", "jpeg"}:
-            if verbosity.value >= VerbosityLevel.DETAILED.value:
-                sys.stderr.write(f"Unsupported image format '{raw}', defaulting to 'webp'\n")
-            fmt = "webp"
-        return fmt
+            ctx.log(
+                f"Unsupported image format '{ctx.image_format}', defaulting to 'webp'",
+                VerbosityLevel.DETAILED,
+                "WARNING",
+            )
+            return "webp"
+        # At this point fmt is guaranteed to be "webp" or "jpeg".
+        return cast("_ImageFormat", fmt)
 
     # ------------------------------------------------------------------
     # Speaker avatars
@@ -106,6 +129,12 @@ class TalkImageGenerator:
         talk: Talk,
         height: int,
     ) -> None:
+        """
+        Download, crop, and paste speaker avatar photos onto *canvas*.
+
+        Arranges up to four circular avatars in a grid in the upper-left
+        region of the card.
+        """
         speaker_margin_x = 40
         speaker_margin_y = 50
         limit = 4
@@ -148,6 +177,11 @@ class TalkImageGenerator:
         speakers: list[Speaker],
         limit: int = 2,
     ) -> list[tuple[Image.Image, str]]:
+        """
+        Download and crop speaker photos.
+
+        Return up to *limit* ``(image, pretalx_id)`` pairs.
+        """
         photos: list[tuple[Image.Image, str]] = []
         for speaker in speakers:
             photo = self._download_speaker_photo(speaker)
@@ -160,6 +194,7 @@ class TalkImageGenerator:
 
     @staticmethod
     def _download_speaker_photo(speaker: Speaker) -> Image.Image | None:
+        """Fetch a speaker's avatar from cache or network; return ``None`` on failure."""
         url = speaker.avatar
         if not url:
             return None
@@ -192,7 +227,18 @@ class TalkImageGenerator:
 
     @staticmethod
     def _load_fonts() -> dict[str, ImageFont.FreeTypeFont]:
-        """Load the configured font for the social card."""
+        """
+        Load the font family configured in ``settings.TALK_CARD_FONT``.
+
+        Returns a dict with ``"title"``, ``"subtitle"``, ``"small"``, and
+        ``"event_info"`` keys mapped to pre-sized font instances.
+
+        Raises
+        ------
+        FileNotFoundError
+            If ``TALK_CARD_FONT`` is unset or points to a missing file.
+
+        """
         font_path = getattr(settings, "TALK_CARD_FONT", None)
         if not font_path or not Path(font_path).exists():
             msg = "TALK_CARD_FONT must be configured and point to an existing font file"
@@ -275,9 +321,10 @@ class TalkImageGenerator:
     def _save_image_to_talk(
         talk: Talk,
         final_img: Image.Image,
-        image_format: str,
-        verbosity: VerbosityLevel,
+        image_format: _ImageFormat,
+        ctx: ImportContext,
     ) -> None:
+        """Encode *final_img* and save it to ``talk.image`` via an in-memory upload."""
         buf = BytesIO()
         if image_format == "webp":
             final_img.save(buf, format="WEBP", quality=82, method=6)
@@ -297,5 +344,8 @@ class TalkImageGenerator:
         )
         talk.save()
 
-        if verbosity.value >= VerbosityLevel.DETAILED.value:
-            sys.stdout.write(f"Generated talk image for: {talk.title}\n")
+        ctx.log(
+            f"Generated talk image for: {talk.title}",
+            VerbosityLevel.DETAILED,
+            "SUCCESS",
+        )

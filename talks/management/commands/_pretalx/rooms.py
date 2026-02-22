@@ -1,6 +1,6 @@
-"""Batch room creation to reduce database round-trips."""
+"""Room creation helpers - single lookup and batch bulk-create."""
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from pytanis.pretalx.models import State
 
@@ -14,21 +14,74 @@ if TYPE_CHECKING:
 
     from pytanis.pretalx.models import Submission
 
+    from talks.management.commands._pretalx.context import ImportContext
+
+
+# ------------------------------------------------------------------
+# Single room helper
+# ------------------------------------------------------------------
+
+
+def get_or_create_room(
+    room_name: str,
+    ctx: ImportContext,
+) -> Room | None:
+    """
+    Return the :class:`~talks.models.Room` for *room_name*, creating it if needed.
+
+    Returns ``None`` when *room_name* is empty.  In ``--dry-run`` mode an
+    unsaved instance is returned so callers can still reference a room.
+    """
+    if not room_name:
+        return None
+
+    existing = Room.objects.filter(name=room_name).first()
+    if existing:
+        ctx.log(
+            f"Using existing room: {room_name}",
+            VerbosityLevel.DETAILED,
+        )
+        return existing
+
+    if ctx.dry_run:
+        ctx.log(
+            f"Would create room: {room_name} (dry run)",
+            VerbosityLevel.DETAILED,
+            "SUCCESS",
+        )
+        return Room(name=room_name, description="")
+
+    room = Room.objects.create(
+        name=room_name,
+        description=f"Room imported from Pretalx: {room_name}",
+    )
+    ctx.log(
+        f"Created room: {room_name}",
+        VerbosityLevel.DETAILED,
+        "SUCCESS",
+    )
+    return room
+
+
+# ------------------------------------------------------------------
+# Batch room creation
+# ------------------------------------------------------------------
+
 
 def batch_create_rooms(
     submissions: Sequence[Submission],
-    options: dict[str, Any],
-    *,
-    log_fn: Any = None,
+    ctx: ImportContext,
 ) -> None:
-    """Create all rooms needed for *submissions* in a single bulk operation."""
-    verbosity = VerbosityLevel(options.get("verbosity", VerbosityLevel.NORMAL.value))
+    """
+    Bulk-create all rooms referenced by confirmed/accepted *submissions*.
 
+    Rooms that already exist in the database are silently skipped.
+    """
     room_names: set[str] = set()
     for submission in submissions:
         if submission.state not in (State.confirmed, State.accepted):
             continue
-        data = SubmissionData(submission, options.get("pretalx_event_url", ""))
+        data = SubmissionData(submission, ctx.pretalx_event_url)
         if data.room:
             room_names.add(data.room)
 
@@ -48,10 +101,8 @@ def batch_create_rooms(
             ],
             ignore_conflicts=True,
         )
-        if log_fn:
-            log_fn(
-                f"Batch created {len(rooms_to_create)} rooms",
-                verbosity,
-                VerbosityLevel.DETAILED,
-                "SUCCESS",
-            )
+        ctx.log(
+            f"Batch created {len(rooms_to_create)} rooms",
+            VerbosityLevel.DETAILED,
+            "SUCCESS",
+        )

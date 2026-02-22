@@ -3,7 +3,6 @@
 
 from datetime import timedelta
 from io import StringIO
-from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -12,6 +11,9 @@ from django.utils import timezone
 from model_bakery import baker
 
 from events.models import Event
+from talks.management.commands._pretalx.context import ImportContext
+from talks.management.commands._pretalx.talks import create_talk, update_talk
+from talks.management.commands._pretalx.types import VerbosityLevel
 from talks.management.commands.import_pretalx_talks import Command as ImportCommand
 from talks.models import Talk
 
@@ -129,41 +131,43 @@ class TestImportPretalxTalksEvent:
         assert event_obj.pk == existing.pk
 
     def test_create_talk_sets_event(self, import_command: ImportCommand) -> None:
-        """_create_talk passes event to Talk.objects.create."""
+        """create_talk passes event to Talk.objects.create."""
         event = Event.objects.create(name="Ev", slug="ev-create", year=2025)
         data = _make_submission_data_mock(title="New Import Talk", code="CRT001")
 
-        options: dict[str, Any] = {
-            "event_slug": "ev-create",
-            "verbosity": 1,
-            "max_retries": 1,
-            "_event_obj": event,
-        }
+        ctx = ImportContext(
+            verbosity=VerbosityLevel.NORMAL,
+            log_fn=import_command._log,
+            event_slug="ev-create",
+            max_retries=1,
+            event_obj=event,
+        )
 
-        talk = import_command._create_talk(data=data, options=options)
+        talk = create_talk(data=data, ctx=ctx)
         assert talk.event == event
 
     def test_update_talk_sets_event(self, import_command: ImportCommand) -> None:
-        """_update_talk links an existing talk to the event if not already linked."""
+        """update_talk links an existing talk to the event if not already linked."""
         event = Event.objects.create(name="Ev", slug="ev-update", year=2025)
         talk = baker.make(Talk, title="Existing Talk", event=None)
 
         data = _make_submission_data_mock(title="Updated Talk", code="UPD001")
 
-        options: dict[str, Any] = {
-            "event_slug": "ev-update",
-            "verbosity": 1,
-            "max_retries": 1,
-            "_event_obj": event,
-        }
+        ctx = ImportContext(
+            verbosity=VerbosityLevel.NORMAL,
+            log_fn=import_command._log,
+            event_slug="ev-update",
+            max_retries=1,
+            event_obj=event,
+        )
 
-        # Mock _update_talk_speakers to avoid speaker creation side-effects
-        with patch.object(import_command, "_update_talk_speakers"):
-            import_command._update_talk(
+        # Mock update_talk_speakers to avoid speaker creation side-effects
+        with patch("talks.management.commands._pretalx.talks.update_talk_speakers"):
+            update_talk(
                 talk=talk,
                 data=data,
                 speakers=[],
-                options=options,
+                ctx=ctx,
             )
 
         talk.refresh_from_db()
