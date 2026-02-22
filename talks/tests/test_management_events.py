@@ -32,12 +32,14 @@ class TestGenerateFakeTalksEvent:
             "generate_fake_talks",
             count="2",
             seed="42",
-            event="brand-new-event",
+            event_slug="brand-new-event",
+            event_name="Brand New Event",
             stdout=out,
         )
         assert Event.objects.filter(slug="brand-new-event").exists()
         # All generated talks should be linked to this event
         event = Event.objects.get(slug="brand-new-event")
+        assert event.name == "Brand New Event"
         assert Talk.objects.filter(event=event).count() == 2
 
     def test_reuses_existing_event(self) -> None:
@@ -48,20 +50,20 @@ class TestGenerateFakeTalksEvent:
             "generate_fake_talks",
             count="1",
             seed="42",
-            event="existing-event",
+            event_slug="existing-event",
             stdout=out,
         )
         assert Event.objects.filter(slug="existing-event").count() == 1
         assert Talk.objects.filter(event=existing).count() == 1
 
     def test_no_event_flag_no_event_linked(self) -> None:
-        """When --event is empty, talks are created without an event."""
+        """When --event-slug is empty, talks are created without an event."""
         out = StringIO()
         call_command(
             "generate_fake_talks",
             count="1",
             seed="42",
-            event="",
+            event_slug="",
             stdout=out,
         )
         assert Talk.objects.filter(event__isnull=True).count() == 1
@@ -110,17 +112,18 @@ class TestImportPretalxTalksEvent:
         """Event resolution creates a new Event for an unknown slug."""
         event_obj, created = Event.objects.get_or_create(
             slug="new-import-event",
-            defaults={"name": "new-import-event", "year": 2025},
+            defaults={"name": "New Import Event", "year": 2025},
         )
         assert created is True
         assert event_obj.slug == "new-import-event"
+        assert event_obj.name == "New Import Event"
 
     def test_handle_reuses_existing_event(self) -> None:
         """Event resolution reuses an existing Event for a known slug."""
         existing = Event.objects.create(name="Import Event", slug="import-event", year=2025)
         event_obj, created = Event.objects.get_or_create(
             slug="import-event",
-            defaults={"name": "import-event", "year": 2025},
+            defaults={"name": "Import Event", "year": 2025},
         )
         assert created is False
         assert event_obj.pk == existing.pk
@@ -131,7 +134,7 @@ class TestImportPretalxTalksEvent:
         data = _make_submission_data_mock(title="New Import Talk", code="CRT001")
 
         options: dict[str, Any] = {
-            "event": "ev-create",
+            "event_slug": "ev-create",
             "verbosity": 1,
             "max_retries": 1,
             "_event_obj": event,
@@ -148,7 +151,7 @@ class TestImportPretalxTalksEvent:
         data = _make_submission_data_mock(title="Updated Talk", code="UPD001")
 
         options: dict[str, Any] = {
-            "event": "ev-update",
+            "event_slug": "ev-update",
             "verbosity": 1,
             "max_retries": 1,
             "_event_obj": event,

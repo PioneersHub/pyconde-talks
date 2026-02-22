@@ -52,7 +52,7 @@ def test_import_pretalx_live_fetch_and_link_construction() -> None:
 
     call_command(
         "import_pretalx_talks",
-        "--event=test-event",
+        "--event-slug=test-event",
         "--max-retries=1",
         verbosity=2,
         stdout=stdout,
