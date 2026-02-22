@@ -76,6 +76,7 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
     list_display = (
         "email",
         "full_name",
+        "event_names",
         "is_active",
         "is_staff",
         "is_superuser",
@@ -99,9 +100,16 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
     actions = ("verify_email", "activate_users", "deactivate_users")
 
     # Override UserAdmin fieldsets to use email instead of username
-    fieldsets = (
+    fieldsets: ClassVar[list[Any]] = [
         (None, {"fields": ("email", "password")}),
         (_("Personal info"), {"fields": ("first_name", "last_name")}),
+        (
+            _("Events"),
+            {
+                "fields": ("events",),
+                "description": _("Events this user has access to."),
+            },
+        ),
         (
             _("Permissions"),
             {
@@ -125,12 +133,19 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
                 "description": _("Shows when the user first registered and last logged in."),
             },
         ),
-    )
+    ]
 
     # Field layout for regular users in edit mode (no password)
     regular_user_fieldsets = (
         (None, {"fields": ("email",)}),
         (_("Personal info"), {"fields": ("first_name", "last_name")}),
+        (
+            _("Events"),
+            {
+                "fields": ("events",),
+                "description": _("Events this user has access to."),
+            },
+        ),
         (
             _("Permissions"),
             {
@@ -209,6 +224,7 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
     )
 
     readonly_fields = ("date_joined", "last_login")
+    filter_horizontal = ("events",)
     inlines = (EmailAddressInline,)
     list_per_page = 25
 
@@ -296,6 +312,12 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
     def full_name(self, obj: CustomUser) -> str:
         """Display the user's full name."""
         return f"{obj.first_name} {obj.last_name}".strip() or "-"
+
+    @admin.display(description=_("Events"))
+    def event_names(self, obj: CustomUser) -> str:
+        """Display the events the user has access to."""
+        names = list(obj.events.values_list("name", flat=True))
+        return ", ".join(names) if names else "-"
 
     @admin.display(boolean=True, description=_("Email Verified"))
     def email_verified(self, obj: CustomUser) -> bool:

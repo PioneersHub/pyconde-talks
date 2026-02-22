@@ -19,6 +19,8 @@ from django.utils.translation import gettext_lazy as _
 if TYPE_CHECKING:
     from django_stubs_ext.db.models.manager import RelatedManager
 
+    from events.models import Event
+
 
 class InvalidEmailError(Exception):
     """Exception raised when an invalid email is provided."""
@@ -165,6 +167,13 @@ class CustomUser(AbstractUser):
             "Public name shown when asking questions (optional). "
             "If blank, we'll use your full name or email.",
         ),
+    )
+
+    events: models.ManyToManyField[Event, Event] = models.ManyToManyField(
+        "events.Event",
+        related_name="users",
+        blank=True,
+        help_text=_("Events the user has access to"),
     )
 
     USERNAME_FIELD = "email"

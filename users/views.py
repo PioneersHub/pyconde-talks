@@ -15,6 +15,7 @@ from django.db import DatabaseError, IntegrityError
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
 
+from events.models import Event
 from utils.email_utils import hash_email
 
 from .forms import ProfileForm
@@ -35,6 +36,7 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
     Custom view that overrides the default login code request process.
 
     This view checks if the email is authorized (whitelist, superuser or via API) before proceeding.
+    Supports event selection: the user picks which event they purchased a ticket for.
     """
 
     def form_valid(self, form: LoginForm) -> HttpResponse:
@@ -51,6 +53,13 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
 
         adapter = get_adapter(self.request)
 
+        # Resolve the selected event
+        event_slug = self.request.POST.get("event", "")
+        event: Event | None = None
+        if event_slug:
+            event = Event.objects.filter(slug=event_slug, is_active=True).first()
+        adapter.set_selected_event(event)
+
         # Check if the email is authorized
         if not adapter.is_email_authorized(email):
             logger.warning("Unauthorized access attempt", email=email)
@@ -63,6 +72,9 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
             try:
                 logger.info("Creating new user account", email=email_hash)
                 user = UserModel.objects.create_user(email=email, is_active=True)  # type: ignore[attr-defined]
+                # Associate the new user with the selected event
+                if event:
+                    user.events.add(event)
                 form.user = user
                 logger.info("Successfully created user account", email=email_hash, form=form.user)
                 # Trigger the login code flow
@@ -98,10 +110,10 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """
-        Enhance the template context with login code timeout information.
+        Enhance the template context with login code timeout and available events.
 
         This method extends the parent context by adding the login code timeout value in minutes,
-        calculated from settings.ACCOUNT_LOGIN_BY_CODE_TIMEOUT.
+        calculated from settings.ACCOUNT_LOGIN_BY_CODE_TIMEOUT, and the list of active events.
         """
         context = cast("dict[str, Any]", super().get_context_data(**kwargs))
         timeout_seconds = getattr(settings, "ACCOUNT_LOGIN_BY_CODE_TIMEOUT", 180)
@@ -109,6 +121,9 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
         context["login_code_timeout_minutes"] = (
             int(timeout_minutes) if timeout_minutes.is_integer() else timeout_minutes
         )
+        # Provide available events and the default selection
+        context["events"] = Event.objects.filter(is_active=True).order_by("name")
+        context["default_event_slug"] = getattr(settings, "DEFAULT_EVENT", "")
         return context
 
 
