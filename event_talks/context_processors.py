@@ -1,39 +1,68 @@
 """Template context processors for site-wide branding and event configuration."""
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 
+from events.models import Event
+from users.models import CustomUser
 
-def branding(_: Any) -> dict[str, Any]:
+
+if TYPE_CHECKING:
+    from django.http import HttpRequest
+
+
+def _get_current_event(request: HttpRequest) -> Event | None:
+    """Return the current event from the request user or the default event setting."""
+    if hasattr(request, "user") and request.user.is_authenticated:
+        user = request.user
+        if isinstance(user, CustomUser):
+            event = user.events.filter(is_active=True).first()
+            if event:
+                return event
+
+    default_slug = getattr(settings, "DEFAULT_EVENT", "")
+    if default_slug:
+        return Event.objects.filter(slug=default_slug).first()
+
+    return Event.objects.filter(is_active=True).first()
+
+
+def branding(request: HttpRequest) -> dict[str, Any]:
     """Inject branding and event-related variables into all templates."""
-    event_name = getattr(settings, "BRAND_EVENT_NAME", "Event")
-    event_year = getattr(settings, "BRAND_EVENT_YEAR", "")
-    full_name = f"{event_name} {event_year}".strip()
+    event = _get_current_event(request)
 
-    pretalx_base = getattr(settings, "PRETALX_BASE_URL", "https://pretalx.com").rstrip("/")
-    pretalx_slug = getattr(settings, "PRETALX_EVENT_SLUG", "").strip("/")
+    if event is None:
+        return {
+            "brand_event_name": "",
+            "brand_event_year": "",
+            "brand_title": "Talks",
+            "brand_meta_description": "Talks and Schedule",
+            "brand_main_website_url": "",
+            "brand_venue_url": "",
+            "brand_logo_svg_name": "",
+            "brand_assets_subdir": "",
+            "brand_made_by_name": "",
+            "brand_made_by_url": "",
+            "pretalx_schedule_url": "",
+            "pretalx_speakers_url": "",
+        }
 
-    pretalx_event_base = f"{pretalx_base}/{pretalx_slug}" if pretalx_slug else ""
-    pretalx_schedule_url = f"{pretalx_event_base}/schedule/" if pretalx_event_base else ""
-    pretalx_speakers_url = f"{pretalx_event_base}/speaker/" if pretalx_event_base else ""
-
-    brand_title = f"{full_name} Talks" if full_name else "Talks"
-    meta_description = f"{full_name} Talks and Schedule" if full_name else "Talks and Schedule"
+    event_name = event.name
+    event_year = str(event.year) if event.year else ""
+    prefix = f"{event_name} " if event_name else ""
 
     return {
         "brand_event_name": event_name,
         "brand_event_year": event_year,
-        "brand_full_name": full_name,
-        "brand_title": brand_title,
-        "brand_meta_description": meta_description,
-        "brand_main_website_url": getattr(settings, "BRAND_MAIN_WEBSITE_URL", ""),
-        "brand_venue_url": getattr(settings, "BRAND_VENUE_URL", ""),
-        "brand_logo_svg_name": getattr(settings, "BRAND_LOGO_SVG_NAME", ""),
-        "brand_assets_subdir": getattr(settings, "BRAND_ASSETS_SUBDIR", ""),
-        "brand_made_by_name": getattr(settings, "BRAND_MADE_BY_NAME", ""),
-        "brand_made_by_url": getattr(settings, "BRAND_MADE_BY_URL", ""),
-        "pretalx_event_slug": pretalx_slug,
-        "pretalx_schedule_url": pretalx_schedule_url,
-        "pretalx_speakers_url": pretalx_speakers_url,
+        "brand_title": f"{prefix}Talks",
+        "brand_meta_description": f"{prefix}Talks and Schedule",
+        "brand_main_website_url": event.main_website_url,
+        "brand_venue_url": event.venue_url,
+        "brand_logo_svg_name": event.logo_svg_name,
+        "brand_assets_subdir": event.slug,
+        "brand_made_by_name": event.made_by_name,
+        "brand_made_by_url": event.made_by_url,
+        "pretalx_schedule_url": event.pretalx_schedule_url,
+        "pretalx_speakers_url": event.pretalx_speakers_url,
     }
