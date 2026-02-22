@@ -9,6 +9,7 @@ from django.test import override_settings
 from django.utils import timezone
 from model_bakery import baker
 
+from events.models import Event
 from talks.models import EMPTY_TRACK_NAME, Room, Speaker, Streaming, Talk
 
 
@@ -440,22 +441,34 @@ class TestTalkComprehensive:
         assert talk.has_active_streaming() is False
 
     # --- get_image_url ---
-    @override_settings(MEDIA_URL="/media/", BRAND_ASSETS_SUBDIR="test")
+    @override_settings(MEDIA_URL="/media/")
     def test_get_image_url_with_image(self) -> None:
         """Return the uploaded image URL from MEDIA_URL."""
-        talk = baker.make(Talk, image="talk_images/test/img.jpg")
+        event = Event.objects.create(
+            name="Test",
+            slug="test-img",
+            year=2025,
+            is_active=True,
+        )
+        talk = baker.make(Talk, image="talk_images/test-img/img.jpg", event=event)
         assert "img.jpg" in talk.get_image_url()
 
-    @override_settings(MEDIA_URL="/media/", BRAND_ASSETS_SUBDIR="test")
+    @override_settings(MEDIA_URL="/media/")
     def test_get_image_url_with_external_url(self) -> None:
         """Prefer the external image URL when no uploaded image is set."""
         talk = baker.make(Talk, external_image_url="https://example.com/img.jpg")
         assert talk.get_image_url() == "https://example.com/img.jpg"
 
-    @override_settings(MEDIA_URL="/media/", BRAND_ASSETS_SUBDIR="test")
+    @override_settings(MEDIA_URL="/media/")
     def test_get_image_url_default(self) -> None:
         """Fall back to the branded default image when no image source exists."""
-        talk = baker.make(Talk, image="", external_image_url="")
+        event = Event.objects.create(
+            name="Test",
+            slug="test-default",
+            year=2025,
+            is_active=True,
+        )
+        talk = baker.make(Talk, image="", external_image_url="", event=event)
         result = talk.get_image_url()
         assert "default.jpg" in result
         assert "test" in result

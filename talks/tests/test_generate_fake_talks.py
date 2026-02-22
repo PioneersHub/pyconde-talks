@@ -4,8 +4,6 @@
 import random
 from datetime import datetime, time, timedelta
 from io import StringIO
-from typing import Any
-from unittest.mock import patch
 
 import pytest
 from django.core.management import call_command
@@ -13,6 +11,7 @@ from django.utils import timezone
 from faker import Faker
 from model_bakery import baker
 
+from events.models import Event
 from talks.management.commands.generate_fake_talks import (
     KEYNOTE_DURATION_MIN,
     TALK_SHORT_DURATIONS_MIN,
@@ -118,19 +117,31 @@ class TestGenerateAvatarUrl:
 class TestBuildPretalxLink:
     """Verify _build_pretalx_link constructs valid pretalx session URLs."""
 
-    @patch("talks.management.commands.generate_fake_talks.settings")
-    def test_default_link(self, mock_settings: Any, command: Command, fake: Faker) -> None:
-        """Build a URL from the default PRETALX_BASE_URL and event slug."""
-        mock_settings.PRETALX_BASE_URL = "https://pretalx.com"
-        mock_settings.PRETALX_EVENT_SLUG = "pyconde2025"
+    @pytest.mark.django_db
+    def test_default_link(self, command: Command, fake: Faker) -> None:
+        """Build the talk URL from the event's pretalx_url."""
+        event = Event.objects.create(
+            name="PyData Berlin 2099",
+            slug="pydata-berlin-2099",
+            year=2099,
+            pretalx_url="https://pretalx.com/berlin2099",
+            is_active=True,
+        )
+        command._event_obj = event
         result = command._build_pretalx_link(fake)
-        assert result.startswith("https://pretalx.com/pyconde2025/talk/")
+        assert result.startswith("https://pretalx.com/berlin2099/talk/")
 
-    @patch("talks.management.commands.generate_fake_talks.settings")
-    def test_custom_base_url(self, mock_settings: Any, command: Command, fake: Faker) -> None:
+    @pytest.mark.django_db
+    def test_custom_base_url(self, command: Command, fake: Faker) -> None:
         """Build a URL from a custom base URL, stripping trailing slashes."""
-        mock_settings.PRETALX_BASE_URL = "https://custom.pretalx.com/"
-        mock_settings.PRETALX_EVENT_SLUG = "demo-event"
+        event = Event.objects.create(
+            name="Demo Event",
+            slug="demo",
+            year=2025,
+            pretalx_url="https://custom.pretalx.com/demo-event",
+            is_active=True,
+        )
+        command._event_obj = event
         result = command._build_pretalx_link(fake)
         assert result.startswith("https://custom.pretalx.com/demo-event/talk/")
 

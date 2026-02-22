@@ -113,8 +113,7 @@ class TestSubmissionData:
         """Test that SubmissionData extracts basic fields correctly."""
         data = SubmissionData(
             mock_submission,
-            "pyconde2024",
-            pretalx_base_url="https://pretalx.com",
+            pretalx_event_url="https://pretalx.com/pyconde2024",
         )
 
         assert data.code == "ABC123"
@@ -130,73 +129,71 @@ class TestSubmissionData:
         """Test that custom base URL is properly used."""
         data = SubmissionData(
             mock_submission,
-            "pyconde2024",
-            pretalx_base_url="https://custom.pretalx.com/",
+            pretalx_event_url="https://custom.pretalx.com/pyconde2099",
         )
 
-        assert data.pretalx_link == "https://custom.pretalx.com/pyconde2024/talk/ABC123"
+        assert data.pretalx_link == "https://custom.pretalx.com/pyconde2099/talk/ABC123"
 
     def test_trailing_slash_handling(self, mock_submission: Mock) -> None:
         """Test that trailing slash is handled correctly."""
         data = SubmissionData(
             mock_submission,
-            "pyconde2024",
-            pretalx_base_url="https://pretalx.com///",
+            pretalx_event_url="https://pretalx.com/pyconde2099//",
         )
 
-        assert data.pretalx_link == "https://pretalx.com/pyconde2024/talk/ABC123"
+        assert data.pretalx_link == "https://pretalx.com/pyconde2099/talk/ABC123"
 
     def test_missing_room(self, mock_submission: Mock) -> None:
         """Test handling of submission without room."""
         mock_submission.slots = []
-        data = SubmissionData(mock_submission, "pyconde2024")
+        data = SubmissionData(mock_submission, "pyconde2099")
 
         assert data.room == ""
 
     def test_missing_track(self, mock_submission: Mock) -> None:
         """Test handling of submission without track."""
         mock_submission.track = None
-        data = SubmissionData(mock_submission, "pyconde2024")
+        data = SubmissionData(mock_submission, "pyconde2099")
 
         assert data.track == ""
 
     def test_title_truncation(self, mock_submission: Mock) -> None:
         """Test that long titles are truncated."""
         mock_submission.title = "A" * (MAX_TALK_TITLE_LENGTH + 50)
-        data = SubmissionData(mock_submission, "pyconde2024")
+        data = SubmissionData(mock_submission, "pyconde2099")
 
         assert len(data.title) == MAX_TALK_TITLE_LENGTH
 
     def test_duration_extraction(self, mock_submission: Mock) -> None:
         """Test that duration is extracted as timedelta."""
-        data = SubmissionData(mock_submission, "pyconde2024")
+        data = SubmissionData(mock_submission, "pyconde2099")
 
         assert data.duration == timedelta(minutes=45)
 
     def test_missing_duration(self, mock_submission: Mock) -> None:
         """Test handling of submission without duration."""
         mock_submission.duration = None
-        data = SubmissionData(mock_submission, "pyconde2024")
+        data = SubmissionData(mock_submission, "pyconde2099")
 
         assert data.duration is None
 
     def test_start_time_extraction(self, mock_submission: Mock) -> None:
         """Test that start time is extracted from slots."""
-        data = SubmissionData(mock_submission, "pyconde2024")
+        data = SubmissionData(mock_submission, "pyconde2099")
 
         assert data.start_time == datetime(2024, 6, 15, 10, 0, tzinfo=UTC)
 
     def test_missing_start_time(self, mock_submission: Mock) -> None:
         """Test handling of submission without start time."""
         mock_submission.slots[0].start = None
-        data = SubmissionData(mock_submission, "pyconde2024")
+        data = SubmissionData(mock_submission, "pyconde2099")
 
         assert data.start_time == FAR_FUTURE
 
     def test_empty_title_handling(self, mock_submission: Mock) -> None:
         """Test handling of empty title."""
         mock_submission.title = None
-        data = SubmissionData(mock_submission, "pyconde2024")
+        data = SubmissionData(mock_submission, "pyconde2099")
 
         assert data.title == ""
 
@@ -314,7 +311,7 @@ class TestBatchCreateRooms:
         submissions = [mock_submission]
         options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
 
-        batch_create_rooms(submissions, "pyconde2024", options)
+        batch_create_rooms(submissions, options)
 
         assert Room.objects.filter(name="Main Hall").exists()
 
@@ -325,9 +322,12 @@ class TestBatchCreateRooms:
 
         mock_submission.state = State.confirmed
         submissions = [mock_submission]
-        options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
+        options: dict[str, Any] = {
+            "verbosity": VerbosityLevel.NORMAL.value,
+            "pretalx_event_url": "https://pretalx.com/pyconde2099",
+        }
 
-        batch_create_rooms(submissions, "pyconde2024", options)
+        batch_create_rooms(submissions, options)
 
         # Should still be only one room
         assert Room.objects.filter(name="Main Hall").count() == 1
@@ -343,7 +343,7 @@ class TestBatchCreateRooms:
         submissions = [mock_submission]
         options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
 
-        batch_create_rooms(submissions, "pyconde2024", options)
+        batch_create_rooms(submissions, options)
 
         assert not Room.objects.filter(name="Main Hall").exists()
 
@@ -374,7 +374,7 @@ class TestBatchCreateRooms:
         submissions = [mock_submission, submission2]
         options: dict[str, Any] = {"verbosity": VerbosityLevel.NORMAL.value}
 
-        batch_create_rooms(submissions, "pyconde2024", options)
+        batch_create_rooms(submissions, options)
 
         assert Room.objects.count() == 2
         assert Room.objects.filter(name="Main Hall").exists()
@@ -647,10 +647,10 @@ class TestProcessSingleSubmission:
             "dry_run": False,
             "no_update": False,
             "skip_images": True,
-            "pretalx_base_url": "https://pretalx.com",
+            "pretalx_event_url": "https://pretalx.com/pyconde2099",
         }
 
-        result = command._process_single_submission(mock_submission, "pyconde2024", options)
+        result = command._process_single_submission(mock_submission, options)
 
         assert result == "created"
         mock_create_talk.assert_called_once()
@@ -669,10 +669,10 @@ class TestProcessSingleSubmission:
             "dry_run": True,
             "no_update": False,
             "skip_images": True,
-            "pretalx_base_url": "https://pretalx.com",
+            "pretalx_event_url": "https://pretalx.com",
         }
 
-        result = command._process_single_submission(mock_submission, "pyconde2024", options)
+        result = command._process_single_submission(mock_submission, options)
 
         # Returns "created" to indicate what would happen, but no DB changes
         assert result == "created"
