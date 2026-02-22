@@ -112,7 +112,6 @@ THIRD_PARTY_APPS = [
     "template_partials",
     "markdownify.apps.MarkdownifyConfig",
     "health_check",
-    "health_check.db",
     "anymail",
 ]
 LOCAL_APPS = [
