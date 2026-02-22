@@ -11,6 +11,7 @@ from django.core.management.base import BaseCommand, CommandParser
 from django.utils import timezone
 from faker import Faker
 
+from events.models import Event
 from talks.models import Room, Speaker, Streaming, Talk
 
 
@@ -44,6 +45,7 @@ class TalkGenerationContext:
     video_start_prob: float
     slido_prob: float
     speakers_pool: list[Speaker]
+    event: Event | None
 
 
 class Command(BaseCommand):
@@ -136,6 +138,12 @@ class Command(BaseCommand):
             default="Ferrum,Dynamicum",
             help="Comma-separated list of tutorial rooms",
         )
+        parser.add_argument(
+            "--event",
+            type=str,
+            default=getattr(settings, "DEFAULT_EVENT", ""),
+            help="Event slug to associate generated talks with (default: DEFAULT_EVENT)",
+        )
 
     # --------------------
     # Helper methods
@@ -165,10 +173,11 @@ class Command(BaseCommand):
         return f"https://randomuser.me/api/portraits/lego/{random.randint(1, 8)}.jpg"
 
     def _build_pretalx_link(self, fake: Faker) -> str:
-        """Construct a Pretalx talk link respecting configurable base and event slug."""
-        base_url = getattr(settings, "PRETALX_BASE_URL", "https://pretalx.com").rstrip("/")
-        event_slug = getattr(settings, "PRETALX_EVENT_SLUG", "event").strip("/")
-        return f"{base_url}/{event_slug}/talk/{fake.bothify(text='???###').upper()}"
+        """Construct a Pretalx talk link using the event's pretalx_url."""
+        base_url = "https://pretalx.com/event"
+        if self._event_obj:
+            base_url = (self._event_obj.pretalx_url or base_url).rstrip("/")
+        return f"{base_url}/talk/{fake.bothify(text='???###').upper()}"
 
     def _build_room_slido_link(self, room_name: str) -> str:
         """Return the default Slido link for a room name."""
@@ -359,6 +368,7 @@ class Command(BaseCommand):
             video_link=video_link,
             video_start_time=video_start_time,
             hide=random.random() < 0.1,
+            event=ctx.event,
         )
 
         num_speakers = random.choices([1, 2, 3], weights=[70, 25, 5])[0]
@@ -682,6 +692,18 @@ class Command(BaseCommand):
 
         tracks = [s.strip() for s in str(options["tracks"]).split(",") if s.strip()] or TRACKS
 
+        # Resolve or create Event
+        event_obj: Event | None = None
+        event_slug = str(options.get("event", "")).strip()
+        if event_slug:
+            event_obj, created = Event.objects.get_or_create(
+                slug=event_slug,
+                defaults={"name": event_slug, "year": 2025},
+            )
+            verb = "Created" if created else "Using existing"
+            self.stdout.write(f"{verb} event '{event_obj.name}' (slug={event_obj.slug})")
+        self._event_obj = event_obj
+
         # Create a pool of speakers with a number close to the talk count
         self.stdout.write("Generating pool of speakers...")
         speakers_pool = self._create_speakers_pool(fake=fake, talk_count=talk_count)
@@ -716,6 +738,7 @@ class Command(BaseCommand):
             video_start_prob=float(options["video_start_prob"]),
             slido_prob=float(options["slido_prob"]),
             speakers_pool=speakers_pool,
+            event=event_obj,
         )
 
         for i in range(talk_count):
