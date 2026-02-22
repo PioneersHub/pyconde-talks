@@ -12,6 +12,7 @@
     "pycqa.bandit-pycqa",
     "ryanluker.vscode-coverage-gutters",
     "streetsidesoftware.code-spell-checker",
-    "tamasfe.even-better-toml"
+    "tamasfe.even-better-toml",
+    "zuban.zubanls"
   ]
 }
