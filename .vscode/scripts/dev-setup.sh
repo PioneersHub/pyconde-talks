@@ -314,8 +314,8 @@ initialize_django() {
 		PYTHON
 
         log "Generating fake talks..."
-        "$VENV_PYTHON" manage.py generate_fake_talks --count "$FAKE_DATA_COUNT" --event pyconde-pydata-2026 || warn "Failed to generate fake data"
-        "$VENV_PYTHON" manage.py generate_fake_talks --count "$FAKE_DATA_COUNT" --event pydata-berlin-2026 || warn "Failed to generate fake data"
+        "$VENV_PYTHON" manage.py generate_fake_talks --count "$FAKE_DATA_COUNT" --event-slug pyconde-pydata-2026 --event-name "PyConDE & PyData 2026" || warn "Failed to generate fake data"
+        "$VENV_PYTHON" manage.py generate_fake_talks --count "$FAKE_DATA_COUNT" --event-slug pydata-berlin-2026 --event-name "PyData Berlin 2026" || warn "Failed to generate fake data"
     fi
 
     # Sync with Pretalx
