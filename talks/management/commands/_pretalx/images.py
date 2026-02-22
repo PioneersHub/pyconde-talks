@@ -46,7 +46,7 @@ class TalkImageGenerator:
             settings.BASE_DIR
             / "assets"
             / "img"
-            / settings.BRAND_ASSETS_SUBDIR
+            / (talk.event.slug if talk.event else "")
             / "talk_template.png"
         )
         img = Image.open(template_path).copy().convert("RGBA")

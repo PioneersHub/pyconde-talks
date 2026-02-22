@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, cast
 import httpx
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
+from django.utils import timezone
 from pydantic import ValidationError
 from pytanis import PretalxClient
 from pytanis.pretalx.models import State
@@ -19,6 +20,7 @@ from tenacity import (
     wait_exponential,
 )
 
+from events.models import Event
 from talks.management.commands._pretalx.avatars import (
     get_avatar_cache_dir,
     prefetch_avatar_urls,
@@ -60,16 +62,17 @@ class Command(BaseCommand):
     def add_arguments(self, parser: CommandParser) -> None:
         """Add command line arguments."""
         parser.add_argument(
-            "--pretalx-base-url",
+            "--pretalx-event-url",
             type=str,
-            default=getattr(settings, "PRETALX_BASE_URL", "https://pretalx.com"),
-            help="Base URL for Pretalx (used to build talk links)",
+            default="",
+            help="Base Event URL for Pretalx (used to build talk links). "
+            "Falls back to the Event's pretalx_url field.",
         )
         parser.add_argument(
             "--event",
             type=str,
-            default=settings.PRETALX_EVENT_SLUG,
-            help="Event slug for the Pretalx event",
+            default=getattr(settings, "DEFAULT_EVENT", ""),
+            help="Event slug in the Django app (not necessarily the same as the Pretalx slug).",
         )
         parser.add_argument(
             "--api-token",
@@ -111,10 +114,60 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
 
     def handle(self, *args: Any, **options: Any) -> None:  # noqa: ARG002
-        """Execute the command to import talks from Pretalx."""
+        """
+        Execute the command to import talks from Pretalx.
+
+        - If no event slug is provided via CLI and DEFAULT_EVENT is not set, it will be derived from
+        the pretalx_event_url.
+        - If the event slug does not exist in the database yet, it will be created automatically.
+        - The --pretalx-event-url CLI flag takes precedence over the Event's pretalx_url field.
+        """
         event_slug: str = options["event"]
+        pretalx_event_url: str = options["pretalx_event_url"]
         verbosity = VerbosityLevel(options["verbosity"])
         max_retries: int = options["max_retries"]
+
+        if not event_slug and not pretalx_event_url:
+            self._log(
+                "No event slug provided and no Pretalx event URL provided. Cannot proceed.",
+                verbosity,
+                VerbosityLevel.NORMAL,
+                "ERROR",
+            )
+            return
+
+        if not event_slug:
+            event_slug = pretalx_event_url.rstrip("/").split("/")[-1]
+            self._log(
+                f"No event slug provided, derived from Pretalx URL: '{event_slug}'",
+                verbosity,
+                VerbosityLevel.NORMAL,
+                "WARNING",
+            )
+
+        # Resolve or create the Event object for this slug
+        event_obj, created = Event.objects.get_or_create(
+            slug=event_slug,
+            defaults={
+                "name": event_slug,
+                "year": timezone.now().year,
+                "pretalx_url": pretalx_event_url,
+            },
+        )
+        options["_event_obj"] = event_obj
+        if created:
+            self._log(
+                f"Created new Event '{event_slug}'",
+                verbosity,
+                VerbosityLevel.NORMAL,
+                "SUCCESS",
+            )
+
+        # Resolve pretalx_event_url: CLI flag takes precedence, then Event field
+        if not pretalx_event_url:
+            options["pretalx_event_url"] = (
+                event_obj.pretalx_url or f"https://pretalx.com/{event_slug}"
+            )
 
         try:
             pretalx = self._setup_pretalx_client(options["api_token"], verbosity)
@@ -136,15 +189,30 @@ class Command(BaseCommand):
                     style="SUCCESS",
                 )
             except Exception as exc:
-                self.stderr.write(self.style.ERROR(f"Failed to fetch talks: {exc!s}"))
+                self._log(
+                    f"Failed to fetch talks: {exc!s}",
+                    verbosity,
+                    VerbosityLevel.NORMAL,
+                    "ERROR",
+                )
                 return
 
-            self._process_submissions(list(submissions), event_slug, options)
+            self._process_submissions(list(submissions), options)
 
         except Exception as exc:
-            self.stderr.write(self.style.ERROR(f"An unexpected error occurred: {exc!s}"))
+            self._log(
+                f"An unexpected error occurred: {exc!s}",
+                verbosity,
+                VerbosityLevel.NORMAL,
+                "ERROR",
+            )
             if verbosity.value >= VerbosityLevel.DEBUG.value:
-                self.stderr.write(traceback.format_exc())
+                self._log(
+                    traceback.format_exc(),
+                    verbosity,
+                    VerbosityLevel.DEBUG,
+                    "ERROR",
+                )
 
     # ------------------------------------------------------------------
     # Logging helper
@@ -188,7 +256,7 @@ class Command(BaseCommand):
     def _fetch_talks_with_retry(
         self,
         pretalx: PretalxClient,
-        event_slug: str,
+        pretalx_event_slug: str,
         max_retries: int,
     ) -> tuple[int, Any]:
         """Fetch talks with retry logic."""
@@ -202,7 +270,7 @@ class Command(BaseCommand):
         )
         def _retry_fetch_talks() -> tuple[int, list[Submission]]:
             if not settings.PICKLE_PRETALX_TALKS:
-                count, submissions = pretalx.submissions(event_slug)
+                count, submissions = pretalx.submissions(pretalx_event_slug)
                 return (count, list(submissions))
 
             import pickle  # nosec: B403  # noqa: PLC0415
@@ -219,7 +287,7 @@ class Command(BaseCommand):
                 except (pickle.PickleError, OSError):  # fmt: skip
                     pass
 
-            count, submissions = pretalx.submissions(event_slug)
+            count, submissions = pretalx.submissions(pretalx_event_slug)
             result = (count, list(submissions))
             try:
                 with pickle_file.open("wb") as wb_file:
@@ -236,7 +304,6 @@ class Command(BaseCommand):
 
     def _process_submissions(
         self,
-        event_slug: str,
         submissions: Sequence[Submission],
         options: dict[str, Any],
     ) -> None:
@@ -281,7 +348,7 @@ class Command(BaseCommand):
             )
 
         if not dry_run:
-            batch_create_rooms(submissions, event_slug, options, log_fn=self._log)
+            batch_create_rooms(submissions, options, log_fn=self._log)
             batch_create_or_update_speakers(
                 submissions,
                 options,
@@ -300,7 +367,6 @@ class Command(BaseCommand):
                     continue
                 result = self._process_single_submission(
                     submission,
-                    event_slug,
                     options,
                 )
                 stats[result] += 1
@@ -421,7 +487,6 @@ class Command(BaseCommand):
     def _process_single_submission(
         self,
         submission: Submission,
-        event_slug: str,
         options: dict[str, Any],
     ) -> str:
         """Process a single submission and return the result status."""
@@ -431,8 +496,7 @@ class Command(BaseCommand):
 
         data = SubmissionData(
             submission,
-            event_slug,
-            options.get("pretalx_base_url"),
+            options.get("pretalx_event_url", ""),
         )
         existing_talk = Talk.objects.filter(pretalx_link=data.pretalx_link).first()
 
@@ -515,6 +579,7 @@ class Command(BaseCommand):
             track=data.track,
             pretalx_link=data.pretalx_link,
             external_image_url=data.image_url,
+            event=options.get("_event_obj"),
         )
         self._log(
             f"Created talk: {data.title}",
@@ -552,6 +617,10 @@ class Command(BaseCommand):
             data.code,
             verbosity,
         )
+        # Ensure existing talk is linked to the event
+        event_obj = options.get("_event_obj")
+        if event_obj and talk.event != event_obj:
+            talk.event = event_obj
         talk.save()
 
         self._log(

@@ -1,9 +1,7 @@
 """Extract clean data from a Pretalx Submission and classify submissions."""
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, cast
-
-from django.conf import settings
+from typing import TYPE_CHECKING
 
 from talks.models import (
     FAR_FUTURE,
@@ -23,8 +21,7 @@ class SubmissionData:
     def __init__(
         self,
         submission: Submission,
-        event_slug: str,
-        pretalx_base_url: str | None = None,
+        pretalx_event_url: str,
     ) -> None:
         """Initialize the SubmissionData object."""
         self.submission = submission
@@ -33,12 +30,7 @@ class SubmissionData:
         self.abstract = submission.abstract or ""
         self.description = submission.description or ""
 
-        base_url = cast(
-            "str",
-            pretalx_base_url or getattr(settings, "PRETALX_BASE_URL", "https://pretalx.com"),
-        )
-        base_url = base_url.rstrip("/")
-        self.pretalx_link = f"{base_url}/{event_slug}/talk/{submission.code}"
+        self.pretalx_link = f"{pretalx_event_url.rstrip('/')}/talk/{submission.code}"
         self.image_url = getattr(submission, "image", "") or ""
 
         self.room = self._extract_room(submission)

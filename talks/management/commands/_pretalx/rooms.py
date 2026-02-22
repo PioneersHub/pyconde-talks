@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 
 def batch_create_rooms(
-    event_slug: str,
     submissions: Sequence[Submission],
     options: dict[str, Any],
     *,
@@ -29,7 +28,7 @@ def batch_create_rooms(
     for submission in submissions:
         if submission.state not in (State.confirmed, State.accepted):
             continue
-        data = SubmissionData(submission, event_slug, options.get("pretalx_base_url"))
+        data = SubmissionData(submission, options.get("pretalx_event_url", ""))
         if data.room:
             room_names.add(data.room)
 
