@@ -6,7 +6,7 @@ Question, QuestionVote, and Answer models.
 """
 
 from datetime import timedelta
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.contrib import admin
 from django.db.models import Avg, Count
@@ -50,7 +50,7 @@ class RoomAdmin(admin.ModelAdmin[Room]):
     )
     search_fields = ("name", "description")
 
-    fieldsets = (
+    fieldsets: ClassVar[list[Any]] = [
         (
             None,
             {
@@ -63,7 +63,7 @@ class RoomAdmin(admin.ModelAdmin[Room]):
                 "fields": ("slido_link",),
             },
         ),
-    )
+    ]
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Room]:
         """Annotate queryset with counts to avoid N+1 queries."""
@@ -116,7 +116,7 @@ class StreamingAdmin(admin.ModelAdmin[Streaming]):
     search_fields = ("room__name", "video_link")
     autocomplete_fields: ClassVar[list[str]] = ["room"]
 
-    fieldsets = (
+    fieldsets: ClassVar[list[Any]] = [
         (
             None,
             {
@@ -129,7 +129,7 @@ class StreamingAdmin(admin.ModelAdmin[Streaming]):
                 "fields": ("video_link",),
             },
         ),
-    )
+    ]
 
     @admin.display(description=_("Video Link"))
     def formatted_video_link(self, obj: Streaming) -> str:
@@ -162,7 +162,7 @@ class SpeakerAdmin(admin.ModelAdmin[Speaker]):
     list_filter = ("gender",)
     search_fields = ("name", "biography", "pronouns")
 
-    fieldsets = (
+    fieldsets: ClassVar[list[Any]] = [
         (
             None,
             {
@@ -182,7 +182,7 @@ class SpeakerAdmin(admin.ModelAdmin[Speaker]):
                 "classes": ("collapse",),
             },
         ),
-    )
+    ]
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Speaker]:
         """Annotate queryset with talk count to avoid N+1 queries."""
@@ -230,6 +230,7 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
         "duration",
         "room_name",
         "track",
+        "event",
         "is_upcoming",
         "has_video",
         "hide",
@@ -237,6 +238,7 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
         "num_ratings",
     )
     list_filter = (
+        "event",
         "presentation_type",
         "room",
         "track",
@@ -254,11 +256,18 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
     filter_horizontal = ("speakers",)
     autocomplete_fields: ClassVar[list[str]] = ["room"]
 
-    fieldsets = (
+    fieldsets: ClassVar[list[Any]] = [
         (
             None,
             {
-                "fields": ("presentation_type", "title", "speakers", "abstract", "description"),
+                "fields": (
+                    "event",
+                    "presentation_type",
+                    "title",
+                    "speakers",
+                    "abstract",
+                    "description",
+                ),
             },
         ),
         (
@@ -292,7 +301,7 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
                 "classes": ("collapse",),
             },
         ),
-    )
+    ]
 
     readonly_fields = (
         "created_at",
@@ -426,7 +435,7 @@ class QuestionAdmin(admin.ModelAdmin[Question]):
     inlines = (AnswerInline,)
     list_select_related = ("talk", "user")
 
-    fieldsets = (
+    fieldsets: ClassVar[list[Any]] = [
         (
             None,
             {
@@ -446,7 +455,7 @@ class QuestionAdmin(admin.ModelAdmin[Question]):
                 "classes": ("collapse",),
             },
         ),
-    )
+    ]
 
     @admin.display(description=_("Question"))
     def content_preview(self, obj: Question) -> str:
@@ -541,7 +550,7 @@ class AnswerAdmin(admin.ModelAdmin[Answer]):
     readonly_fields = ("created_at", "updated_at")
     list_select_related = ("question", "user")
 
-    fieldsets = (
+    fieldsets: ClassVar[list[Any]] = [
         (
             None,
             {
@@ -555,7 +564,7 @@ class AnswerAdmin(admin.ModelAdmin[Answer]):
                 "classes": ("collapse",),
             },
         ),
-    )
+    ]
 
     @admin.display(description=_("Answer"))
     def content_preview(self, obj: Answer) -> str:
@@ -595,7 +604,7 @@ class RatingAdmin(admin.ModelAdmin[Rating]):
     readonly_fields = ("created_at", "updated_at")
     list_select_related = ("talk", "user")
 
-    fieldsets = (
+    fieldsets: ClassVar[list[Any]] = [
         (
             None,
             {
@@ -609,7 +618,7 @@ class RatingAdmin(admin.ModelAdmin[Rating]):
                 "classes": ("collapse",),
             },
         ),
-    )
+    ]
 
     @admin.display(boolean=True, description=_("Has Comment"))
     def has_comment(self, obj: Rating) -> bool:

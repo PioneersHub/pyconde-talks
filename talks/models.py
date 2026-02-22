@@ -215,6 +215,16 @@ class Speaker(models.Model):
         return self.name
 
 
+def _talk_image_upload_path(instance: Talk, filename: str) -> str:
+    """Return the upload path for a talk image, using the event's assets sub-directory."""
+    subdir = ""
+    if instance.event:
+        subdir = instance.event.slug
+    if subdir:
+        return f"talk_images/{subdir}/{filename}"
+    return f"talk_images/{filename}"
+
+
 class Talk(models.Model):
     """Represents a conference talk."""
 
@@ -290,7 +300,7 @@ class Talk(models.Model):
         help_text=_("URL to an externally hosted image"),
     )
     image = models.ImageField(
-        upload_to=f"talk_images/{settings.BRAND_ASSETS_SUBDIR}/",
+        upload_to=_talk_image_upload_path,
         blank=True,
         null=True,
         help_text=_("Image for the talk. Overrides the external image URL if provided."),
@@ -316,6 +326,14 @@ class Talk(models.Model):
         null=True,
         help_text=_("Start time in seconds"),
     )
+    event = models.ForeignKey(
+        "events.Event",
+        on_delete=models.CASCADE,
+        related_name="talks",
+        null=True,
+        blank=True,
+        help_text=_("Event this talk belongs to"),
+    )
     hide = models.BooleanField(
         default=False,
         help_text=_("Hide this talk from the public"),
@@ -338,10 +356,12 @@ class Talk(models.Model):
         indexes: ClassVar[list[models.Index]] = [
             models.Index(fields=["start_time"]),
             models.Index(fields=["room"]),
+            models.Index(fields=["event"]),
             # Composite indexes for common query patterns
             models.Index(fields=["room", "start_time"]),
             models.Index(fields=["hide", "start_time"]),
             models.Index(fields=["presentation_type", "start_time"]),
+            models.Index(fields=["event", "start_time"]),
         ]
 
     def __str__(self) -> str:
@@ -539,10 +559,10 @@ class Talk(models.Model):
             return cast("str", self.image.url)
         if self.external_image_url:
             return self.external_image_url
-        return (
-            f"{settings.MEDIA_URL.rstrip('/')}/talk_images/"
-            f"{settings.BRAND_ASSETS_SUBDIR}/default.jpg"
-        )
+        subdir = self.event.slug if self.event else ""
+        if subdir:
+            return f"{settings.MEDIA_URL.rstrip('/')}/talk_images/{subdir}/default.jpg"
+        return f"{settings.MEDIA_URL.rstrip('/')}/talk_images/default.jpg"
 
     def get_slido_link(self) -> str:
         """

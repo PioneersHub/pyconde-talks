@@ -5,7 +5,7 @@ This module provides class-based and function-based views for handling Talk-rela
 including listing, detail views, and statistics.
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -27,6 +27,8 @@ from .utils import get_talk_by_id_or_pretalx
 if TYPE_CHECKING:
     from django.db.models.query import QuerySet
 
+    from users.models import CustomUser
+
 
 class TalkDetailView(LoginRequiredMixin, DetailView[Talk]):
     """
@@ -41,7 +43,14 @@ class TalkDetailView(LoginRequiredMixin, DetailView[Talk]):
 
     def get_queryset(self) -> QuerySet[Talk]:
         """Optimize query with related data."""
-        return Talk.objects.select_related("room").prefetch_related("speakers")
+        qs = Talk.objects.select_related("room").prefetch_related("speakers")
+        # Restrict to talks for events the user has access to
+        user = cast("CustomUser", self.request.user)
+        if not user.is_superuser:
+            qs = qs.filter(
+                Q(event__isnull=True) | Q(event__in=user.events.all()),
+            )
+        return qs
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Enhance context with rating statistics and user's existing rating."""
@@ -88,7 +97,7 @@ class TalkListView(LoginRequiredMixin, ListView[Talk]):
             return ["talks/talk_list.html#talk-list"]
         return [self.template_name]
 
-    def get_queryset(self) -> QuerySet[Talk]:
+    def get_queryset(self) -> QuerySet[Talk]:  # noqa: C901
         """Get the list of talks filtered by room, date, track, presentation type, and query."""
         # Defer large text fields not needed in list view to reduce memory usage
         queryset: QuerySet[Talk] = (
@@ -96,6 +105,13 @@ class TalkListView(LoginRequiredMixin, ListView[Talk]):
             .prefetch_related("speakers")
             .defer("description", "abstract")
         )
+
+        # Restrict to talks for events the user has access to
+        user = cast("CustomUser", self.request.user)
+        if not user.is_superuser:
+            queryset = queryset.filter(
+                Q(event__isnull=True) | Q(event__in=user.events.all()),
+            )
 
         # Filter by room
         room = self.request.GET.get("room")
