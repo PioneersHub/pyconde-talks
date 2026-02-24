@@ -583,6 +583,7 @@ class Talk(models.Model):
 # Rating constants
 MIN_RATING_SCORE = 1
 MAX_RATING_SCORE = 5
+COMMENT_MAX_LENGTH = 2000
 
 
 class Rating(models.Model):
@@ -605,6 +606,7 @@ class Rating(models.Model):
     )
     comment = models.TextField(
         blank=True,
+        max_length=COMMENT_MAX_LENGTH,
         help_text=_("Optional comment about the talk (visible only to admins)"),
     )
     created_at = models.DateTimeField(

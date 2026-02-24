@@ -1,0 +1,89 @@
+{% load svg_tags %}
+<div id="rating-widget">
+  <div class="flex items-center gap-3 flex-wrap">
+    <span class="text-sm font-medium text-heading">Rate this talk</span>
+    <div class="flex items-center gap-1">
+      {% for i in "12345" %}
+        <button type="button"
+                class="focus:outline-none transition-transform hover:scale-125"
+                hx-post="{% url 'rate_talk' talk.id %}"
+                hx-target="#rating-widget"
+                hx-swap="outerHTML"
+                hx-include="#comment"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-vals='{"score": "{{ forloop.counter }}"}'
+                aria-label="Rate {{ forloop.counter }} out of 5"
+                title="Rate {{ forloop.counter }} out of 5">
+          {% if user_rating and forloop.counter <= user_rating.score %}
+            {% svg 'star' "h-6 w-6 text-yellow-400 fill-current" %}
+          {% else %}
+            {% svg 'star' "h-6 w-6 text-gray-300 fill-current hover:text-yellow-300" %}
+          {% endif %}
+        </button>
+      {% endfor %}
+    </div>
+    {% if user_rating %}<span class="text-sm text-muted">{{ user_rating.score }}/5</span>{% endif %}
+    {% if user_rating and user_rating.comment %}
+      <span class="comment-preview text-sm text-muted truncate max-w-xs"
+            {% if show_comment_form %}hidden{% endif %}>💬 {{ user_rating.comment|truncatewords:12 }}</span>
+      <button type="button"
+              class="edit-btn text-blue-500 hover:underline text-sm"
+              {% if show_comment_form %}hidden{% endif %}
+              onclick="{const w=this.closest('#rating-widget'); w.querySelector('.comment-preview').hidden=true; this.hidden=true; w.querySelector('.comment-form').hidden=false;}">
+        Edit
+      </button>
+    {% endif %}
+  </div>
+  {% if user_rating %}
+    <div class="comment-form mt-3"
+         {% if user_rating.comment and not show_comment_form %}hidden{% endif %}>
+      <form hx-post="{% url 'rate_talk' talk.id %}"
+            hx-target="#rating-widget"
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-vals='{"save_comment": "1"}'>
+        <input type="hidden" name="score" value="{{ user_rating.score }}" />
+        <div class="flex gap-2 items-end">
+          <div class="flex-1">
+            <div class="flex items-center justify-between mb-1">
+              <label for="comment" class="text-sm text-muted">
+                Comment <span class="text-subtle">(visible only to organizers)</span>
+              </label>
+              <button type="button"
+                      class="text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 p-0.5"
+                      title="Close"
+                      onclick="{const w=this.closest('#rating-widget'), p=w.querySelector('.comment-preview'), e=w.querySelector('.edit-btn'); w.querySelector('.comment-form').hidden=true; if(p) p.hidden=false; if(e) e.hidden=false; w.querySelector('textarea').value='{{ user_rating.comment|escapejs }}';}">
+                <svg class="h-4 w-4"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor"
+                     stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <textarea id="comment"
+                      name="comment"
+                      rows="2"
+                      maxlength="2000"
+                      class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Share your thoughts about this talk..."
+                      oninput="this.nextElementSibling.textContent = (2000 - this.value.length) + ' characters remaining'">{{ draft_comment|default:user_rating.comment }}</textarea>
+            <div class="text-xs text-subtle mt-1">
+              {% with cl=draft_comment|default:user_rating.comment %}{{ cl|length }} / 2000 characters{% endwith %}
+            </div>
+          </div>
+          <button type="submit"
+                  class="btn-primary px-4 py-2 rounded-lg text-sm whitespace-nowrap self-end">
+            {% if user_rating.comment %}
+              Update
+            {% else %}
+              Save
+            {% endif %}
+            Comment
+          </button>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+</div>
