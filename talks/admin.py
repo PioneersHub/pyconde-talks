@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import Rating, Room, Speaker, Streaming, Talk
+from .models import Rating, Room, SavedTalk, Speaker, Streaming, Talk
 from .models_qa import Answer, Question, QuestionVote
 
 
@@ -624,3 +624,14 @@ class RatingAdmin(admin.ModelAdmin[Rating]):
     def has_comment(self, obj: Rating) -> bool:
         """Display whether the rating has a comment."""
         return bool(obj.comment)
+
+
+@admin.register(SavedTalk)
+class SavedTalkAdmin(admin.ModelAdmin[SavedTalk]):
+    """Admin configuration for the SavedTalk model."""
+
+    list_display = ("user", "talk", "created_at")
+    list_filter = ("created_at",)
+    search_fields = ("user__email", "talk__title")
+    raw_id_fields = ("user", "talk")
+    readonly_fields = ("created_at",)
