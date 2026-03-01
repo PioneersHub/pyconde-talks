@@ -23,7 +23,10 @@
       <div class="p-6 {% if not talk.get_image_url %}pt-8{% endif %}">
         <!-- Title and Speaker -->
         <div class="mb-6">
-          <h1 class="text-3xl font-bold text-heading">{{ talk.title }}</h1>
+          <div class="flex justify-between items-start">
+            <h1 class="text-3xl font-bold text-heading">{{ talk.title }}</h1>
+            {% include "talks/partials/save_button.html" %}
+          </div>
           <p class="text-xl text-muted mt-2">{{ talk.speaker_names }}</p>
           <div class="mt-2" id="title-star-rating">{% star_rating average_rating rating_count %}</div>
         </div>
@@ -59,19 +62,19 @@
         <!-- Video Container -->
         {% if talk.get_video_link %}
           <div id="video-container"
-               style="padding:56.25% 0 0 0;
-                      position:relative"
+               style="padding: 56.25% 0 0 0;
+                      position: relative"
                class="mb-8 rounded-lg overflow-hidden shadow-lg">
             <iframe src="{{ talk.get_video_link }}"
                     id="video-iframe"
                     title="Video for {{ talk.title }}"
                     allow="autoplay; fullscreen; picture-in-picture"
-                    style="position:absolute;
-                           top:0;
-                           left:0;
-                           width:100%;
-                           height:100%;
-                           border:0">
+                    style="position: absolute;
+                           top: 0;
+                           left: 0;
+                           width: 100%;
+                           height: 100%;
+                           border: 0">
             </iframe>
           </div>
           <!-- Video Start Time Controls -->
@@ -79,7 +82,8 @@
             <div class="mb-8 flex items-center">
               {% if talk.has_active_streaming %}
                 <div class="text-sm text-muted">
-                  This is a live stream. Please skip manually to {{ talk.get_video_start_time|format_seconds }} to see the start of the talk.
+                  This is a live stream. Please skip manually to
+                  {{ talk.get_video_start_time|format_seconds }} to see the start of the talk.
                 </div>
               {% else %}
                 <button id="jump-to-time" class="btn-secondary btn-neutral">
@@ -142,27 +146,27 @@
   {% if talk.get_video_link and talk.video_streaming_provider.lower == "youtube" %}
     <script src="https://www.youtube.com/iframe_api"></script>
     <script defer>
-        document.addEventListener('DOMContentLoaded', function() {
-          const iframe = document.querySelector('#video-iframe');
+      document.addEventListener('DOMContentLoaded', function() {
+        const iframe = document.querySelector('#video-iframe');
 
-          if (iframe) {
-            const player = new YT.Player(iframe.id, {
-              events: {
-                onReady: () => {
-                  {% if talk.get_video_start_time and not talk.has_active_streaming %}
-                    const jumpButton = document.getElementById('jump-to-time');
-                    if (jumpButton) {
-                      jumpButton.addEventListener('click', function() {
-                        const startTime = {{ talk.get_video_start_time }};
-                        player.seekTo(startTime, true);
-                      });
-                    }
-                  {% endif %}
-                },
-              }
-            });
+      if (iframe) {
+        const player = new YT.Player(iframe.id, {
+          events: {
+            onReady: () => {
+              {% if talk.get_video_start_time and not talk.has_active_streaming %}
+                const jumpButton = document.getElementById('jump-to-time');
+                if (jumpButton) {
+                  jumpButton.addEventListener('click', function() {
+                    const startTime = {{ talk.get_video_start_time }};
+                    player.seekTo(startTime, true);
+                  });
+                }
+              {% endif %}
+            },
           }
         });
+      }
+    });
     </script>
   {% endif %}
 {% endblock content %}

@@ -1,0 +1,20 @@
+{% load svg_tags %}
+<div id="save-btn-{{ talk.pk }}" class="inline-flex">
+  <button hx-post="{% url 'toggle_save_talk' talk.pk %}"
+          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+          hx-target="#save-btn-{{ talk.pk }}"
+          hx-swap="outerHTML"
+          class="btn-secondary inline-flex items-center px-3 py-1 rounded gap-1 {% if is_saved %}text-yellow-500{% endif %}"
+          title="{% if is_saved %}Remove from saved{% else %}Save talk{% endif %}">
+    {% if is_saved %}
+      {% svg 'bookmark-solid' "h-4 w-4" %}
+    {% else %}
+      {% svg 'bookmark' "h-4 w-4" %}
+    {% endif %}
+    {% if is_saved %}
+      Saved
+    {% else %}
+      Save
+    {% endif %}
+  </button>
+</div>
