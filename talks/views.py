@@ -5,8 +5,7 @@ This module provides class-based and function-based views for handling Talk-rela
 including listing, detail views, and statistics.
 """
 
-from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib import messages
@@ -470,18 +469,51 @@ def _parse_schedule_date(date_str: str | None) -> date | None:
         return None
 
 
-@login_required
-def schedule_view(request: HttpRequest) -> HttpResponse:
+def _build_grid_slices(
+    talks: list[Talk],
+) -> tuple[list[datetime], str]:
     """
-    Render a Pretalx-style schedule grid.
+    Compute CSS Grid named row lines from talk start/end boundaries.
 
-    Columns = rooms, rows = time slots. Each cell contains the talk(s)
-    scheduled in that room at that time.  A day picker lets the user
-    switch between conference days.
+    Returns ``(sorted_boundaries, css_grid_template_rows)`` where each boundary
+    becomes a named grid line like ``[t-0930]``.  The height between two
+    consecutive boundaries is proportional to the time gap (2 px per minute,
+    minimum 20 px).
     """
-    user = cast("CustomUser", request.user)
+    boundaries: set[datetime] = set()
+    for t in talks:
+        boundaries.add(t.start_time)
+        boundaries.add(t.start_time + t.duration)
 
-    # Available dates ---------------------------------------------------------
+    sorted_bounds = sorted(boundaries)
+    if len(sorted_bounds) < 2:  # noqa: PLR2004
+        return sorted_bounds, ""
+
+    px_per_min = 2
+    min_px = 20
+
+    parts: list[str] = []
+    for i, bound in enumerate(sorted_bounds):
+        local = timezone.localtime(bound)
+        name = f"t-{local.strftime('%H%M')}"
+        if i < len(sorted_bounds) - 1:
+            gap_minutes = (sorted_bounds[i + 1] - bound) / timedelta(minutes=1)
+            height = max(int(gap_minutes * px_per_min), min_px)
+            parts.append(f"[{name}] minmax({height}px, auto)")
+        else:
+            parts.append(f"[{name}]")
+
+    return sorted_bounds, " ".join(parts)
+
+
+def _slice_name(dt: datetime) -> str:
+    """Return the CSS grid line name for a datetime, e.g. ``t-0930``."""
+    local = timezone.localtime(dt)
+    return f"t-{local.strftime('%H%M')}"
+
+
+def _get_schedule_dates(user: CustomUser) -> list[date]:
+    """Return available schedule dates, filtered by user event access."""
     date_qs = (
         Talk.objects.exclude(start_time__year=2050)
         .annotate(date=TruncDate("start_time"))
@@ -493,51 +525,131 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
         date_qs = date_qs.filter(
             Q(event__isnull=True) | Q(event__in=user.events.all()),
         )
-    available_dates: list[date] = list(date_qs)
+    return list(date_qs)
+
+
+def _build_schedule_data(
+    selected_date: date,
+    user: CustomUser,
+) -> tuple[list[Talk], list[Room], list[dict[str, Any]], str, list[dict[str, str]]]:
+    """
+    Build the CSS Grid schedule data for a given date.
+
+    Returns ``(talks, rooms, schedule_items, grid_template_rows, time_labels)``.
+    """
+    talks_qs = (
+        Talk.objects.filter(start_time__date=selected_date)
+        .exclude(start_time__year=2050)
+        .select_related("room")
+        .prefetch_related("speakers")
+        .defer("description", "abstract")
+        .order_by("start_time", "room__name")
+    )
+    if not user.is_superuser:
+        talks_qs = talks_qs.filter(
+            Q(event__isnull=True) | Q(event__in=user.events.all()),
+        )
+    talks = list(talks_qs)
+
+    # Unique rooms ordered by name
+    room_ids_seen: set[int] = set()
+    rooms_list: list[Room] = []
+    for t in talks:
+        rid = t.room_id  # type: ignore[attr-defined]
+        if t.room and rid is not None and rid not in room_ids_seen:
+            room_ids_seen.add(rid)
+            rooms_list.append(t.room)
+    rooms = sorted(rooms_list, key=lambda r: r.name)
+
+    # Room → CSS grid column (col 1 = time label, rooms start at col 2)
+    room_col: dict[int, int] = {r.id: idx + 2 for idx, r in enumerate(rooms)}  # type: ignore[attr-defined]
+
+    # CSS Grid slices
+    sorted_bounds, grid_template_rows = _build_grid_slices(talks)
+
+    # Build schedule items with grid-area CSS
+    schedule_items: list[dict[str, Any]] = []
+    for t in talks:
+        if not t.room:
+            continue
+        row_start = _slice_name(t.start_time)
+        row_end = _slice_name(t.start_time + t.duration)
+        rid = t.room_id  # type: ignore[attr-defined]
+        col = room_col.get(rid, 2) if rid is not None else 2
+        duration_min = int(t.duration.total_seconds() // 60)
+        schedule_items.append(
+            {
+                "talk": t,
+                "grid_area": f"{row_start} / {col} / {row_end}",
+                "duration_min": duration_min,
+            },
+        )
+
+    # Time labels for the first column
+    time_labels: list[dict[str, str]] = []
+    seen_labels: set[str] = set()
+    for bound in sorted_bounds[:-1]:  # skip the last boundary (end-only)
+        name = _slice_name(bound)
+        if name not in seen_labels:
+            seen_labels.add(name)
+            local = timezone.localtime(bound)
+            time_labels.append({"name": name, "display": local.strftime("%H:%M")})
+
+    return talks, rooms, schedule_items, grid_template_rows, time_labels
+
+
+def _apply_schedule_filters(
+    schedule_items: list[dict[str, Any]],
+    search_query: str,
+    filter_saved: str,
+    saved_talk_ids: set[int],
+) -> list[dict[str, Any]]:
+    """Filter schedule items by search text and saved-only flag."""
+    if not search_query and not filter_saved:
+        return schedule_items
+    filtered: list[dict[str, Any]] = []
+    for item in schedule_items:
+        talk: Talk = item["talk"]
+        if filter_saved == "1" and talk.pk not in saved_talk_ids:
+            continue
+        if search_query:
+            q_lower = search_query.lower()
+            if q_lower not in talk.title.lower() and q_lower not in talk.speaker_names.lower():
+                continue
+        filtered.append(item)
+    return filtered
+
+
+@login_required
+def schedule_view(request: HttpRequest) -> HttpResponse:
+    """
+    Render a Pretalx-style CSS Grid schedule.
+
+    Each talk is positioned using CSS Grid named row lines so that
+    overlapping talks in different rooms appear side-by-side and card
+    heights are proportional to duration.
+    """
+    user = cast("CustomUser", request.user)
+
+    available_dates = _get_schedule_dates(user)
 
     # Resolve selected date ---------------------------------------------------
     selected_date = _parse_schedule_date(request.GET.get("date"))
     if selected_date not in available_dates:
         selected_date = available_dates[0] if available_dates else None
 
-    # Talks for the day -------------------------------------------------------
+    # Build grid data ---------------------------------------------------------
     talks: list[Talk] = []
     rooms: list[Room] = []
-    time_slots: list[datetime] = []
-    grid: dict[datetime, dict[int, Talk]] = {}
+    schedule_items: list[dict[str, Any]] = []
+    grid_template_rows = ""
+    time_labels: list[dict[str, str]] = []
 
     if selected_date:
-        talks_qs = (
-            Talk.objects.filter(start_time__date=selected_date)
-            .exclude(start_time__year=2050)
-            .select_related("room")
-            .prefetch_related("speakers")
-            .defer("description", "abstract")
-            .order_by("start_time", "room__name")
+        talks, rooms, schedule_items, grid_template_rows, time_labels = _build_schedule_data(
+            selected_date,
+            user,
         )
-        if not user.is_superuser:
-            talks_qs = talks_qs.filter(
-                Q(event__isnull=True) | Q(event__in=user.events.all()),
-            )
-        talks = list(talks_qs)
-
-        # Unique rooms that have talks on this day, ordered by name
-        room_ids_seen: set[int] = set()
-        rooms_list: list[Room] = []
-        for t in talks:
-            if t.room and t.room_id not in room_ids_seen:  # type: ignore[attr-defined]
-                room_ids_seen.add(t.room_id)  # type: ignore[attr-defined]
-                rooms_list.append(t.room)
-        rooms = sorted(rooms_list, key=lambda r: r.name)
-
-        # Build grid: {start_time: {room_id: Talk}}
-        grid_dd: dict[datetime, dict[int, Talk]] = defaultdict(dict)
-        for t in talks:
-            if t.room:
-                grid_dd[t.start_time][t.room_id] = t  # type: ignore[attr-defined]
-        # Sorted time slots
-        time_slots = sorted(grid_dd)
-        grid = dict(grid_dd)
 
     # Saved talk IDs for bookmark icons
     saved_talk_ids: set[int] = set()
@@ -546,7 +658,16 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
             SavedTalk.objects.filter(user=request.user).values_list("talk_id", flat=True),
         )
 
-    # Check if there are multiple years
+    # Filters -----------------------------------------------------------------
+    search_query = request.GET.get("q", "").strip()
+    filter_saved = request.GET.get("saved", "")
+    schedule_items = _apply_schedule_filters(
+        schedule_items,
+        search_query,
+        filter_saved,
+        saved_talk_ids,
+    )
+
     years = {d.year for d in available_dates}
     has_multiple_years = len(years) > 1
 
@@ -555,9 +676,12 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
         "selected_date": selected_date,
         "has_multiple_years": has_multiple_years,
         "rooms": rooms,
-        "time_slots": time_slots,
-        "grid": grid,
+        "schedule_items": schedule_items,
+        "grid_template_rows": grid_template_rows,
+        "time_labels": time_labels,
         "talks": talks,
         "saved_talk_ids": saved_talk_ids,
+        "search_query": search_query,
+        "filter_saved": filter_saved,
     }
     return render(request, "talks/schedule.html", context)
