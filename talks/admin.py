@@ -236,6 +236,7 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
         "hide",
         "avg_rating",
         "num_ratings",
+        "num_saves",
     )
     list_filter = (
         "event",
@@ -319,7 +320,8 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
             .select_related("room")
             .annotate(
                 _average_rating=Avg("ratings__score"),
-                _rating_count=Count("ratings"),
+                _rating_count=Count("ratings", distinct=True),
+                _saved_count=Count("saved_by", distinct=True),
             )
         )
 
@@ -335,6 +337,11 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
     def num_ratings(self, obj: Talk) -> int:
         """Display the number of ratings for this talk."""
         return getattr(obj, "_rating_count", 0)
+
+    @admin.display(description=_("# Saves"), ordering="_saved_count")
+    def num_saves(self, obj: Talk) -> int:
+        """Display the number of users who saved/bookmarked this talk."""
+        return getattr(obj, "_saved_count", 0)
 
     @admin.display(description=_("Room"))
     def room_name(self, obj: Talk) -> str:
