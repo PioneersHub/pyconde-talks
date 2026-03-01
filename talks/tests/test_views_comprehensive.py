@@ -70,10 +70,11 @@ class TestTalkListView:
 
     def test_filter_by_date(self, client: Client, user: CustomUser) -> None:
         """Show only talks scheduled on the selected date."""
-        today = timezone.now()
-        baker.make(Talk, title="Today Talk", start_time=today)
+        now = timezone.now()
+        local_date = timezone.localdate(now)
+        baker.make(Talk, title="Today Talk", start_time=now, event=None)
         client.force_login(user)
-        url = reverse("talk_list") + f"?date={today.strftime('%Y-%m-%d')}"
+        url = reverse("talk_list") + f"?date={local_date}"
         response = client.get(url)
         assert response.status_code == HTTPStatus.OK
         assert "Today Talk" in response.content.decode()
