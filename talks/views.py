@@ -9,8 +9,6 @@ from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import IntegrityError
 from django.db.models import Avg, Count, Q
 from django.db.models.functions import TruncDate
@@ -41,7 +39,7 @@ if TYPE_CHECKING:
     from users.models import CustomUser
 
 
-class TalkDetailView(LoginRequiredMixin, DetailView[Talk]):
+class TalkDetailView(DetailView[Talk]):
     """
     Display detailed information about a specific Talk.
 
@@ -90,7 +88,7 @@ class TalkDetailView(LoginRequiredMixin, DetailView[Talk]):
         return context
 
 
-class TalkListView(LoginRequiredMixin, ListView[Talk]):
+class TalkListView(ListView[Talk]):
     """
     Display a list of Talk objects with filtering capabilities.
 
@@ -211,7 +209,6 @@ class TalkListView(LoginRequiredMixin, ListView[Talk]):
         return context
 
 
-@login_required
 @cache_page(60)  # Cache for 60 seconds to reduce database queries
 def dashboard_stats(request: HttpRequest) -> HttpResponse:
     """Generate statistics for the dashboard."""
@@ -236,7 +233,6 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
     return render(request, "talks/partials/dashboard_stats.html", context)
 
 
-@login_required
 @cache_page(30)  # Cache for 30 seconds - talks list changes infrequently
 def upcoming_talks(request: HttpRequest) -> HttpResponse:
     """Display the next 8 upcoming talks."""
@@ -331,7 +327,6 @@ def _apply_search_filter(queryset: QuerySet[Talk], request: HttpRequest) -> Quer
     return queryset.filter(q_obj).distinct()
 
 
-@login_required
 @require_POST
 def rate_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     """
@@ -348,7 +343,7 @@ def rate_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     # Validate score
     try:
         score = int(request.POST.get("score"))  # type: ignore[arg-type]
-    except (TypeError, ValueError):  # fmt: skip
+    except TypeError, ValueError:  # fmt: skip
         return _rating_error_response(request, talk_id, _("Invalid rating value."), is_htmx=is_htmx)
 
     if score < MIN_RATING_SCORE or score > MAX_RATING_SCORE:
@@ -394,7 +389,6 @@ def rate_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     return redirect("talk_detail", pk=talk_id)
 
 
-@login_required
 def get_talk_rating_stats(request: HttpRequest, talk_id: int) -> JsonResponse:
     """
     Return rating statistics for a talk as JSON.
@@ -426,7 +420,6 @@ def get_talk_rating_stats(request: HttpRequest, talk_id: int) -> JsonResponse:
     )
 
 
-@login_required
 @require_POST
 def toggle_save_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     """
@@ -641,7 +634,6 @@ def _apply_schedule_filters(
     return filtered
 
 
-@login_required
 def schedule_view(request: HttpRequest) -> HttpResponse:
     """
     Render a Pretalx-style CSS Grid schedule.

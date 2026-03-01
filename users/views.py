@@ -9,7 +9,7 @@ from allauth.account.views import RequestLoginCodeView
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_not_required
 from django.core.exceptions import ValidationError
 from django.db import DatabaseError, IntegrityError
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
@@ -32,6 +32,7 @@ if TYPE_CHECKING:
 logger = structlog.get_logger(__name__)
 
 
+@login_not_required
 class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
     """
     Custom view that overrides the default login code request process.
@@ -128,7 +129,6 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
         return context
 
 
-@login_required
 def profile_view(request: HttpRequest) -> HttpResponse:
     """Allow the authenticated user to edit their profile information."""
     user = cast("CustomUser", request.user)

@@ -9,8 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from django import forms
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
@@ -29,7 +28,7 @@ if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 
 
-class QuestionListView(LoginRequiredMixin, ListView[Question]):
+class QuestionListView(ListView[Question]):
     """
     Display a list of questions for a specific talk.
 
@@ -89,7 +88,7 @@ class QuestionListView(LoginRequiredMixin, ListView[Question]):
         return context
 
 
-class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelForm[Question]]):
+class QuestionCreateView(CreateView[Question, forms.ModelForm[Question]]):
     """
     Create a new question for a talk.
 
@@ -229,7 +228,6 @@ def render_question_list_fragment(
     )
 
 
-@login_required
 @require_POST
 def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """
@@ -273,7 +271,6 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
     )
 
 
-@login_required
 @require_POST
 def delete_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """Allow a user to delete their own question."""
@@ -303,7 +300,6 @@ class QuestionOwnerRequiredMixin(UserPassesTestMixin):
 
 
 class QuestionUpdateView(
-    LoginRequiredMixin,
     QuestionOwnerRequiredMixin,
     UpdateView[Question, forms.ModelForm[Question]],
 ):
@@ -366,7 +362,6 @@ class ModeratorRequiredMixin(UserPassesTestMixin):  # pragma: no cover
 
 
 @require_POST
-@login_required
 def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """Reject a question."""
     if not is_moderator(request.user):
@@ -384,7 +379,6 @@ def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
 
 
 @require_POST
-@login_required
 def mark_question_answered(request: HttpRequest, question_id: int) -> HttpResponse:
     """Mark a question as answered."""
     if not is_moderator(request.user):
@@ -402,7 +396,6 @@ def mark_question_answered(request: HttpRequest, question_id: int) -> HttpRespon
 
 
 @require_POST
-@login_required
 def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """Approve a question."""
     if not is_moderator(request.user):
