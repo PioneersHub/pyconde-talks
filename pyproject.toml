@@ -36,7 +36,7 @@ dependencies = [
     "django-allauth[socialaccount]>=65.14.3",
     "django-anymail[mailgun]>=14.0",
     "django-environ>=0.13.0",
-    "django-health-check[psutil]>=4.0.4",
+    "django-health-check[psutil]>=4.0.6",
     "django-htmx>=1.27.0",
     "django-markdownify>=0.9.6",
     "django-structlog>=10.0.0",
@@ -58,17 +58,17 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "bandit>=1.9.3",
+    "bandit>=1.9.4",
     "django-stubs[compatible-mypy]>=5.2.9",
     "djlint>=1.36.4",
-    "faker>=40.4.0",
+    "faker>=40.5.1",
     "ipython>=9.10.0",
     "mypy>=1.19.1",
     "pandas-stubs>=2.3.3.260113,<3",
-    "prek>=0.3.3",
+    "prek>=0.3.4",
     "psycopg2-binary>=2.9.11",
-    "ruff>=0.15.2",
-    "zuban>=0.6.0",
+    "ruff>=0.15.4",
+    "zuban>=0.6.1",
 ]
 test = [
     "pytest>=9.0.2",
