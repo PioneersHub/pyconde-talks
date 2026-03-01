@@ -165,6 +165,111 @@ class TestScheduleView:
         # Falls back to first available date since tomorrow isn't in available_dates
         assert response.status_code == HTTPStatus.OK
 
+    def test_css_grid_area_in_output(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        today_talks: list[Talk],  # noqa: ARG002
+    ) -> None:
+        """The CSS Grid schedule renders grid-area styles for talk cards."""
+        client.force_login(user)
+        response = client.get(reverse("schedule"))
+        content = response.content.decode()
+        assert "grid-area:" in content
+        assert "schedule-grid" in content
+
+    def test_grid_template_rows_in_output(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        today_talks: list[Talk],  # noqa: ARG002
+    ) -> None:
+        """The grid-template-rows CSS is rendered with named time slices."""
+        client.force_login(user)
+        response = client.get(reverse("schedule"))
+        content = response.content.decode()
+        assert "grid-template-rows:" in content
+        # Named lines like [t-1000] should appear
+        assert "[t-" in content
+
+    def test_bookmark_button_on_cards(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        today_talks: list[Talk],  # noqa: ARG002
+    ) -> None:
+        """Each talk card has a bookmark toggle button."""
+        client.force_login(user)
+        response = client.get(reverse("schedule"))
+        content = response.content.decode()
+        assert "sched-save-" in content
+        assert "toggle_save_talk" in content or "hx-post" in content
+
+    def test_search_filter(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        today_talks: list[Talk],
+    ) -> None:
+        """The ?q= parameter filters talks by title."""
+        client.force_login(user)
+        talk_date = today_talks[0].start_time.date()
+        url = reverse("schedule") + f"?date={talk_date.isoformat()}&q=Talk+1"
+        response = client.get(url)
+        content = response.content.decode()
+        assert "Talk 1" in content
+        # Talk 2 and Talk 3 should be filtered out
+        assert "Talk 2" not in content
+        assert "Talk 3" not in content
+
+    def test_saved_filter(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        today_talks: list[Talk],
+    ) -> None:
+        """The ?saved=1 parameter shows only bookmarked talks."""
+        client.force_login(user)
+        SavedTalk.objects.create(user=user, talk=today_talks[0])
+        talk_date = today_talks[0].start_time.date()
+        url = reverse("schedule") + f"?date={talk_date.isoformat()}&saved=1"
+        response = client.get(url)
+        content = response.content.decode()
+        assert "Talk 1" in content
+        assert "Talk 2" not in content
+        assert "Talk 3" not in content
+
+    def test_overlapping_talks_side_by_side(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        rooms: list[Room],
+    ) -> None:
+        """Overlapping talks in different rooms get distinct grid columns."""
+        now = timezone.now().replace(hour=9, minute=20, second=0, microsecond=0)
+        baker.make(
+            Talk,
+            title="Overlap A",
+            room=rooms[0],
+            start_time=now,
+            duration=timedelta(minutes=40),
+        )
+        baker.make(
+            Talk,
+            title="Overlap B",
+            room=rooms[1],
+            start_time=now + timedelta(minutes=10),
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(user)
+        response = client.get(reverse("schedule"))
+        content = response.content.decode()
+        assert "Overlap A" in content
+        assert "Overlap B" in content
+        # Each in a different grid column
+        assert "/ 2 /" in content
+        assert "/ 3 /" in content
+
 
 # ---------------------------------------------------------------------------
 # Template Tag Tests
