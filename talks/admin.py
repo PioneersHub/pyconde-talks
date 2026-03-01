@@ -135,7 +135,11 @@ class StreamingAdmin(admin.ModelAdmin[Streaming]):
     def formatted_video_link(self, obj: Streaming) -> str:
         """Display a formatted link to the video."""
         if obj.video_link:
-            return format_html('<a href="{}" target="_blank">Video Link</a>', obj.video_link)
+            return format_html(
+                '<a href="{}" target="_blank">{}</a>',
+                obj.video_link,
+                _("Video Link"),
+            )
         return "-"
 
 

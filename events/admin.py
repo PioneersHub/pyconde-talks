@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.contrib import admin
+from django.utils.translation import gettext_lazy as _
 
 from .models import Event
 
@@ -39,7 +40,7 @@ class EventAdmin(admin.ModelAdmin[Event]):
             },
         ),
         (
-            "Branding",
+            _("Branding"),
             {
                 "fields": (
                     "main_website_url",
@@ -51,12 +52,12 @@ class EventAdmin(admin.ModelAdmin[Event]):
             },
         ),
         (
-            "Pretalx",
+            _("Pretalx"),
             {"fields": ("pretalx_url",)},
         ),
     ]
 
-    @admin.display(boolean=True, description="API configured")
+    @admin.display(boolean=True, description=_("API configured"))
     def validation_api_url_set(self, obj: Event) -> bool:
         """Show whether the validation API URL is configured."""
         return bool(obj.validation_api_url)
