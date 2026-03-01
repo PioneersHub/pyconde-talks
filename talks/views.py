@@ -18,6 +18,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_POST
+from django.views.decorators.vary import vary_on_cookie
 from django.views.generic import DetailView, ListView
 
 from .models import (
@@ -233,6 +234,7 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
     return render(request, "talks/partials/dashboard_stats.html", context)
 
 
+@vary_on_cookie
 @cache_page(30)  # Cache for 30 seconds - talks list changes infrequently
 def upcoming_talks(request: HttpRequest) -> HttpResponse:
     """Display the next 8 upcoming talks."""
@@ -247,7 +249,12 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
         )
         .order_by("start_time")[:8]
     )
-    context = {"upcoming_talks": talks}
+    saved_talk_ids: set[int] = set()
+    if request.user.is_authenticated:
+        saved_talk_ids = set(
+            SavedTalk.objects.filter(user=request.user).values_list("talk_id", flat=True),
+        )
+    context = {"upcoming_talks": talks, "saved_talk_ids": saved_talk_ids}
     return render(request, "talks/partials/upcoming_talks.html", context)
 
 
