@@ -645,3 +645,44 @@ class Rating(models.Model):
     def __str__(self) -> str:
         """Return a string representation of the rating."""
         return f"{self.user} rated {self.talk}: {self.score}/{MAX_RATING_SCORE}"
+
+
+class SavedTalk(models.Model):
+    """Represents a user's saved/bookmarked talk."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="saved_talks",
+        help_text=_("The user who saved the talk"),
+    )
+    talk = models.ForeignKey(
+        Talk,
+        on_delete=models.CASCADE,
+        related_name="saved_by",
+        help_text=_("The saved talk"),
+    )
+    created_at = models.DateTimeField(
+        default=timezone.now,
+        help_text=_("When this talk was saved"),
+    )
+
+    class Meta:
+        """Metadata for the SavedTalk model."""
+
+        verbose_name = _("Saved Talk")
+        verbose_name_plural = _("Saved Talks")
+        ordering: ClassVar[list[str]] = ["-created_at"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["user", "talk"]),
+        ]
+        constraints: ClassVar[list[models.UniqueConstraint]] = [
+            models.UniqueConstraint(
+                fields=["user", "talk"],
+                name="unique_user_saved_talk",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        """Return a string representation of the saved talk."""
+        return f"{self.user} saved {self.talk}"
