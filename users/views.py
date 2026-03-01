@@ -14,6 +14,7 @@ from django.core.exceptions import ValidationError
 from django.db import DatabaseError, IntegrityError
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
+from django.utils.translation import gettext as _
 
 from events.models import Event
 from utils.email_utils import hash_email
@@ -62,8 +63,8 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
 
         # Check if the email is authorized
         if not adapter.is_email_authorized(email):
-            logger.warning("Unauthorized access attempt", email=email)
-            form.add_error("email", "This email is not authorized for access.")
+            logger.warning("Unauthorized access attempt", email=email) # Not hashed
+            form.add_error("email", _("This email is not authorized for access."))
             return cast("HttpResponse", self.form_invalid(form))
 
         # If the email is authorized, create user if needed
@@ -89,19 +90,19 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
                 logger.warning("Failed to create user", email=email_hash, error=str(exc))
                 form.add_error(
                     "email",
-                    "Unable to create account. Please ensure your email is valid.",
+                    _("Unable to create account. Please ensure your email is valid."),
                 )
                 return cast("HttpResponse", self.form_invalid(form))
             except DatabaseError:  # pragma: no cover
                 logger.exception("Database error creating user", email=email_hash)
                 form.add_error(
                     "email",
-                    "System error while creating account. Please try again later.",
+                    _("System error while creating account. Please try again later."),
                 )
                 return cast("HttpResponse", self.form_invalid(form))
             except Exception:  # pragma: no cover
                 logger.exception("Unexpected error creating user", email=email_hash)
-                form.add_error("email", "Error creating user. Please try again later.")
+                form.add_error("email", _("Error creating user. Please try again later."))
                 return cast("HttpResponse", self.form_invalid(form))
 
         # Proceed with standard login code process
@@ -135,7 +136,7 @@ def profile_view(request: HttpRequest) -> HttpResponse:
         form = ProfileForm(request.POST, instance=user)
         if form.is_valid():
             form.save()
-            messages.success(request, "Your profile has been updated.", extra_tags="profile")
+            messages.success(request, _("Your profile has been updated."), extra_tags="profile")
             return redirect("user_profile")
     else:
         form = ProfileForm(instance=user)
