@@ -1,9 +1,9 @@
 """Management command for filling the live streams from Google Sheets."""
 
-import logging
 from typing import Any
 
 import pandas as pd
+import structlog
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
 from django.db import transaction
@@ -11,7 +11,7 @@ from django.db import transaction
 from talks.models import Room, Streaming
 
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class Command(BaseCommand):
