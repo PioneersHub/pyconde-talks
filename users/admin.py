@@ -333,7 +333,7 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
         """Display email verification status with standard Django boolean icon."""
         try:
             email_address = obj.emailaddress_set.first()
-        except (AttributeError, IndexError):  # fmt: skip  # pragma: no cover
+        except AttributeError, IndexError:  # pragma: no cover
             return False
         else:
             return bool(email_address and email_address.verified)

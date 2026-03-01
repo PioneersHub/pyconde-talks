@@ -92,7 +92,7 @@ def _fetch_with_pickle_cache(
                     "tuple[int, list[Submission]]",
                     pickle.load(f),  # noqa: S301  # nosec: B301
                 )
-        except (pickle.PickleError, OSError):  # fmt: skip
+        except pickle.PickleError, OSError:
             pass
 
     count, submissions = pretalx.submissions(pretalx_event_slug)

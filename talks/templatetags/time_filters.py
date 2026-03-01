@@ -34,7 +34,7 @@ def format_seconds(seconds: float | str) -> str:
     """
     try:
         seconds_int = int(float(seconds))
-    except (ValueError, TypeError):  # fmt: skip
+    except ValueError, TypeError:
         return "0:00"
 
     # Handle negative values
