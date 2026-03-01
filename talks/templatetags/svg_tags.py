@@ -19,6 +19,7 @@ Notes:
 
 """
 
+from functools import lru_cache
 from pathlib import Path
 
 from django import template
@@ -27,6 +28,19 @@ from django.utils.safestring import SafeString, mark_safe
 
 
 register = template.Library()
+
+
+@lru_cache(maxsize=256)
+def _read_svg(svg_path: str, css_class: str) -> str:
+    """Read and cache an SVG file, optionally injecting CSS classes."""
+    try:
+        svg_content = Path(svg_path).read_text()
+    except OSError:
+        return ""
+    else:
+        if css_class:
+            svg_content = svg_content.replace("<svg", f'<svg class="{css_class}"')
+        return svg_content
 
 
 @register.simple_tag
@@ -50,17 +64,5 @@ def svg(name: str, css_class: str = "") -> SafeString:
         {% svg 'arrow' 'h-4 w-4 text-blue-500' %}
 
     """
-    svg_path = Path(settings.BASE_DIR) / "svg" / f"{name}.svg"
-
-    try:
-        svg_content = svg_path.read_text()
-
-        # Add CSS classes if provided
-        if css_class:
-            svg_content = svg_content.replace("<svg", f'<svg class="{css_class}"')
-
-        return mark_safe(svg_content)  # nosec: B308, B703  # noqa: S308
-
-    except OSError:
-        # Return empty string if file doesn't exist or can't be read
-        return mark_safe("")  # nosec: B308
+    svg_path = str(Path(settings.BASE_DIR) / "svg" / f"{name}.svg")
+    return mark_safe(_read_svg(svg_path, css_class))  # nosec: B308, B703  # noqa: S308
