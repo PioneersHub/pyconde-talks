@@ -441,9 +441,16 @@ def toggle_save_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     is_htmx = request.headers.get("HX-Request") == "true"
 
     if is_htmx:
+        # Schedule cards use a compact icon-only partial (no text label).
+        hx_target = request.headers.get("HX-Target", "")
+        template = (
+            "talks/partials/schedule_save_button.html"
+            if hx_target.startswith("sched-save-")
+            else "talks/partials/save_button.html"
+        )
         return render(
             request,
-            "talks/partials/save_button.html",
+            template,
             {"talk": talk, "is_saved": is_saved},
         )
 
