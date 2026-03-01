@@ -17,6 +17,7 @@ from django.db.models.functions import TruncDate
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView
@@ -348,13 +349,14 @@ def rate_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     try:
         score = int(request.POST.get("score"))  # type: ignore[arg-type]
     except (TypeError, ValueError):  # fmt: skip
-        return _rating_error_response(request, talk_id, "Invalid rating value.", is_htmx=is_htmx)
+        return _rating_error_response(request, talk_id, _("Invalid rating value."), is_htmx=is_htmx)
 
     if score < MIN_RATING_SCORE or score > MAX_RATING_SCORE:
         return _rating_error_response(
             request,
             talk_id,
-            f"Rating must be between {MIN_RATING_SCORE} and {MAX_RATING_SCORE} stars.",
+            _("Rating must be between %(min)s and %(max)s stars.")
+            % {"min": MIN_RATING_SCORE, "max": MAX_RATING_SCORE},
             is_htmx=is_htmx,
         )
 
@@ -371,13 +373,17 @@ def rate_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
             defaults=defaults,
         )
         if not is_htmx:
-            msg = "Your rating has been submitted!" if created else "Your rating has been updated!"
+            msg = (
+                _("Your rating has been submitted!")
+                if created
+                else _("Your rating has been updated!")
+            )
             messages.success(request, msg)
     except IntegrityError:
         return _rating_error_response(
             request,
             talk_id,
-            "Error submitting rating. Please try again.",
+            _("Error submitting rating. Please try again."),
             is_htmx=is_htmx,
             status=500,
         )
@@ -456,9 +462,9 @@ def toggle_save_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
         )
 
     if is_saved:
-        messages.success(request, "Talk saved!")
+        messages.success(request, _("Talk saved!"))
     else:
-        messages.info(request, "Talk removed from saved.")
+        messages.info(request, _("Talk removed from saved."))
     return redirect("talk_detail", pk=talk_id)
 
 
