@@ -951,7 +951,7 @@ class Command(BaseCommand):
             return None
         event_obj, created = Event.objects.get_or_create(
             slug=event_slug,
-            defaults={"name": event_name or event_slug, "year": 2025},
+            defaults={"name": event_name or event_slug, "year": timezone.now().year},
         )
         verb = "Created" if created else "Using existing"
         self.stdout.write(f"{verb} event '{event_obj.name}' (slug={event_obj.slug})")
