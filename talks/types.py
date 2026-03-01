@@ -7,11 +7,8 @@ This module provides types that are used across the Talks model.
 from enum import StrEnum
 
 
-"""Represents a streaming provider options"""
-
-
 class VideoProvider(StrEnum):
-    """Enumeration of video providers."""
+    """Enumeration of video streaming providers."""
 
     Youtube = "youtube.com"
     YoutubeShort = "youtu.be"
