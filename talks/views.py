@@ -683,6 +683,7 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
         "selected_date": selected_date,
         "has_multiple_years": has_multiple_years,
         "rooms": rooms,
+        "has_schedule": bool(talks),
         "schedule_items": schedule_items,
         "grid_template_rows": grid_template_rows,
         "time_labels": time_labels,

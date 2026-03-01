@@ -29,7 +29,7 @@
       {% endfor %}
     </div>
     {# ── Filters ───────────────────────────────────────────── #}
-    {% if schedule_items %}
+    {% if has_schedule %}
       <form id="schedule-filters"
             method="get"
             class="flex flex-wrap gap-3 items-center mb-4 card-compact">
@@ -121,9 +121,13 @@
       </div>
     {% else %}
       <div class="bg-surface p-6 rounded text-center text-subtle">
-        No talks scheduled
-        {% if selected_date %}for {{ selected_date|date:"l, F j, Y" }}{% endif %}
-        .
+        {% if has_schedule %}
+          No talks match your filters.
+        {% else %}
+          No talks scheduled
+          {% if selected_date %}for {{ selected_date|date:"l, F j, Y" }}{% endif %}
+          .
+        {% endif %}
       </div>
     {% endif %}
   </div>
