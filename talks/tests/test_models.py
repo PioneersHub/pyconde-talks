@@ -10,9 +10,10 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from django.core.exceptions import ValidationError
 from django.test import override_settings
+from django.utils import timezone
 from model_bakery import baker
 
-from talks.models import Talk
+from talks.models import Room, Talk
 from talks.types import VideoProvider
 
 
@@ -82,3 +83,111 @@ class TestTalkModel:
                 talk.full_clean()
             except ValidationError:
                 pytest.fail("ValidationError raised unexpectedly")
+
+
+@pytest.mark.django_db
+class TestTalkRoomConflict:
+    """Test has_room_conflict() and clean() prevent overlapping talks in the same room."""
+
+    def test_no_conflict_empty_room(self) -> None:
+        """No conflict when no talks exist in the room."""
+        room = baker.make(Room)
+        now = timezone.now()
+        assert not Talk.has_room_conflict(room, now, timedelta(minutes=30))
+
+    def test_no_conflict_sequential_talks(self) -> None:
+        """Back-to-back talks do not conflict."""
+        room = baker.make(Room)
+        now = timezone.now()
+        baker.make(Talk, room=room, start_time=now, duration=timedelta(minutes=30))
+        assert not Talk.has_room_conflict(
+            room,
+            now + timedelta(minutes=30),
+            timedelta(minutes=30),
+        )
+
+    def test_conflict_overlapping_talks(self) -> None:
+        """A talk that starts before another ends is a conflict."""
+        room = baker.make(Room)
+        now = timezone.now()
+        baker.make(Talk, room=room, start_time=now, duration=timedelta(minutes=45))
+        assert Talk.has_room_conflict(
+            room,
+            now + timedelta(minutes=30),
+            timedelta(minutes=30),
+        )
+
+    def test_no_conflict_different_rooms(self) -> None:
+        """Overlapping times in different rooms are fine."""
+        room_a = baker.make(Room, name="A")
+        room_b = baker.make(Room, name="B")
+        now = timezone.now()
+        baker.make(Talk, room=room_a, start_time=now, duration=timedelta(minutes=45))
+        assert not Talk.has_room_conflict(
+            room_b,
+            now,
+            timedelta(minutes=45),
+        )
+
+    def test_exclude_pk_allows_self_update(self) -> None:
+        """Updating an existing talk should not conflict with itself."""
+        room = baker.make(Room)
+        now = timezone.now()
+        talk = baker.make(Talk, room=room, start_time=now, duration=timedelta(minutes=30))
+        assert not Talk.has_room_conflict(
+            room,
+            now,
+            timedelta(minutes=30),
+            exclude_pk=talk.pk,
+        )
+
+    def test_returns_false_for_zero_duration(self) -> None:
+        """Return False when duration is zero (falsy)."""
+        room = baker.make(Room)
+        now = timezone.now()
+        assert not Talk.has_room_conflict(room, now, timedelta())
+
+    def test_clean_skips_when_room_is_none(self) -> None:
+        """clean() exits early without error when room is None."""
+        talk = baker.prepare(Talk, room=None, duration=timedelta(minutes=30))
+        talk.clean()  # Should not raise
+
+    def test_clean_skips_when_duration_is_zero(self) -> None:
+        """clean() exits early without error when duration is zero."""
+        room = baker.make(Room)
+        talk = baker.prepare(Talk, room=room, duration=timedelta())
+        talk.clean()  # Should not raise
+
+    def test_clean_raises_on_overlap(self) -> None:
+        """Talk.clean() raises ValidationError when overlapping another talk."""
+        room = baker.make(Room)
+        now = timezone.now()
+        baker.make(Talk, room=room, start_time=now, duration=timedelta(minutes=45))
+        overlapping = baker.prepare(
+            Talk,
+            room=room,
+            start_time=now + timedelta(minutes=30),
+            duration=timedelta(minutes=30),
+        )
+        with pytest.raises(ValidationError, match="overlaps"):
+            overlapping.clean()
+
+    def test_clean_passes_for_non_overlapping(self) -> None:
+        """Talk.clean() passes for non-overlapping talks."""
+        room = baker.make(Room)
+        now = timezone.now()
+        baker.make(Talk, room=room, start_time=now, duration=timedelta(minutes=30))
+        sequential = baker.prepare(
+            Talk,
+            room=room,
+            start_time=now + timedelta(minutes=30),
+            duration=timedelta(minutes=30),
+        )
+        sequential.clean()  # Should not raise
+
+    def test_clean_passes_for_self_update(self) -> None:
+        """Updating a saved talk should not conflict with itself."""
+        room = baker.make(Room)
+        now = timezone.now()
+        talk = baker.make(Talk, room=room, start_time=now, duration=timedelta(minutes=30))
+        talk.clean()  # Should not raise

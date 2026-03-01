@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, cast
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import ExpressionWrapper, F
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -386,6 +387,55 @@ class Talk(models.Model):
         self.video_link = self._enrich_video_link()
 
         super().save(*args, **kwargs)
+
+    def clean(self) -> None:
+        """Validate that this talk does not overlap with another in the same room."""
+        if not self.room or not self.start_time or not self.duration:
+            return
+
+        if self.has_room_conflict(
+            self.room,
+            self.start_time,
+            self.duration,
+            exclude_pk=self.pk,
+        ):
+            raise ValidationError(
+                _("This talk overlaps with another talk in the same room."),
+            )
+
+    @classmethod
+    def has_room_conflict(
+        cls,
+        room: Room,
+        start_time: datetime,
+        duration: timedelta,
+        *,
+        exclude_pk: int | None = None,
+    ) -> bool:
+        """
+        Return True if a talk in ``room`` overlaps the proposed time window.
+
+        Two talks overlap when one starts before the other ends **and** ends
+        after the other starts.  The check is performed against persisted
+        ``Talk`` rows so it is safe to call before ``save()``.
+        """
+        if not room or not start_time or not duration:
+            return False
+
+        end_time = start_time + duration
+        qs = (
+            cls.objects.filter(room=room, start_time__lt=end_time)
+            .annotate(
+                computed_end=ExpressionWrapper(
+                    F("start_time") + F("duration"),
+                    output_field=models.DateTimeField(),
+                ),
+            )
+            .filter(computed_end__gt=start_time)
+        )
+        if exclude_pk is not None:
+            qs = qs.exclude(pk=exclude_pk)
+        return qs.exists()
 
     def _enrich_video_link(self) -> str:
         if self.video_provider == VideoProvider.Youtube.name:
