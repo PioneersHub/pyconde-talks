@@ -5,6 +5,7 @@ from datetime import datetime
 from io import StringIO
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pandas as pd
 import pytest
 from django.core.management import call_command
@@ -78,8 +79,12 @@ class TestFetchSpreadsheetData:
     """Verify fetch_spreadsheet_data reads, filters, and normalizes spreadsheet data."""
 
     @patch("pandas.read_excel")
-    def test_success(self, mock_read: MagicMock, command: Command) -> None:
+    @patch("httpx.get")
+    def test_success(self, mock_get: MagicMock, mock_read: MagicMock, command: Command) -> None:
         """Parse the spreadsheet and return a DataFrame with expected columns."""
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.content = b"fake"
+        mock_get.return_value = mock_response
         raw_df = pd.DataFrame(
             {
                 "Room": ["Titanium"],
@@ -95,8 +100,17 @@ class TestFetchSpreadsheetData:
         assert "Room" in result.columns
 
     @patch("pandas.read_excel")
-    def test_filters_non_vimeo(self, mock_read: MagicMock, command: Command) -> None:
+    @patch("httpx.get")
+    def test_filters_non_vimeo(
+        self,
+        mock_get: MagicMock,
+        mock_read: MagicMock,
+        command: Command,
+    ) -> None:
         """Exclude rows where the streaming platform is not Vimeo."""
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.content = b"fake"
+        mock_get.return_value = mock_response
         raw_df = pd.DataFrame(
             {
                 "Room": ["Titanium", "Helium"],
@@ -110,11 +124,11 @@ class TestFetchSpreadsheetData:
         result = command.fetch_spreadsheet_data("sheet-id", "Sheet1")
         assert len(result) == 1
 
-    @patch("pandas.read_excel")
-    def test_raises_on_error(self, mock_read: MagicMock, command: Command) -> None:
-        """Propagate exceptions from the underlying spreadsheet reader."""
-        mock_read.side_effect = Exception("Network error")
-        with pytest.raises(Exception, match="Network error"):
+    @patch("httpx.get")
+    def test_raises_on_error(self, mock_get: MagicMock, command: Command) -> None:
+        """Propagate exceptions from the underlying HTTP request."""
+        mock_get.side_effect = httpx.HTTPError("Network error")
+        with pytest.raises(httpx.HTTPError, match="Network error"):
             command.fetch_spreadsheet_data("sheet-id", "Sheet1")
 
 
