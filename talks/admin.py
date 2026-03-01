@@ -9,7 +9,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.contrib import admin
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Exists, OuterRef
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
@@ -442,6 +442,14 @@ class QuestionAdmin(admin.ModelAdmin[Question]):
     inlines = (AnswerInline,)
     list_select_related = ("talk", "user")
 
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Question]:
+        """Annotate queryset with vote count and answer existence to avoid N+1 queries."""
+        qs = super().get_queryset(request)
+        return qs.annotate(
+            votes_count=Count("votes"),
+            _has_answers=Exists(Answer.objects.filter(question=OuterRef("pk"))),
+        )
+
     fieldsets: ClassVar[list[Any]] = [
         (
             None,
@@ -474,6 +482,8 @@ class QuestionAdmin(admin.ModelAdmin[Question]):
     @admin.display(boolean=True, description=_("Has Answers"))
     def has_answers(self, obj: Question) -> bool:
         """Display whether the question has answers."""
+        if hasattr(obj, "_has_answers"):
+            return bool(obj._has_answers)  # noqa: SLF001
         return obj.has_answer
 
     @admin.display(description=_("Votes"))
