@@ -5,6 +5,8 @@ This module provides class-based and function-based views for handling Talk-rela
 including listing, detail views, and statistics.
 """
 
+from collections import defaultdict
+from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib import messages
@@ -451,3 +453,111 @@ def toggle_save_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     else:
         messages.info(request, "Talk removed from saved.")
     return redirect("talk_detail", pk=talk_id)
+
+
+# ---------------------------------------------------------------------------
+# Schedule grid view
+# ---------------------------------------------------------------------------
+
+
+def _parse_schedule_date(date_str: str | None) -> date | None:
+    """Parse a YYYY-MM-DD string into a date, returning None on failure."""
+    if not date_str:
+        return None
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d").date()  # noqa: DTZ007
+    except ValueError:
+        return None
+
+
+@login_required
+def schedule_view(request: HttpRequest) -> HttpResponse:
+    """
+    Render a Pretalx-style schedule grid.
+
+    Columns = rooms, rows = time slots. Each cell contains the talk(s)
+    scheduled in that room at that time.  A day picker lets the user
+    switch between conference days.
+    """
+    user = cast("CustomUser", request.user)
+
+    # Available dates ---------------------------------------------------------
+    date_qs = (
+        Talk.objects.exclude(start_time__year=2050)
+        .annotate(date=TruncDate("start_time"))
+        .values_list("date", flat=True)
+        .distinct()
+        .order_by("date")
+    )
+    if not user.is_superuser:
+        date_qs = date_qs.filter(
+            Q(event__isnull=True) | Q(event__in=user.events.all()),
+        )
+    available_dates: list[date] = list(date_qs)
+
+    # Resolve selected date ---------------------------------------------------
+    selected_date = _parse_schedule_date(request.GET.get("date"))
+    if selected_date not in available_dates:
+        selected_date = available_dates[0] if available_dates else None
+
+    # Talks for the day -------------------------------------------------------
+    talks: list[Talk] = []
+    rooms: list[Room] = []
+    time_slots: list[datetime] = []
+    grid: dict[datetime, dict[int, Talk]] = {}
+
+    if selected_date:
+        talks_qs = (
+            Talk.objects.filter(start_time__date=selected_date)
+            .exclude(start_time__year=2050)
+            .select_related("room")
+            .prefetch_related("speakers")
+            .defer("description", "abstract")
+            .order_by("start_time", "room__name")
+        )
+        if not user.is_superuser:
+            talks_qs = talks_qs.filter(
+                Q(event__isnull=True) | Q(event__in=user.events.all()),
+            )
+        talks = list(talks_qs)
+
+        # Unique rooms that have talks on this day, ordered by name
+        room_ids_seen: set[int] = set()
+        rooms_list: list[Room] = []
+        for t in talks:
+            if t.room and t.room_id not in room_ids_seen:  # type: ignore[attr-defined]
+                room_ids_seen.add(t.room_id)  # type: ignore[attr-defined]
+                rooms_list.append(t.room)
+        rooms = sorted(rooms_list, key=lambda r: r.name)
+
+        # Build grid: {start_time: {room_id: Talk}}
+        grid_dd: dict[datetime, dict[int, Talk]] = defaultdict(dict)
+        for t in talks:
+            if t.room:
+                grid_dd[t.start_time][t.room_id] = t  # type: ignore[attr-defined]
+        # Sorted time slots
+        time_slots = sorted(grid_dd)
+        grid = dict(grid_dd)
+
+    # Saved talk IDs for bookmark icons
+    saved_talk_ids: set[int] = set()
+    if request.user.is_authenticated:
+        saved_talk_ids = set(
+            SavedTalk.objects.filter(user=request.user).values_list("talk_id", flat=True),
+        )
+
+    # Check if there are multiple years
+    years = {d.year for d in available_dates}
+    has_multiple_years = len(years) > 1
+
+    context = {
+        "available_dates": available_dates,
+        "selected_date": selected_date,
+        "has_multiple_years": has_multiple_years,
+        "rooms": rooms,
+        "time_slots": time_slots,
+        "grid": grid,
+        "talks": talks,
+        "saved_talk_ids": saved_talk_ids,
+    }
+    return render(request, "talks/schedule.html", context)
