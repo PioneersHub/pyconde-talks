@@ -147,10 +147,10 @@ class CustomUser(AbstractUser):
 
     username = None  # type: ignore[assignment]
     email = models.EmailField(
-        "email address",
+        _("email address"),
         unique=True,
         error_messages={
-            "unique": "A user with that email already exists.",
+            "unique": _("A user with that email already exists."),
         },
     )
     display_name = models.CharField(
@@ -180,8 +180,8 @@ class CustomUser(AbstractUser):
     class Meta:
         """Metadata for CustomUser model."""
 
-        verbose_name = "user"
-        verbose_name_plural = "users"
+        verbose_name = _("user")
+        verbose_name_plural = _("users")
 
     def __str__(self) -> str:
         """Return string representation of the user."""
