@@ -8,6 +8,7 @@ from .views import (
     dashboard_stats,
     get_talk_rating_stats,
     rate_talk,
+    schedule_view,
     talk_redirect_view,
     toggle_save_talk,
     upcoming_talks,
@@ -27,6 +28,7 @@ from .views_qa import (
 
 urlpatterns = [
     path("", TalkListView.as_view(), name="talk_list"),
+    path("schedule/", schedule_view, name="schedule"),
     path("<int:pk>/", TalkDetailView.as_view(), name="talk_detail"),
     path("dashboard-stats/", dashboard_stats, name="dashboard_stats"),
     path("upcoming-talks/", upcoming_talks, name="upcoming_talks"),

@@ -11,6 +11,10 @@
              class="btn-primary inline-flex items-center px-4 py-2 rounded-lg">
             {% svg 'rectangle-stack' "w-4 h-4 mr-2" %} Browse Talks
           </a>
+          <a href="{% url 'schedule' %}"
+             class="btn-secondary inline-flex items-center px-4 py-2 rounded-lg">
+            {% svg 'calendar' "w-4 h-4 mr-2" %} Schedule
+          </a>
           <a href="{% url 'account_logout' %}" class="btn-outline-primary">Sign Out</a>
         </div>
       </div>

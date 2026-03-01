@@ -6,6 +6,15 @@
 {% load saved_tags %}
 {% block content %}
   <div class="max-w-4xl mx-auto p-4">
+    <!-- Header with schedule link -->
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-2xl font-bold text-heading">Talks</h1>
+      <a href="{% url 'schedule' %}"
+         class="btn-secondary inline-flex items-center px-3 py-1 rounded">
+        {% svg 'calendar' "h-4 w-4 mr-1" %}
+        Schedule view
+      </a>
+    </div>
     <!-- Search -->
     <div class="card-compact mb-4">
       <form id="search-form"
