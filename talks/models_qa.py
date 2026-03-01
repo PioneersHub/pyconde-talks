@@ -259,7 +259,6 @@ class QuestionVote(models.Model):
         verbose_name = _("Question Vote")
         verbose_name_plural = _("Question Votes")
         indexes: ClassVar[list[models.Index]] = [
-            models.Index(fields=["question"]),
             models.Index(fields=["user"]),
         ]
         constraints: ClassVar[list[models.UniqueConstraint]] = [
