@@ -2,10 +2,9 @@
 {% load svg_tags %}
 {% load saved_tags %}
 {% load rating_tags %}
-{% load schedule_tags %}
 {% block content %}
   <div class="max-w-7xl mx-auto p-4">
-    <!-- Header -->
+    {# ── Header ────────────────────────────────────────────── #}
     <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
       <h1 class="text-2xl font-bold text-heading">Schedule</h1>
       <a href="{% url 'talk_list' %}"
@@ -14,8 +13,8 @@
         List view
       </a>
     </div>
-    <!-- Day picker -->
-    <div class="flex flex-wrap gap-2 mb-6">
+    {# ── Day picker ────────────────────────────────────────── #}
+    <div class="flex flex-wrap gap-2 mb-4">
       {% for d in available_dates %}
         <a href="?date={{ d|date:'Y-m-d' }}"
            class="px-4 py-2 rounded-lg font-medium text-sm transition-colors {% if d == selected_date %}bg-brand-blue text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
@@ -29,55 +28,90 @@
         <span class="text-subtle">No scheduled days found.</span>
       {% endfor %}
     </div>
-    {% if time_slots %}
-      <!-- Schedule grid — horizontal scroll on small screens -->
-      <div class="overflow-x-auto">
-        <table class="w-full border-collapse min-w-[640px]">
-          <thead>
-            <tr>
-              <th class="sticky left-0 z-10 bg-gray-100 px-3 py-2 text-left text-xs font-semibold text-subtle uppercase tracking-wider w-20">
-                Time
-              </th>
-              {% for room in rooms %}
-                <th class="bg-gray-100 px-3 py-2 text-center text-xs font-semibold text-subtle uppercase tracking-wider">
-                  {{ room.name }}
-                </th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for slot in time_slots %}
-              <tr class="border-t border-gray-200 align-top">
-                <td class="sticky left-0 z-10 bg-white px-3 py-2 text-sm font-medium text-muted whitespace-nowrap w-20">
-                  {{ slot|date:"G:i" }}
-                </td>
-                {% for room in rooms %}
-                  <td class="px-2 py-2">
-                    {% schedule_cell grid slot room.id as talk %}
-                    {% if talk %}
-                      <a href="{% url 'talk_detail' talk.pk %}"
-                         class="block rounded-lg p-3 text-sm transition-colors hover:ring-2 hover:ring-blue-300 h-full {% if talk.is_current %}bg-orange-50 border-l-4 border-orange-400{% elif talk.is_upcoming %}bg-blue-50 border-l-4 border-blue-400{% else %}bg-gray-50 border-l-4 border-gray-300{% endif %}">
-                        <div class="font-semibold text-heading leading-tight mb-1">{{ talk.title }}</div>
-                        <div class="text-xs text-muted mb-1">{{ talk.speaker_names }}</div>
-                        <div class="flex flex-wrap gap-1 mt-1">
-                          <span class="badge badge-green text-[10px]">{{ talk.get_presentation_type_display }}</span>
-                          {% if talk.duration %}
-                            <span class="badge badge-gray text-[10px]">{{ talk.duration|stringformat:"s" }}</span>
-                          {% endif %}
-                        </div>
-                        {% if talk.pk|is_in:saved_talk_ids %}
-                          <div class="mt-1 text-yellow-500">{% svg 'bookmark-solid' "h-3.5 w-3.5 inline" %}</div>
-                        {% endif %}
-                      </a>
+    {# ── Filters ───────────────────────────────────────────── #}
+    {% if schedule_items %}
+      <form id="schedule-filters"
+            method="get"
+            class="flex flex-wrap gap-3 items-center mb-4 card-compact">
+        {# preserve selected date #}
+        {% if selected_date %}<input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}" />{% endif %}
+        <input type="search"
+               name="q"
+               value="{{ search_query }}"
+               placeholder="Search talks…"
+               class="form-input w-60"
+               aria-label="Search schedule" />
+        <label class="inline-flex items-center gap-1 cursor-pointer select-none">
+          <input type="checkbox"
+                 name="saved"
+                 value="1"
+                 {% if filter_saved == "1" %}checked{% endif %}
+                 onchange="this.form.submit()" />
+          <span>{% svg 'bookmark-solid' "h-4 w-4 inline text-yellow-500" %} Saved only</span>
+        </label>
+        <button type="submit" class="btn-secondary px-3 py-1 rounded text-sm">Filter</button>
+        {% if search_query or filter_saved %}
+          <a href="?date={{ selected_date|date:'Y-m-d' }}"
+             class="text-sm text-brand-blue hover:underline">Clear</a>
+        {% endif %}
+      </form>
+    {% endif %}
+    {# ── CSS Grid Schedule ─────────────────────────────────── #}
+    {% if schedule_items %}
+      <div class="overflow-x-auto pb-4">
+        <div class="schedule-grid"
+             style="display:grid;
+                    grid-template-columns: 64px repeat({{ rooms|length }}, minmax(160px, 1fr));
+                    grid-template-rows: auto {{ grid_template_rows }};
+                    min-width: min-content;
+                    gap: 0">
+          {# ── Room headers (row 1) ──────────── #}
+          <div class="sticky top-0 z-20 bg-gray-100 border-b border-gray-300 px-2 py-2"
+               style="grid-column: 1;
+                      grid-row: 1"></div>
+          {% for room in rooms %}
+            <div class="sticky top-0 z-20 bg-gray-100 border-b border-gray-300 px-3 py-2 text-center text-xs font-semibold text-subtle uppercase tracking-wider"
+                 style="grid-column: {{ forloop.counter|add:1 }};
+                        grid-row: 1">{{ room.name }}</div>
+          {% endfor %}
+          {# ── Time labels (first column) ──────────── #}
+          {% for label in time_labels %}
+            <div class="sticky left-0 z-10 bg-gray-50 border-t border-gray-200 px-2 pt-1 text-xs font-medium text-muted whitespace-nowrap text-center"
+                 style="grid-row: {{ label.name }};
+                        grid-column: 1">{{ label.display }}</div>
+          {% endfor %}
+          {# ── Talk cards ──────────────────────────── #}
+          {% for item in schedule_items %}
+            {% with talk=item.talk %}
+              <div class="relative m-1 rounded-lg text-sm transition-shadow hover:shadow-md hover:ring-2 hover:ring-blue-300 overflow-hidden {% if talk.is_current %}bg-orange-50 border-l-4 border-orange-400{% elif talk.is_upcoming %}bg-blue-50 border-l-4 border-blue-400{% else %}bg-gray-50 border-l-4 border-gray-300{% endif %}"
+                   style="grid-area: {{ item.grid_area }}">
+                <a href="{% url 'talk_detail' talk.pk %}" class="block p-3 pr-10 h-full">
+                  <div class="font-semibold text-heading leading-tight mb-1 line-clamp-2">{{ talk.title }}</div>
+                  <div class="text-xs text-muted mb-1">{{ talk.speaker_names }}</div>
+                  <div class="flex flex-wrap gap-1 mt-1">
+                    <span class="badge badge-green text-[10px]">{{ talk.get_presentation_type_display }}</span>
+                    {% if item.duration_min %}<span class="badge badge-gray text-[10px]">{{ item.duration_min }}min</span>{% endif %}
+                  </div>
+                </a>
+                {# ── Bookmark toggle button ──────── #}
+                <div class="absolute top-1 right-1" id="sched-save-{{ talk.pk }}">
+                  <button hx-post="{% url 'toggle_save_talk' talk.pk %}"
+                          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                          hx-target="#sched-save-{{ talk.pk }}"
+                          hx-swap="innerHTML"
+                          class="p-1 rounded hover:bg-black/10 transition-colors {% if talk.pk|is_in:saved_talk_ids %}text-yellow-500{% else %}text-gray-400{% endif %}"
+                          title="{% if talk.pk|is_in:saved_talk_ids %}Remove bookmark{% else %}Bookmark talk{% endif %}">
+                    {% if talk.pk|is_in:saved_talk_ids %}
+                      {% svg 'bookmark-solid' "h-4 w-4" %}
                     {% else %}
-                      <div class="h-full"></div>
+                      {% svg 'bookmark' "h-4 w-4" %}
                     {% endif %}
-                  </td>
-                {% endfor %}
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+                  </button>
+                </div>
+              </div>
+            {% endwith %}
+          {% endfor %}
+        </div>
       </div>
     {% else %}
       <div class="bg-surface p-6 rounded text-center text-subtle">
