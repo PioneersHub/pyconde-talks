@@ -69,8 +69,22 @@ class QuestionListView(LoginRequiredMixin, ListView[Question]):
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Enhance the template context with additional data."""
         context = super().get_context_data(**kwargs)
-        built = build_question_list_context(self.request, self.talk, self.status_filter)
-        context.update(built)
+
+        # Annotate user_voted on the already-fetched object_list instead of re-querying
+        questions = context["questions"]
+        if self.request.user.is_authenticated:
+            user_voted_questions = set(
+                QuestionVote.objects.filter(
+                    user=self.request.user,
+                    question__talk=self.talk,
+                ).values_list("question_id", flat=True),
+            )
+            for q in questions:
+                q.user_voted = q.pk in user_voted_questions
+
+        context["talk"] = self.talk
+        context["user_can_moderate"] = is_moderator(self.request.user)
+        context["status_filter"] = self.status_filter
         return context
 
 
