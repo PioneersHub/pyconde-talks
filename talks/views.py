@@ -20,7 +20,15 @@ from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView
 
-from .models import COMMENT_MAX_LENGTH, MAX_RATING_SCORE, MIN_RATING_SCORE, Rating, Room, Talk
+from .models import (
+    COMMENT_MAX_LENGTH,
+    MAX_RATING_SCORE,
+    MIN_RATING_SCORE,
+    Rating,
+    Room,
+    SavedTalk,
+    Talk,
+)
 from .utils import get_talk_by_id_or_pretalx
 
 
@@ -71,6 +79,10 @@ class TalkDetailView(LoginRequiredMixin, DetailView[Talk]):
                 talk=talk,
                 user=self.request.user,
             ).first()
+            context["is_saved"] = SavedTalk.objects.filter(
+                talk=talk,
+                user=self.request.user,
+            ).exists()
 
         return context
 
@@ -125,7 +137,7 @@ class TalkListView(LoginRequiredMixin, ListView[Talk]):
         return queryset.order_by("start_time")
 
     def _apply_list_filters(self, queryset: QuerySet[Talk]) -> QuerySet[Talk]:
-        """Apply room, date, track, and presentation type filters from GET params."""
+        """Apply room, date, track, presentation type, and saved filters from GET params."""
         filters: dict[str, str | None] = {
             "room_id": self.request.GET.get("room"),
             "start_time__date": self.request.GET.get("date"),
@@ -133,7 +145,16 @@ class TalkListView(LoginRequiredMixin, ListView[Talk]):
             "presentation_type": self.request.GET.get("presentation_type"),
         }
         active = {k: v for k, v in filters.items() if v}
-        return queryset.filter(**active) if active else queryset
+        if active:
+            queryset = queryset.filter(**active)
+
+        # Filter by saved talks
+        if self.request.GET.get("saved") == "1":
+            queryset = queryset.filter(
+                saved_by__user=self.request.user,
+            )
+
+        return queryset
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Enhance the template context with filter options and selected values."""
@@ -174,6 +195,15 @@ class TalkListView(LoginRequiredMixin, ListView[Talk]):
         context["selected_type"] = self.request.GET.get("presentation_type", "")
         context["search_query"] = self.request.GET.get("q", "")
         context["search_in"] = self.request.GET.getlist("search_in") or ["all"]
+        context["filter_saved"] = self.request.GET.get("saved", "")
+
+        # Build a set of saved talk IDs for the current user
+        if self.request.user.is_authenticated:
+            context["saved_talk_ids"] = set(
+                SavedTalk.objects.filter(user=self.request.user).values_list("talk_id", flat=True),
+            )
+        else:
+            context["saved_talk_ids"] = set()
 
         return context
 
@@ -386,3 +416,38 @@ def get_talk_rating_stats(request: HttpRequest, talk_id: int) -> JsonResponse:
             "user_rating": user_rating,
         },
     )
+
+
+@login_required
+@require_POST
+def toggle_save_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
+    """
+    Toggle a talk's saved/bookmarked status for the current user.
+
+    If the talk is already saved, it removes the saved status. Otherwise, it saves the talk.
+    Returns an HTMX partial with the updated bookmark button.
+    """
+    talk = get_object_or_404(Talk, pk=talk_id)
+    saved_talk, created = SavedTalk.objects.get_or_create(
+        user=request.user,
+        talk=talk,
+    )
+
+    if not created:
+        saved_talk.delete()
+
+    is_saved = created
+    is_htmx = request.headers.get("HX-Request") == "true"
+
+    if is_htmx:
+        return render(
+            request,
+            "talks/partials/save_button.html",
+            {"talk": talk, "is_saved": is_saved},
+        )
+
+    if is_saved:
+        messages.success(request, "Talk saved!")
+    else:
+        messages.info(request, "Talk removed from saved.")
+    return redirect("talk_detail", pk=talk_id)

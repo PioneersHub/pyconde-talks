@@ -9,6 +9,7 @@ from .views import (
     get_talk_rating_stats,
     rate_talk,
     talk_redirect_view,
+    toggle_save_talk,
     upcoming_talks,
 )
 from .views_qa import (
@@ -32,6 +33,8 @@ urlpatterns = [
     # Rating URLs
     path("<int:talk_id>/rate/", rate_talk, name="rate_talk"),
     path("<int:talk_id>/rating-stats/", get_talk_rating_stats, name="talk_rating_stats"),
+    # Save/Bookmark URLs
+    path("<int:talk_id>/save/", toggle_save_talk, name="toggle_save_talk"),
     path("<str:talk_id>/", talk_redirect_view, name="talk_redirect"),
     # Q&A URLs
     path("<int:talk_id>/questions/", QuestionListView.as_view(), name="talk_questions"),
