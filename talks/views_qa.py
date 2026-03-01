@@ -299,8 +299,7 @@ class QuestionOwnerRequiredMixin(UserPassesTestMixin):
     def test_func(self) -> bool:
         """Return True if the current user is the owner of the target question."""
         question_id = self.kwargs.get("question_id")
-        question = get_object_or_404(Question, pk=question_id)
-        return question.user == self.request.user
+        return Question.objects.filter(pk=question_id, user=self.request.user).exists()
 
 
 class QuestionUpdateView(
