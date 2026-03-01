@@ -1,4 +1,4 @@
-{% load svg_tags rating_tags %}
+{% load svg_tags rating_tags saved_tags %}
 <div class="card">
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-xl font-bold">Coming Up Next</h2>
@@ -10,8 +10,23 @@
         <div class="relative card-bordered hover:shadow-md transition-shadow">
           <!-- Time indicator strip -->
           <div class="absolute left-0 top-0 bottom-0 w-1.5 status-bar-upcoming"></div>
+          {# ── Bookmark toggle button ──────── #}
+          <div class="absolute top-1 right-1 z-10" id="sched-save-{{ talk.pk }}">
+            <button hx-post="{% url 'toggle_save_talk' talk.pk %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-target="#sched-save-{{ talk.pk }}"
+                    hx-swap="innerHTML"
+                    class="p-1 rounded hover:bg-black/10 transition-colors {% if talk.pk|is_in:saved_talk_ids %}text-yellow-500{% else %}text-gray-400{% endif %}"
+                    title="{% if talk.pk|is_in:saved_talk_ids %}Remove bookmark{% else %}Bookmark talk{% endif %}">
+              {% if talk.pk|is_in:saved_talk_ids %}
+                {% svg 'bookmark-solid' "h-4 w-4" %}
+              {% else %}
+                {% svg 'bookmark' "h-4 w-4" %}
+              {% endif %}
+            </button>
+          </div>
           <!-- Time and day badges -->
-          <div class="absolute right-2 top-2 flex flex-col gap-1 items-end">
+          <div class="absolute right-2 top-8 flex flex-col gap-1 items-end">
             {% now "Y-m-d" as today %}
             {% with talk_date=talk.start_time|date:"Y-m-d" %}
               {% if talk_date == today %}
