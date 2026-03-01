@@ -383,7 +383,7 @@
   background-color: color-mix(in srgb, #1e3a5f 30%, #1f2937);
 }
 .dark .schedule-grid .bg-gray-50:not(.sticky) {
-  background-color: rgba(31, 41, 55, 0.5);
+  background-color: #1f2937;
 }
 /* Schedule day picker */
 .dark a.bg-gray-100 {
