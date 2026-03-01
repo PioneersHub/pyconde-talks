@@ -42,7 +42,7 @@
   <body class="app-body">
     <nav class="app-nav">
       <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
-        <a href="{% url 'home' %}" aria-label="Home">{% svg brand_logo_svg_name "w-25 h-20 header-logo" %}</a>
+        <a href="{% url 'home' %}"><span class="sr-only">Home</span>{% svg brand_logo_svg_name "w-25 h-20 header-logo" %}</a>
         {% if user.is_authenticated %}
           <span>
             {{ user.email }} |
