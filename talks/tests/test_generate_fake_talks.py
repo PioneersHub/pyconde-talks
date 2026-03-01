@@ -13,10 +13,15 @@ from model_bakery import baker
 
 from events.models import Event
 from talks.management.commands.generate_fake_talks import (
+    _ROOM_CLI_KEYS,
+    _ROOM_CONFIGS,
     KEYNOTE_DURATION_MIN,
+    SLOT_ALIGNMENT_MINUTES,
     TALK_SHORT_DURATIONS_MIN,
     TUTORIAL_DURATIONS_MIN,
     Command,
+    RoomAvailability,
+    RoomConfig,
 )
 from talks.models import Room, Speaker, Streaming, Talk
 
@@ -127,8 +132,7 @@ class TestBuildPretalxLink:
             pretalx_url="https://pretalx.com/berlin2099",
             is_active=True,
         )
-        command._event_obj = event
-        result = command._build_pretalx_link(fake)
+        result = command._build_pretalx_link(fake, event)
         assert result.startswith("https://pretalx.com/berlin2099/talk/")
 
     @pytest.mark.django_db
@@ -141,8 +145,7 @@ class TestBuildPretalxLink:
             pretalx_url="https://custom.pretalx.com/demo-event",
             is_active=True,
         )
-        command._event_obj = event
-        result = command._build_pretalx_link(fake)
+        result = command._build_pretalx_link(fake, event)
         assert result.startswith("https://custom.pretalx.com/demo-event/talk/")
 
 
@@ -350,9 +353,11 @@ class TestCreateRooms:
     def test_creates_rooms(self, command: Command) -> None:
         """Create plenary, talk, and tutorial rooms from the given name lists."""
         rooms = command._create_rooms(
-            rooms_plenary=["Spec"],
-            rooms_talks=["Talk1", "Talk2"],
-            rooms_tutorials=["Tut1"],
+            {
+                "plenary": ["Spec"],
+                "talks": ["Talk1", "Talk2"],
+                "tutorials": ["Tut1"],
+            },
         )
         assert len(rooms["plenary"]) == 1
         assert len(rooms["talks"]) == 2
@@ -363,9 +368,11 @@ class TestCreateRooms:
         """Reuse an existing Room instead of creating a duplicate."""
         baker.make(Room, name="Spec")
         rooms = command._create_rooms(
-            rooms_plenary=["Spec"],
-            rooms_talks=[],
-            rooms_tutorials=[],
+            {
+                "plenary": ["Spec"],
+                "talks": [],
+                "tutorials": [],
+            },
         )
         assert len(rooms["plenary"]) == 1
         assert Room.objects.filter(name="Spec").count() == 1
@@ -438,7 +445,7 @@ class TestBuildSpecialSlots:
         )
         assert len(slots) == 3
         # Second slot should have the forced room
-        assert slots[1]["room"] == room
+        assert slots[1].room == room
 
     def test_talk_count_limits_slots(self, command: Command) -> None:
         """Cap the number of special slots to the total requested talk count."""
@@ -506,6 +513,272 @@ class TestCreateStreamingSessions:
 
 
 # ---------------------------------------------------------------------------
+# RoomAvailability
+# ---------------------------------------------------------------------------
+@pytest.mark.django_db
+class TestRoomAvailability:
+    """Verify RoomAvailability tracks free intervals and picks slots correctly."""
+
+    def _make_availability(
+        self,
+        room_names: list[str],
+        *,
+        days: int = 1,
+    ) -> tuple[RoomAvailability, dict[str, list[Room]]]:
+        """Create rooms + an availability tracker for use in tests."""
+        rooms_list = [baker.make(Room, name=n) for n in room_names]
+        rooms_dict: dict[str, list[Room]] = {"talks": rooms_list, "plenary": [], "tutorials": []}
+        base_time = timezone.make_aware(
+            datetime.combine(timezone.localtime().date(), time(9, 0)),
+            timezone.get_current_timezone(),
+        )
+        avail = RoomAvailability(rooms_dict, base_time, days=days)
+        return avail, rooms_dict
+
+    def test_find_slot_returns_valid_slot(self) -> None:
+        """find_slot returns a (room, start_time) inside the conference day."""
+        avail, rooms_dict = self._make_availability(["R1"])
+        result = avail.find_slot(rooms_dict["talks"], timedelta(minutes=30))
+        assert result is not None
+        room, start = result
+        assert room == rooms_dict["talks"][0]
+        assert start.minute % SLOT_ALIGNMENT_MINUTES == 0
+
+    def test_find_slot_returns_none_when_full(self) -> None:
+        """find_slot returns None when no interval can fit the requested duration."""
+        avail, rooms_dict = self._make_availability(["R1"], days=1)
+        room = rooms_dict["talks"][0]
+        # Fill the entire day with one big reservation
+        base = timezone.make_aware(
+            datetime.combine(timezone.localtime().date(), time(9, 0)),
+            timezone.get_current_timezone(),
+        )
+        avail.reserve(room, base, timedelta(hours=8, minutes=30))
+        result = avail.find_slot([room], timedelta(minutes=30))
+        assert result is None
+
+    def test_reserve_splits_interval(self) -> None:
+        """Reserving in the middle of an interval creates two smaller ones."""
+        avail, rooms_dict = self._make_availability(["R1"])
+        room = rooms_dict["talks"][0]
+        base = timezone.make_aware(
+            datetime.combine(timezone.localtime().date(), time(9, 0)),
+            timezone.get_current_timezone(),
+        )
+        avail.reserve(room, base + timedelta(hours=2), timedelta(minutes=30))
+        intervals = avail._free[room.pk]
+        # Should have two intervals: before and after the reservation
+        assert len(intervals) == 2
+        assert intervals[0][1] == base + timedelta(hours=2)
+        assert intervals[1][0] == base + timedelta(hours=2, minutes=30)
+
+    def test_reserve_at_start_of_interval(self) -> None:
+        """Reserving at the very start leaves only the tail."""
+        avail, rooms_dict = self._make_availability(["R1"])
+        room = rooms_dict["talks"][0]
+        base = timezone.make_aware(
+            datetime.combine(timezone.localtime().date(), time(9, 0)),
+            timezone.get_current_timezone(),
+        )
+        avail.reserve(room, base, timedelta(minutes=45))
+        intervals = avail._free[room.pk]
+        assert len(intervals) == 1
+        assert intervals[0][0] == base + timedelta(minutes=45)
+
+    def test_consecutive_reservations_dont_conflict(self) -> None:
+        """Two back-to-back reservations leave a gap between them."""
+        avail, rooms_dict = self._make_availability(["R1"])
+        room = rooms_dict["talks"][0]
+        base = timezone.make_aware(
+            datetime.combine(timezone.localtime().date(), time(9, 0)),
+            timezone.get_current_timezone(),
+        )
+        avail.reserve(room, base, timedelta(minutes=30))
+        avail.reserve(room, base + timedelta(minutes=30), timedelta(minutes=30))
+        # Should still be able to find a slot after both
+        result = avail.find_slot([room], timedelta(minutes=30))
+        assert result is not None
+        _, start = result
+        assert start >= base + timedelta(hours=1)
+
+    def test_aligned_starts_skips_unaligned_start(self) -> None:
+        """Aligned starts from a :45 boundary should snap to the next :00."""
+        base = timezone.make_aware(
+            datetime.combine(timezone.localtime().date(), time(9, 45)),
+            timezone.get_current_timezone(),
+        )
+        end = base + timedelta(hours=2)
+        starts = RoomAvailability._aligned_starts(base, end, timedelta(minutes=30))
+        assert all(s.minute % SLOT_ALIGNMENT_MINUTES == 0 for s in starts)
+        assert starts[0].minute == 0  # snaps to 10:00
+
+
+# ---------------------------------------------------------------------------
+# _clamp_probability
+# ---------------------------------------------------------------------------
+class TestClampProbability:
+    """Verify _clamp_probability constrains values to the [0, 1] range."""
+
+    def test_within_range(self) -> None:
+        """Values already inside [0, 1] are returned unchanged."""
+        assert Command._clamp_probability(0.5) == 0.5
+
+    def test_below_zero(self) -> None:
+        """Negative values are clamped to 0.0."""
+        assert Command._clamp_probability(-0.5) == 0.0
+
+    def test_above_one(self) -> None:
+        """Values above 1.0 are clamped to 1.0."""
+        assert Command._clamp_probability(1.5) == 1.0
+
+    def test_boundaries(self) -> None:
+        """Exact boundary values 0.0 and 1.0 are returned as-is."""
+        assert Command._clamp_probability(0.0) == 0.0
+        assert Command._clamp_probability(1.0) == 1.0
+
+
+# ---------------------------------------------------------------------------
+# _find_streaming_session
+# ---------------------------------------------------------------------------
+@pytest.mark.django_db
+class TestFindStreamingSession:
+    """Verify _find_streaming_session locates a covering session or returns None."""
+
+    def test_returns_covering_session(self) -> None:
+        """Return the streaming session whose time range covers the given datetime."""
+        room = baker.make(Room, name="FS1")
+        now = timezone.now()
+        streaming = baker.make(
+            Streaming,
+            room=room,
+            start_time=now - timedelta(hours=1),
+            end_time=now + timedelta(hours=1),
+            video_link="https://vimeo.com/123",
+        )
+        by_room: dict[int, list[Streaming]] = {room.pk: [streaming]}
+        result = Command._find_streaming_session(by_room, room, now)
+        assert result == streaming
+
+    def test_returns_none_outside_range(self) -> None:
+        """Return None when the datetime is outside all streaming windows."""
+        room = baker.make(Room, name="FS2")
+        now = timezone.now()
+        streaming = baker.make(
+            Streaming,
+            room=room,
+            start_time=now + timedelta(hours=1),
+            end_time=now + timedelta(hours=2),
+            video_link="https://vimeo.com/456",
+        )
+        by_room: dict[int, list[Streaming]] = {room.pk: [streaming]}
+        result = Command._find_streaming_session(by_room, room, now)
+        assert result is None
+
+    def test_returns_none_for_unknown_room(self) -> None:
+        """Return None when no streaming records exist for the room."""
+        room = baker.make(Room, name="FS3")
+        result = Command._find_streaming_session({}, room, timezone.now())
+        assert result is None
+
+
+# ---------------------------------------------------------------------------
+# _assign_speakers
+# ---------------------------------------------------------------------------
+@pytest.mark.django_db
+class TestAssignSpeakers:
+    """Verify _assign_speakers attaches 1-3 speakers to a talk."""
+
+    def test_assigns_speakers(self) -> None:
+        """Attach at least one speaker from the pool to the talk."""
+        room = baker.make(Room, name="AS1")
+        talk = baker.make(Talk, room=room)
+        speakers = [baker.make(Speaker) for _ in range(5)]
+        count = Command._assign_speakers(talk, speakers)
+        assert 1 <= count <= 3
+        assert talk.speakers.count() == count
+
+    def test_handles_small_pool(self) -> None:
+        """Clamp to pool size when pool has fewer speakers than requested."""
+        room = baker.make(Room, name="AS2")
+        talk = baker.make(Talk, room=room)
+        speakers = [baker.make(Speaker)]
+        count = Command._assign_speakers(talk, speakers)
+        assert count == 1
+
+
+# ---------------------------------------------------------------------------
+# _parse_base_time
+# ---------------------------------------------------------------------------
+class TestParseBaseTime:
+    """Verify _parse_base_time converts date strings to timezone-aware datetimes."""
+
+    def test_valid_date(self) -> None:
+        """Parse a valid YYYY-MM-DD string into a 09:00 aware datetime."""
+        result = Command._parse_base_time("2025-06-15")
+        assert result.hour == 9
+        assert result.minute == 0
+        assert result.day == 15
+        assert result.month == 6
+        assert result.year == 2025
+        assert result.tzinfo is not None
+
+    def test_invalid_date_raises(self) -> None:
+        """Raise ValueError for a malformed date string."""
+        with pytest.raises(ValueError, match="YYYY-MM-DD"):
+            Command._parse_base_time("not-a-date")
+
+
+# ---------------------------------------------------------------------------
+# _parse_room_names
+# ---------------------------------------------------------------------------
+class TestParseRoomNames:
+    """Verify _parse_room_names splits comma-separated room names by category."""
+
+    def test_all_categories(self) -> None:
+        """Parse room names for all three categories from CLI-style options."""
+        options = {
+            "rooms_plenary": "Spectrum",
+            "rooms_talks": "Titanium,Helium",
+            "rooms_tutorials": "Ferrum",
+        }
+        result = Command._parse_room_names(options)
+        assert result == {
+            "plenary": ["Spectrum"],
+            "talks": ["Titanium", "Helium"],
+            "tutorials": ["Ferrum"],
+        }
+
+    def test_strips_whitespace(self) -> None:
+        """Strip leading/trailing whitespace from each room name."""
+        options = {
+            "rooms_plenary": " A , B ",
+            "rooms_talks": "C",
+            "rooms_tutorials": "",
+        }
+        result = Command._parse_room_names(options)
+        assert result["plenary"] == ["A", "B"]
+        assert result["tutorials"] == []
+
+
+# ---------------------------------------------------------------------------
+# RoomConfig / _ROOM_CONFIGS / _ROOM_CLI_KEYS
+# ---------------------------------------------------------------------------
+class TestRoomConfigConstants:
+    """Verify the module-level room configuration constants are well-formed."""
+
+    def test_room_configs_have_valid_fields(self) -> None:
+        """Each RoomConfig has a non-empty description and min <= max capacity."""
+        for key, cfg in _ROOM_CONFIGS.items():
+            assert isinstance(cfg, RoomConfig), f"_ROOM_CONFIGS[{key}] is not a RoomConfig"
+            assert cfg.description, f"_ROOM_CONFIGS[{key}] has empty description"
+            assert cfg.min_capacity <= cfg.max_capacity
+
+    def test_cli_keys_match_room_configs(self) -> None:
+        """_ROOM_CLI_KEYS covers exactly the same categories as _ROOM_CONFIGS."""
+        assert set(_ROOM_CLI_KEYS.keys()) == set(_ROOM_CONFIGS.keys())
+
+
+# ---------------------------------------------------------------------------
 # Full handle integration test
 # ---------------------------------------------------------------------------
 @pytest.mark.django_db
@@ -552,3 +825,35 @@ class TestHandleCommand:
         """Test invalid date format raises ValueError."""
         with pytest.raises(ValueError, match="YYYY-MM-DD"):
             call_command("generate_fake_talks", "--date=bad-date")
+
+    def test_no_conflicting_talks_in_same_room(self) -> None:
+        """Verify that no two generated talks overlap in the same room."""
+        stdout = StringIO()
+        call_command(
+            "generate_fake_talks",
+            "--count=30",
+            "--seed=7",
+            "--days=1",
+            "--rooms-plenary=Plenary",
+            "--rooms-talks=Talk1,Talk2",
+            "--rooms-tutorials=Tut1",
+            stdout=stdout,
+        )
+        talks = list(Talk.objects.select_related("room").all())
+        # Group talks by room
+        by_room: dict[int, list[Talk]] = {}
+        for talk in talks:
+            if talk.room is not None:
+                by_room.setdefault(talk.room.pk, []).append(talk)
+
+        for room_id, room_talks in by_room.items():
+            room_talks.sort(key=lambda t: t.start_time)
+            for i in range(len(room_talks) - 1):
+                a = room_talks[i]
+                b = room_talks[i + 1]
+                a_end = a.start_time + a.duration
+                assert a_end <= b.start_time, (
+                    f"Conflict in room {room_id}: "
+                    f"'{a.title}' ends at {a_end} but "
+                    f"'{b.title}' starts at {b.start_time}"
+                )

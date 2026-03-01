@@ -1,10 +1,11 @@
 """Management command to generate fake conference talks for testing."""
-# ruff: noqa: PLR0911 PLR2004 S311
+
+# ruff: noqa: PLR0911, S311
 
 import random
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
-from typing import Any, cast
+from typing import Any, NamedTuple, cast
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
@@ -15,7 +16,9 @@ from events.models import Event
 from talks.models import Room, Speaker, Streaming, Talk
 
 
+# ---------------------------------------------------------------------------
 # Constants
+# ---------------------------------------------------------------------------
 STREAMING_COVERAGE_MINUTES = 45
 KEYNOTE_DURATION_MIN = 45
 TALK_SHORT_DURATIONS_MIN = [30, 45]
@@ -31,10 +34,141 @@ TRACKS = [
     "Programming & Software Engineering",
 ]
 
+# Start times are rounded to this granularity so the schedule is grid-aligned.
+SLOT_ALIGNMENT_MINUTES = 30
+
+# Conference day length from the base start time.
+CONFERENCE_DAY_HOURS = 8
+CONFERENCE_DAY_EXTRA_MINUTES = 30
+
+# Speaker and talk generation probabilities.
+SPEAKER_POOL_RATIO = 0.9
+AVATAR_PROBABILITY = 0.7
+HIDE_PROBABILITY = 0.1
+TALK_ROOM_STREAMING_PROBABILITY = 0.8
+TALK_ROOM_AFTERNOON_PROBABILITY = 0.6
+TUTORIAL_ROOM_STREAMING_PROBABILITY = 0.7
+
+
+class RoomConfig(NamedTuple):
+    """Description and capacity range for a room category."""
+
+    description: str
+    min_capacity: int
+    max_capacity: int
+
+
+_ROOM_CONFIGS: dict[str, RoomConfig] = {
+    "plenary": RoomConfig("Plenary room for keynotes and large events", 300, 500),
+    "talks": RoomConfig("Standard talk room", 100, 200),
+    "tutorials": RoomConfig("Room for hands-on tutorials and workshops", 30, 80),
+}
+
+# Maps room category to the CLI option key used in ``add_arguments``.
+_ROOM_CLI_KEYS: dict[str, str] = {
+    "plenary": "rooms_plenary",
+    "talks": "rooms_talks",
+    "tutorials": "rooms_tutorials",
+}
+
+
+# ---------------------------------------------------------------------------
+# Data classes
+# ---------------------------------------------------------------------------
+@dataclass
+class SpecialSlot:
+    """A time-pinned slot ensuring specific scheduling scenarios (past, live, near-future)."""
+
+    time: datetime
+    room: Room | None = None
+
+
+class RoomAvailability:
+    """
+    Track free time intervals per room for conflict-free talk placement.
+
+    Each room starts with one free interval per conference day (09:00 - 17:30).
+    ``find_slot`` picks a random available start time aligned to 30-min
+    boundaries, and ``reserve`` splits the containing interval so the time
+    cannot be reused.
+    """
+
+    def __init__(
+        self,
+        rooms: dict[str, list[Room]],
+        base_time: datetime,
+        days: int,
+    ) -> None:
+        """Initialize with full-day free intervals for every room."""
+        self._free: dict[int, list[tuple[datetime, datetime]]] = {}
+        for room_list in rooms.values():
+            for room in room_list:
+                intervals: list[tuple[datetime, datetime]] = []
+                for day in range(days):
+                    day_start = base_time + timedelta(days=day)
+                    day_end = day_start + timedelta(
+                        hours=CONFERENCE_DAY_HOURS,
+                        minutes=CONFERENCE_DAY_EXTRA_MINUTES,
+                    )
+                    intervals.append((day_start, day_end))
+                self._free[room.pk] = intervals
+
+    @staticmethod
+    def _aligned_starts(
+        iv_start: datetime,
+        iv_end: datetime,
+        duration: timedelta,
+    ) -> list[datetime]:
+        """Return 30-min-aligned start times that fit *duration* inside the interval."""
+        remainder = iv_start.minute % SLOT_ALIGNMENT_MINUTES
+        if remainder:
+            first = iv_start + timedelta(minutes=SLOT_ALIGNMENT_MINUTES - remainder)
+            first = first.replace(second=0, microsecond=0)
+        else:
+            first = iv_start.replace(second=0, microsecond=0)
+
+        results: list[datetime] = []
+        latest = iv_end - duration
+        current = first
+        while current <= latest:
+            results.append(current)
+            current += timedelta(minutes=SLOT_ALIGNMENT_MINUTES)
+        return results
+
+    def find_slot(
+        self,
+        rooms: list[Room],
+        duration: timedelta,
+    ) -> tuple[Room, datetime] | None:
+        """Pick a random available ``(room, start_time)`` that fits *duration*, or ``None``."""
+        candidates: list[tuple[Room, datetime]] = []
+        for room in rooms:
+            for iv_start, iv_end in self._free.get(room.pk, []):
+                candidates.extend(
+                    (room, start) for start in self._aligned_starts(iv_start, iv_end, duration)
+                )
+        if not candidates:
+            return None
+        return random.choice(candidates)
+
+    def reserve(self, room: Room, start: datetime, duration: timedelta) -> None:
+        """Mark ``[start, start + duration)`` as occupied by splitting free intervals."""
+        end = start + duration
+        new_intervals: list[tuple[datetime, datetime]] = []
+        for iv_start, iv_end in self._free.get(room.pk, []):
+            if iv_start < end and iv_end > start:
+                if iv_start < start:
+                    new_intervals.append((iv_start, start))
+                if iv_end > end:
+                    new_intervals.append((end, iv_end))
+            else:
+                new_intervals.append((iv_start, iv_end))
+        self._free[room.pk] = new_intervals
+
 
 @dataclass
 class TalkGenerationContext:
-    """Container for parameters needed to create a talk."""
+    """Container for shared state needed while generating talks."""
 
     fake: Faker
     base_time: datetime
@@ -46,6 +180,7 @@ class TalkGenerationContext:
     slido_prob: float
     speakers_pool: list[Speaker]
     event: Event | None
+    availability: RoomAvailability
 
 
 class Command(BaseCommand):
@@ -54,13 +189,7 @@ class Command(BaseCommand):
     help = "Generate sample conference talks for testing purposes"
 
     def add_arguments(self, parser: CommandParser) -> None:
-        """
-        Add command line arguments.
-
-        Args:
-            parser: Command line argument parser for adding custom arguments
-
-        """
+        """Add command-line arguments."""
         parser.add_argument(
             "--count",
             type=int,
@@ -82,7 +211,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--clear-existing",
             action="store_true",
-            help="Clear existing rooms, talks, speakers, and streamings before generating new ones",
+            help="Clear existing rooms, talks, speakers, and streamings before generating",
         )
         parser.add_argument(
             "--talk-video-prob",
@@ -151,10 +280,11 @@ class Command(BaseCommand):
             help="Human-readable name for the event (used when creating a new Event).",
         )
 
-    # --------------------
-    # Helper methods
-    # --------------------
-    def _select_pronouns(self, gender: Speaker.Gender) -> str:
+    # ------------------------------------------------------------------
+    # Speaker helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _select_pronouns(gender: Speaker.Gender) -> str:
         """Return pronouns string based on speaker gender."""
         match gender:
             case Speaker.Gender.MAN:
@@ -168,9 +298,10 @@ class Command(BaseCommand):
             case _:
                 return ""
 
-    def _generate_avatar_url(self, gender: Speaker.Gender) -> str:
-        """Generate an avatar URL for the speaker with a 70% chance of having one."""
-        if random.random() <= 0.3:
+    @staticmethod
+    def _generate_avatar_url(gender: Speaker.Gender) -> str:
+        """Generate an avatar URL for the speaker (70% chance of having one)."""
+        if random.random() >= AVATAR_PROBABILITY:
             return ""
         if gender == Speaker.Gender.MAN:
             return f"https://randomuser.me/api/portraits/men/{random.randint(1, 99)}.jpg"
@@ -178,17 +309,107 @@ class Command(BaseCommand):
             return f"https://randomuser.me/api/portraits/women/{random.randint(1, 99)}.jpg"
         return f"https://randomuser.me/api/portraits/lego/{random.randint(1, 8)}.jpg"
 
-    def _build_pretalx_link(self, fake: Faker) -> str:
+    def _create_speaker(self, fake: Faker, gender: Speaker.Gender) -> Speaker:
+        """Build a single ``Speaker`` instance (unsaved) for the given gender."""
+        if gender == Speaker.Gender.MAN:
+            name = fake.name_male()
+        elif gender == Speaker.Gender.WOMAN:
+            name = fake.name_female()
+        else:
+            name = fake.name()
+
+        return Speaker(
+            name=name,
+            biography=fake.text(max_nb_chars=300),
+            avatar=self._generate_avatar_url(gender),
+            gender=gender,
+            gender_self_description=(
+                fake.word().capitalize() if gender == Speaker.Gender.SELF_DESCRIBE else ""
+            ),
+            pronouns=self._select_pronouns(gender),
+            pretalx_id=fake.bothify(text="???###").upper(),
+        )
+
+    def _create_speakers_pool(self, fake: Faker, talk_count: int) -> list[Speaker]:
+        """Create a pool of speakers sized to ~90% of *talk_count* via ``bulk_create``."""
+        pool_size = int(talk_count * SPEAKER_POOL_RATIO)
+        genders = random.choices(
+            [
+                Speaker.Gender.MAN,
+                Speaker.Gender.WOMAN,
+                Speaker.Gender.NON_BINARY,
+                Speaker.Gender.GENDERQUEER,
+                Speaker.Gender.SELF_DESCRIBE,
+                Speaker.Gender.PREFER_NOT_TO_SAY,
+            ],
+            weights=[40, 40, 7, 5, 3, 5],
+            k=pool_size,
+        )
+        speakers = [self._create_speaker(fake, g) for g in genders]
+        speakers = Speaker.objects.bulk_create(speakers)
+        self.stdout.write(f"Created {len(speakers)} speakers")
+        return speakers
+
+    @staticmethod
+    def _assign_speakers(talk: Talk, speakers_pool: list[Speaker]) -> int:
+        """Attach 1-3 random speakers from the pool to the talk. Return count assigned."""
+        count = random.choices([1, 2, 3], weights=[70, 25, 5])[0]
+        selected = random.sample(speakers_pool, min(count, len(speakers_pool)))
+        for speaker in selected:
+            talk.speakers.add(speaker)
+        return len(selected)
+
+    # ------------------------------------------------------------------
+    # Link / URL helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _build_pretalx_link(fake: Faker, event: Event | None) -> str:
         """Construct a Pretalx talk link using the event's pretalx_url."""
         base_url = "https://pretalx.com/event"
-        if self._event_obj:
-            base_url = (self._event_obj.pretalx_url or base_url).rstrip("/")
+        if event:
+            base_url = (event.pretalx_url or base_url).rstrip("/")
         return f"{base_url}/talk/{fake.bothify(text='???###').upper()}"
 
-    def _build_room_slido_link(self, room_name: str) -> str:
+    @staticmethod
+    def _build_room_slido_link(room_name: str) -> str:
         """Return the default Slido link for a room name."""
         return f"https://app.sli.do/event/{room_name.lower()}"
 
+    @staticmethod
+    def _clamp_probability(value: float) -> float:
+        """Clamp *value* to the ``[0.0, 1.0]`` range."""
+        return max(0.0, min(1.0, float(value)))
+
+    @staticmethod
+    def _maybe_custom_slido(fake: Faker, probability: float = 0.3) -> str:
+        """Return a custom Slido link with the given probability (clamped to [0, 1])."""
+        if random.random() >= Command._clamp_probability(probability):
+            return ""
+        return (
+            f"https://app.sli.do/event/"
+            f"{fake.bothify(text='??????????????????????????')}"
+            f"/live/questions?m={fake.bothify(text='????#')}"
+        )
+
+    @staticmethod
+    def _maybe_custom_video(*, has_streaming: bool, probability: float = 0.3) -> str:
+        """Return a Vimeo link based on probability when streaming exists."""
+        if not has_streaming:
+            return ""
+        if random.random() >= Command._clamp_probability(probability):
+            return ""
+        return f"https://vimeo.com/{random.randint(100000000, 999999999)}"
+
+    @staticmethod
+    def _maybe_custom_video_start_time(duration: timedelta, probability: float = 0.1) -> int:
+        """Return a random start offset with given probability, else 0."""
+        if random.random() < Command._clamp_probability(probability):
+            return random.randint(0, int(duration.total_seconds() - 1))
+        return 0
+
+    # ------------------------------------------------------------------
+    # Streaming helpers
+    # ------------------------------------------------------------------
     def _preload_streaming_by_room(self) -> dict[int, list[Streaming]]:
         """Preload and sort streaming sessions per room to avoid N+1 queries."""
         streaming_by_room: dict[int, list[Streaming]] = {}
@@ -198,71 +419,176 @@ class Command(BaseCommand):
             sessions.sort(key=lambda s: (s.start_time, s.end_time))
         return streaming_by_room
 
-    def _create_speakers_pool(self, fake: Faker, talk_count: int) -> list[Speaker]:
-        """Create a pool of speakers sized to ~90% of the talk_count."""
-        speakers_pool: list[Speaker] = []
-        for _ in range(int(talk_count * 0.9)):
-            gender = random.choices(
-                [
-                    Speaker.Gender.MAN,
-                    Speaker.Gender.WOMAN,
-                    Speaker.Gender.NON_BINARY,
-                    Speaker.Gender.GENDERQUEER,
-                    Speaker.Gender.SELF_DESCRIBE,
-                    Speaker.Gender.PREFER_NOT_TO_SAY,
-                ],
-                weights=[40, 40, 7, 5, 3, 5],
-            )[0]
+    @staticmethod
+    def _find_streaming_session(
+        streaming_by_room: dict[int, list[Streaming]],
+        room: Room,
+        talk_date: datetime,
+    ) -> Streaming | None:
+        """Return the streaming session covering *talk_date* in *room*, or ``None``."""
+        for session in streaming_by_room.get(room.pk, []):
+            if session.start_time <= talk_date <= session.end_time:
+                return session
+        return None
 
-            if gender == Speaker.Gender.MAN:
-                name = fake.name_male()
-            elif gender == Speaker.Gender.WOMAN:
-                name = fake.name_female()
-            else:
-                name = fake.name()
+    def _create_plenary_sessions(self, room: Room, day_start: datetime, day: int) -> None:
+        """Create morning and afternoon streaming sessions for a plenary room."""
+        morning_start = day_start.replace(hour=9, minute=0)
+        morning_end = day_start.replace(hour=12, minute=30)
+        afternoon_start = day_start.replace(hour=13, minute=30)
+        afternoon_end = day_start.replace(hour=18, minute=0)
 
-            gender_self_description = ""
-            if gender == Speaker.Gender.SELF_DESCRIBE:
-                gender_self_description = fake.word().capitalize()
-
-            pronouns = self._select_pronouns(gender)
-            avatar_url = self._generate_avatar_url(gender)
-
-            speaker = Speaker.objects.create(
-                name=name,
-                biography=fake.text(max_nb_chars=300),
-                avatar=avatar_url,
-                gender=gender,
-                gender_self_description=gender_self_description,
-                pronouns=pronouns,
-                pretalx_id=fake.bothify(text="???###").upper(),
+        for start, end in [(morning_start, morning_end), (afternoon_start, afternoon_end)]:
+            Streaming.objects.create(
+                room=room,
+                start_time=start,
+                end_time=end,
+                video_link=self._maybe_custom_video(has_streaming=True, probability=1),
             )
-            speakers_pool.append(speaker)
-            gender_label = dict(Speaker.Gender.choices).get(gender, "")
+        self.stdout.write(f"Created streaming sessions for {room.name} on day {day + 1}")
+
+    def _create_talk_room_sessions(self, room: Room, day_start: datetime, day: int) -> None:
+        """Create streaming sessions for a talk room (80% chance, with optional afternoon)."""
+        if random.random() >= TALK_ROOM_STREAMING_PROBABILITY:
+            return
+
+        start_hour = random.choice([9, 10])
+        session_duration = random.randint(3, 5)
+        morning_start = day_start.replace(hour=start_hour, minute=0)
+        morning_end = morning_start + timedelta(hours=session_duration)
+
+        Streaming.objects.create(
+            room=room,
+            start_time=morning_start,
+            end_time=morning_end,
+            video_link=self._maybe_custom_video(has_streaming=True, probability=1),
+        )
+
+        if random.random() < TALK_ROOM_AFTERNOON_PROBABILITY:
+            afternoon_start = day_start.replace(hour=14, minute=0)
+            afternoon_end = afternoon_start + timedelta(hours=random.randint(3, 4))
+            Streaming.objects.create(
+                room=room,
+                start_time=afternoon_start,
+                end_time=afternoon_end,
+                video_link=self._maybe_custom_video(has_streaming=True, probability=1),
+            )
+
+        self.stdout.write(f"Created streaming sessions for {room.name} on day {day + 1}")
+
+    def _create_tutorial_room_sessions(self, room: Room, day_start: datetime, day: int) -> None:
+        """Create a streaming session for a tutorial room (70% chance)."""
+        if random.random() >= TUTORIAL_ROOM_STREAMING_PROBABILITY:
+            return
+
+        tutorial_start = day_start.replace(hour=random.choice([9, 13]), minute=0)
+        tutorial_end = tutorial_start + timedelta(hours=random.randint(3, 4))
+
+        Streaming.objects.create(
+            room=room,
+            start_time=tutorial_start,
+            end_time=tutorial_end,
+            video_link=self._maybe_custom_video(has_streaming=True, probability=1),
+        )
+        self.stdout.write(
+            f"Created streaming session for tutorial room {room.name} on day {day + 1}",
+        )
+
+    def _create_streaming_sessions(
+        self,
+        rooms: dict[str, list[Room]],
+        base_time: datetime,
+        *,
+        days: int,
+    ) -> None:
+        """Create streaming sessions for each room, ensuring one covers the current time."""
+        self.stdout.write("Setting up streaming sessions...")
+        Streaming.objects.all().delete()
+
+        for day in range(int(days)):
+            day_start = base_time + timedelta(days=day)
+
+            for room in rooms["plenary"]:
+                self._create_plenary_sessions(room, day_start, day)
+
+            for room in rooms["talks"]:
+                self._create_talk_room_sessions(room, day_start, day)
+
+            for room in rooms["tutorials"]:
+                self._create_tutorial_room_sessions(room, day_start, day)
+
+        self._ensure_current_streaming_coverage()
+
+    def _ensure_current_streaming_coverage(self) -> None:
+        """Guarantee at least one streaming session covers the current moment."""
+        now = timezone.now()
+        min_end_time = now + timedelta(minutes=STREAMING_COVERAGE_MINUTES)
+        has_covering = Streaming.objects.filter(
+            start_time__lte=now,
+            end_time__gte=min_end_time,
+        ).exists()
+
+        if not has_covering:
+            target_room = random.choice(list(Room.objects.all()))
+            Streaming.objects.create(
+                room=target_room,
+                start_time=now,
+                end_time=now + timedelta(minutes=STREAMING_COVERAGE_MINUTES),
+                video_link=self._maybe_custom_video(has_streaming=True, probability=1),
+            )
             self.stdout.write(
-                f"Created speaker: {speaker.name} ({gender_label}, {speaker.pronouns})",
+                f"Created {STREAMING_COVERAGE_MINUTES}-min streaming session in "
+                f"{target_room.name} covering now",
             )
 
-        return speakers_pool
+    # ------------------------------------------------------------------
+    # Room helpers
+    # ------------------------------------------------------------------
+    def _create_rooms(
+        self,
+        rooms_by_category: dict[str, list[str]],
+    ) -> dict[str, list[Room]]:
+        """Create ``Room`` objects grouped by category (plenary, talks, tutorials)."""
+        result: dict[str, list[Room]] = {}
+        for category, names in rooms_by_category.items():
+            cfg = _ROOM_CONFIGS[category]
+            result[category] = []
+            for name in names:
+                room, created = Room.objects.get_or_create(
+                    name=name,
+                    defaults={
+                        "description": cfg.description,
+                        "capacity": random.randint(cfg.min_capacity, cfg.max_capacity),
+                        "slido_link": self._build_room_slido_link(name),
+                    },
+                )
+                if created:
+                    self.stdout.write(f"Created {category} room: {name}")
+                result[category].append(room)
+        return result
 
+    # ------------------------------------------------------------------
+    # Talk scheduling
+    # ------------------------------------------------------------------
     def _build_special_slots(
         self,
         *,
         talk_count: int,
         now: datetime,
         streaming_now: Streaming,
-    ) -> list[dict[str, Any]]:
-        """Ensure we have finished, current, and near-future talks."""
+    ) -> list[SpecialSlot]:
+        """Build time-pinned slots ensuring finished, current, and near-future talks."""
         forced_streaming_room = streaming_now.room
         mid_stream_time = max(streaming_now.start_time, now)
-        special_slots: list[dict[str, Any]] = [
-            {"time": now - timedelta(hours=4)},
-            {"time": mid_stream_time, "room": forced_streaming_room},
-            {"time": now + timedelta(minutes=15)},
+        special_slots = [
+            SpecialSlot(time=now - timedelta(hours=4)),
+            SpecialSlot(time=mid_stream_time, room=forced_streaming_room),
+            SpecialSlot(time=now + timedelta(minutes=15)),
         ]
-        return special_slots[: max(0, min(len(special_slots), talk_count))]
+        return special_slots[: min(len(special_slots), talk_count)]
 
-    def _choose_presentation_type(self) -> Talk.PresentationType:
+    @staticmethod
+    def _choose_presentation_type() -> Talk.PresentationType:
         """Randomly choose a presentation type with configured weights."""
         return random.choices(
             [
@@ -276,42 +602,154 @@ class Command(BaseCommand):
             weights=[7, 2, 1, 5, 70, 15],
         )[0]
 
-    def _generate_title(self, track: str, fake: Faker) -> str:
-        """
-        Generate a realistic talk title based on the track.
+    @staticmethod
+    def _get_room_candidates_and_duration(
+        presentation_type: Talk.PresentationType,
+        rooms: dict[str, list[Room]],
+    ) -> tuple[list[Room], timedelta]:
+        """Return candidate rooms and a random duration for *presentation_type*."""
+        if presentation_type == Talk.PresentationType.KEYNOTE:
+            return rooms["plenary"], timedelta(minutes=KEYNOTE_DURATION_MIN)
+        if presentation_type == Talk.PresentationType.TALK:
+            return rooms["talks"], timedelta(
+                minutes=random.choice(TALK_SHORT_DURATIONS_MIN),
+            )
+        return rooms["tutorials"], timedelta(
+            minutes=random.choice(TUTORIAL_DURATIONS_MIN),
+        )
 
-        Args:
-            track: The conference track name
-            fake: Faker instance for generating fake data
+    @staticmethod
+    def _pick_room_and_duration(
+        *,
+        presentation_type: Talk.PresentationType,
+        rooms: dict[str, list[Room]],
+        forced_room: Room | None,
+    ) -> tuple[Room, timedelta]:
+        """Pick a specific room and duration, optionally overriding with *forced_room*."""
+        if forced_room is not None:
+            return forced_room, timedelta(minutes=random.choice(TALK_SHORT_DURATIONS_MIN))
+        candidates, duration = Command._get_room_candidates_and_duration(
+            presentation_type,
+            rooms,
+        )
+        return random.choice(candidates), duration
 
-        Returns:
-            A generated talk title appropriate for the track
+    def _resolve_slot(
+        self,
+        *,
+        ctx: TalkGenerationContext,
+        presentation_type: Talk.PresentationType,
+        special_slot: SpecialSlot | None,
+        index: int,
+        total: int,
+    ) -> tuple[Room, datetime, timedelta] | None:
+        """Find a conflict-free ``(room, start_time, duration)`` or ``None``."""
+        if special_slot is not None:
+            return self._resolve_special_slot(
+                ctx=ctx,
+                presentation_type=presentation_type,
+                special_slot=special_slot,
+                index=index,
+                total=total,
+            )
+        return self._resolve_normal_slot(
+            ctx=ctx,
+            presentation_type=presentation_type,
+            index=index,
+            total=total,
+        )
 
-        """
-        match track:
-            case track if "ML" in track or "Machine Learning" in track:
-                ml_framework = random.choice(["PyTorch", "TensorFlow", "scikit-learn"])
-                return f"Building {fake.company()} Scale {fake.bs()} using {ml_framework}"
-            case "Security":
-                return f"Securing {fake.company_suffix()} Applications from {fake.bs()}"
-            case track if "Django" in track:
-                return f"Building {fake.catch_phrase()} with Django"
-            case track if "Data" in track:
-                data_tool = random.choice(["Pandas", "Polars", "PySpark"])
-                return f"Data-driven {fake.bs()} with {data_tool}"
-            case track if "Vision" in track:
-                vision_tool = random.choice(["OpenCV", "YOLOv8", "TensorFlow"])
-                return f"Detecting {fake.bs()} with {vision_tool}"
-            case track if "NLP" in track or "Natural Language" in track:
-                action = random.choice(["Building", "Training", "Fine-tuning"])
-                model = random.choice(["GPT-4", "LLaMA", "Mistral"])
-                return f"{action} {fake.catch_phrase()} with {model}"
-            case track if "DevOps" in track:
-                artifact = random.choice(["Pipeline", "Workflow", "Automation"])
-                tool = random.choice(["Docker", "Kubernetes", "GitHub Actions"])
-                return f"{fake.bs()} {artifact} with {tool}"
-            case _:
-                return f"{fake.catch_phrase()} with Python"
+    def _resolve_special_slot(
+        self,
+        *,
+        ctx: TalkGenerationContext,
+        presentation_type: Talk.PresentationType,
+        special_slot: SpecialSlot,
+        index: int,
+        total: int,
+    ) -> tuple[Room, datetime, timedelta] | None:
+        """Resolve a time-pinned slot, falling back to alternative rooms on conflict."""
+        talk_date = special_slot.time
+        room, duration = self._pick_room_and_duration(
+            presentation_type=presentation_type,
+            rooms=ctx.rooms,
+            forced_room=special_slot.room,
+        )
+        if Talk.has_room_conflict(room, talk_date, duration):
+            candidates, _ = self._get_room_candidates_and_duration(
+                presentation_type,
+                ctx.rooms,
+            )
+            alt = next(
+                (r for r in candidates if not Talk.has_room_conflict(r, talk_date, duration)),
+                None,
+            )
+            if alt is None:
+                self.stderr.write(
+                    self.style.WARNING(
+                        f"Skipped special talk [{index}/{total}]: "
+                        f"no conflict-free room at {talk_date:%H:%M}",
+                    ),
+                )
+                return None
+            room = alt
+        ctx.availability.reserve(room, talk_date, duration)
+        return room, talk_date, duration
+
+    def _resolve_normal_slot(
+        self,
+        *,
+        ctx: TalkGenerationContext,
+        presentation_type: Talk.PresentationType,
+        index: int,
+        total: int,
+    ) -> tuple[Room, datetime, timedelta] | None:
+        """Resolve a regular slot using ``RoomAvailability``."""
+        candidates, duration = self._get_room_candidates_and_duration(
+            presentation_type,
+            ctx.rooms,
+        )
+        result = ctx.availability.find_slot(candidates, duration)
+        if result is None:
+            self.stderr.write(
+                self.style.WARNING(
+                    f"Skipped talk [{index}/{total}]: no available slot for "
+                    f"{presentation_type} ({int(duration.total_seconds() // 60)} min)",
+                ),
+            )
+            return None
+        room, talk_date = result
+        ctx.availability.reserve(room, talk_date, duration)
+        return room, talk_date, duration
+
+    # ------------------------------------------------------------------
+    # Talk creation
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _generate_title(track: str, fake: Faker) -> str:
+        """Generate a realistic talk title based on the track."""
+        if "ML" in track or "Machine Learning" in track:
+            framework = random.choice(["PyTorch", "TensorFlow", "scikit-learn"])
+            return f"Building {fake.company()} Scale {fake.bs()} using {framework}"
+        if track == "Security":
+            return f"Securing {fake.company_suffix()} Applications from {fake.bs()}"
+        if "Django" in track:
+            return f"Building {fake.catch_phrase()} with Django"
+        if "Data" in track:
+            tool = random.choice(["Pandas", "Polars", "PySpark"])
+            return f"Data-driven {fake.bs()} with {tool}"
+        if "Vision" in track:
+            tool = random.choice(["OpenCV", "YOLOv8", "TensorFlow"])
+            return f"Detecting {fake.bs()} with {tool}"
+        if "NLP" in track or "Natural Language" in track:
+            action = random.choice(["Building", "Training", "Fine-tuning"])
+            model = random.choice(["GPT-4", "LLaMA", "Mistral"])
+            return f"{action} {fake.catch_phrase()} with {model}"
+        if "DevOps" in track:
+            artifact = random.choice(["Pipeline", "Workflow", "Automation"])
+            tool = random.choice(["Docker", "Kubernetes", "GitHub Actions"])
+            return f"{fake.bs()} {artifact} with {tool}"
+        return f"{fake.catch_phrase()} with Python"
 
     def _create_talk(
         self,
@@ -319,49 +757,27 @@ class Command(BaseCommand):
         index: int,
         total: int,
         ctx: TalkGenerationContext,
-        special_slot: dict[str, Any] | None,
+        special_slot: SpecialSlot | None,
     ) -> None:
-        if special_slot is not None:
-            talk_date = special_slot["time"]
-            forced_room = special_slot.get("room")
-        else:
-            talk_date = ctx.base_time + timedelta(
-                days=random.randint(0, 2),
-                hours=random.randint(0, 8),
-                minutes=random.choice([0, 30]),
-            )
-            forced_room = None
-
-        track = random.choice(ctx.tracks)
-        title = self._generate_title(track, ctx.fake)
-
+        """Create a single talk with speakers and optional streaming link."""
         presentation_type = self._choose_presentation_type()
-        room, duration = self._pick_room_and_duration(
+
+        slot = self._resolve_slot(
+            ctx=ctx,
             presentation_type=presentation_type,
-            rooms=ctx.rooms,
-            forced_room=forced_room,
+            special_slot=special_slot,
+            index=index,
+            total=total,
         )
+        if slot is None:
+            return
 
-        streaming: Streaming | None = None
-        if room:
-            sessions = ctx.streaming_by_room.get(room.pk, [])
-            for session in sessions:
-                if session.start_time <= talk_date <= session.end_time:
-                    streaming = session
-                    break
-
-        video_link = self._maybe_custom_video(
-            has_streaming=bool(streaming),
-            probability=float(ctx.talk_video_prob),
-        )
-        video_start_time = self._maybe_custom_video_start_time(
-            duration,
-            probability=float(ctx.video_start_prob),
-        )
-        slido_link = self._maybe_custom_slido(ctx.fake, probability=float(ctx.slido_prob))
+        room, talk_date, duration = slot
+        track = random.choice(ctx.tracks)
+        streaming = self._find_streaming_session(ctx.streaming_by_room, room, talk_date)
 
         talk = Talk.objects.create(
-            title=title,
+            title=self._generate_title(track, ctx.fake),
             abstract=ctx.fake.paragraph(nb_sentences=3),
             description=ctx.fake.text(max_nb_chars=500),
             start_time=talk_date,
@@ -369,284 +785,34 @@ class Command(BaseCommand):
             room=room,
             track=track,
             presentation_type=presentation_type,
-            pretalx_link=self._build_pretalx_link(ctx.fake),
-            slido_link=slido_link,
-            video_link=video_link,
-            video_start_time=video_start_time,
-            hide=random.random() < 0.1,
+            pretalx_link=self._build_pretalx_link(ctx.fake, ctx.event),
+            slido_link=self._maybe_custom_slido(ctx.fake, probability=float(ctx.slido_prob)),
+            video_link=self._maybe_custom_video(
+                has_streaming=bool(streaming),
+                probability=float(ctx.talk_video_prob),
+            ),
+            video_start_time=self._maybe_custom_video_start_time(
+                duration,
+                probability=float(ctx.video_start_prob),
+            ),
+            hide=random.random() < HIDE_PROBABILITY,
             event=ctx.event,
         )
 
-        num_speakers = random.choices([1, 2, 3], weights=[70, 25, 5])[0]
-        selected_speakers = random.sample(
-            ctx.speakers_pool,
-            min(num_speakers, len(ctx.speakers_pool)),
-        )
-        for speaker in selected_speakers:
-            talk.speakers.add(speaker)
-
+        speaker_count = self._assign_speakers(talk, ctx.speakers_pool)
         streaming_info = " (with streaming)" if streaming else ""
         self.stdout.write(
             self.style.SUCCESS(
-                (
-                    f"Created {presentation_type} [{index}/{total}]: {talk.title} in {room.name}"
-                    f"{streaming_info} with {len(selected_speakers)} speaker(s)"
-                ),
+                f"Created {presentation_type} [{index}/{total}]: {talk.title} in {room.name}"
+                f"{streaming_info} with {speaker_count} speaker(s)",
             ),
         )
 
-    def _pick_room_and_duration(
-        self,
-        *,
-        presentation_type: Talk.PresentationType,
-        rooms: dict[str, list[Room]],
-        forced_room: Room | None,
-    ) -> tuple[Room, timedelta]:
-        """Pick a room and duration based on type or a forced room."""
-        if forced_room is not None:
-            return forced_room, timedelta(minutes=random.choice(TALK_SHORT_DURATIONS_MIN))
-        if presentation_type == Talk.PresentationType.KEYNOTE:
-            return random.choice(rooms["plenary"]), timedelta(minutes=KEYNOTE_DURATION_MIN)
-        if presentation_type == Talk.PresentationType.TALK:
-            return random.choice(rooms["talks"]), timedelta(
-                minutes=random.choice(TALK_SHORT_DURATIONS_MIN),
-            )
-        # Tutorial, Kids, or Panel
-        return random.choice(rooms["tutorials"]), timedelta(
-            minutes=random.choice(TUTORIAL_DURATIONS_MIN),
-        )
-
-    def _maybe_custom_slido(self, fake: Faker, probability: float = 0.3) -> str:
-        """Return a custom Slido link with the given probability (clamped to [0, 1])."""
-        p = max(0.0, min(1.0, float(probability)))
-        if random.random() >= p:
-            return ""
-        return (
-            f"https://app.sli.do/event/"
-            f"{fake.bothify(text='??????????????????????????')}"
-            f"/live/questions?m={fake.bothify(text='????#')}"
-        )
-
-    def _maybe_custom_video(self, *, has_streaming: bool, probability: float = 0.3) -> str:
-        """
-        Return a Vimeo link based on probability when streaming exists.
-
-        Probability is clamped to [0, 1].
-        """
-        if not has_streaming:
-            return ""
-        p = max(0.0, min(1.0, float(probability)))
-        should_create = random.random() < p
-        return f"https://vimeo.com/{random.randint(100000000, 999999999)}" if should_create else ""
-
-    def _maybe_custom_video_start_time(self, duration: timedelta, probability: float = 0.1) -> int:
-        """Return a random start offset with given probability, else 0."""
-        p = max(0.0, min(1.0, float(probability)))
-        if random.random() < p:
-            return random.randint(0, int(duration.total_seconds() - 1))
-        return 0
-
-    def _create_rooms(
-        self,
-        *,
-        rooms_plenary: list[str],
-        rooms_talks: list[str],
-        rooms_tutorials: list[str],
-    ) -> dict[str, list[Room]]:
-        """Create room objects for the conference."""
-        # Room names provided via CLI defaults to Darmstadium set
-
-        # Dictionary to store room objects by name
-        room_objects = {}
-
-        # Create plenary rooms
-        for room_name in rooms_plenary:
-            room, created = Room.objects.get_or_create(
-                name=room_name,
-                defaults={
-                    "description": "Plenary room for keynotes and large events",
-                    "capacity": random.randint(300, 500),
-                    "slido_link": self._build_room_slido_link(room_name),
-                },
-            )
-            if created:
-                self.stdout.write(f"Created plenary room: {room_name}")
-            room_objects[room_name] = room
-
-        # Create talk rooms
-        for room_name in rooms_talks:
-            room, created = Room.objects.get_or_create(
-                name=room_name,
-                defaults={
-                    "description": "Standard talk room",
-                    "capacity": random.randint(100, 200),
-                    "slido_link": self._build_room_slido_link(room_name),
-                },
-            )
-            if created:
-                self.stdout.write(f"Created talk room: {room_name}")
-            room_objects[room_name] = room
-
-        # Create tutorial rooms
-        for room_name in rooms_tutorials:
-            room, created = Room.objects.get_or_create(
-                name=room_name,
-                defaults={
-                    "description": "Room for hands-on tutorials and workshops",
-                    "capacity": random.randint(30, 80),
-                    "slido_link": self._build_room_slido_link(room_name),
-                },
-            )
-            if created:
-                self.stdout.write(f"Created tutorial room: {room_name}")
-            room_objects[room_name] = room
-
-        return {
-            "plenary": [room_objects[name] for name in rooms_plenary],
-            "talks": [room_objects[name] for name in rooms_talks],
-            "tutorials": [room_objects[name] for name in rooms_tutorials],
-        }
-
-    def _create_streaming_sessions(
-        self,
-        rooms: dict[str, list[Room]],
-        base_time: datetime,
-        *,
-        days: int,
-    ) -> None:
-        """
-        Create streaming sessions for each room.
-
-        Args:
-            rooms: Dictionary of room types to room objects
-            base_time: Base start time for the conference
-            days: Number of days to generate sessions for
-
-        """
-        self.stdout.write("Setting up streaming sessions...")
-
-        # Clear existing streaming sessions if any
-        Streaming.objects.all().delete()
-
-        # Create streaming sessions for each day of the conference
-        for day in range(int(days)):
-            day_start = base_time + timedelta(days=day)
-
-            # Always stream plenary rooms (for keynotes)
-            for room in rooms["plenary"]:
-                # Morning session
-                morning_start = day_start.replace(hour=9, minute=0)
-                morning_end = day_start.replace(hour=12, minute=30)
-
-                # Afternoon session
-                afternoon_start = day_start.replace(hour=13, minute=30)
-                afternoon_end = day_start.replace(hour=18, minute=0)
-
-                Streaming.objects.create(
-                    room=room,
-                    start_time=morning_start,
-                    end_time=morning_end,
-                    video_link=self._maybe_custom_video(has_streaming=True, probability=1),
-                )
-
-                Streaming.objects.create(
-                    room=room,
-                    start_time=afternoon_start,
-                    end_time=afternoon_end,
-                    video_link=self._maybe_custom_video(has_streaming=True, probability=1),
-                )
-
-                self.stdout.write(f"Created streaming sessions for {room.name} on day {day + 1}")
-
-            # Stream most talk rooms but not all
-            for room in rooms["talks"]:
-                # 80% of talk rooms have streaming
-                if random.random() < 0.8:
-                    start_hour = random.choice([9, 10])
-                    session_duration = random.randint(3, 5)  # hours
-
-                    morning_start = day_start.replace(hour=start_hour, minute=0)
-                    morning_end = morning_start + timedelta(hours=session_duration)
-
-                    Streaming.objects.create(
-                        room=room,
-                        start_time=morning_start,
-                        end_time=morning_end,
-                        video_link=self._maybe_custom_video(has_streaming=True, probability=1),
-                    )
-
-                    # Some rooms may have afternoon sessions too
-                    if random.random() < 0.6:
-                        afternoon_start = day_start.replace(hour=14, minute=0)
-                        afternoon_end = afternoon_start + timedelta(hours=random.randint(3, 4))
-
-                        Streaming.objects.create(
-                            room=room,
-                            start_time=afternoon_start,
-                            end_time=afternoon_end,
-                            video_link=self._maybe_custom_video(has_streaming=True, probability=1),
-                        )
-
-                    self.stdout.write(
-                        f"Created streaming sessions for {room.name} on day {day + 1}",
-                    )
-
-            # Tutorial rooms
-            for room in rooms["tutorials"]:
-                # 70% of tutorial rooms get streaming
-                if random.random() < 0.7:
-                    tutorial_start = day_start.replace(
-                        hour=random.choice([9, 13]),
-                        minute=0,
-                    )
-                    tutorial_end = tutorial_start + timedelta(hours=random.randint(3, 4))
-
-                    Streaming.objects.create(
-                        room=room,
-                        start_time=tutorial_start,
-                        end_time=tutorial_end,
-                        video_link=self._maybe_custom_video(has_streaming=True, probability=1),
-                    )
-
-                    self.stdout.write(
-                        f"Created streaming session for tutorial room {room.name} on day {day + 1}",
-                    )
-
-        # Ensure there is a session that covers now and at least the next 45 minutes
-        now = timezone.now()
-        min_end_time = now + timedelta(minutes=STREAMING_COVERAGE_MINUTES)
-        has_covering_session = Streaming.objects.filter(
-            start_time__lte=now,
-            end_time__gte=min_end_time,
-        ).exists()
-
-        if not has_covering_session:
-            # Create a 45-min session starting now in a random room
-            target_room = random.choice(list(Room.objects.all()))
-            Streaming.objects.create(
-                room=target_room,
-                start_time=now,
-                end_time=now + timedelta(minutes=STREAMING_COVERAGE_MINUTES),
-                video_link=self._maybe_custom_video(has_streaming=True, probability=1),
-            )
-            self.stdout.write(
-                (
-                    f"Created {STREAMING_COVERAGE_MINUTES}-min streaming session in "
-                    f"{target_room.name} covering now"
-                ),
-            )
-
+    # ------------------------------------------------------------------
+    # Main entry point
+    # ------------------------------------------------------------------
     def handle(self, *args: Any, **options: Any) -> None:  # noqa: ARG002
-        """
-        Generate fake conference talks.
-
-        options:
-            - count: Number of talks to generate
-            - date: Base conference date
-            - clear-existing: Whether to clear existing data
-
-        """
-        # Randomness
+        """Generate fake conference talks."""
         fake = Faker()
         seed_value = options.get("seed")
         if seed_value is not None:
@@ -654,7 +820,6 @@ class Command(BaseCommand):
             fake.seed_instance(int(seed_value))
         talk_count = int(options["count"])
 
-        # Clear existing data if requested
         if options.get("clear_existing"):
             self.stdout.write("Clearing existing data...")
             Talk.objects.all().delete()
@@ -662,65 +827,24 @@ class Command(BaseCommand):
             Streaming.objects.all().delete()
             Room.objects.all().delete()
 
-        # Base date: 09:00 of the first day
-        try:
-            base_date = date.fromisoformat(str(options["date"]))
-        except ValueError as exc:
-            message = "--date must be in YYYY-MM-DD format"
-            raise ValueError(message) from exc
-        base_time = timezone.make_aware(
-            datetime.combine(base_date, time(9, 0)),
-            timezone.get_current_timezone(),
-        )
+        base_time = self._parse_base_time(str(options["date"]))
 
-        # Parse rooms and tracks from CLI
-        cli_rooms_plenary = [
-            s.strip() for s in str(options["rooms_plenary"]).split(",") if s.strip()
-        ]
-        cli_rooms_talks = [s.strip() for s in str(options["rooms_talks"]).split(",") if s.strip()]
-        cli_rooms_tutorials = [
-            s.strip() for s in str(options["rooms_tutorials"]).split(",") if s.strip()
-        ]
-
-        # Create rooms
         self.stdout.write("Setting up conference rooms...")
-        rooms = self._create_rooms(
-            rooms_plenary=cli_rooms_plenary,
-            rooms_talks=cli_rooms_talks,
-            rooms_tutorials=cli_rooms_tutorials,
-        )
+        rooms = self._create_rooms(self._parse_room_names(options))
 
-        # Create streaming sessions for each room
         self._create_streaming_sessions(rooms, base_time, days=int(options["days"]))
-
-        # Preload streaming sessions per room to reduce DB queries when generating talks
         streaming_by_room = self._preload_streaming_by_room()
 
         tracks = [s.strip() for s in str(options["tracks"]).split(",") if s.strip()] or TRACKS
 
-        # Resolve or create Event
-        event_obj: Event | None = None
-        event_slug = str(options.get("event_slug", "")).strip()
-        event_name = str(options.get("event_name", "")).strip()
-        if event_slug:
-            event_obj, created = Event.objects.get_or_create(
-                slug=event_slug,
-                defaults={"name": event_name or event_slug, "year": 2025},
-            )
-            verb = "Created" if created else "Using existing"
-            self.stdout.write(f"{verb} event '{event_obj.name}' (slug={event_obj.slug})")
-        self._event_obj = event_obj
+        event_obj = self._resolve_event(options)
 
-        # Create a pool of speakers with a number close to the talk count
         self.stdout.write("Generating pool of speakers...")
         speakers_pool = self._create_speakers_pool(fake=fake, talk_count=talk_count)
 
         self.stdout.write(f"Generating {talk_count} talks...")
 
-        # Ensure presence of: finished, currently streaming, near future
         now = timezone.now()
-
-        # Find a streaming session covering 'now' (guaranteed by _create_streaming_sessions)
         streaming_now = cast(
             "Streaming",
             Streaming.objects.filter(
@@ -734,7 +858,7 @@ class Command(BaseCommand):
             streaming_now=streaming_now,
         )
 
-        # Generate talks
+        availability = RoomAvailability(rooms, base_time, days=int(options["days"]))
         ctx = TalkGenerationContext(
             fake=fake,
             base_time=base_time,
@@ -746,6 +870,7 @@ class Command(BaseCommand):
             slido_prob=float(options["slido_prob"]),
             speakers_pool=speakers_pool,
             event=event_obj,
+            availability=availability,
         )
 
         for i in range(talk_count):
@@ -756,3 +881,38 @@ class Command(BaseCommand):
                 ctx=ctx,
                 special_slot=special_slot,
             )
+
+    @staticmethod
+    def _parse_base_time(date_str: str) -> datetime:
+        """Parse a YYYY-MM-DD string into a timezone-aware datetime at 09:00."""
+        try:
+            base_date = date.fromisoformat(date_str)
+        except ValueError as exc:
+            message = "--date must be in YYYY-MM-DD format"
+            raise ValueError(message) from exc
+        return timezone.make_aware(
+            datetime.combine(base_date, time(9, 0)),
+            timezone.get_current_timezone(),
+        )
+
+    @staticmethod
+    def _parse_room_names(options: dict[str, Any]) -> dict[str, list[str]]:
+        """Extract and split comma-separated room names from CLI options."""
+        return {
+            category: [s.strip() for s in str(options[cli_key]).split(",") if s.strip()]
+            for category, cli_key in _ROOM_CLI_KEYS.items()
+        }
+
+    def _resolve_event(self, options: dict[str, Any]) -> Event | None:
+        """Resolve or create the ``Event`` from CLI options."""
+        event_slug = str(options.get("event_slug", "")).strip()
+        event_name = str(options.get("event_name", "")).strip()
+        if not event_slug:
+            return None
+        event_obj, created = Event.objects.get_or_create(
+            slug=event_slug,
+            defaults={"name": event_name or event_slug, "year": 2025},
+        )
+        verb = "Created" if created else "Using existing"
+        self.stdout.write(f"{verb} event '{event_obj.name}' (slug={event_obj.slug})")
+        return event_obj
