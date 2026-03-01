@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING, Any
 
 from django import forms
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -366,9 +367,11 @@ class ModeratorRequiredMixin(UserPassesTestMixin):  # pragma: no cover
 
 
 @require_POST
-@user_passes_test(is_moderator)
+@login_required
 def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """Reject a question."""
+    if not is_moderator(request.user):
+        raise PermissionDenied
     question = get_object_or_404(Question, pk=question_id)
     question.reject()
     messages.success(request, _("Question has been rejected."))
@@ -382,9 +385,11 @@ def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
 
 
 @require_POST
-@user_passes_test(is_moderator)
+@login_required
 def mark_question_answered(request: HttpRequest, question_id: int) -> HttpResponse:
     """Mark a question as answered."""
+    if not is_moderator(request.user):
+        raise PermissionDenied
     question = get_object_or_404(Question, pk=question_id)
     question.mark_as_answered()
     messages.success(request, _("Question has been marked as answered."))
@@ -398,9 +403,11 @@ def mark_question_answered(request: HttpRequest, question_id: int) -> HttpRespon
 
 
 @require_POST
-@user_passes_test(is_moderator)
+@login_required
 def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """Approve a question."""
+    if not is_moderator(request.user):
+        raise PermissionDenied
     question = get_object_or_404(Question, pk=question_id)
     question.approve()
     messages.success(request, _("Question has been approved."))

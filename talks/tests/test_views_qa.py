@@ -160,7 +160,7 @@ class TestQuestionModeration:
         client.force_login(other_user)
         url = reverse("question_reject", args=[question.pk])
         response = client.post(url)
-        assert response.status_code == HTTPStatus.FOUND  # Redirected (not authorized)
+        assert response.status_code == HTTPStatus.FORBIDDEN
 
     def test_moderator_can_mark_answered(
         self,
