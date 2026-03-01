@@ -79,12 +79,18 @@
             <div class="sticky left-0 z-10 bg-gray-50 border-t border-gray-200 px-2 pt-1 text-xs font-medium text-muted whitespace-nowrap text-center"
                  style="grid-row: {{ label.name }};
                         grid-column: 1">{{ label.display }}</div>
+            {# Horizontal rule spanning all room columns, behind cards #}
+            <div class="border-t border-gray-200 pointer-events-none"
+                 style="grid-row: {{ label.name }};
+                        grid-column: 2 / -1;
+                        z-index: 0"></div>
           {% endfor %}
           {# ── Talk cards ──────────────────────────── #}
           {% for item in schedule_items %}
             {% with talk=item.talk %}
               <div class="relative m-1 rounded-lg text-sm transition-shadow hover:shadow-md hover:ring-2 hover:ring-blue-300 overflow-hidden {% if talk.is_current %}bg-orange-50 border-l-4 border-orange-400{% elif talk.is_upcoming %}bg-blue-50 border-l-4 border-blue-400{% else %}bg-gray-50 border-l-4 border-gray-300{% endif %}"
-                   style="grid-area: {{ item.grid_area }}">
+                   style="grid-area: {{ item.grid_area }};
+                          z-index: 1">
                 <a href="{% url 'talk_detail' talk.pk %}" class="block p-3 pr-10 h-full">
                   <div class="font-semibold text-heading leading-tight mb-1 line-clamp-2">{{ talk.title }}</div>
                   <div class="text-xs text-muted mb-1">{{ talk.speaker_names }}</div>
