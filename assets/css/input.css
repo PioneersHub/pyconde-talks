@@ -6,6 +6,9 @@
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/typography";
 
+/* Class-based dark mode: toggled via .dark on <html> */
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Brand Colors */
   --blue: #3778be;
@@ -67,6 +70,7 @@
 
   .btn-outline-primary {
     @apply border border-[var(--blue)] text-[var(--blue)] hover:bg-blue-50 font-medium py-2 px-6 rounded-lg transition duration-300;
+    @apply dark:border-[var(--blue-light)] dark:text-[var(--blue-light)] dark:hover:bg-gray-800;
   }
 
   .btn-danger {
@@ -75,27 +79,33 @@
 
   .alert-success {
     @apply bg-[var(--green-lighter)] text-[var(--green)] p-4 rounded;
+    @apply dark:bg-green-900/40 dark:text-green-300;
   }
 
   .alert-info {
     @apply bg-[var(--blue-lighter)] text-[var(--blue)] p-4 rounded;
+    @apply dark:bg-blue-900/40 dark:text-blue-300;
   }
 
   .alert-warning {
     @apply bg-[var(--yellow)] text-black p-4 rounded;
+    @apply dark:bg-yellow-900/40 dark:text-yellow-200;
   }
 
   .alert-error {
     @apply bg-[var(--red-light)] text-white p-4 rounded;
+    @apply dark:bg-red-900/40 dark:text-red-300;
   }
 
   /* Layout */
   .app-body {
     @apply bg-gray-100 flex flex-col min-h-screen;
+    @apply dark:bg-gray-900 dark:text-gray-200;
   }
 
   .app-nav {
     @apply bg-[var(--blue)] text-white p-4;
+    @apply dark:bg-gray-950;
   }
 
   .app-main {
@@ -104,40 +114,49 @@
 
   .app-footer {
     @apply bg-gray-800 text-white p-6 mt-12;
+    @apply dark:bg-gray-950;
   }
 
   /* Cards & Panels */
   .card {
     @apply bg-white rounded-lg shadow-sm p-6;
+    @apply dark:bg-gray-800 dark:shadow-gray-900/50;
   }
 
   .card-compact {
     @apply bg-white rounded p-4;
+    @apply dark:bg-gray-800;
   }
 
   .panel {
     @apply bg-white rounded-lg shadow-sm overflow-hidden;
+    @apply dark:bg-gray-800 dark:shadow-gray-900/50;
   }
 
   .card-bordered {
     @apply bg-white border border-gray-100 rounded-lg shadow-sm overflow-hidden;
+    @apply dark:bg-gray-800 dark:border-gray-700;
   }
 
   .box-muted {
     @apply bg-gray-50 rounded-lg p-4;
+    @apply dark:bg-gray-700/50;
   }
 
   /* Links */
   .link-primary {
     @apply text-[var(--blue)] hover:underline;
+    @apply dark:text-[var(--blue-light)];
   }
 
   .link-muted {
     @apply inline-flex items-center text-gray-600 hover:text-[var(--blue)];
+    @apply dark:text-gray-400 dark:hover:text-[var(--blue-light)];
   }
 
   .link-title {
     @apply block font-bold text-lg hover:text-[var(--blue)];
+    @apply dark:hover:text-[var(--blue-light)];
   }
 
   /* Badges */
@@ -146,29 +165,37 @@
   }
   .badge-blue {
     @apply bg-blue-100 text-blue-800;
+    @apply dark:bg-blue-900/50 dark:text-blue-300;
   }
   .badge-gray {
     @apply bg-gray-100 text-gray-800;
+    @apply dark:bg-gray-700 dark:text-gray-300;
   }
   .badge-green {
     @apply bg-green-100 text-green-800;
+    @apply dark:bg-green-900/50 dark:text-green-300;
   }
   .badge-yellow {
     @apply bg-yellow-100 text-yellow-800;
+    @apply dark:bg-yellow-900/50 dark:text-yellow-300;
   }
   .badge-orange {
     @apply bg-orange-100 text-orange-800;
+    @apply dark:bg-orange-900/50 dark:text-orange-300;
   }
   .badge-purple {
     @apply bg-purple-100 text-purple-800;
+    @apply dark:bg-purple-900/50 dark:text-purple-300;
   }
   .badge-red {
     @apply bg-red-100 text-red-800;
+    @apply dark:bg-red-900/50 dark:text-red-300;
   }
 
   /* Forms */
   .form-select {
     @apply border rounded px-2 py-1 pr-8;
+    @apply dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200;
   }
 
   /* Page scaffolding */
@@ -180,17 +207,21 @@
   }
   .page-title {
     @apply text-2xl font-semibold mb-6 text-gray-900;
+    @apply dark:text-gray-100;
   }
 
   /* Form helpers */
   .form-label {
     @apply block text-sm font-medium text-gray-700;
+    @apply dark:text-gray-300;
   }
   .form-help {
     @apply text-gray-500 text-sm;
+    @apply dark:text-gray-400;
   }
   .form-error {
     @apply text-red-600 text-sm;
+    @apply dark:text-red-400;
   }
   .form-actions {
     @apply pt-4;
@@ -215,19 +246,19 @@
 
   /* Neutral text tones */
   .text-heading {
-    @apply text-gray-900;
+    @apply text-gray-900 dark:text-gray-100;
   }
   .text-strong {
-    @apply text-gray-800;
+    @apply text-gray-800 dark:text-gray-200;
   }
   .text-label {
-    @apply text-gray-700;
+    @apply text-gray-700 dark:text-gray-300;
   }
   .text-muted {
-    @apply text-gray-600;
+    @apply text-gray-600 dark:text-gray-400;
   }
   .text-subtle {
-    @apply text-gray-500;
+    @apply text-gray-500 dark:text-gray-400;
   }
   .text-inverse {
     @apply text-white;
@@ -235,26 +266,27 @@
 
   /* Neutral borders */
   .border-weak {
-    @apply border-gray-100;
+    @apply border-gray-100 dark:border-gray-700;
   }
   .border-muted {
-    @apply border-gray-200;
+    @apply border-gray-200 dark:border-gray-700;
   }
   .border-strong {
-    @apply border-gray-700;
+    @apply border-gray-700 dark:border-gray-500;
   }
 
   /* Neutral backgrounds */
   .bg-surface {
-    @apply bg-white;
+    @apply bg-white dark:bg-gray-800;
   }
   .bg-subtle {
-    @apply bg-gray-50;
+    @apply bg-gray-50 dark:bg-gray-800/50;
   }
 
   /* Inputs */
   .input-field {
     @apply w-full px-3 py-2 border rounded-md focus:outline-none;
+    @apply dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500;
   }
   .focus-ring-primary {
     @apply focus:ring-2 focus:ring-[var(--blue)] focus:border-[var(--blue)] outline-none;
@@ -263,18 +295,28 @@
   /* Neutral button */
   .btn-neutral {
     @apply bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-1.5 rounded-md inline-flex items-center gap-2;
+    @apply dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600;
   }
 
   .text-brand-blue {
     color: var(--blue);
   }
+  .dark .text-brand-blue {
+    color: var(--blue-light);
+  }
 
   .text-brand-green {
     color: var(--green);
   }
+  .dark .text-brand-green {
+    color: var(--green-light);
+  }
 
   .text-brand-red {
     color: var(--red);
+  }
+  .dark .text-brand-red {
+    color: var(--red-light);
   }
 
   .bg-brand-blue {
@@ -309,13 +351,13 @@
   }
 
   .card-bg-current {
-    @apply bg-orange-50;
+    @apply bg-orange-50 dark:bg-orange-950/40;
   }
   .card-bg-upcoming {
-    @apply bg-white;
+    @apply bg-white dark:bg-gray-800;
   }
   .card-bg-default {
-    @apply bg-gray-50;
+    @apply bg-gray-50 dark:bg-gray-800/50;
   }
 
   button.go-back,
@@ -323,4 +365,72 @@
   .try-again-button {
     cursor: pointer;
   }
+}
+
+/* Dark-mode overrides for elements with inline Tailwind classes */
+/* Schedule grid sticky cells */
+.dark .schedule-grid .sticky.bg-gray-100 {
+  background-color: var(--color-gray-900, #111827);
+}
+.dark .schedule-grid .sticky.bg-gray-50 {
+  background-color: var(--color-gray-800, #1f2937);
+}
+/* Schedule talk cards */
+.dark .schedule-grid .bg-orange-50 {
+  background-color: color-mix(in srgb, #7c2d12 30%, #1f2937);
+}
+.dark .schedule-grid .bg-blue-50 {
+  background-color: color-mix(in srgb, #1e3a5f 30%, #1f2937);
+}
+.dark .schedule-grid .bg-gray-50:not(.sticky) {
+  background-color: rgba(31, 41, 55, 0.5);
+}
+/* Schedule day picker */
+.dark a.bg-gray-100 {
+  background-color: #374151;
+  color: #d1d5db;
+}
+.dark a.bg-gray-100:hover {
+  background-color: #4b5563;
+}
+/* Prose (markdown) dark mode */
+.dark .prose {
+  --tw-prose-body: #d1d5db;
+  --tw-prose-headings: #f3f4f6;
+  --tw-prose-lead: #9ca3af;
+  --tw-prose-links: #93c5fd;
+  --tw-prose-bold: #f3f4f6;
+  --tw-prose-counters: #9ca3af;
+  --tw-prose-bullets: #6b7280;
+  --tw-prose-hr: #374151;
+  --tw-prose-quotes: #f3f4f6;
+  --tw-prose-quote-borders: #374151;
+  --tw-prose-captions: #9ca3af;
+  --tw-prose-code: #f3f4f6;
+  --tw-prose-pre-code: #d1d5db;
+  --tw-prose-pre-bg: #1f2937;
+  --tw-prose-th-borders: #4b5563;
+  --tw-prose-td-borders: #374151;
+}
+/* Dark form inputs (for ones using inline classes instead of .input-field) */
+.dark textarea,
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="search"],
+.dark input[type="number"],
+.dark select {
+  background-color: #1f2937;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+.dark textarea::placeholder,
+.dark input::placeholder {
+  color: #6b7280;
+}
+/* Dark mode transition for smooth theme switching */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease !important;
 }
