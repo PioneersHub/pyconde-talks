@@ -16,7 +16,7 @@
     {# ── Day picker ────────────────────────────────────────── #}
     <div class="flex flex-wrap gap-2 mb-4">
       {% for d in available_dates %}
-        <a href="?date={{ d|date:'Y-m-d' }}"
+        <a href="{% querystring date=d|date:'Y-m-d' %}"
            class="px-4 py-2 rounded-lg font-medium text-sm transition-colors {% if d == selected_date %}bg-brand-blue text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
           {% if has_multiple_years %}
             {{ d|date:"D, M j, Y" }}
