@@ -265,22 +265,31 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
                 reverse("admin:users_customuser_select"),
             )
 
-        # If user type is specified, set up the appropriate form and fieldsets
-        user_type = request.GET.get("user_type")
-        if user_type == "regular":
-            self.add_form = RegularUserCreationForm
-            self.add_fieldsets = self.regular_user_add_fieldsets  # type: ignore[assignment]
-        elif user_type == "super":
-            self.add_form = SuperUserCreationForm
-            self.add_fieldsets = self.superuser_add_fieldsets  # type: ignore[assignment]
-
         # Handle POST data for superusers
+        user_type = request.GET.get("user_type")
         if request.method == "POST" and user_type == "super":
             post_data = request.POST.copy()
             post_data["is_superuser"] = "on"
             request.POST = post_data  # type: ignore[assignment]
 
         return super().add_view(request, form_url, extra_context)
+
+    def get_form(
+        self,
+        request: HttpRequest,
+        obj: CustomUser | None = None,
+        change: bool = False,  # noqa: FBT001, FBT002
+        **kwargs: Any,
+    ) -> type:
+        """Return the appropriate form class based on user type."""
+        if obj is None:
+            # Creating a new user — pick form based on the query parameter
+            user_type = request.GET.get("user_type")
+            if user_type == "regular":
+                kwargs["form"] = RegularUserCreationForm
+            else:
+                kwargs["form"] = SuperUserCreationForm
+        return super().get_form(request, obj, change=change, **kwargs)
 
     def select_user_type(self, request: HttpRequest) -> HttpResponse:
         """Display user type selection page."""
@@ -343,13 +352,16 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
 
     def get_fieldsets(
         self,
-        _: HttpRequest,
+        request: HttpRequest,
         obj: Any | None = None,
     ) -> Any:
         """Use different fieldsets for regular users vs superusers."""
         if not obj:
-            # Use add_fieldsets when creating a new user
-            return self.add_fieldsets
+            # Creating a new user — pick fieldsets based on the query parameter
+            user_type = request.GET.get("user_type")
+            if user_type == "regular":
+                return self.regular_user_add_fieldsets
+            return self.superuser_add_fieldsets
 
         # For existing users, use appropriate fieldset based on type
         if obj.is_superuser:
