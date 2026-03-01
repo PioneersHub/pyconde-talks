@@ -23,6 +23,7 @@ from django.views.generic import DetailView, ListView
 
 from .models import (
     COMMENT_MAX_LENGTH,
+    FAR_FUTURE,
     MAX_RATING_SCORE,
     MIN_RATING_SCORE,
     Rating,
@@ -522,7 +523,7 @@ def _slice_name(dt: datetime) -> str:
 def _get_schedule_dates(user: CustomUser) -> list[date]:
     """Return available schedule dates, filtered by user event access."""
     date_qs = (
-        Talk.objects.exclude(start_time__year=2050)
+        Talk.objects.exclude(start_time__year=FAR_FUTURE.year)
         .annotate(date=TruncDate("start_time"))
         .values_list("date", flat=True)
         .distinct()
@@ -546,7 +547,7 @@ def _build_schedule_data(
     """
     talks_qs = (
         Talk.objects.filter(start_time__date=selected_date)
-        .exclude(start_time__year=2050)
+        .exclude(start_time__year=FAR_FUTURE.year)
         .select_related("room")
         .prefetch_related("speakers")
         .defer("description", "abstract")
