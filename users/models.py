@@ -142,13 +142,6 @@ class CustomUserManager(BaseUserManager["CustomUser"]):
             raise ValidationError(msg) from exc
 
 
-class Meta:
-    """Metadata for CustomUser model."""
-
-    verbose_name = "user"
-    verbose_name_plural = "users"
-
-
 class CustomUser(AbstractUser):
     """Custom user model using email-based authentication instead of username."""
 
@@ -184,7 +177,11 @@ class CustomUser(AbstractUser):
     if TYPE_CHECKING:
         emailaddress_set: RelatedManager[EmailAddress]
 
-    Meta = Meta
+    class Meta:
+        """Metadata for CustomUser model."""
+
+        verbose_name = "user"
+        verbose_name_plural = "users"
 
     def __str__(self) -> str:
         """Return string representation of the user."""
