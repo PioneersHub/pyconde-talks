@@ -41,6 +41,24 @@
                placeholder="Search talks…"
                class="form-input w-60"
                aria-label="Search schedule" />
+        <select name="presentation_type"
+                class="form-select"
+                onchange="this.form.submit()">
+          <option value="">All Types</option>
+          {% for type_value, type_label in presentation_types %}
+            <option value="{{ type_value }}"
+                    {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
+          {% endfor %}
+        </select>
+        <select name="track"
+                class="form-select truncate w-60"
+                onchange="this.form.submit()">
+          <option value="">All Tracks</option>
+          {% for track in tracks %}
+            <option value="{{ track }}"
+                    {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
+          {% endfor %}
+        </select>
         <label class="inline-flex items-center gap-1 cursor-pointer select-none">
           <input type="checkbox"
                  name="saved"
@@ -50,7 +68,7 @@
           <span>{% svg 'bookmark-solid' "h-4 w-4 inline text-yellow-500" %} Saved only</span>
         </label>
         <button type="submit" class="btn-secondary px-3 py-1 rounded text-sm">Filter</button>
-        {% if search_query or filter_saved %}
+        {% if search_query or filter_saved or selected_track or selected_type %}
           <a href="?date={{ selected_date|date:'Y-m-d' }}"
              class="text-sm text-brand-blue hover:underline">Clear</a>
         {% endif %}

@@ -607,17 +607,24 @@ def _build_schedule_data(
 
 def _apply_schedule_filters(
     schedule_items: list[dict[str, Any]],
-    search_query: str,
-    filter_saved: str,
+    filters: dict[str, str],
     saved_talk_ids: set[int],
 ) -> list[dict[str, Any]]:
-    """Filter schedule items by search text and saved-only flag."""
-    if not search_query and not filter_saved:
+    """Filter schedule items by search text, saved-only, track, and type."""
+    search_query = filters.get("q", "")
+    filter_saved = filters.get("saved", "")
+    filter_track = filters.get("track", "")
+    filter_type = filters.get("presentation_type", "")
+    if not search_query and not filter_saved and not filter_track and not filter_type:
         return schedule_items
     filtered: list[dict[str, Any]] = []
     for item in schedule_items:
         talk: Talk = item["talk"]
         if filter_saved == "1" and talk.pk not in saved_talk_ids:
+            continue
+        if filter_track and talk.track != filter_track:
+            continue
+        if filter_type and talk.presentation_type != filter_type:
             continue
         if search_query:
             q_lower = search_query.lower()
@@ -668,12 +675,24 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
     # Filters -----------------------------------------------------------------
     search_query = request.GET.get("q", "").strip()
     filter_saved = request.GET.get("saved", "")
+    filter_track = request.GET.get("track", "")
+    filter_type = request.GET.get("presentation_type", "")
+    schedule_filters = {
+        "q": search_query,
+        "saved": filter_saved,
+        "track": filter_track,
+        "presentation_type": filter_type,
+    }
     schedule_items = _apply_schedule_filters(
         schedule_items,
-        search_query,
-        filter_saved,
+        schedule_filters,
         saved_talk_ids,
     )
+
+    # Track & type options for filter dropdowns
+    all_tracks = sorted({t.track for t in talks if t.track})
+    existing_types = sorted({t.presentation_type for t in talks if t.presentation_type})
+    presentation_types = [(ptype, Talk.PresentationType(ptype).label) for ptype in existing_types]
 
     years = {d.year for d in available_dates}
     has_multiple_years = len(years) > 1
@@ -691,5 +710,9 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
         "saved_talk_ids": saved_talk_ids,
         "search_query": search_query,
         "filter_saved": filter_saved,
+        "tracks": all_tracks,
+        "presentation_types": presentation_types,
+        "selected_track": filter_track,
+        "selected_type": filter_type,
     }
     return render(request, "talks/schedule.html", context)
