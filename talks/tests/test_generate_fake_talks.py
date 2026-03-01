@@ -612,6 +612,50 @@ class TestRoomAvailability:
         assert all(s.minute % SLOT_ALIGNMENT_MINUTES == 0 for s in starts)
         assert starts[0].minute == 0  # snaps to 10:00
 
+    def test_is_available_in_free_interval(self) -> None:
+        """is_available returns True when the slot fits inside a free interval."""
+        avail, rooms_dict = self._make_availability(["R1"])
+        room = rooms_dict["talks"][0]
+        base = timezone.make_aware(
+            datetime.combine(timezone.localtime().date(), time(9, 0)),
+            timezone.get_current_timezone(),
+        )
+        assert avail.is_available(room, base, timedelta(minutes=30))
+
+    def test_is_available_false_after_reserve(self) -> None:
+        """is_available returns False for a slot that has been reserved."""
+        avail, rooms_dict = self._make_availability(["R1"])
+        room = rooms_dict["talks"][0]
+        base = timezone.make_aware(
+            datetime.combine(timezone.localtime().date(), time(9, 0)),
+            timezone.get_current_timezone(),
+        )
+        avail.reserve(room, base, timedelta(hours=2))
+        assert not avail.is_available(room, base, timedelta(minutes=30))
+        assert avail.is_available(room, base + timedelta(hours=2), timedelta(minutes=30))
+
+    def test_existing_talks_reserved_on_init(self) -> None:
+        """Pre-existing talks in the DB are reserved during construction."""
+        room = baker.make(Room, name="PreExist")
+        rooms_dict: dict[str, list[Room]] = {"talks": [room], "plenary": [], "tutorials": []}
+        base = timezone.make_aware(
+            datetime.combine(timezone.localtime().date(), time(9, 0)),
+            timezone.get_current_timezone(),
+        )
+        # Create a talk occupying 10:00-13:00
+        baker.make(
+            Talk,
+            room=room,
+            start_time=base + timedelta(hours=1),
+            duration=timedelta(hours=3),
+        )
+        avail = RoomAvailability(rooms_dict, base, days=1)
+        # 10:00-13:00 should not be available
+        assert not avail.is_available(room, base + timedelta(hours=1), timedelta(minutes=30))
+        # 09:00 and 13:00 should still be available
+        assert avail.is_available(room, base, timedelta(minutes=30))
+        assert avail.is_available(room, base + timedelta(hours=4), timedelta(minutes=30))
+
 
 # ---------------------------------------------------------------------------
 # _clamp_probability
@@ -841,6 +885,48 @@ class TestHandleCommand:
         )
         talks = list(Talk.objects.select_related("room").all())
         # Group talks by room
+        by_room: dict[int, list[Talk]] = {}
+        for talk in talks:
+            if talk.room is not None:
+                by_room.setdefault(talk.room.pk, []).append(talk)
+
+        for room_id, room_talks in by_room.items():
+            room_talks.sort(key=lambda t: t.start_time)
+            for i in range(len(room_talks) - 1):
+                a = room_talks[i]
+                b = room_talks[i + 1]
+                a_end = a.start_time + a.duration
+                assert a_end <= b.start_time, (
+                    f"Conflict in room {room_id}: "
+                    f"'{a.title}' ends at {a_end} but "
+                    f"'{b.title}' starts at {b.start_time}"
+                )
+
+    def test_no_conflicts_after_double_run_without_clear(self) -> None:
+        """Running generate_fake_talks twice without --clear-existing must not create overlaps."""
+        stdout = StringIO()
+        call_command(
+            "generate_fake_talks",
+            "--count=20",
+            "--seed=1",
+            "--days=1",
+            "--rooms-plenary=Plenary",
+            "--rooms-talks=Talk1,Talk2",
+            "--rooms-tutorials=Tut1",
+            stdout=stdout,
+        )
+        # Run again WITHOUT --clear-existing
+        call_command(
+            "generate_fake_talks",
+            "--count=20",
+            "--seed=99",
+            "--days=1",
+            "--rooms-plenary=Plenary",
+            "--rooms-talks=Talk1,Talk2",
+            "--rooms-tutorials=Tut1",
+            stdout=stdout,
+        )
+        talks = list(Talk.objects.select_related("room").all())
         by_room: dict[int, list[Talk]] = {}
         for talk in talks:
             if talk.room is not None:
