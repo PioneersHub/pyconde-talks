@@ -129,11 +129,11 @@ class Event(models.Model):
     @property
     def pretalx_schedule_url(self) -> str:
         """Return the Pretalx schedule URL for this event."""
-        event_base = self.pretalx_url
+        event_base = self.pretalx_url.rstrip("/")
         return f"{event_base}/schedule/" if event_base else ""
 
     @property
     def pretalx_speakers_url(self) -> str:
         """Return the Pretalx speakers URL for this event."""
-        event_base = self.pretalx_url
+        event_base = self.pretalx_url.rstrip("/")
         return f"{event_base}/speaker/" if event_base else ""

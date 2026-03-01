@@ -134,6 +134,7 @@ class Streaming(models.Model):
 
     def clean(self) -> None:
         """Validate that this streaming doesn't overlap with another for the same room."""
+        super().clean()
         if self.start_time and self.end_time:
             overlapping = Streaming.objects.filter(
                 room=self.room,
@@ -205,11 +206,22 @@ class Speaker(models.Model):
 
     pretalx_id = models.CharField(
         max_length=MAX_PRETALX_ID_LENGTH,
+        unique=True,
         help_text=_("Unique identifier for the speaker in the Pretalx system"),
     )
 
     if TYPE_CHECKING:
         talks: RelatedManager[Talk]
+
+    class Meta:
+        """Metadata for the Speaker model."""
+
+        verbose_name = _("Speaker")
+        verbose_name_plural = _("Speakers")
+        ordering: ClassVar[list[str]] = ["name"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["pretalx_id"]),
+        ]
 
     def __str__(self) -> str:
         """Return the speaker name."""
@@ -390,6 +402,7 @@ class Talk(models.Model):
 
     def clean(self) -> None:
         """Validate that this talk does not overlap with another in the same room."""
+        super().clean()
         if not self.room or not self.start_time or not self.duration:
             return
 
@@ -438,7 +451,22 @@ class Talk(models.Model):
         return qs.exists()
 
     def _enrich_video_link(self) -> str:
-        if self.video_provider == VideoProvider.Youtube.name:
+        """
+        Add provider-specific query parameters to the video link.
+
+        Only operates on ``self.video_link`` (the stored field), not on
+        streaming fallback URLs.  The method is idempotent - the parameter
+        is only added when it is not already present.
+        """
+        if not self.video_link:
+            return ""
+
+        link_lower = self.video_link.lower()
+        is_youtube = any(
+            provider.value in link_lower
+            for provider in (VideoProvider.Youtube, VideoProvider.YoutubeShort)
+        )
+        if is_youtube and "enablejsapi=1" not in link_lower:
             return add_query_param(self.video_link, "enablejsapi", "1")
         return self.video_link
 
@@ -498,21 +526,9 @@ class Talk(models.Model):
         if self.video_link:
             return self.video_link
 
-        if self.room and self.start_time:
-            # Find the streaming that is/was happening during the talk
-            # Allow a 1 minute delay for the start time
-            # At least half of the talk must be covered by the streaming
-            margin = timedelta(minutes=1)
-            min_duration = self.duration / 2
-
-            streaming = Streaming.objects.filter(
-                room=self.room,
-                start_time__lte=self.start_time + margin,
-                end_time__gt=self.start_time + min_duration,
-            ).first()
-
-            if streaming:
-                return streaming.video_link
+        streaming = self.get_streaming()
+        if streaming:
+            return streaming.video_link
 
         return ""
 
@@ -667,9 +683,6 @@ class Rating(models.Model):
         auto_now=True,
         help_text=_("When this rating was last modified"),
     )
-
-    if TYPE_CHECKING:
-        from django_stubs_ext.db.models.manager import RelatedManager  # noqa: PLC0415
 
     class Meta:
         """Metadata for the Rating model."""
