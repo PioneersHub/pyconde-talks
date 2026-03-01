@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load svg_tags %}
+{% load saved_tags %}
+{% load rating_tags %}
+{% load schedule_tags %}
+{% block content %}
+  <div class="max-w-7xl mx-auto p-4">
+    <!-- Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+      <h1 class="text-2xl font-bold text-heading">Schedule</h1>
+      <a href="{% url 'talk_list' %}"
+         class="btn-secondary inline-flex items-center px-3 py-1 rounded">
+        {% svg 'rectangle-stack' "h-4 w-4 mr-1" %}
+        List view
+      </a>
+    </div>
+    <!-- Day picker -->
+    <div class="flex flex-wrap gap-2 mb-6">
+      {% for d in available_dates %}
+        <a href="?date={{ d|date:'Y-m-d' }}"
+           class="px-4 py-2 rounded-lg font-medium text-sm transition-colors {% if d == selected_date %}bg-brand-blue text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+          {% if has_multiple_years %}
+            {{ d|date:"D, M j, Y" }}
+          {% else %}
+            {{ d|date:"D, M j" }}
+          {% endif %}
+        </a>
+      {% empty %}
+        <span class="text-subtle">No scheduled days found.</span>
+      {% endfor %}
+    </div>
+    {% if time_slots %}
+      <!-- Schedule grid — horizontal scroll on small screens -->
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse min-w-[640px]">
+          <thead>
+            <tr>
+              <th class="sticky left-0 z-10 bg-gray-100 px-3 py-2 text-left text-xs font-semibold text-subtle uppercase tracking-wider w-20">
+                Time
+              </th>
+              {% for room in rooms %}
+                <th class="bg-gray-100 px-3 py-2 text-center text-xs font-semibold text-subtle uppercase tracking-wider">
+                  {{ room.name }}
+                </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for slot in time_slots %}
+              <tr class="border-t border-gray-200 align-top">
+                <td class="sticky left-0 z-10 bg-white px-3 py-2 text-sm font-medium text-muted whitespace-nowrap w-20">
+                  {{ slot|date:"G:i" }}
+                </td>
+                {% for room in rooms %}
+                  <td class="px-2 py-2">
+                    {% schedule_cell grid slot room.id as talk %}
+                    {% if talk %}
+                      <a href="{% url 'talk_detail' talk.pk %}"
+                         class="block rounded-lg p-3 text-sm transition-colors hover:ring-2 hover:ring-blue-300 h-full {% if talk.is_current %}bg-orange-50 border-l-4 border-orange-400{% elif talk.is_upcoming %}bg-blue-50 border-l-4 border-blue-400{% else %}bg-gray-50 border-l-4 border-gray-300{% endif %}">
+                        <div class="font-semibold text-heading leading-tight mb-1">{{ talk.title }}</div>
+                        <div class="text-xs text-muted mb-1">{{ talk.speaker_names }}</div>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                          <span class="badge badge-green text-[10px]">{{ talk.get_presentation_type_display }}</span>
+                          {% if talk.duration %}
+                            <span class="badge badge-gray text-[10px]">{{ talk.duration|stringformat:"s" }}</span>
+                          {% endif %}
+                        </div>
+                        {% if talk.pk|is_in:saved_talk_ids %}
+                          <div class="mt-1 text-yellow-500">{% svg 'bookmark-solid' "h-3.5 w-3.5 inline" %}</div>
+                        {% endif %}
+                      </a>
+                    {% else %}
+                      <div class="h-full"></div>
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="bg-surface p-6 rounded text-center text-subtle">
+        No talks scheduled
+        {% if selected_date %}for {{ selected_date|date:"l, F j, Y" }}{% endif %}
+        .
+      </div>
+    {% endif %}
+  </div>
+{% endblock content %}
