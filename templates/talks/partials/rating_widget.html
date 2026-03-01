@@ -12,8 +12,8 @@
                 hx-include="#comment"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-vals='{"score": "{{ forloop.counter }}"}'
-                aria-label="Rate {{ forloop.counter }} out of 5"
                 title="Rate {{ forloop.counter }} out of 5">
+          <span class="sr-only">Rate {{ forloop.counter }} out of 5</span>
           {% if user_rating and forloop.counter <= user_rating.score %}
             {% svg 'star' "h-6 w-6 text-yellow-400 fill-current" %}
           {% else %}
