@@ -100,6 +100,7 @@ ENV PATH="/venv/bin:$PATH"
 # Copy only project files necessary for production
 COPY --from=builder --chown=django:django /app/manage.py /app/
 COPY --from=builder --chown=django:django /app/event_talks /app/event_talks/
+COPY --from=builder --chown=django:django /app/events /app/events/
 COPY --from=builder --chown=django:django /app/svg /app/svg/
 COPY --from=builder --chown=django:django /app/talks /app/talks/
 COPY --from=builder --chown=django:django /app/templates /app/templates/
