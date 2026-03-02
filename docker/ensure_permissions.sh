@@ -28,7 +28,7 @@ mkdir -p "${STATIC_DIR}" &&
     find "${STATIC_DIR}" -type d -print0 | xargs -0 chmod 500
 
 # Media: Django needs read and write. Nginx needs read only
-mkdir -p "${MEDIA_DIR}/talk_images/${APP_DOMAIN}" &&
+mkdir -p "${MEDIA_DIR}/talk_images/${DEFAULT_EVENT}" &&
     chown -R "${DJANGO_UID}:${NGINX_GID}" "${MEDIA_DIR}" &&
     chmod -R 640 "${MEDIA_DIR}" &&
     find "${MEDIA_DIR}" -type d -print0 | xargs -0 chmod 2750
