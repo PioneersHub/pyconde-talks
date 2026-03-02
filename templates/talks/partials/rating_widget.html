@@ -23,6 +23,19 @@
       {% endfor %}
     </div>
     {% if user_rating %}<span class="text-sm text-muted">{{ user_rating.score }}/5</span>{% endif %}
+    {% if user_rating %}
+      <button type="button"
+              class="focus:outline-none text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 p-0.5"
+              hx-post="{% url 'delete_rating' talk.id %}"
+              hx-target="#rating-widget"
+              hx-swap="outerHTML"
+              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+              hx-confirm="Remove your rating?"
+              title="Remove rating">
+        <span class="sr-only">Remove rating</span>
+        {% svg 'trash' "h-4 w-4" %}
+      </button>
+    {% endif %}
     {% if user_rating and user_rating.comment %}
       <span class="comment-preview text-sm text-muted truncate max-w-xs"
             {% if show_comment_form %}hidden{% endif %}>💬 {{ user_rating.comment|truncatewords:12 }}</span>

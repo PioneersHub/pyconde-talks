@@ -396,6 +396,27 @@ def rate_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     return redirect("talk_detail", pk=talk_id)
 
 
+@require_POST
+def delete_rating(request: HttpRequest, talk_id: int) -> HttpResponse:
+    """
+    Delete the current user's rating for a talk.
+
+    Returns a partial HTML fragment for HTMX requests or redirects otherwise.
+    """
+    talk = get_object_or_404(Talk, pk=talk_id)
+    is_htmx = request.headers.get("HX-Request") == "true"
+    deleted_count, _detail = Rating.objects.filter(talk=talk, user=request.user).delete()
+
+    if not is_htmx:
+        if deleted_count:
+            messages.success(request, _("Your rating has been removed."))
+        else:
+            messages.info(request, _("No rating to remove."))
+        return redirect("talk_detail", pk=talk_id)
+
+    return _render_rating_htmx_response(request, talk, is_comment_save=False)
+
+
 def get_talk_rating_stats(request: HttpRequest, talk_id: int) -> JsonResponse:
     """
     Return rating statistics for a talk as JSON.

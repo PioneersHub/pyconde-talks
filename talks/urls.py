@@ -6,6 +6,7 @@ from .views import (
     TalkDetailView,
     TalkListView,
     dashboard_stats,
+    delete_rating,
     get_talk_rating_stats,
     rate_talk,
     schedule_view,
@@ -34,6 +35,7 @@ urlpatterns = [
     path("upcoming-talks/", upcoming_talks, name="upcoming_talks"),
     # Rating URLs
     path("<int:talk_id>/rate/", rate_talk, name="rate_talk"),
+    path("<int:talk_id>/rate/delete/", delete_rating, name="delete_rating"),
     path("<int:talk_id>/rating-stats/", get_talk_rating_stats, name="talk_rating_stats"),
     # Save/Bookmark URLs
     path("<int:talk_id>/save/", toggle_save_talk, name="toggle_save_talk"),
