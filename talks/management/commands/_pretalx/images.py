@@ -58,9 +58,8 @@ class TalkImageGenerator:
         image_format = self._resolve_image_format(ctx)
 
         template_path = (
-            settings.BASE_DIR
-            / "assets"
-            / "img"
+            settings.MEDIA_ROOT
+            / "talk_images"
             / (talk.event.slug if talk.event else "")
             / "talk_template.png"
         )
