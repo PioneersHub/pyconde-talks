@@ -147,6 +147,67 @@ class TestFormValidEventSelection:
         assert user.events.filter(pk=event.pk).exists()
         assert isinstance(result, HttpResponseRedirect)
 
+    def test_existing_user_linked_to_event(  # noqa: PLR0913
+        self,
+        request_factory: RequestFactory,
+        view: CustomRequestLoginCodeView,
+        event: Event,
+        mocker: MockerFixture,
+        allauth_settings: None,
+        user_model: type[Any],
+    ) -> None:
+        """Existing user logging in is associated with the selected event."""
+        # Pre-create the user without the event
+        user_model.objects.create_user(email="existing@example.com", is_active=True)
+
+        form = mocker.MagicMock()
+        form.is_valid.return_value = True
+        form.cleaned_data = {"email": "existing@example.com"}
+
+        request = request_factory.post(
+            reverse("account_login"),
+            {"email": "existing@example.com", "event": event.slug},
+        )
+        view.request = request
+
+        mock_adapter = mocker.MagicMock()
+        mock_adapter.is_email_authorized.return_value = True
+        mocker.patch("users.views.get_adapter", return_value=mock_adapter)
+
+        mocker.patch.object(
+            view.__class__.__bases__[0],
+            "form_valid",
+            return_value=HttpResponse("success"),
+        )
+
+        view.form_valid(form)
+
+        # Existing user should now be linked to the event
+        user = user_model.objects.get(email="existing@example.com")
+        assert user.events.filter(pk=event.pk).exists()
+
+    def test_session_stores_selected_event_slug(
+        self,
+        client: Client,
+        event: Event,
+        mocker: MockerFixture,
+        allauth_settings: None,
+    ) -> None:
+        """Logging in with an event stores the slug in the session."""
+        mock_adapter = mocker.MagicMock()
+        mock_adapter.is_email_authorized.return_value = True
+        mocker.patch("users.views.get_adapter", return_value=mock_adapter)
+
+        mocker.patch(
+            "users.views.flows.login_by_code.LoginCodeVerificationProcess.initiate",
+        )
+
+        client.post(
+            reverse("account_login"),
+            {"email": "sessiontest@example.com", "event": event.slug},
+        )
+        assert client.session.get("selected_event_slug") == event.slug
+
 
 @pytest.mark.django_db
 class TestGetContextDataEvents:
