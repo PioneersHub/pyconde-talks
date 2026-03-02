@@ -12,6 +12,21 @@ if TYPE_CHECKING:
     from django.http import HttpRequest
 
 
+def _get_event_for_user(user: CustomUser, session_slug: str, default_slug: str) -> Event | None:
+    """
+    Resolve the best event for an authenticated user.
+
+    Priority: session-selected event > DEFAULT_EVENT > any active event.
+    """
+    preferred_slugs = [s for s in (session_slug, default_slug) if s]
+    for slug in preferred_slugs:
+        event = user.events.filter(slug=slug, is_active=True).first()
+        if event:
+            return event
+
+    return user.events.filter(is_active=True).first()
+
+
 def _get_current_event(request: HttpRequest) -> Event | None:
     """
     Return the current event from the request user or the default event setting.
@@ -23,27 +38,13 @@ def _get_current_event(request: HttpRequest) -> Event | None:
 
     For anonymous users the DEFAULT_EVENT setting is used, then the first active event.
     """
-    # Preferred slug: session selection first, then DEFAULT_EVENT.
     session_slug: str = getattr(request, "session", {}).get("selected_event_slug", "")
     default_slug: str = getattr(settings, "DEFAULT_EVENT", "")
 
     if hasattr(request, "user") and request.user.is_authenticated:
         user = request.user
         if isinstance(user, CustomUser):
-            # Try session-selected event first (must belong to the user).
-            if session_slug:
-                event = user.events.filter(slug=session_slug, is_active=True).first()
-                if event:
-                    return event
-
-            # Fall back to DEFAULT_EVENT if the user is associated with it.
-            if default_slug:
-                event = user.events.filter(slug=default_slug, is_active=True).first()
-                if event:
-                    return event
-
-            # Last resort: any active event for this user.
-            event = user.events.filter(is_active=True).first()
+            event = _get_event_for_user(user, session_slug, default_slug)
             if event:
                 return event
 
