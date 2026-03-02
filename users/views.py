@@ -41,6 +41,35 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
     Supports event selection: the user picks which event they purchased a ticket for.
     """
 
+    def _resolve_event(self) -> Event | None:
+        """Resolve the selected event from POST data and persist it in the session."""
+        event_slug = self.request.POST.get("event", "")
+        event: Event | None = None
+        if event_slug:
+            event = Event.objects.filter(slug=event_slug, is_active=True).first()
+
+        # Persist the selected event slug in the session so the context
+        # processor can use it after login to resolve branding.
+        if event and hasattr(self.request, "session"):
+            self.request.session["selected_event_slug"] = event.slug
+
+        return event
+
+    def _create_new_user(self, email: str, event: Event | None, email_hash: str) -> HttpResponse:
+        """Create a new user, link to event, and initiate login-code flow."""
+        UserModel = get_user_model()  # noqa: N806
+        logger.info("Creating new user account", email=email_hash)
+        user = UserModel.objects.create_user(email=email, is_active=True)  # type: ignore[attr-defined]
+        if event:
+            user.events.add(event)
+        logger.info("Successfully created user account", email=email_hash)
+        flows.login_by_code.LoginCodeVerificationProcess.initiate(
+            request=self.request,
+            user=user,
+            email=email,
+        )
+        return HttpResponseRedirect(self.get_success_url())
+
     def form_valid(self, form: LoginForm) -> HttpResponse:
         """
         Check if the email is authorized before proceeding.
@@ -55,16 +84,12 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
 
         adapter = get_adapter(self.request)
 
-        # Resolve the selected event
-        event_slug = self.request.POST.get("event", "")
-        event: Event | None = None
-        if event_slug:
-            event = Event.objects.filter(slug=event_slug, is_active=True).first()
+        event = self._resolve_event()
         adapter.set_selected_event(event)
 
         # Check if the email is authorized
         if not adapter.is_email_authorized(email):
-            logger.warning("Unauthorized access attempt", email=email) # Not hashed
+            logger.warning("Unauthorized access attempt", email=email)  # Not hashed
             form.add_error("email", _("This email is not authorized for access."))
             return cast("HttpResponse", self.form_invalid(form))
 
@@ -72,21 +97,7 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
         UserModel = get_user_model()  # noqa: N806
         if not UserModel.objects.filter(email=email).exists():
             try:
-                logger.info("Creating new user account", email=email_hash)
-                user = UserModel.objects.create_user(email=email, is_active=True)  # type: ignore[attr-defined]
-                # Associate the new user with the selected event
-                if event:
-                    user.events.add(event)
-                form.user = user
-                logger.info("Successfully created user account", email=email_hash, form=form.user)
-                # Trigger the login code flow
-                flows.login_by_code.LoginCodeVerificationProcess.initiate(
-                    request=self.request,
-                    user=user,
-                    email=email,
-                )
-                # Redirect to success page
-                return HttpResponseRedirect(self.get_success_url())
+                return self._create_new_user(email, event, email_hash)
             except (IntegrityError, ValidationError) as exc:
                 logger.warning("Failed to create user", email=email_hash, error=str(exc))
                 form.add_error(
@@ -105,6 +116,12 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
                 logger.exception("Unexpected error creating user", email=email_hash)
                 form.add_error("email", _("Error creating user. Please try again later."))
                 return cast("HttpResponse", self.form_invalid(form))
+
+        # Associate existing user with the selected event
+        if event:
+            existing_user = cast("CustomUser | None", UserModel.objects.filter(email=email).first())
+            if existing_user:
+                existing_user.events.add(event)
 
         # Proceed with standard login code process
         logger.info("Form is valid", email=email_hash)
