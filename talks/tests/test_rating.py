@@ -312,6 +312,93 @@ class TestRateTalkView:
 
 
 @pytest.mark.django_db
+class TestDeleteRatingView:
+    """Tests for the delete_rating view."""
+
+    def test_delete_existing_rating(
+        self,
+        client: Client,
+        user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """Delete an existing rating and redirect."""
+        Rating.objects.create(talk=talk, user=user, score=4, comment="Nice!")
+        client.force_login(user)
+        url = reverse("delete_rating", args=[talk.pk])
+        response = client.post(url)
+        assert response.status_code == HTTPStatus.FOUND
+        assert Rating.objects.filter(talk=talk, user=user).count() == 0
+
+    def test_delete_nonexistent_rating(
+        self,
+        client: Client,
+        user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """Handle deletion when no rating exists gracefully."""
+        client.force_login(user)
+        url = reverse("delete_rating", args=[talk.pk])
+        response = client.post(url)
+        assert response.status_code == HTTPStatus.FOUND
+
+    def test_delete_does_not_affect_other_users(
+        self,
+        client: Client,
+        user: CustomUser,
+        other_user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """Only delete the current user's rating, not others'."""
+        Rating.objects.create(talk=talk, user=user, score=3)
+        Rating.objects.create(talk=talk, user=other_user, score=5)
+        client.force_login(user)
+        url = reverse("delete_rating", args=[talk.pk])
+        client.post(url)
+        assert Rating.objects.filter(talk=talk, user=user).count() == 0
+        assert Rating.objects.filter(talk=talk, user=other_user).count() == 1
+
+    def test_delete_nonexistent_talk_404(self, client: Client, user: CustomUser) -> None:
+        """Return 404 when the talk does not exist."""
+        client.force_login(user)
+        url = reverse("delete_rating", args=[99999])
+        response = client.post(url)
+        assert response.status_code == HTTPStatus.NOT_FOUND
+
+    def test_get_method_not_allowed(
+        self,
+        client: Client,
+        user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """Reject GET requests (POST only)."""
+        client.force_login(user)
+        url = reverse("delete_rating", args=[talk.pk])
+        response = client.get(url)
+        assert response.status_code == HTTPStatus.METHOD_NOT_ALLOWED
+
+    def test_unauthenticated_user_redirected(self, client: Client, talk: Talk) -> None:
+        """Redirect unauthenticated users to login."""
+        url = reverse("delete_rating", args=[talk.pk])
+        response = client.post(url)
+        assert response.status_code == HTTPStatus.FOUND
+
+    def test_htmx_delete_returns_widget(
+        self,
+        client: Client,
+        user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """Return updated rating widget HTML for HTMX requests."""
+        Rating.objects.create(talk=talk, user=user, score=4)
+        client.force_login(user)
+        url = reverse("delete_rating", args=[talk.pk])
+        response = client.post(url, HTTP_HX_REQUEST="true")
+        assert response.status_code == HTTPStatus.OK
+        assert Rating.objects.filter(talk=talk, user=user).count() == 0
+        assert b"rating-widget" in response.content
+
+
+@pytest.mark.django_db
 class TestGetTalkRatingStatsView:
     """Tests for the get_talk_rating_stats JSON view."""
 
