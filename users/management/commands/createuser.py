@@ -46,7 +46,7 @@ class Command(BaseCommand):
             **options: Command options including the email address
 
         """
-        User = cast("type[CustomUser]", get_user_model())  # noqa: N806
+        User = cast("type[CustomUser]", get_user_model())  # noqa: N806  # NOSONAR(S117)
         email = options["email"]
 
         try:

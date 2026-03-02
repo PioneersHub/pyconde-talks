@@ -71,7 +71,7 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
         event = self._selected_event
 
         # Look up the user (may not exist yet)
-        UserModel = cast("type[CustomUser]", get_user_model())  # noqa: N806
+        UserModel = cast("type[CustomUser]", get_user_model())  # noqa: N806  # NOSONAR(S117)
         user: CustomUser | None = None
         try:
             user = UserModel.objects.get(email=email)
@@ -117,7 +117,7 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
             logger.info("Email found in whitelist", email=email_hash)
             return True
 
-        UserModel = cast("type[CustomUser]", get_user_model())  # noqa: N806
+        UserModel = cast("type[CustomUser]", get_user_model())  # noqa: N806  # NOSONAR(S117)
         try:
             user = UserModel.objects.get(email=email)
             if user.is_superuser:

@@ -57,7 +57,7 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
 
     def _create_new_user(self, email: str, event: Event | None, email_hash: str) -> HttpResponse:
         """Create a new user, link to event, and initiate login-code flow."""
-        UserModel = get_user_model()  # noqa: N806
+        UserModel = get_user_model()  # noqa: N806  # NOSONAR(S117)
         logger.info("Creating new user account", email=email_hash)
         user = UserModel.objects.create_user(email=email, is_active=True)  # type: ignore[attr-defined]
         if event:
@@ -94,7 +94,7 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
             return cast("HttpResponse", self.form_invalid(form))
 
         # If the email is authorized, create user if needed
-        UserModel = get_user_model()  # noqa: N806
+        UserModel = get_user_model()  # noqa: N806  # NOSONAR(S117)
         if not UserModel.objects.filter(email=email).exists():
             try:
                 return self._create_new_user(email, event, email_hash)
