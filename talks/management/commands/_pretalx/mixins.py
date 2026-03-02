@@ -299,6 +299,8 @@ class ProcessingMixin(LoggingMixin):
         )
         if not ctx.dry_run:
             update_talk(existing_talk, data, speakers, ctx)
+            if not ctx.skip_images:
+                self._image_generator.generate(existing_talk, ctx)
         return "updated"
 
     def _handle_new(

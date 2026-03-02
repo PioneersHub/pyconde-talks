@@ -699,3 +699,108 @@ class TestProcessSingleSubmission:
         # Returns "created" to indicate what would happen, but no DB changes
         assert result == "created"
         assert Talk.objects.count() == 0
+
+    @patch("talks.management.commands._pretalx.mixins.update_talk")
+    def test_updates_existing_talk_and_regenerates_image(
+        self,
+        mock_update_talk: Mock,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """Test that existing talks are updated and images are regenerated."""
+        mock_submission.state = State.confirmed
+
+        room = Room.objects.create(name="Main Hall")
+        Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
+
+        pretalx_url = "https://pretalx.com/pyconde2099"
+        existing_talk = baker.make(
+            Talk,
+            title="Old Title",
+            room=room,
+            pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
+        )
+
+        ctx = _ctx(
+            log_fn=command._log,
+            skip_images=True,
+            pretalx_event_url=pretalx_url,
+        )
+
+        result = command._process_single_submission(mock_submission, ctx)
+
+        assert result == "updated"
+        mock_update_talk.assert_called_once_with(
+            existing_talk,
+            mock_update_talk.call_args[0][1],  # SubmissionData
+            mock_submission.speakers,
+            ctx,
+        )
+
+    @patch("talks.management.commands._pretalx.mixins.update_talk")
+    def test_update_generates_image_when_not_skipped(
+        self,
+        mock_update_talk: Mock,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """Test that image generation runs on update when skip_images is False."""
+        mock_submission.state = State.confirmed
+
+        room = Room.objects.create(name="Main Hall")
+        Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
+
+        pretalx_url = "https://pretalx.com/pyconde2099"
+        existing_talk = baker.make(
+            Talk,
+            title="Old Title",
+            room=room,
+            pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
+        )
+
+        command._image_generator = Mock()
+
+        ctx = _ctx(
+            log_fn=command._log,
+            skip_images=False,
+            pretalx_event_url=pretalx_url,
+        )
+
+        result = command._process_single_submission(mock_submission, ctx)
+
+        assert result == "updated"
+        command._image_generator.generate.assert_called_once_with(existing_talk, ctx)
+
+    @patch("talks.management.commands._pretalx.mixins.update_talk")
+    def test_update_skips_image_when_skip_images_set(
+        self,
+        mock_update_talk: Mock,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """Test that image generation is skipped on update when skip_images is True."""
+        mock_submission.state = State.confirmed
+
+        room = Room.objects.create(name="Main Hall")
+        Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
+
+        pretalx_url = "https://pretalx.com/pyconde2099"
+        baker.make(
+            Talk,
+            title="Old Title",
+            room=room,
+            pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
+        )
+
+        command._image_generator = Mock()
+
+        ctx = _ctx(
+            log_fn=command._log,
+            skip_images=True,
+            pretalx_event_url=pretalx_url,
+        )
+
+        result = command._process_single_submission(mock_submission, ctx)
+
+        assert result == "updated"
+        command._image_generator.generate.assert_not_called()
