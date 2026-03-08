@@ -157,17 +157,26 @@ class TestProcessSpeakerPhoto:
             f"Expected anti-aliased alpha with intermediate values, got only {unique_alpha}"
         )
 
-    def test_no_white_fringe_on_dark_background(self) -> None:
-        """Pixels just outside the circle must not be white."""
+    def test_corner_pixel_is_fully_transparent(self) -> None:
+        """Pixels outside the circle must be fully transparent."""
         photo = self._make_photo(size=(400, 400))
         result = TalkImageGenerator._process_speaker_photo(photo, size=200)
-        # Check the corner pixel (outside the circle).
         pixel = result.getpixel((0, 0))
         assert isinstance(pixel, tuple)
-        r, g, b, a = pixel
-        # Alpha should be 0 (fully transparent); RGB should not be white.
+        _r, _g, _b, a = pixel
         assert a == 0
-        assert (r, g, b) != (255, 255, 255)
+
+    def test_transparent_avatar_gets_white_background(self) -> None:
+        """RGBA inputs with transparency should be flattened onto white."""
+        # Create a fully transparent image so the background fill is visible.
+        photo = Image.new("RGBA", (400, 400), (0, 0, 0, 0))
+        result = TalkImageGenerator._process_speaker_photo(photo, size=200)
+        # The center pixel should show the white background fill.
+        pixel = result.getpixel((100, 100))
+        assert isinstance(pixel, tuple)
+        r, g, b, a = pixel
+        assert (r, g, b) == (255, 255, 255)
+        assert a == 255
 
     def test_handles_rgba_input(self) -> None:
         photo = self._make_photo(mode="RGBA")

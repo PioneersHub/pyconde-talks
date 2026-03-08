@@ -280,6 +280,14 @@ class TalkImageGenerator:
         """Crop to square, resize, and apply a supersampled circular alpha mask."""
         img = ImageOps.fit(photo, (size, size), Image.Resampling.LANCZOS, centering=(0.5, 0.5))
 
+        # Flatten transparency onto a white background so that avatars with
+        # alpha channels don't end up with black fill or edge artifacts.
+        background = Image.new("RGB", (size, size), (255, 255, 255))
+        if img.mode == "RGBA":
+            background.paste(img, mask=img.split()[3])
+        else:
+            background.paste(img.convert("RGB"))
+
         # Build the circle mask at a higher resolution, then downscale so
         # the edge pixels get proper anti-aliasing (no jagged/serrated border).
         ss_size = size * _AVATAR_SS_FACTOR
@@ -287,11 +295,8 @@ class TalkImageGenerator:
         ImageDraw.Draw(mask).ellipse((0, 0, ss_size, ss_size), fill=255)
         mask = mask.resize((size, size), Image.Resampling.LANCZOS)
 
-        # Use the photo's own RGB channels with the anti-aliased alpha mask.
-        # Avoiding a white fill prevents the visible white fringe that appeared
-        # when edge pixels blended toward an opaque white background.
         output = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        output.paste(img.convert("RGB"), (0, 0))
+        output.paste(background, (0, 0))
         output.putalpha(mask)
         return output
 
