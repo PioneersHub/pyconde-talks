@@ -57,6 +57,27 @@
             <span>Event Schedule</span>
           </a>
         {% endif %}
+        {% if brand_imprint_url %}
+          <a href="{{ brand_imprint_url }}"
+             class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
+            <span class="text-brand-blue">📄</span>
+            <span>Imprint</span>
+          </a>
+        {% endif %}
+        {% if brand_code_of_conduct_url %}
+          <a href="{{ brand_code_of_conduct_url }}"
+             class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
+            <span class="text-brand-blue">🤝</span>
+            <span>Code of Conduct</span>
+          </a>
+        {% endif %}
+        {% if brand_privacy_policy_url %}
+          <a href="{{ brand_privacy_policy_url }}"
+             class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
+            <span class="text-brand-blue">🔒</span>
+            <span>Privacy Policy</span>
+          </a>
+        {% endif %}
       </div>
     </div>
   </div>
