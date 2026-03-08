@@ -77,6 +77,13 @@
             hx-include="#filters-form, #search-form"
             hx-indicator="#loading-indicator"
             class="flex flex-wrap gap-4 items-center">
+        <select name="event" class="form-select">
+          <option value="all">All Events</option>
+          {% for event in events %}
+            <option value="{{ event.id }}"
+                    {% if event.id|stringformat:"s" == selected_event %}selected{% endif %}>{{ event.name }}</option>
+          {% endfor %}
+        </select>
         <select name="date" class="form-select">
           <option value="">All Days</option>
           {% for date in dates %}

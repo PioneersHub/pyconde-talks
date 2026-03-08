@@ -8,6 +8,7 @@ including listing, detail views, and statistics.
 from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
+from django.conf import settings as django_settings
 from django.contrib import messages
 from django.db import IntegrityError
 from django.db.models import Avg, Count, Q
@@ -20,6 +21,8 @@ from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_POST
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic import DetailView, ListView
+
+from events.models import Event
 
 from .models import (
     COMMENT_MAX_LENGTH,
@@ -38,6 +41,20 @@ if TYPE_CHECKING:
     from django.db.models.query import QuerySet
 
     from users.models import CustomUser
+
+
+def _resolve_default_event(request: HttpRequest) -> Event | None:
+    """Resolve the default event from session or DEFAULT_EVENT setting."""
+    session_slug: str = getattr(request, "session", {}).get("selected_event_slug", "")
+    default_slug: str = getattr(django_settings, "DEFAULT_EVENT", "")
+
+    for slug in (session_slug, default_slug):
+        if slug:
+            event = Event.objects.filter(slug=slug, is_active=True).first()
+            if event:
+                return event
+
+    return Event.objects.filter(is_active=True).first()
 
 
 class TalkDetailView(DetailView[Talk]):
@@ -127,6 +144,7 @@ class TalkListView(ListView[Talk]):
                 Q(event__isnull=True) | Q(event__in=user.events.all()),
             )
 
+        queryset = self._apply_event_filter(queryset)
         queryset = self._apply_list_filters(queryset)
         queryset = _apply_search_filter(queryset, self.request)
 
@@ -137,6 +155,20 @@ class TalkListView(ListView[Talk]):
         )
 
         return queryset.order_by("start_time")
+
+    def _apply_event_filter(self, queryset: QuerySet[Talk]) -> QuerySet[Talk]:
+        """Filter talks by event. Defaults to the current event from session/settings."""
+        event_id = self.request.GET.get("event", "")
+        if event_id == "all":
+            return queryset
+        if event_id:
+            queryset = queryset.filter(event_id=event_id)
+        else:
+            # No explicit selection: default to the resolved current event
+            default_event = _resolve_default_event(self.request)
+            if default_event:
+                queryset = queryset.filter(event=default_event)
+        return queryset
 
     def _apply_list_filters(self, queryset: QuerySet[Talk]) -> QuerySet[Talk]:
         """Apply room, date, track, presentation type, and saved filters from GET params."""
@@ -162,11 +194,28 @@ class TalkListView(ListView[Talk]):
         """Enhance the template context with filter options and selected values."""
         context = super().get_context_data(**kwargs)
 
+        # Event filter options & selection
+        user = cast("CustomUser", self.request.user)
+        if user.is_superuser:
+            context["events"] = Event.objects.filter(is_active=True).order_by("name")
+        else:
+            context["events"] = user.events.filter(is_active=True).order_by("name")
+
+        event_param = self.request.GET.get("event", "")
+        if event_param:
+            context["selected_event"] = event_param
+        else:
+            default_event = _resolve_default_event(self.request)
+            context["selected_event"] = str(default_event.pk) if default_event else ""
+
+        # Scope filter options to the selected event's talks
+        talk_qs = self.get_queryset()
+
         # Get unique rooms
-        context["rooms"] = Room.objects.filter(talks__isnull=False).distinct().order_by("name")
+        context["rooms"] = Room.objects.filter(talks__in=talk_qs).distinct().order_by("name")
         # Get unique days
         context["dates"] = (
-            Talk.objects.annotate(date=TruncDate("start_time"))
+            talk_qs.annotate(date=TruncDate("start_time"))
             .values_list("date", flat=True)
             .distinct()
             .order_by("date")
@@ -177,12 +226,10 @@ class TalkListView(ListView[Talk]):
         context["has_multiple_years"] = len(years) > 1
 
         # Get unique tracks
-        context["tracks"] = (
-            Talk.objects.values_list("track", flat=True).distinct().order_by("track")
-        )
+        context["tracks"] = talk_qs.values_list("track", flat=True).distinct().order_by("track")
         # Get presentation types
         existing_types = (
-            Talk.objects.values_list("presentation_type", flat=True)
+            talk_qs.values_list("presentation_type", flat=True)
             .distinct()
             .order_by("presentation_type")
         )
@@ -547,8 +594,8 @@ def _slice_name(dt: datetime) -> str:
     return f"t-{local.strftime('%H%M')}"
 
 
-def _get_schedule_dates(user: CustomUser) -> list[date]:
-    """Return available schedule dates, filtered by user event access."""
+def _get_schedule_dates(user: CustomUser, event_id: int | None = None) -> list[date]:
+    """Return available schedule dates, filtered by user event access and optional event."""
     date_qs = (
         Talk.objects.exclude(start_time__year=FAR_FUTURE.year)
         .annotate(date=TruncDate("start_time"))
@@ -556,7 +603,9 @@ def _get_schedule_dates(user: CustomUser) -> list[date]:
         .distinct()
         .order_by("date")
     )
-    if not user.is_superuser:
+    if event_id:
+        date_qs = date_qs.filter(event_id=event_id)
+    elif not user.is_superuser:
         date_qs = date_qs.filter(
             Q(event__isnull=True) | Q(event__in=user.events.all()),
         )
@@ -566,6 +615,7 @@ def _get_schedule_dates(user: CustomUser) -> list[date]:
 def _build_schedule_data(
     selected_date: date,
     user: CustomUser,
+    event_id: int | None = None,
 ) -> tuple[list[Talk], list[Room], list[dict[str, Any]], str, list[dict[str, str]]]:
     """
     Build the CSS Grid schedule data for a given date.
@@ -580,7 +630,9 @@ def _build_schedule_data(
         .defer("description", "abstract")
         .order_by("start_time", "room__name")
     )
-    if not user.is_superuser:
+    if event_id:
+        talks_qs = talks_qs.filter(event_id=event_id)
+    elif not user.is_superuser:
         talks_qs = talks_qs.filter(
             Q(event__isnull=True) | Q(event__in=user.events.all()),
         )
@@ -672,7 +724,20 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
     """
     user = cast("CustomUser", request.user)
 
-    available_dates = _get_schedule_dates(user)
+    # Resolve event filter ----------------------------------------------------
+    event_param = request.GET.get("event", "")
+    if event_param:
+        selected_event_id: int | None = int(event_param) if event_param.isdigit() else None
+    else:
+        default_event = _resolve_default_event(request)
+        selected_event_id = default_event.pk if default_event else None  # type: ignore[assignment]
+
+    if user.is_superuser:
+        available_events = Event.objects.filter(is_active=True).order_by("name")
+    else:
+        available_events = user.events.filter(is_active=True).order_by("name")
+
+    available_dates = _get_schedule_dates(user, event_id=selected_event_id)
 
     # Resolve selected date ---------------------------------------------------
     selected_date = _parse_schedule_date(request.GET.get("date"))
@@ -690,6 +755,7 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
         talks, rooms, schedule_items, grid_template_rows, time_labels = _build_schedule_data(
             selected_date,
             user,
+            event_id=selected_event_id,
         )
 
     # Saved talk IDs for bookmark icons
@@ -741,5 +807,7 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
         "presentation_types": presentation_types,
         "selected_track": filter_track,
         "selected_type": filter_type,
+        "events": available_events,
+        "selected_event": str(selected_event_id) if selected_event_id else "",
     }
     return render(request, "talks/schedule.html", context)
