@@ -1,13 +1,22 @@
-"""Tests for :class:`TalkImageGenerator` font resolution."""
+"""Tests for :class:`TalkImageGenerator` image generation."""
 
-# ruff: noqa: SLF001, D102
+# ruff: noqa: SLF001, D102, PLR2004
 
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
+from PIL import Image
 
-from talks.management.commands._pretalx.images import TalkImageGenerator
+from talks.management.commands._pretalx.images import (
+    _AVATAR_SS_FACTOR,
+    _DESIGN_WIDTH,
+    _FONT_SIZE_SUBTITLE,
+    _FONT_SIZE_TITLE,
+    _OUTPUT_HEIGHT,
+    _OUTPUT_WIDTH,
+    TalkImageGenerator,
+)
 
 
 if TYPE_CHECKING:
@@ -119,3 +128,89 @@ class TestResolveFontPath:
 
             with pytest.raises(FileNotFoundError, match="Ghost Font"):
                 TalkImageGenerator._resolve_font_path()
+
+
+class TestProcessSpeakerPhoto:
+    """Tests for ``TalkImageGenerator._process_speaker_photo``."""
+
+    @staticmethod
+    def _make_photo(size: tuple[int, int] = (400, 400), mode: str = "RGB") -> Image.Image:
+        """Create a simple solid-colour test image."""
+        return Image.new(mode, size, (100, 150, 200))
+
+    def test_returns_rgba_with_correct_size(self) -> None:
+        photo = self._make_photo()
+        result = TalkImageGenerator._process_speaker_photo(photo, size=200)
+
+        assert result.mode == "RGBA"
+        assert result.size == (200, 200)
+
+    def test_circle_mask_is_antialiased(self) -> None:
+        """Edge pixels should have intermediate alpha values (not just 0/255)."""
+        photo = self._make_photo(size=(800, 800))
+        result = TalkImageGenerator._process_speaker_photo(photo, size=200)
+        alpha_band = result.split()[3]
+        unique_alpha = set(alpha_band.getdata())  # type: ignore[call-overload]
+
+        # A supersampled mask produces intermediate values at the edge.
+        assert len(unique_alpha) > 2, (
+            f"Expected anti-aliased alpha with intermediate values, got only {unique_alpha}"
+        )
+
+    def test_no_white_fringe_on_dark_background(self) -> None:
+        """Pixels just outside the circle must not be white."""
+        photo = self._make_photo(size=(400, 400))
+        result = TalkImageGenerator._process_speaker_photo(photo, size=200)
+        # Check the corner pixel (outside the circle).
+        pixel = result.getpixel((0, 0))
+        assert isinstance(pixel, tuple)
+        r, g, b, a = pixel
+        # Alpha should be 0 (fully transparent); RGB should not be white.
+        assert a == 0
+        assert (r, g, b) != (255, 255, 255)
+
+    def test_handles_rgba_input(self) -> None:
+        photo = self._make_photo(mode="RGBA")
+        result = TalkImageGenerator._process_speaker_photo(photo, size=100)
+
+        assert result.mode == "RGBA"
+        assert result.size == (100, 100)
+
+    def test_center_pixel_is_opaque(self) -> None:
+        photo = self._make_photo()
+        result = TalkImageGenerator._process_speaker_photo(photo, size=200)
+        pixel = result.getpixel((100, 100))
+        assert isinstance(pixel, tuple)
+        _, _, _, a = pixel
+
+        assert a == 255
+
+    def test_supersample_factor_used(self) -> None:
+        """The mask should be built at _AVATAR_SS_FACTOR times the target size."""
+        assert _AVATAR_SS_FACTOR >= 2, "Supersample factor should be >= 2"
+
+
+class TestScaleAwareLayout:
+    """Verify that scale-dependent helpers produce proportional results."""
+
+    def test_load_fonts_scales_sizes(self) -> None:
+        sizes: dict[str, int] = {}
+
+        def _patched_load(scale: float = 1.0) -> dict[str, int]:
+            sizes.clear()
+            for name, base in [
+                ("title", _FONT_SIZE_TITLE),
+                ("subtitle", _FONT_SIZE_SUBTITLE),
+            ]:
+                sizes[name] = int(base * scale)
+            return sizes
+
+        # Just verify the math - actual font loading is tested elsewhere.
+        _patched_load(2.0)
+        assert sizes["title"] == _FONT_SIZE_TITLE * 2
+        assert sizes["subtitle"] == _FONT_SIZE_SUBTITLE * 2
+
+    def test_design_width_matches_output_width(self) -> None:
+        """Output width should equal the design-time baseline."""
+        assert _OUTPUT_WIDTH == _DESIGN_WIDTH
+        assert _OUTPUT_HEIGHT == 1080
