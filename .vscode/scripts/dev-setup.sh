@@ -279,6 +279,25 @@ initialize_django() {
             from events.models import Event
 
             Event.objects.get_or_create(
+                slug='pyconde-pydata-2025',
+                defaults={
+                    'name': 'PyCon DE & PyData 2025',
+                    'year': 2025,
+                    'is_active': True,
+                    'pretalx_url': 'https://pretalx.com/pyconde-pydata-2025',
+                    'main_website_url': 'https://2025.pycon.de',
+                    'imprint_url': 'https://2025.pycon.de/imprint/',
+                    'code_of_conduct_url': 'https://pioneershub.github.io/pyconde-conference/code-of-conduct/',
+                    'privacy_policy_url': 'https://2025.pycon.de/privacy-policy/',
+                    'validation_api_url': '',
+                    'venue_url': 'https://www.darmstadtium.de',
+                    'logo_svg_name': 'pyconde-pydata-logo',
+                    'made_by_name': 'PyCon DE & PyData Team',
+                    'made_by_url': 'https://2025.pycon.de/team',
+                },
+            )
+
+            Event.objects.get_or_create(
                 slug='pyconde-pydata-2026',
                 defaults={
                     'name': 'PyCon DE & PyData 2026',
@@ -318,8 +337,9 @@ initialize_django() {
 		PYTHON
 
         log "Generating fake talks..."
+        "$VENV_PYTHON" manage.py generate_fake_talks --count "$FAKE_DATA_COUNT" --event-slug pyconde-pydata-2025 --event-name "PyConDE & PyData 2025" --date "2025-04-23" || warn "Failed to generate fake data"
         "$VENV_PYTHON" manage.py generate_fake_talks --count "$FAKE_DATA_COUNT" --event-slug pyconde-pydata-2026 --event-name "PyConDE & PyData 2026" || warn "Failed to generate fake data"
-        "$VENV_PYTHON" manage.py generate_fake_talks --count "$FAKE_DATA_COUNT" --event-slug pydata-berlin-2026 --event-name "PyData Berlin 2026" || warn "Failed to generate fake data"
+        "$VENV_PYTHON" manage.py generate_fake_talks --count "$FAKE_DATA_COUNT" --event-slug pydata-berlin-2026 --event-name "PyData Berlin 2026" --date "2026-09-01" || warn "Failed to generate fake data"
     fi
 
     # Sync with Pretalx
