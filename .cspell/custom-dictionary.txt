@@ -53,6 +53,8 @@ gcwv
 Genderqueer
 getbbox
 getbuffer
+getdata
+getpixel
 ggpht
 googlevideo
 healthcheck
@@ -147,6 +149,8 @@ striptags
 structlog
 stylesheet
 sunos
+supersample
+supersampled
 tailwindcss
 tamasfe
 textwrap

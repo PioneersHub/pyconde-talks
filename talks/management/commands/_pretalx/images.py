@@ -34,6 +34,57 @@ if TYPE_CHECKING:
 #: Supported output formats for generated talk images.
 type _ImageFormat = Literal["webp", "jpeg"]
 
+# ------------------------------------------------------------------
+# Layout constants - defined at a "design" resolution of 1920 x 1080.
+# When the template is larger the generator scales every value
+# proportionally so the final card looks identical at any size.
+# ------------------------------------------------------------------
+
+_DESIGN_WIDTH: int = 1920
+"""Baseline width the pixel constants below are authored for."""
+
+_MARGIN_X: int = 60
+"""Left margin for text elements (title, speaker names)."""
+
+_TEXT_H_PADDING: int = 80
+"""Total horizontal padding subtracted from the card width for text wrapping."""
+
+_SPEAKER_MARGIN_X: int = 40
+"""Horizontal offset for the first speaker avatar."""
+
+_SPEAKER_MARGIN_Y: int = 50
+"""Vertical offset for the first speaker avatar row."""
+
+_AVATAR_SPACING: int = 20
+"""Gap between avatars in a multi-avatar grid."""
+
+_TITLE_BOTTOM_Y: int = 900
+"""Y-coordinate that anchors the bottom of the title block."""
+
+_TITLE_LINE_HEIGHT: int = 80
+"""Vertical distance between successive title lines."""
+
+_SPEAKER_NAME_BOTTOM_OFFSET: int = 80
+"""Distance from the bottom edge to the speaker-name baseline."""
+
+_MAX_TITLE_LINES: int = 5
+"""Maximum number of wrapped title lines rendered on the card."""
+
+_MAX_SPEAKER_AVATARS: int = 4
+"""Maximum number of speaker avatars displayed."""
+
+_FONT_SIZE_TITLE: int = 46
+_FONT_SIZE_SUBTITLE: int = 28
+_FONT_SIZE_SMALL: int = 24
+_FONT_SIZE_EVENT: int = 42
+
+_AVATAR_SS_FACTOR: int = 4
+"""Supersample factor for the circular avatar mask (anti-aliasing)."""
+
+_OUTPUT_WIDTH: int = 1920
+_OUTPUT_HEIGHT: int = 1080
+"""Final card dimensions after downscaling."""
+
 
 class TalkImageGenerator:
     """
@@ -53,7 +104,6 @@ class TalkImageGenerator:
         self,
         talk: Talk,
         ctx: ImportContext,
-        card_width: int = 1920,
     ) -> Image.Image:
         """Generate a social card for *talk*, save it, and return the :class:`Image`."""
         image_format = self._resolve_image_format(ctx)
@@ -66,6 +116,7 @@ class TalkImageGenerator:
         )
         img = Image.open(template_path).copy().convert("RGBA")
         width, height = img.size
+        scale = width / _DESIGN_WIDTH
 
         final_img = Image.new("RGB", (width, height), (255, 255, 255))
         final_img.paste(img, (0, 0), img)
@@ -73,23 +124,37 @@ class TalkImageGenerator:
         draw = ImageDraw.Draw(final_img)
 
         # Speaker avatars
-        self._paste_speaker_avatars(final_img, talk, height)
+        self._paste_speaker_avatars(final_img, talk, height, scale)
 
         # Title
-        fonts = self._load_fonts()
-        full_width = card_width - 80
+        fonts = self._load_fonts(scale)
+        margin_x = int(_MARGIN_X * scale)
+        full_width = width - int(_TEXT_H_PADDING * scale)
         self._draw_title_block(
             canvas=final_img,
             title=talk.title,
             fonts=fonts,
             full_width=full_width,
+            scale=scale,
         )
 
         # Speaker names
         speakers_text = talk.speaker_names
         if speakers_text:
-            speaker_y = height - 80
-            draw.text((60, speaker_y), speakers_text, font=fonts["subtitle"], fill=(255, 255, 255))
+            speaker_y = height - int(_SPEAKER_NAME_BOTTOM_OFFSET * scale)
+            draw.text(
+                (margin_x, speaker_y),
+                speakers_text,
+                font=fonts["subtitle"],
+                fill=(255, 255, 255),
+            )
+
+        # Downscale to output resolution when the template is larger.
+        if width != _OUTPUT_WIDTH or height != _OUTPUT_HEIGHT:
+            final_img = final_img.resize(
+                (_OUTPUT_WIDTH, _OUTPUT_HEIGHT),
+                Image.Resampling.LANCZOS,
+            )
 
         # Save to model
         self._save_image_to_talk(talk, final_img, image_format, ctx)
@@ -128,21 +193,22 @@ class TalkImageGenerator:
         canvas: Image.Image,
         talk: Talk,
         height: int,
+        scale: float,
     ) -> None:
         """
         Download, crop, and paste speaker avatar photos onto *canvas*.
 
         Arranges up to four circular avatars in a grid in the upper-left region of the card.
         """
-        speaker_margin_x = 40
-        speaker_margin_y = 50
-        limit = 4
-        speaker_photos = self._download_and_process_speaker_photos(
+        margin_x = int(_SPEAKER_MARGIN_X * scale)
+        margin_y = int(_SPEAKER_MARGIN_Y * scale)
+        spacing = int(_AVATAR_SPACING * scale)
+
+        raw_photos = self._download_speaker_photos(
             list(talk.speakers.all()),
-            limit=limit,
+            limit=_MAX_SPEAKER_AVATARS,
         )
-        avatar_count = len(speaker_photos)
-        spacing = 20
+        avatar_count = len(raw_photos)
         area_side = int(height * 0.5)
 
         if avatar_count <= 1:
@@ -157,27 +223,28 @@ class TalkImageGenerator:
             grid_cols = 2
 
         processed = [
-            self._process_speaker_photo(p, size=speaker_size) for p, _ in speaker_photos[:limit]
+            self._process_speaker_photo(p, size=speaker_size)
+            for p, _ in raw_photos[:_MAX_SPEAKER_AVATARS]
         ]
 
         for idx, photo in enumerate(processed):
             row = idx // grid_cols
             col = idx % grid_cols
-            x = speaker_margin_x + col * (speaker_size + spacing)
-            y = speaker_margin_y + row * (speaker_size + spacing)
+            x = margin_x + col * (speaker_size + spacing)
+            y = margin_y + row * (speaker_size + spacing)
             canvas.paste(photo, (x, y), photo)
 
     # ------------------------------------------------------------------
     # Speaker photo download / processing
     # ------------------------------------------------------------------
 
-    def _download_and_process_speaker_photos(
+    def _download_speaker_photos(
         self,
         speakers: list[Speaker],
-        limit: int = 2,
+        limit: int = 4,
     ) -> list[tuple[Image.Image, str]]:
         """
-        Download and crop speaker photos.
+        Download speaker photos (unprocessed).
 
         Return up to *limit* ``(image, pretalx_id)`` pairs.
         """
@@ -185,7 +252,6 @@ class TalkImageGenerator:
         for speaker in speakers:
             photo = self._download_speaker_photo(speaker)
             if photo:
-                photo = self._process_speaker_photo(photo)
                 photos.append((photo, speaker.pretalx_id))
                 if len(photos) >= limit:
                     break
@@ -211,20 +277,21 @@ class TalkImageGenerator:
 
     @staticmethod
     def _process_speaker_photo(photo: Image.Image, size: int = 200) -> Image.Image:
-        """Crop to square, resize, and apply a circular alpha mask."""
+        """Crop to square, resize, and apply a supersampled circular alpha mask."""
         img = ImageOps.fit(photo, (size, size), Image.Resampling.LANCZOS, centering=(0.5, 0.5))
 
-        # Flatten transparency onto a white background to avoid border artifacts.
-        background = Image.new("RGB", (size, size), (255, 255, 255))
-        if img.mode == "RGBA":
-            background.paste(img, mask=img.split()[3])
-        else:
-            background.paste(img.convert("RGB"))
+        # Build the circle mask at a higher resolution, then downscale so
+        # the edge pixels get proper anti-aliasing (no jagged/serrated border).
+        ss_size = size * _AVATAR_SS_FACTOR
+        mask = Image.new("L", (ss_size, ss_size), 0)
+        ImageDraw.Draw(mask).ellipse((0, 0, ss_size, ss_size), fill=255)
+        mask = mask.resize((size, size), Image.Resampling.LANCZOS)
 
-        mask = Image.new("L", (size, size), 0)
-        ImageDraw.Draw(mask).ellipse((0, 0, size, size), fill=255)
-        output = Image.new("RGBA", (size, size))
-        output.paste(background, (0, 0))
+        # Use the photo's own RGB channels with the anti-aliased alpha mask.
+        # Avoiding a white fill prevents the visible white fringe that appeared
+        # when edge pixels blended toward an opaque white background.
+        output = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        output.paste(img.convert("RGB"), (0, 0))
         output.putalpha(mask)
         return output
 
@@ -272,20 +339,31 @@ class TalkImageGenerator:
         raise FileNotFoundError(msg)
 
     @staticmethod
-    def _load_fonts() -> dict[str, ImageFont.FreeTypeFont]:
+    def _load_fonts(scale: float = 1.0) -> dict[str, ImageFont.FreeTypeFont]:
         """
         Load the font family used for social-card rendering.
+
+        Font sizes are multiplied by *scale* so text is proportional to the
+        working resolution of the template.
 
         Returns a dict with ``"title"``, ``"subtitle"``, ``"small"``, and
         ``"event_info"`` keys mapped to pre-sized font instances.
         """
         font_path = TalkImageGenerator._resolve_font_path()
         layout = ImageFont.Layout.RAQM if features.check_feature("raqm") else ImageFont.Layout.BASIC
+
+        def _font(size_1x: int) -> ImageFont.FreeTypeFont:
+            return ImageFont.truetype(
+                font_path,
+                int(size_1x * scale),
+                layout_engine=layout,
+            )
+
         return {
-            "title": ImageFont.truetype(font_path, 46, layout_engine=layout),
-            "subtitle": ImageFont.truetype(font_path, 28, layout_engine=layout),
-            "small": ImageFont.truetype(font_path, 24, layout_engine=layout),
-            "event_info": ImageFont.truetype(font_path, 42, layout_engine=layout),
+            "title": _font(_FONT_SIZE_TITLE),
+            "subtitle": _font(_FONT_SIZE_SUBTITLE),
+            "small": _font(_FONT_SIZE_SMALL),
+            "event_info": _font(_FONT_SIZE_EVENT),
         }
 
     # ------------------------------------------------------------------
@@ -298,15 +376,17 @@ class TalkImageGenerator:
         title: str,
         fonts: dict[str, ImageFont.FreeTypeFont],
         full_width: int,
+        scale: float = 1.0,
     ) -> None:
         """Draw wrapped title text aligned to bottom of the safe area."""
         title_lines = self._wrap_text(title, fonts, full_width)
-        line_height = 80
-        title_block_height = len(title_lines[:5]) * line_height
-        title_y = 900 - title_block_height
+        line_height = int(_TITLE_LINE_HEIGHT * scale)
+        margin_x = int(_MARGIN_X * scale)
+        title_block_height = len(title_lines[:_MAX_TITLE_LINES]) * line_height
+        title_y = int(_TITLE_BOTTOM_Y * scale) - title_block_height
         with Pilmoji(canvas) as pilmoji:
-            for line in title_lines[:5]:
-                pilmoji.text((60, title_y), line, (255, 255, 255), fonts["title"])
+            for line in title_lines[:_MAX_TITLE_LINES]:
+                pilmoji.text((margin_x, title_y), line, (255, 255, 255), fonts["title"])
                 title_y += line_height
 
     def _wrap_text(
