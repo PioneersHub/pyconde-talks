@@ -90,7 +90,7 @@
     </main>
     <footer class="app-footer">
       <div class="container mx-auto">
-        <div class="flex flex-col md:flex-row justify-between">
+        <div>
           <div>
             <h2 class="text-xl font-bold mb-4">{{ brand_title }}</h2>
             {% if brand_made_by_url %}
@@ -98,42 +98,39 @@
                 Made with ❤️ by the <a href="{{ brand_made_by_url }}">{{ brand_made_by_name }}</a>
               </p>
             {% endif %}
-          </div>
-          <div class="mt-6 md:mt-0">
-            <h3 class="text-lg font-semibold mb-2">Quick Links</h3>
-            <ul>
+            <ul class="mt-4 flex flex-wrap items-center justify-center divide-x divide-strong list-none p-0 m-0">
               {% if brand_main_website_url %}
-                <li>
+                <li class="whitespace-nowrap pr-3 first:pl-0">
                   <a href="{{ brand_main_website_url }}" class="hover:underline">Main website</a>
                 </li>
               {% endif %}
               {% if pretalx_schedule_url %}
-                <li>
+                <li class="whitespace-nowrap px-3">
                   <a href="{{ pretalx_schedule_url }}" class="hover:underline">Schedule</a>
                 </li>
               {% endif %}
               {% if pretalx_speakers_url %}
-                <li>
+                <li class="whitespace-nowrap px-3">
                   <a href="{{ pretalx_speakers_url }}" class="hover:underline">Speakers</a>
                 </li>
               {% endif %}
               {% if brand_venue_url %}
-                <li>
+                <li class="whitespace-nowrap px-3">
                   <a href="{{ brand_venue_url }}" class="hover:underline">Venue</a>
                 </li>
               {% endif %}
               {% if brand_imprint_url %}
-                <li>
+                <li class="whitespace-nowrap px-3">
                   <a href="{{ brand_imprint_url }}" class="hover:underline">Imprint</a>
                 </li>
               {% endif %}
               {% if brand_code_of_conduct_url %}
-                <li>
+                <li class="whitespace-nowrap px-3">
                   <a href="{{ brand_code_of_conduct_url }}" class="hover:underline">Code of Conduct</a>
                 </li>
               {% endif %}
               {% if brand_privacy_policy_url %}
-                <li>
+                <li class="whitespace-nowrap pl-3 last:pr-0">
                   <a href="{{ brand_privacy_policy_url }}" class="hover:underline">Privacy Policy</a>
                 </li>
               {% endif %}
