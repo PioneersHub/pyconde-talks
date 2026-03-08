@@ -49,6 +49,13 @@ class TestEventAdmin:
         """Verify slug is prepopulated from name."""
         assert EventAdmin.prepopulated_fields == {"slug": ("name",)}
 
+    def test_branding_fieldset_includes_legal_links(self) -> None:
+        """Branding fieldset exposes legal link fields in admin."""
+        branding_fieldset = EventAdmin.fieldsets[1][1]["fields"]
+        assert "imprint_url" in branding_fieldset
+        assert "code_of_conduct_url" in branding_fieldset
+        assert "privacy_policy_url" in branding_fieldset
+
     def test_validation_api_url_set_true(self) -> None:
         """validation_api_url_set returns True when URL is configured."""
         event = baker.make(Event, validation_api_url="https://example.com/api")

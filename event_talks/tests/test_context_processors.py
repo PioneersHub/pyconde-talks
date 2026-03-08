@@ -28,6 +28,9 @@ class TestBrandingContextProcessor:
             slug="pycon-2099",
             year=2099,
             main_website_url="https://pycon.de",
+            imprint_url="https://pycon.de/imprint",
+            code_of_conduct_url="https://pycon.de/code-of-conduct",
+            privacy_policy_url="https://pycon.de/privacy-policy",
             venue_url="https://venue.example.com",
             logo_svg_name="pycon_logo",
             made_by_name="The PyCon Team",
@@ -43,6 +46,9 @@ class TestBrandingContextProcessor:
         assert ctx["pretalx_schedule_url"] == "https://pretalx.com/pycon2099/schedule/"
         assert ctx["pretalx_speakers_url"] == "https://pretalx.com/pycon2099/speaker/"
         assert ctx["brand_main_website_url"] == "https://pycon.de"
+        assert ctx["brand_imprint_url"] == "https://pycon.de/imprint"
+        assert ctx["brand_code_of_conduct_url"] == "https://pycon.de/code-of-conduct"
+        assert ctx["brand_privacy_policy_url"] == "https://pycon.de/privacy-policy"
 
     @override_settings(DEFAULT_EVENT="")
     def test_branding_empty(self) -> None:
@@ -50,6 +56,9 @@ class TestBrandingContextProcessor:
         ctx = branding(self._make_request())
         assert ctx["brand_title"] == "Talks"
         assert ctx["brand_meta_description"] == "Talks and Schedule"
+        assert ctx["brand_imprint_url"] == ""
+        assert ctx["brand_code_of_conduct_url"] == ""
+        assert ctx["brand_privacy_policy_url"] == ""
         assert ctx["pretalx_schedule_url"] == ""
         assert ctx["pretalx_speakers_url"] == ""
 
