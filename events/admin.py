@@ -44,6 +44,9 @@ class EventAdmin(admin.ModelAdmin[Event]):
             {
                 "fields": (
                     "main_website_url",
+                    "imprint_url",
+                    "code_of_conduct_url",
+                    "privacy_policy_url",
                     "venue_url",
                     "logo_svg_name",
                     "made_by_name",

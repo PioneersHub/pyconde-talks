@@ -72,6 +72,24 @@ class Event(models.Model):
         help_text=_("Main website URL for the event"),
     )
 
+    imprint_url = models.URLField(
+        blank=True,
+        default="",
+        help_text=_("URL to the event's Imprint page"),
+    )
+
+    code_of_conduct_url = models.URLField(
+        blank=True,
+        default="",
+        help_text=_("URL to the event's Code of Conduct page"),
+    )
+
+    privacy_policy_url = models.URLField(
+        blank=True,
+        default="",
+        help_text=_("URL to the event's Privacy Policy page"),
+    )
+
     venue_url = models.URLField(
         blank=True,
         default="",
