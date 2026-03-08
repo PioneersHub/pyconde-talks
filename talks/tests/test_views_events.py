@@ -70,10 +70,10 @@ class TestTalkListEventFiltering:
         client: Client,
         user_event_a: CustomUser,
     ) -> None:
-        """User sees talks that have no event assigned (event=None)."""
+        """User sees talks that have no event assigned when selecting 'All Events'."""
         orphan_talk = baker.make(Talk, title="Orphan Talk", event=None)
         client.force_login(user_event_a)
-        response = client.get(reverse("talk_list"))
+        response = client.get(reverse("talk_list"), {"event": "all"})
         assert orphan_talk.title in response.content.decode()
 
     def test_superuser_sees_all_events(
@@ -83,11 +83,11 @@ class TestTalkListEventFiltering:
         event_a: Event,
         event_b: Event,
     ) -> None:
-        """Superuser sees talks from all events."""
+        """Superuser sees talks from all events when selecting 'All Events'."""
         talk_a = baker.make(Talk, title="Talk Alpha", event=event_a)
         talk_b = baker.make(Talk, title="Talk Beta", event=event_b)
         client.force_login(superuser)
-        response = client.get(reverse("talk_list"))
+        response = client.get(reverse("talk_list"), {"event": "all"})
         content = response.content.decode()
         assert talk_a.title in content
         assert talk_b.title in content
