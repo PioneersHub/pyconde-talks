@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Literal, cast
 
 from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from matplotlib import font_manager
 from PIL import Image, ImageDraw, ImageFont, ImageOps, features
 from pilmoji import Pilmoji
 
@@ -232,24 +233,53 @@ class TalkImageGenerator:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _load_fonts() -> dict[str, ImageFont.FreeTypeFont]:
+    def _resolve_font_path() -> str:
         """
-        Load the font family configured in ``settings.TALK_CARD_FONT``.
+        Return the font file path from settings or by searching system fonts.
 
-        Returns a dict with ``"title"``, ``"subtitle"``, ``"small"``, and
-        ``"event_info"`` keys mapped to pre-sized font instances.
+        Resolution order:
+
+        1. ``settings.TALK_CARD_FONT`` - explicit path to a ``.ttf`` / ``.otf`` file.
+        2. ``settings.TALK_CARD_FONT_NAME`` (default ``"Noto Sans"``) - looked
+           up via :func:`matplotlib.font_manager.findfont`.
 
         Raises
         ------
         FileNotFoundError
-            If ``TALK_CARD_FONT`` is unset or points to a missing file.
+            If neither approach yields a usable font file.
 
         """
         font_path = getattr(settings, "TALK_CARD_FONT", None)
-        if not font_path or not Path(font_path).exists():
-            msg = "TALK_CARD_FONT must be configured and point to an existing font file"
-            raise FileNotFoundError(msg)
+        if font_path and Path(font_path).exists():
+            return str(font_path)
 
+        font_name: str = getattr(settings, "TALK_CARD_FONT_NAME", "Noto Sans")
+        try:
+            resolved = font_manager.findfont(
+                font_manager.FontProperties(family=font_name),
+                fallback_to_default=False,
+            )
+        except ValueError:
+            resolved = None
+
+        if resolved and Path(resolved).exists():
+            return resolved
+
+        msg = (
+            f"Font '{font_name}' not found. "
+            "Install the font or set TALK_CARD_FONT to an explicit path."
+        )
+        raise FileNotFoundError(msg)
+
+    @staticmethod
+    def _load_fonts() -> dict[str, ImageFont.FreeTypeFont]:
+        """
+        Load the font family used for social-card rendering.
+
+        Returns a dict with ``"title"``, ``"subtitle"``, ``"small"``, and
+        ``"event_info"`` keys mapped to pre-sized font instances.
+        """
+        font_path = TalkImageGenerator._resolve_font_path()
         layout = ImageFont.Layout.RAQM if features.check_feature("raqm") else ImageFont.Layout.BASIC
         return {
             "title": ImageFont.truetype(font_path, 46, layout_engine=layout),

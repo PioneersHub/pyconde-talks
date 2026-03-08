@@ -578,6 +578,7 @@ TALK_CARD_FONT = env(
     "TALK_CARD_FONT",
     default=BASE_DIR / "assets" / "fonts" / "NotoSans.ttf",
 )
+TALK_CARD_FONT_NAME = env("TALK_CARD_FONT_NAME", default="Noto Sans")
 
 # --------------------------------------------------------------------------------------------------
 # Extra settings
