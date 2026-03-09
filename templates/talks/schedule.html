@@ -28,20 +28,24 @@
         <span class="text-subtle">No scheduled days found.</span>
       {% endfor %}
     </div>
+    {# ── Event filter (always visible) ─────────────────────── #}
+    <form method="get" class="mb-4 card-compact inline-flex">
+      <select name="event" class="form-select" onchange="this.form.submit()">
+        <option value="all">All Events</option>
+        {% for event in events %}
+          <option value="{{ event.id }}"
+                  {% if event.id|stringformat:"s" == selected_event %}selected{% endif %}>{{ event.name }}</option>
+        {% endfor %}
+      </select>
+    </form>
     {# ── Filters ───────────────────────────────────────────── #}
     {% if has_schedule %}
       <form id="schedule-filters"
             method="get"
             class="flex flex-wrap gap-3 items-center mb-4 card-compact">
-        {# preserve selected date #}
+        {# preserve selected date and event #}
         {% if selected_date %}<input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}" />{% endif %}
-        <select name="event" class="form-select" onchange="this.form.submit()">
-          <option value="all">All Events</option>
-          {% for event in events %}
-            <option value="{{ event.id }}"
-                    {% if event.id|stringformat:"s" == selected_event %}selected{% endif %}>{{ event.name }}</option>
-          {% endfor %}
-        </select>
+        {% if selected_event %}<input type="hidden" name="event" value="{{ selected_event }}" />{% endif %}
         <input type="search"
                name="q"
                value="{{ search_query }}"
