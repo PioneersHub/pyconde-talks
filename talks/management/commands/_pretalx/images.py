@@ -8,6 +8,7 @@ title, speaker avatar(s), and speaker names.
 # ruff: noqa: BLE001
 
 import random
+import re
 from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
@@ -47,7 +48,7 @@ _DESIGN_WIDTH: int = 1920
 _MARGIN_X: int = 60
 """Left margin for text elements (title, speaker names)."""
 
-_TEXT_H_PADDING: int = 80
+_TEXT_H_PADDING: int = 120
 """Total horizontal padding subtracted from the card width for text wrapping."""
 
 _SPEAKER_MARGIN_X: int = 40
@@ -65,8 +66,11 @@ _TITLE_BOTTOM_Y: int = 900
 _TITLE_LINE_HEIGHT: int = 80
 """Vertical distance between successive title lines."""
 
-_SPEAKER_NAME_BOTTOM_OFFSET: int = 80
+_SPEAKER_NAME_BOTTOM_OFFSET: int = 110
 """Distance from the bottom edge to the speaker-name baseline."""
+
+_CODE_BOTTOM_OFFSET: int = 45
+"""Distance from the bottom edge to the pretalx-code baseline."""
 
 _MAX_TITLE_LINES: int = 5
 """Maximum number of wrapped title lines rendered on the card."""
@@ -74,10 +78,10 @@ _MAX_TITLE_LINES: int = 5
 _MAX_SPEAKER_AVATARS: int = 4
 """Maximum number of speaker avatars displayed."""
 
-_FONT_SIZE_TITLE: int = 46
-_FONT_SIZE_SUBTITLE: int = 28
+_FONT_SIZE_TITLE: int = 70
+_FONT_SIZE_SUBTITLE: int = 40
 _FONT_SIZE_SMALL: int = 24
-_FONT_SIZE_EVENT: int = 42
+_FONT_SIZE_EVENT: int = 50
 
 _AVATAR_SS_FACTOR: int = 4
 """Supersample factor for the circular avatar mask (anti-aliasing)."""
@@ -85,6 +89,32 @@ _AVATAR_SS_FACTOR: int = 4
 _OUTPUT_WIDTH: int = 1920
 _OUTPUT_HEIGHT: int = 1080
 """Final card dimensions after downscaling."""
+
+#: RGB color tuples used across the color schemes.
+_BLUE: tuple[int, int, int] = (0, 200, 225)
+_DARKBLUE: tuple[int, int, int] = (55, 120, 190)
+_GREEN: tuple[int, int, int] = (150, 220, 0)
+_DARKGREEN: tuple[int, int, int] = (0, 170, 65)
+_ORANGE: tuple[int, int, int] = (255, 155, 0)
+_YELLOW: tuple[int, int, int] = (250, 200, 0)
+_WHITE: tuple[int, int, int] = (255, 255, 255)
+
+type _RGB = tuple[int, int, int]
+
+type _CardColors = dict[str, _RGB]
+"""Mapping of element name -> RGB color for a single card variant."""
+
+_CARD_COLORS: dict[str, _CardColors] = {
+    "blue": {"title": _DARKBLUE, "speaker": _DARKGREEN, "code": _WHITE},
+    "darkblue": {"title": _ORANGE, "speaker": _GREEN, "code": _WHITE},
+    "green": {"title": _DARKBLUE, "speaker": _DARKGREEN, "code": _WHITE},
+    "darkgreen": {"title": _YELLOW, "speaker": _BLUE, "code": _WHITE},
+    "orange": {"title": _DARKBLUE, "speaker": _WHITE, "code": _WHITE},
+    "yellow": {"title": _DARKBLUE, "speaker": _DARKGREEN, "code": _WHITE},
+    "grey": {"title": _DARKBLUE, "speaker": _WHITE, "code": _WHITE},
+}
+
+_DEFAULT_CARD_COLORS: _CardColors = {"title": _WHITE, "speaker": _WHITE, "code": _WHITE}
 
 
 class TalkImageGenerator:
@@ -117,6 +147,7 @@ class TalkImageGenerator:
             msg = f"No template PNGs found in {template_dir}"
             raise FileNotFoundError(msg)
         template_path = random.choice(templates)  # noqa: S311  # nosec: B311
+        colors = self._colors_for_template(template_path)
         img = Image.open(template_path).copy().convert("RGBA")
         width, height = img.size
         scale = width / _DESIGN_WIDTH
@@ -140,6 +171,7 @@ class TalkImageGenerator:
             fonts=fonts,
             full_width=full_width,
             scale=scale,
+            fill=colors["title"],
         )
 
         # Speaker names
@@ -150,7 +182,18 @@ class TalkImageGenerator:
                 (margin_x, speaker_y),
                 speakers_text,
                 font=fonts["subtitle"],
-                fill=(255, 255, 255),
+                fill=colors["speaker"],
+            )
+
+        # Pretalx code
+        pretalx_code = talk.pretalx_code
+        if pretalx_code:
+            code_y = height - int(_CODE_BOTTOM_OFFSET * scale)
+            draw.text(
+                (margin_x, code_y),
+                pretalx_code,
+                font=fonts["small"],
+                fill=colors["code"],
             )
 
         # Downscale to output resolution when the template is larger.
@@ -379,13 +422,14 @@ class TalkImageGenerator:
     # Text rendering
     # ------------------------------------------------------------------
 
-    def _draw_title_block(
+    def _draw_title_block(  # noqa: PLR0913
         self,
         canvas: Image.Image,
         title: str,
         fonts: dict[str, ImageFont.FreeTypeFont],
         full_width: int,
         scale: float = 1.0,
+        fill: _RGB = _WHITE,
     ) -> None:
         """Draw wrapped title text aligned to bottom of the safe area."""
         title_lines = self._wrap_text(title, fonts, full_width)
@@ -395,7 +439,7 @@ class TalkImageGenerator:
         title_y = int(_TITLE_BOTTOM_Y * scale) - title_block_height
         with Pilmoji(canvas) as pilmoji:
             for line in title_lines[:_MAX_TITLE_LINES]:
-                pilmoji.text((margin_x, title_y), line, (255, 255, 255), fonts["title"])
+                pilmoji.text((margin_x, title_y), line, fill, fonts["title"])
                 title_y += line_height
 
     def _wrap_text(
@@ -441,6 +485,17 @@ class TalkImageGenerator:
     # ------------------------------------------------------------------
     # Persistence
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _colors_for_template(template_path: Path) -> _CardColors:
+        """Extract the color key from the template filename and return the palette."""
+        stem = template_path.stem  # e.g. "social-card-darkblue"
+        match = re.search(r"social-card-(.+)", stem)
+        if match:
+            key = match.group(1).lower()
+            if key in _CARD_COLORS:
+                return _CARD_COLORS[key]
+        return _DEFAULT_CARD_COLORS
 
     @staticmethod
     def _save_image_to_talk(

@@ -21,6 +21,7 @@ conftest
 createsuperuser
 createuser
 csrf
+DARKGREEN
 Darmstadium
 debugpy
 dedented
