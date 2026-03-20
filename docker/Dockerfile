@@ -78,7 +78,8 @@ FROM python:3.14-slim AS final
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    MPLCONFIGDIR=/tmp/matplotlib
 
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -86,6 +86,7 @@ minmax
 misclick
 miterlimit
 monosans
+MPLCONFIGDIR
 msys
 mypy
 nbytes
