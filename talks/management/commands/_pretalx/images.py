@@ -7,6 +7,7 @@ title, speaker avatar(s), and speaker names.
 
 # ruff: noqa: BLE001
 
+import random
 from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
@@ -108,12 +109,14 @@ class TalkImageGenerator:
         """Generate a social card for *talk*, save it, and return the :class:`Image`."""
         image_format = self._resolve_image_format(ctx)
 
-        template_path = (
-            settings.MEDIA_ROOT
-            / "talk_images"
-            / (talk.event.slug if talk.event else "")
-            / "talk_template.png"
+        template_dir = (
+            settings.MEDIA_ROOT / "social_card_templates" / (talk.event.slug if talk.event else "")
         )
+        templates = list(template_dir.glob("*.png"))
+        if not templates:
+            msg = f"No template PNGs found in {template_dir}"
+            raise FileNotFoundError(msg)
+        template_path = random.choice(templates)  # noqa: S311  # nosec: B311
         img = Image.open(template_path).copy().convert("RGBA")
         width, height = img.size
         scale = width / _DESIGN_WIDTH
