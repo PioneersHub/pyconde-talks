@@ -7,7 +7,8 @@ metadata, scheduling information, and video links.
 
 from datetime import UTC, datetime, timedelta
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -563,6 +564,17 @@ class Talk(models.Model):
                 return f"{first}, {second} & {len(others)} more"
             case _:
                 return ""
+
+    @property
+    def pretalx_code(self) -> str:
+        """Return the Pretalx submission code parsed from ``pretalx_link``."""
+        if not self.pretalx_link:
+            return ""
+
+        path = urlparse(self.pretalx_link).path.rstrip("/")
+        if not path:
+            return ""
+        return path.rsplit("/", maxsplit=1)[-1]
 
     class TalkTiming(IntEnum):
         """
