@@ -14,8 +14,10 @@ from django.urls import reverse
 from django.utils import timezone
 from model_bakery import baker
 
+from events.models import Event
 from talks.admin import RatingAdmin
 from talks.models import MAX_RATING_SCORE, MIN_RATING_SCORE, Rating, Talk
+from talks.views import _can_see_rating_summary
 from users.models import CustomUser
 
 
@@ -551,3 +553,197 @@ class TestStarRatingTag:
         # 2 filled + 3 empty = 5 total
         assert html.count("text-yellow-400 fill-current") == 2
         assert html.count("text-gray-300 fill-current") == 3
+
+
+# ---------------------------------------------------------------------------
+# Rating Visibility Tests (show_rating_summary)
+# ---------------------------------------------------------------------------
+@pytest.fixture()
+def event_hidden_ratings() -> Event:
+    """Create an event with rating summaries hidden."""
+    return baker.make(Event, show_rating_summary=False, is_active=True)
+
+
+@pytest.fixture()
+def event_visible_ratings() -> Event:
+    """Create an event with rating summaries visible."""
+    return baker.make(Event, show_rating_summary=True, is_active=True)
+
+
+@pytest.fixture()
+def staff_user() -> CustomUser:
+    """Create a staff (non-superuser) user."""
+    return baker.make(CustomUser, email="staff@example.com", is_staff=True, is_superuser=False)
+
+
+@pytest.mark.django_db
+class TestCanSeeRatingSummary:
+    """Tests for the _can_see_rating_summary helper."""
+
+    def test_superuser_always_sees(self, event_hidden_ratings: Event) -> None:
+        """Superusers see rating summaries regardless of event setting."""
+        su = baker.make(CustomUser, is_superuser=True)
+        assert _can_see_rating_summary(su, event_hidden_ratings) is True
+
+    def test_staff_always_sees(self, event_hidden_ratings: Event) -> None:
+        """Staff users see rating summaries regardless of event setting."""
+        staff = baker.make(CustomUser, is_staff=True)
+        assert _can_see_rating_summary(staff, event_hidden_ratings) is True
+
+    def test_normal_user_sees_when_enabled(self, event_visible_ratings: Event) -> None:
+        """Normal users see summaries when show_rating_summary is True."""
+        normal = baker.make(CustomUser, is_staff=False, is_superuser=False)
+        assert _can_see_rating_summary(normal, event_visible_ratings) is True
+
+    def test_normal_user_hidden_when_disabled(self, event_hidden_ratings: Event) -> None:
+        """Normal users cannot see summaries when show_rating_summary is False."""
+        normal = baker.make(CustomUser, is_staff=False, is_superuser=False)
+        assert _can_see_rating_summary(normal, event_hidden_ratings) is False
+
+    def test_none_event_defaults_visible(self) -> None:
+        """When event is None, summaries are visible."""
+        normal = baker.make(CustomUser, is_staff=False, is_superuser=False)
+        assert _can_see_rating_summary(normal, None) is True
+
+
+@pytest.mark.django_db
+class TestRatingVisibilityDetailView:
+    """Tests for rating summary visibility in TalkDetailView."""
+
+    def test_hidden_for_normal_user(
+        self,
+        client: Client,
+        user: CustomUser,
+        event_hidden_ratings: Event,
+    ) -> None:
+        """Normal user does not see rating summary when event hides it."""
+        talk = baker.make(Talk, event=event_hidden_ratings, start_time=timezone.now())
+        Rating.objects.create(talk=talk, user=user, score=5)
+        user.events.add(event_hidden_ratings)
+        client.force_login(user)
+        url = reverse("talk_detail", args=[talk.pk])
+        response = client.get(url)
+        assert response.context["average_rating"] is None
+        assert response.context["rating_count"] == 0
+        assert response.context["show_rating_summary"] is False
+
+    def test_visible_for_staff(
+        self,
+        client: Client,
+        staff_user: CustomUser,
+        event_hidden_ratings: Event,
+    ) -> None:
+        """Staff user sees rating summary even when event hides it."""
+        talk = baker.make(Talk, event=event_hidden_ratings, start_time=timezone.now())
+        Rating.objects.create(talk=talk, user=staff_user, score=4)
+        staff_user.events.add(event_hidden_ratings)
+        client.force_login(staff_user)
+        url = reverse("talk_detail", args=[talk.pk])
+        response = client.get(url)
+        assert response.context["average_rating"] == 4.0
+        assert response.context["rating_count"] == 1
+        assert response.context["show_rating_summary"] is True
+
+    def test_visible_for_superuser(
+        self,
+        client: Client,
+        admin_user: CustomUser,
+        event_hidden_ratings: Event,
+    ) -> None:
+        """Superuser sees rating summary even when event hides it."""
+        talk = baker.make(Talk, event=event_hidden_ratings, start_time=timezone.now())
+        Rating.objects.create(talk=talk, user=admin_user, score=3)
+        client.force_login(admin_user)
+        url = reverse("talk_detail", args=[talk.pk])
+        response = client.get(url)
+        assert response.context["average_rating"] == 3.0
+        assert response.context["rating_count"] == 1
+        assert response.context["show_rating_summary"] is True
+
+
+@pytest.mark.django_db
+class TestRatingVisibilityListView:
+    """Tests for rating summary visibility in TalkListView."""
+
+    def test_show_rating_summary_false_in_context(
+        self,
+        client: Client,
+        user: CustomUser,
+        event_hidden_ratings: Event,
+    ) -> None:
+        """Context includes show_rating_summary=False for hidden event."""
+        baker.make(Talk, event=event_hidden_ratings, start_time=timezone.now())
+        user.events.add(event_hidden_ratings)
+        client.force_login(user)
+        url = reverse("talk_list") + f"?event={event_hidden_ratings.pk}"
+        response = client.get(url)
+        assert response.context["show_rating_summary"] is False
+
+    def test_show_rating_summary_true_in_context(
+        self,
+        client: Client,
+        user: CustomUser,
+        event_visible_ratings: Event,
+    ) -> None:
+        """Context includes show_rating_summary=True for visible event."""
+        baker.make(Talk, event=event_visible_ratings, start_time=timezone.now())
+        user.events.add(event_visible_ratings)
+        client.force_login(user)
+        url = reverse("talk_list") + f"?event={event_visible_ratings.pk}"
+        response = client.get(url)
+        assert response.context["show_rating_summary"] is True
+
+    def test_staff_sees_summary_for_hidden_event(
+        self,
+        client: Client,
+        staff_user: CustomUser,
+        event_hidden_ratings: Event,
+    ) -> None:
+        """Staff sees show_rating_summary=True even when event hides it."""
+        baker.make(Talk, event=event_hidden_ratings, start_time=timezone.now())
+        staff_user.events.add(event_hidden_ratings)
+        client.force_login(staff_user)
+        url = reverse("talk_list") + f"?event={event_hidden_ratings.pk}"
+        response = client.get(url)
+        assert response.context["show_rating_summary"] is True
+
+
+@pytest.mark.django_db
+class TestRatingVisibilityStatsEndpoint:
+    """Tests for rating visibility in the JSON stats endpoint."""
+
+    def test_hidden_stats_for_normal_user(
+        self,
+        client: Client,
+        user: CustomUser,
+        event_hidden_ratings: Event,
+    ) -> None:
+        """Normal user gets null average and zero count when hidden."""
+        talk = baker.make(Talk, event=event_hidden_ratings, start_time=timezone.now())
+        Rating.objects.create(talk=talk, user=user, score=5)
+        user.events.add(event_hidden_ratings)
+        client.force_login(user)
+        url = reverse("talk_rating_stats", args=[talk.pk])
+        response = client.get(url)
+        data = response.json()
+        assert data["average_rating"] is None
+        assert data["rating_count"] == 0
+        # User's own rating is still returned
+        assert data["user_rating"]["score"] == 5
+
+    def test_visible_stats_for_staff(
+        self,
+        client: Client,
+        staff_user: CustomUser,
+        event_hidden_ratings: Event,
+    ) -> None:
+        """Staff user gets full stats even when event hides them."""
+        talk = baker.make(Talk, event=event_hidden_ratings, start_time=timezone.now())
+        Rating.objects.create(talk=talk, user=staff_user, score=4)
+        staff_user.events.add(event_hidden_ratings)
+        client.force_login(staff_user)
+        url = reverse("talk_rating_stats", args=[talk.pk])
+        response = client.get(url)
+        data = response.json()
+        assert data["average_rating"] == 4.0
+        assert data["rating_count"] == 1
