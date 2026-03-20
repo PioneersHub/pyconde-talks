@@ -251,7 +251,7 @@ initialize_django() {
 
     # Migrations
     log "Running migrations..."
-    "$VENV_PYTHON" manage.py makemigrations
+    "$VENV_PYTHON" manage.py makemigrations --no-header || error "Makemigrations failed"
     "$VENV_PYTHON" manage.py migrate
 
     # Create superuser
