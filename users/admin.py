@@ -16,6 +16,7 @@ from .models import CustomUser
 
 if TYPE_CHECKING:
     from django.db.models.query import QuerySet
+    from django.forms import ModelForm
     from django_stubs_ext import StrOrPromise
 
 
@@ -274,13 +275,13 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
 
         return super().add_view(request, form_url, extra_context)
 
-    def get_form(
+    def get_form(  # type: ignore[override]
         self,
         request: HttpRequest,
         obj: CustomUser | None = None,
         change: bool = False,  # noqa: FBT001, FBT002
         **kwargs: Any,
-    ) -> type:
+    ) -> type[ModelForm[CustomUser]]:
         """Return the appropriate form class based on user type."""
         if obj is None:
             # Creating a new user — pick form based on the query parameter
