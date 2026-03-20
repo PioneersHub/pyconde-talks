@@ -62,6 +62,14 @@ class Event(models.Model):
         help_text=_("Whether this event is currently active and visible on the site"),
     )
 
+    show_rating_summary = models.BooleanField(
+        default=True,
+        help_text=_(
+            "Show average rating and rating count to regular users. "
+            "Staff and superusers always see rating summaries.",
+        ),
+    )
+
     # ------------------------------------------------------------------
     # Branding / display fields
     # ------------------------------------------------------------------

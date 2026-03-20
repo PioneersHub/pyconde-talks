@@ -56,6 +56,11 @@ class TestEventModel:
         event = Event.objects.create(name="No API", slug="no-api", year=2025)
         assert event.validation_api_url == ""
 
+    def test_show_rating_summary_default_true(self) -> None:
+        """show_rating_summary defaults to True."""
+        event = Event.objects.create(name="Rating Event", slug="rating-ev", year=2025)
+        assert event.show_rating_summary is True
+
     def test_max_name_length(self) -> None:
         """Verify MAX_EVENT_NAME_LENGTH constant exists and is reasonable."""
         assert MAX_EVENT_NAME_LENGTH == 200  # noqa: PLR2004

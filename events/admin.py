@@ -21,9 +21,10 @@ class EventAdmin(admin.ModelAdmin[Event]):
         "slug",
         "year",
         "is_active",
+        "show_rating_summary",
         "validation_api_url_set",
     )
-    list_filter = ("is_active",)
+    list_filter = ("is_active", "show_rating_summary")
     search_fields = ("name", "slug")
     prepopulated_fields: ClassVar[dict[str, Sequence[str]]] = {"slug": ("name",)}
     fieldsets: ClassVar[list[Any]] = [
@@ -35,6 +36,7 @@ class EventAdmin(admin.ModelAdmin[Event]):
                     "slug",
                     "year",
                     "is_active",
+                    "show_rating_summary",
                     "validation_api_url",
                 ),
             },

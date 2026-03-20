@@ -37,6 +37,7 @@ class TestEventAdmin:
             "slug",
             "year",
             "is_active",
+            "show_rating_summary",
             "validation_api_url_set",
         )
         assert EventAdmin.list_display == expected
