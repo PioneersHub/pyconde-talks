@@ -16,6 +16,7 @@ RUN_SERVER="${RUN_SERVER:-true}"
 DJANGO_PORT="${DJANGO_PORT:-8000}"
 SKIP_STEPS="${SKIP_STEPS:-}"
 GEN_FAKE_DATA="${GEN_FAKE_DATA:-true}"
+GEN_TEST_USERS="${GEN_TEST_USERS:-true}"
 PRETALX_SYNC="${PRETALX_SYNC:-false}"
 IMPORT_STREAMS="${IMPORT_STREAMS:-false}"
 DOWNLOAD_FONT="${DOWNLOAD_FONT:-true}"
@@ -260,7 +261,7 @@ initialize_django() {
     "$VENV_PYTHON" manage.py createsuperuser --noinput || warn "Superuser creation failed"
 
     # Create test users
-    if [ "$GEN_FAKE_DATA" = "true" ]; then
+    if [ "$GEN_TEST_USERS" = "true" ]; then
         log "Creating test users..."
         "$VENV_PYTHON" manage.py createuser --email=user1@example.com || warn "User1 creation failed"
         "$VENV_PYTHON" manage.py createuser --email=user2@example.com || warn "User2 creation failed"
