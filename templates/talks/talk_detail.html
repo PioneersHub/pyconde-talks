@@ -28,7 +28,9 @@
             {% include "talks/partials/save_button.html" %}
           </div>
           <p class="text-xl text-muted mt-2">{{ talk.speaker_names }}</p>
-          <div class="mt-2" id="title-star-rating">{% star_rating average_rating rating_count %}</div>
+          {% if show_rating_summary %}
+            <div class="mt-2" id="title-star-rating">{% star_rating average_rating rating_count %}</div>
+          {% endif %}
         </div>
         <!-- Time, Location, Type and Track -->
         <div class="box-muted mb-8">

@@ -57,6 +57,15 @@ def _resolve_default_event(request: HttpRequest) -> Event | None:
     return Event.objects.filter(is_active=True).first()
 
 
+def _can_see_rating_summary(user: Any, event: Event | None) -> bool:
+    """Return True if the user may see aggregate rating stats for this event."""
+    if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+        return True
+    if event is None:
+        return True
+    return event.show_rating_summary
+
+
 class TalkDetailView(DetailView[Talk]):
     """
     Display detailed information about a specific Talk.
@@ -89,8 +98,16 @@ class TalkDetailView(DetailView[Talk]):
             avg=Avg("score"),
             count=Count("id"),
         )
-        context["rating_count"] = stats["count"]
-        context["average_rating"] = stats["avg"]
+
+        show_summary = _can_see_rating_summary(self.request.user, talk.event)
+
+        if show_summary:
+            context["rating_count"] = stats["count"]
+            context["average_rating"] = stats["avg"]
+        else:
+            context["rating_count"] = 0
+            context["average_rating"] = None
+        context["show_rating_summary"] = show_summary
 
         # Get user's existing rating if authenticated
         if self.request.user.is_authenticated:
@@ -254,7 +271,23 @@ class TalkListView(ListView[Talk]):
         else:
             context["saved_talk_ids"] = set()
 
+        # Determine whether rating summaries are visible to this user
+        selected_event = self._resolve_selected_event()
+        context["show_rating_summary"] = _can_see_rating_summary(
+            self.request.user,
+            selected_event,
+        )
+
         return context
+
+    def _resolve_selected_event(self) -> Event | None:
+        """Return the currently filtered event, or the default event."""
+        event_param = self.request.GET.get("event", "")
+        if event_param and event_param != "all":
+            return Event.objects.filter(pk=event_param).first()
+        if not event_param:
+            return _resolve_default_event(self.request)
+        return None
 
 
 @cache_page(60)  # Cache for 60 seconds to reduce database queries
@@ -301,7 +334,14 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
         saved_talk_ids = set(
             SavedTalk.objects.filter(user=request.user).values_list("talk_id", flat=True),
         )
-    context = {"upcoming_talks": talks, "saved_talk_ids": saved_talk_ids}
+    context = {
+        "upcoming_talks": talks,
+        "saved_talk_ids": saved_talk_ids,
+        "show_rating_summary": _can_see_rating_summary(
+            request.user,
+            _resolve_default_event(request),
+        ),
+    }
     return render(request, "talks/partials/upcoming_talks.html", context)
 
 
@@ -341,12 +381,14 @@ def _render_rating_htmx_response(
         count=Count("id"),
     )
     user_rating = Rating.objects.filter(talk=talk, user=request.user).first()
+    show_summary = _can_see_rating_summary(request.user, talk.event)
     context = {
         "talk": talk,
-        "average_rating": stats["avg"],
-        "rating_count": stats["count"],
+        "average_rating": stats["avg"] if show_summary else None,
+        "rating_count": stats["count"] if show_summary else 0,
         "user_rating": user_rating,
         "show_comment_form": not is_comment_save,
+        "show_rating_summary": show_summary,
         # Preserve in-progress comment text on star clicks (not saved to DB)
         "draft_comment": request.POST.get("comment") if not is_comment_save else None,
     }
@@ -486,10 +528,13 @@ def get_talk_rating_stats(request: HttpRequest, talk_id: int) -> JsonResponse:
                 "comment": rating.comment,
             }
 
+    show_summary = _can_see_rating_summary(request.user, talk.event)
     return JsonResponse(
         {
-            "average_rating": round(stats["average"], 1) if stats["average"] else None,
-            "rating_count": stats["count"],
+            "average_rating": (
+                round(stats["average"], 1) if show_summary and stats["average"] else None
+            ),
+            "rating_count": stats["count"] if show_summary else 0,
             "user_rating": user_rating,
         },
     )

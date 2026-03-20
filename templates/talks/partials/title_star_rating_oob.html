@@ -1,2 +1,6 @@
 {% load rating_tags %}
-<div id="title-star-rating" hx-swap-oob="innerHTML">{% star_rating average_rating rating_count %}</div>
+{% if show_rating_summary %}
+  <div id="title-star-rating" hx-swap-oob="innerHTML">{% star_rating average_rating rating_count %}</div>
+{% else %}
+  <div id="title-star-rating" hx-swap-oob="innerHTML"></div>
+{% endif %}
