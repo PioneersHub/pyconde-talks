@@ -621,7 +621,7 @@ class Talk(models.Model):
         Use a default placeholder image if neither is set.
         """
         if self.image:
-            return cast("str", self.image.url)
+            return self.image.url
         if self.external_image_url:
             return self.external_image_url
         subdir = self.event.slug if self.event else ""
