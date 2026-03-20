@@ -124,7 +124,8 @@ class TalkImageGenerator:
         draw = ImageDraw.Draw(final_img)
 
         # Speaker avatars
-        self._paste_speaker_avatars(final_img, talk, height, scale)
+        if not ctx.no_avatars:
+            self._paste_speaker_avatars(final_img, talk, height, scale)
 
         # Title
         fonts = self._load_fonts(scale)

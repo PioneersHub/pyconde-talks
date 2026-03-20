@@ -188,14 +188,15 @@ class ProcessingMixin(LoggingMixin):
             )
 
         # Best-effort avatar prefetch
-        try:
-            prefetch_avatars_for_submissions(submissions, ctx)
-        except Exception as exc:
-            ctx.log(
-                f"Avatar prefetch failed (continuing without cache): {exc!s}",
-                VerbosityLevel.DETAILED,
-                "WARNING",
-            )
+        if not ctx.no_avatars:
+            try:
+                prefetch_avatars_for_submissions(submissions, ctx)
+            except Exception as exc:
+                ctx.log(
+                    f"Avatar prefetch failed (continuing without cache): {exc!s}",
+                    VerbosityLevel.DETAILED,
+                    "WARNING",
+                )
 
         if not ctx.dry_run:
             batch_create_rooms(submissions, ctx)

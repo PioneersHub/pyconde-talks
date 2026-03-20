@@ -91,6 +91,11 @@ class Command(ProcessingMixin, FetchMixin, BaseCommand):
             help="Skip generating/updating talk social images",
         )
         parser.add_argument(
+            "--no-avatars",
+            action="store_true",
+            help="Skip downloading and pasting speaker avatars on social cards",
+        )
+        parser.add_argument(
             "--image-format",
             type=str,
             choices=["webp", "jpeg"],

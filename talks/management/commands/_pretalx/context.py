@@ -24,6 +24,7 @@ class ImportContext:
     dry_run: bool = False
     no_update: bool = False
     skip_images: bool = False
+    no_avatars: bool = False
     image_format: str = "webp"
     max_retries: int = 3
     pretalx_event_url: str = ""
@@ -62,6 +63,7 @@ class ImportContext:
             dry_run=options.get("dry_run", False),
             no_update=options.get("no_update", False),
             skip_images=options.get("skip_images", False),
+            no_avatars=options.get("no_avatars", False),
             image_format=options.get("image_format", "webp") or "webp",
             max_retries=options.get("max_retries", 3),
             pretalx_event_url=options.get("pretalx_event_url", ""),
