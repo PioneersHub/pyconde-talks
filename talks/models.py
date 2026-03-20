@@ -454,9 +454,8 @@ class Talk(models.Model):
         """
         Add provider-specific query parameters to the video link.
 
-        Only operates on ``self.video_link`` (the stored field), not on
-        streaming fallback URLs.  The method is idempotent - the parameter
-        is only added when it is not already present.
+        Only operates on ``self.video_link`` (the stored field), not on streaming fallback URLs.
+        The method is idempotent: the parameter is only added when it is not already present.
         """
         if not self.video_link:
             return ""
