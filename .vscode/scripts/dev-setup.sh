@@ -20,6 +20,7 @@ PRETALX_SYNC="${PRETALX_SYNC:-false}"
 IMPORT_STREAMS="${IMPORT_STREAMS:-false}"
 DOWNLOAD_FONT="${DOWNLOAD_FONT:-true}"
 IMAGE_FORMAT="${IMAGE_FORMAT:-webp}"
+NO_AVATARS="${NO_AVATARS:-false}"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -344,6 +345,12 @@ initialize_django() {
 
     # Sync with Pretalx
     if [ "$PRETALX_SYNC" = "true" ]; then
+        local pretalx_import_args=(--verbosity 3 --image-format "$IMAGE_FORMAT")
+
+        if [ "$NO_AVATARS" = "true" ]; then
+            pretalx_import_args+=(--no-avatars)
+        fi
+
         # Ensure the default event exists before importing talks
         log "Creating default event..."
 		run_django_shell <<-'PYTHON' || warn "Failed to create default event"
@@ -374,7 +381,7 @@ initialize_django() {
 
         # Import talks from Pretalx
         log "Syncing with Pretalx..."
-        "$VENV_PYTHON" manage.py import_pretalx_talks --verbosity 3 --image-format "$IMAGE_FORMAT" || warn "Failed to import talks from Pretalx"
+        "$VENV_PYTHON" manage.py import_pretalx_talks "${pretalx_import_args[@]}" || warn "Failed to import talks from Pretalx"
     fi
 
     # Sync with Google Sheets
