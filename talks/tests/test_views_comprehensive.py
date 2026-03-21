@@ -5,15 +5,19 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 import pytest
+from django.core.cache import cache
 from django.urls import reverse
 from django.utils import timezone
 from model_bakery import baker
 
+from events.models import Event
 from talks.models import Room, Speaker, Talk
 from users.models import CustomUser
 
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from django.test.client import Client
 
 
@@ -148,27 +152,114 @@ class TestTalkListView:
 class TestDashboardStats:
     """Tests for dashboard_stats view."""
 
+    @pytest.fixture(autouse=True)
+    def _clear_cache(self) -> Generator[None]:
+        """Clear Django cache around tests to avoid @cache_page interference."""
+        cache.clear()
+        yield
+        cache.clear()
+
     def test_dashboard_stats(self, client: Client, user: CustomUser) -> None:
-        """Return aggregated statistics for the dashboard."""
-        baker.make(Talk, _quantity=3)
+        """Return aggregated statistics scoped to the user's events."""
+        event = baker.make(Event, is_active=True)
+        user.events.add(event)
+        baker.make(Talk, event=event, _quantity=3)
         client.force_login(user)
         url = reverse("dashboard_stats")
         response = client.get(url)
         assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        assert "3" in content
+
+    def test_dashboard_stats_excludes_other_events(self, client: Client, user: CustomUser) -> None:
+        """Stats should not include talks from events the user has no access to."""
+        my_event = baker.make(Event, is_active=True)
+        other_event = baker.make(Event, is_active=True)
+        user.events.add(my_event)
+        baker.make(Talk, event=my_event, _quantity=2)
+        baker.make(Talk, event=other_event, _quantity=5)
+        client.force_login(user)
+        url = reverse("dashboard_stats")
+        response = client.get(url)
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        # Should show 2 (my_event), not 7 (total)
+        assert "2" in content
+
+    def test_dashboard_stats_superuser_sees_all(self, client: Client) -> None:
+        """Superusers should see stats from all active events."""
+        superuser = baker.make(CustomUser, is_superuser=True, email="admin@example.com")
+        event_a = baker.make(Event, is_active=True)
+        event_b = baker.make(Event, is_active=True)
+        baker.make(Talk, event=event_a, _quantity=3)
+        baker.make(Talk, event=event_b, _quantity=4)
+        client.force_login(superuser)
+        url = reverse("dashboard_stats")
+        response = client.get(url)
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        assert "7" in content
+
+    def test_dashboard_stats_cache_varies_by_user(self, client: Client) -> None:
+        """Different users must get different cached responses."""
+        event_a = baker.make(Event, name="Alpha Conf", is_active=True)
+        event_b = baker.make(Event, name="Beta Conf", is_active=True)
+        baker.make(Talk, event=event_a, _quantity=2)
+        baker.make(Talk, event=event_b, _quantity=5)
+
+        user_a = baker.make(CustomUser, email="a@example.com")
+        user_a.events.add(event_a)
+        user_b = baker.make(CustomUser, email="b@example.com")
+        user_b.events.add(event_b)
+
+        client.force_login(user_a)
+        resp_a = client.get(reverse("dashboard_stats"))
+        content_a = resp_a.content.decode()
+        assert "2" in content_a
+
+        client.force_login(user_b)
+        resp_b = client.get(reverse("dashboard_stats"))
+        content_b = resp_b.content.decode()
+        assert "5" in content_b
 
 
 @pytest.mark.django_db
 class TestUpcomingTalks:
     """Tests for upcoming_talks view."""
 
+    @pytest.fixture(autouse=True)
+    def _clear_cache(self) -> Generator[None]:
+        """Clear Django cache around tests to avoid @cache_page interference."""
+        cache.clear()
+        yield
+        cache.clear()
+
     def test_upcoming_talks(self, client: Client, user: CustomUser) -> None:
-        """Return only talks scheduled in the future."""
+        """Return only talks scheduled in the future for the user's events."""
+        event = baker.make(Event, is_active=True)
+        user.events.add(event)
         future = timezone.now() + timedelta(hours=2)
-        baker.make(Talk, title="Upcoming Test", start_time=future)
+        baker.make(Talk, title="Upcoming Test", start_time=future, event=event)
         client.force_login(user)
         url = reverse("upcoming_talks")
         response = client.get(url)
         assert response.status_code == HTTPStatus.OK
+        assert "Upcoming Test" in response.content.decode()
+
+    def test_upcoming_talks_excludes_other_events(self, client: Client, user: CustomUser) -> None:
+        """Upcoming talks should not include talks from events the user cannot access."""
+        my_event = baker.make(Event, is_active=True)
+        other_event = baker.make(Event, is_active=True)
+        user.events.add(my_event)
+        future = timezone.now() + timedelta(hours=2)
+        baker.make(Talk, title="My Talk", start_time=future, event=my_event)
+        baker.make(Talk, title="Hidden Talk", start_time=future, event=other_event)
+        client.force_login(user)
+        url = reverse("upcoming_talks")
+        response = client.get(url)
+        content = response.content.decode()
+        assert "My Talk" in content
+        assert "Hidden Talk" not in content
 
 
 @pytest.mark.django_db
