@@ -1,6 +1,47 @@
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-  {% load stat_tags %}
-  {% stat_card "Total Talks" total_talks %}
-  {% stat_card "Today's Talks" todays_talks %}
-  {% stat_card "Available Recordings" recorded_talks %}
-</div>
+{% load stat_tags %}
+{% if single_event %}
+  {# Single event: keep it simple with stat cards #}
+  {% with row=event_rows.0 %}
+    <h2 class="text-lg font-semibold mb-3">{{ row.name }}</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {% stat_card "Total Talks" row.total %}
+      {% stat_card "Today's Talks" row.today %}
+      {% stat_card "Available Recordings" row.recorded %}
+    </div>
+  {% endwith %}
+{% elif event_rows %}
+  {# Multiple events: display a table with per-event breakdown #}
+  <h2 class="text-lg font-semibold mb-3">Stats by Event</h2>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-weak text-left text-subtle">
+          <th class="py-2 pr-4 font-medium">Event</th>
+          <th class="py-2 px-4 font-medium text-right">Talks</th>
+          <th class="py-2 px-4 font-medium text-right">Today</th>
+          <th class="py-2 pl-4 font-medium text-right">Recordings</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in event_rows %}
+          <tr class="border-b border-weak/50">
+            <td class="py-2 pr-4 font-medium">{{ row.name }}</td>
+            <td class="py-2 px-4 text-right tabular-nums">{{ row.total }}</td>
+            <td class="py-2 px-4 text-right tabular-nums">{{ row.today }}</td>
+            <td class="py-2 pl-4 text-right tabular-nums">{{ row.recorded }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="font-semibold">
+          <td class="pt-2 pr-4">Total</td>
+          <td class="pt-2 px-4 text-right tabular-nums">{{ totals.total }}</td>
+          <td class="pt-2 px-4 text-right tabular-nums">{{ totals.today }}</td>
+          <td class="pt-2 pl-4 text-right tabular-nums">{{ totals.recorded }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+{% else %}
+  <p class="text-subtle text-sm">No events available.</p>
+{% endif %}

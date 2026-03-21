@@ -291,44 +291,91 @@ class TalkListView(ListView[Talk]):
 
 
 @cache_page(60)  # Cache for 60 seconds to reduce database queries
+@vary_on_cookie
 def dashboard_stats(request: HttpRequest) -> HttpResponse:
-    """Generate statistics for the dashboard."""
-    current_time = timezone.now()
+    """Generate per-event statistics for the dashboard, respecting user access."""
+    user = cast("CustomUser", request.user)
+    current_date = timezone.now().date()
 
-    # Optimize recorded_talks: only fetch fields needed for get_video_link()
-    # Use select_related for room to avoid N+1 queries
-    talks_for_video_check = Talk.objects.select_related("room").only(
-        "id",
-        "video_link",
-        "start_time",
-        "duration",
-        "room",
-        "room__id",
+    # Determine which events the user may see
+    if user.is_superuser:
+        events = Event.objects.filter(is_active=True).order_by("name")
+    else:
+        events = user.events.filter(is_active=True).order_by("name")
+
+    event_ids = list(events.values_list("id", flat=True))
+
+    # Fetch only the fields needed for get_video_link() - scoped to user events
+    talks_for_video = (
+        Talk.objects.filter(event_id__in=event_ids)
+        .select_related("room")
+        .only("id", "video_link", "start_time", "duration", "room", "room__id", "event")
+    )
+    recorded_by_event: dict[int | None, int] = {}
+    for talk in talks_for_video:
+        if talk.get_video_link():
+            eid = talk.event_id  # type: ignore[attr-defined]
+            recorded_by_event[eid] = recorded_by_event.get(eid, 0) + 1
+
+    # Aggregate counts per event in two queries
+    total_by_event = dict(
+        Talk.objects.filter(event_id__in=event_ids)
+        .values_list("event_id")
+        .annotate(cnt=Count("id"))
+        .values_list("event_id", "cnt"),
+    )
+    today_by_event = dict(
+        Talk.objects.filter(event_id__in=event_ids, start_time__date=current_date)
+        .values_list("event_id")
+        .annotate(cnt=Count("id"))
+        .values_list("event_id", "cnt"),
     )
 
+    # Build per-event rows
+    event_rows = []
+    for event in events:
+        eid = event.id  # type: ignore[attr-defined]
+        event_rows.append(
+            {
+                "name": event.name,
+                "total": total_by_event.get(eid, 0),
+                "today": today_by_event.get(eid, 0),
+                "recorded": recorded_by_event.get(eid, 0),
+            },
+        )
+
+    totals = {
+        "total": sum(r["total"] for r in event_rows),
+        "today": sum(r["today"] for r in event_rows),
+        "recorded": sum(r["recorded"] for r in event_rows),
+    }
+
     context = {
-        "total_talks": Talk.objects.count(),
-        "todays_talks": Talk.objects.filter(start_time__date=current_time.date()).count(),
-        "recorded_talks": sum(1 for talk in talks_for_video_check if talk.get_video_link()),
+        "event_rows": event_rows,
+        "totals": totals,
+        "single_event": len(event_rows) == 1,
     }
     return render(request, "talks/partials/dashboard_stats.html", context)
 
 
-@vary_on_cookie
 @cache_page(30)  # Cache for 30 seconds - talks list changes infrequently
+@vary_on_cookie
 def upcoming_talks(request: HttpRequest) -> HttpResponse:
-    """Display the next 8 upcoming talks."""
+    """Display the next 8 upcoming talks, scoped to the user's events."""
+    user = cast("CustomUser", request.user)
     current_time = timezone.now()
-    talks = (
+    talks_qs = (
         Talk.objects.select_related("room")
         .prefetch_related("speakers")
         .filter(start_time__gt=current_time)
-        .annotate(
-            average_rating=Avg("ratings__score"),
-            rating_count=Count("ratings"),
-        )
-        .order_by("start_time")[:8]
     )
+    if not user.is_superuser:
+        accessible_event_ids = user.events.values_list("id", flat=True)
+        talks_qs = talks_qs.filter(event_id__in=accessible_event_ids)
+    talks = talks_qs.annotate(
+        average_rating=Avg("ratings__score"),
+        rating_count=Count("ratings"),
+    ).order_by("start_time")[:8]
     saved_talk_ids: set[int] = set()
     if request.user.is_authenticated:
         saved_talk_ids = set(

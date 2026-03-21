@@ -25,11 +25,7 @@
              hx-trigger="load, every 300s"
              hx-swap="innerHTML">
           <!-- Initial placeholder state -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {% load stat_tags %}
-            {% stat_card "Total Talks" "Loading..." %} {% stat_card "Today's Talks"
-            "Loading..." %} {% stat_card "Available Recordings" "Loading..." %}
-          </div>
+          <p class="text-subtle text-sm">Loading stats...</p>
         </div>
       </div>
       <!-- Next Talks with live updates -->
