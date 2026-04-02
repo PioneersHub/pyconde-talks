@@ -55,7 +55,6 @@
         <div class="flex items-center gap-4">
           {% if user.is_authenticated %}
             <span>
-              {{ user.email }} |
               <a href="{% url 'user_profile' %}" class="hover:underline">Profile</a> |
               <a href="{% url 'account_logout' %}" class="hover:underline">Logout</a>
             </span>

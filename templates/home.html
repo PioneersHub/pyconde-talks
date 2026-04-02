@@ -5,7 +5,6 @@
     {% if user.is_authenticated %}
       <div class="card mb-6">
         <h1 class="text-2xl font-bold mb-2">Welcome to {{ brand_event_name }}!</h1>
-        <p class="text-muted mb-4">Logged in as {{ user.email }}</p>
         <div class="flex flex-wrap gap-4">
           <a href="{% url 'talk_list' %}"
              class="btn-primary inline-flex items-center px-4 py-2 rounded-lg">
