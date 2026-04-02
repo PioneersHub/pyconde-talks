@@ -54,6 +54,8 @@
         <a href="{% url 'home' %}"><span class="sr-only">Home</span>{% svg brand_logo_svg_name "w-25 h-20 header-logo" %}</a>
         <div class="flex items-center gap-4">
           {% if user.is_authenticated %}
+            <a href="{% url 'talk_list' %}" class="hover:underline">Talks</a>
+            <a href="{% url 'schedule' %}" class="hover:underline">Schedule</a>
             <span>
               <a href="{% url 'user_profile' %}" class="hover:underline">Profile</a> |
               <a href="{% url 'account_logout' %}" class="hover:underline">Logout</a>
