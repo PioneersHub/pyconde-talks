@@ -1,0 +1,5 @@
+Your email verification code is: {{ code }}
+
+Enter this code on the verification page to link this email to your account.
+
+If you did not request this, you can safely ignore this email.

@@ -14,15 +14,16 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError, OperationalError
 from django.shortcuts import redirect
+from django.utils.translation import gettext_lazy as _
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from events.models import Event
 from utils.email_utils import hash_email
 
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
 
-    from events.models import Event
     from users.models import CustomUser
 
 
@@ -198,6 +199,64 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
         response.raise_for_status()
         return dict(response.json())
 
+    def can_login_by_email(self, email: str) -> bool:
+        """
+        Check if the email can be used for passwordless code-based login.
+
+        Determines whether an email would pass authorization when the user
+        attempts to log in via the email code flow. Used to decide whether
+        disconnecting a social provider is safe (the user can still sign in).
+
+        Unlike ``is_email_authorized()``, this method has no side effects and
+        does not require an event selection. It checks the email against every
+        active event validation API (deduplicated by URL) plus the fallback.
+
+        Returns True for whitelisted emails, superuser accounts, or emails
+        recognized by any configured validation API.
+        """
+        email = email.lower().strip()
+        email_hash = hash_email(email)
+
+        if self._is_privileged(email, email_hash):
+            return True
+
+        # Collect unique validation API URLs from active events + fallback.
+        api_urls: set[str] = set(
+            Event.objects.filter(is_active=True)
+            .exclude(validation_api_url="")
+            .values_list("validation_api_url", flat=True),
+        )
+        fallback_url = getattr(settings, "EMAIL_VALIDATION_API_URL_FALLBACK", "")
+        if fallback_url:
+            api_urls.add(fallback_url)
+
+        if not api_urls:
+            logger.info(
+                "No validation API configured; email login not viable",
+                email=email_hash,
+            )
+            return False
+
+        for api_url in api_urls:
+            try:
+                data = self._call_validation_api(email, api_url)
+                if data.get("valid", False):
+                    logger.info("Email validated for independent login", email=email_hash)
+                    return True
+            except httpx.TimeoutException:
+                logger.warning("Timeout checking email login viability", email=email_hash)
+            except httpx.ConnectError:
+                logger.warning("Connection error checking email login viability", email=email_hash)
+            except JSONDecodeError, httpx.HTTPError:
+                logger.warning("API error checking email login viability", email=email_hash)
+            except Exception:
+                logger.exception(
+                    "Unexpected error checking email login viability",
+                    email=email_hash,
+                )
+
+        return False
+
     def send_mail(self, template_prefix: str, email: str, context: dict[str, Any]) -> None:
         """Add custom variables to the email context before sending."""
         timeout_seconds = getattr(settings, "ACCOUNT_LOGIN_BY_CODE_TIMEOUT", 180)
@@ -257,6 +316,18 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
         DISCORD_STAFF_ROLES  list[str]  Role names that grant is_staff only on signup
         DISCORD_API_TIMEOUT  int        Seconds before Discord API calls time out (default 5)
     """
+
+    error_messages = DefaultSocialAccountAdapter.error_messages | {
+        "no_password": _(
+            "You cannot remove Discord without a verified email address. "
+            "Please add and verify an email first.",
+        ),
+        "email_not_authorized": _(
+            "Your email is not authorized for independent login. "
+            "You can only remove Discord if your email is associated "
+            "with a ticket purchase.",
+        ),
+    }
 
     # ------------------------------------------------------------------
     # allauth hooks

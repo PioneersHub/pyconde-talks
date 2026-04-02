@@ -223,6 +223,7 @@ ACCOUNT_EMAIL_SUBJECT_PREFIX = env(
 # --------------------------
 SOCIALACCOUNT_ADAPTER = "users.adapters.SocialAccountAdapter"
 SOCIALACCOUNT_STORE_TOKENS = True
+SOCIALACCOUNT_FORMS = {"disconnect": "users.forms.PasswordlessDisconnectForm"}
 
 SOCIALACCOUNT_PROVIDERS = {
     "discord": {

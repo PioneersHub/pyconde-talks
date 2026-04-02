@@ -9,6 +9,7 @@ autouse
 authorised
 batisteo
 bezier
+blocktranslate
 bothify
 bradlc
 buildx
@@ -37,6 +38,7 @@ elif
 elts
 emailaddress
 enablejsapi
+endblocktranslate
 endfor
 endpartial
 endwith

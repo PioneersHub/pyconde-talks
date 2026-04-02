@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load svg_tags %}
+{% block title %}
+  {% translate "Verify Email" %}
+{% endblock title %}
+{% block content %}
+  <div class="max-w-md mx-auto p-4">
+    <div class="card">
+      <h1 class="text-2xl font-bold text-center mb-6">{% translate "Enter Verification Code" %}</h1>
+      {% if error %}
+        <div class="alert-error mb-4 flex items-start gap-2" role="alert">
+          {% svg 'exclamation-circle' "flex-shrink-0 mt-0.5" %}
+          <span>{{ error }}</span>
+        </div>
+      {% endif %}
+      <form method="post" action="{% url 'confirm_add_email' %}">
+        {% csrf_token %}
+        <div class="mb-6">
+          <label for="id_code" class="block text-sm font-medium text-label mb-1">{% translate "Verification Code" %}</label>
+          <input type="text"
+                 name="code"
+                 id="id_code"
+                 inputmode="numeric"
+                 autocomplete="one-time-code"
+                 maxlength="6"
+                 required
+                 class="w-full py-2 px-3 border border-weak rounded-md focus-ring-primary outline-none text-center text-lg tracking-widest">
+          <p class="mt-2 text-sm text-subtle">
+            {% blocktranslate with email=email %}We sent a code to {{ email }}. Enter it above to verify your address.{% endblocktranslate %}
+          </p>
+        </div>
+        <button type="submit" class="w-full btn-primary">{% translate "Verify" %}</button>
+      </form>
+    </div>
+    <div class="mt-4">
+      <a href="{% url 'add_email' %}"
+         class="text-sm text-brand-blue hover:underline">← {% translate "Use a different email" %}</a>
+    </div>
+  </div>
+{% endblock content %}

@@ -8,6 +8,11 @@ Admins can login via email and password, so they have password fields.
 
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from allauth.account.adapter import get_adapter as get_account_adapter
+from allauth.account.models import EmailAddress
+from allauth.socialaccount.adapter import get_adapter
+from allauth.socialaccount.forms import DisconnectForm
+from allauth.socialaccount.models import SocialAccount
 from django import forms
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.utils.translation import gettext_lazy as _
@@ -168,3 +173,45 @@ class ProfileForm(forms.ModelForm[CustomUser]):
                 "If empty, we'll use your full name or email (masked).",
             ),
         }
+
+
+class PasswordlessDisconnectForm(DisconnectForm):  # type: ignore[misc]
+    """
+    Custom disconnect form for passwordless apps.
+
+    allauth's default DisconnectForm blocks disconnect when the user has no usable password. In this
+    app all regular users are passwordless, so the default logic would always block disconnect.
+
+    This form replaces that check with two requirements:
+    1. The user must have a verified email address (so they have a fallback
+       login method after removing Discord).
+    2. That email must be recognized by the validation API (i.e. associated
+       with a ticket purchase). Without this check, a Discord-only staff user
+       could disconnect, change their Discord email, and reconnect to create
+       unlimited accounts.
+    """
+
+    def clean(self) -> dict[str, Any]:
+        """Block disconnect unless the user has an API-authorized email."""
+        cleaned_data = forms.Form.clean(self) or {}
+        account = cleaned_data.get("account")
+        if account:
+            accounts = SocialAccount.objects.filter(user_id=account.user_id)
+            is_last = not accounts.exclude(pk=account.pk).exists()
+            if is_last:
+                social_adapter = get_adapter()
+                verified_email = (
+                    EmailAddress.objects.filter(user=account.user, verified=True)
+                    .values_list("email", flat=True)
+                    .first()
+                )
+                if not verified_email:
+                    error_key = "no_password"
+                    raise social_adapter.validation_error(error_key)
+
+                # The email exists but must also pass the validation API.
+                adapter = get_account_adapter()
+                if not adapter.can_login_by_email(verified_email):
+                    error_key = "email_not_authorized"
+                    raise social_adapter.validation_error(error_key)
+        return cleaned_data

@@ -5,7 +5,13 @@ from allauth.socialaccount.providers.discord.urls import urlpatterns as discord_
 from django.contrib.auth.decorators import login_not_required
 from django.urls import include, path
 
-from .views import CustomRequestLoginCodeView, profile_view
+from .views import (
+    CustomRequestLoginCodeView,
+    add_email_view,
+    confirm_add_email_view,
+    connections_view,
+    profile_view,
+)
 
 
 urlpatterns = [
@@ -18,7 +24,12 @@ urlpatterns = [
     ),
     path("logout/", login_not_required(logout), name="account_logout"),
     path("profile/", profile_view, name="user_profile"),
+    # Email management (for Discord-only users adding an email)
+    path("email/add/", add_email_view, name="add_email"),
+    path("email/add/confirm/", confirm_add_email_view, name="confirm_add_email"),
     # Social account management (connected accounts page)
+    # Override allauth's connections view with ours, keep the rest
+    path("social/", connections_view, name="socialaccount_connections"),
     path("social/", include("allauth.socialaccount.urls")),
 ]
 
