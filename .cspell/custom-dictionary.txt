@@ -64,6 +64,7 @@ googlevideo
 healthcheck
 htmlcov
 htmx
+HSTS
 httpx
 inkscape
 ipython
@@ -172,6 +173,7 @@ vimeocdn
 webp
 worktree
 wsgi
+templatetags
 xlink
 youtu
 ytimg
