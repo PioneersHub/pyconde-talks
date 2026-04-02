@@ -390,6 +390,27 @@ initialize_django() {
         log "Importing streams from Google Sheets..."
         "$VENV_PYTHON" manage.py import_livestream_urls || warn "Failed to import livestreams from Google Sheets"
     fi
+
+    if [ "$GEN_TEST_USERS" = "true" ]; then
+        log "Assigning test users to random events..."
+		run_django_shell <<-'PYTHON' || warn "Failed to assign test users to events"
+            from events.models import Event
+            from users.models import CustomUser
+
+            events = list(Event.objects.filter(is_active=True))
+            if not events:
+                raise SystemExit('No active events available to assign test users')
+
+            for email in ('user1@example.com', 'user2@example.com'):
+                user = CustomUser.objects.filter(email=email).first()
+                if user is None:
+                    print(f'Skipping missing user {email}')
+                    continue
+                user.events.set(events)
+                slugs = ', '.join(e.slug for e in events)
+                print(f'Assigned {email} to: {slugs}')
+		PYTHON
+    fi
 }
 
 # Start services

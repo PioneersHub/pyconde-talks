@@ -22,7 +22,8 @@ It will download [uv] and create a virtual environment (`.venv`) with [tailwindC
 [Python] and all other dependencies required for development and testing.
 
 It will also run migrations, create test users (`user1@example.com`, `user2@example.com` and
-`admin@example.com`), generate fake data and start the server in debug mode (on port
+`admin@example.com`), associate the two regular test users with an event, generate fake data and
+start the server in debug mode (on port
 [8000](http://127.0.0.1:8000/)) and a Mailpit instance to test emails (on port
 [8025](http://127.0.0.1:8025/)).
 
