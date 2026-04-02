@@ -51,5 +51,11 @@
       <p class="text-sm text-subtle mb-2">{% trans "This is how your name will appear when you ask questions:" %}</p>
       <div class="inline-block px-3 py-2 rounded-md bg-surface-alt font-medium">{{ qa_display_name }}</div>
     </div>
+    <div class="section-gap mt-8 pt-6 border-strong">
+      <h2 class="text-lg font-semibold mb-2">{% trans "Connected Accounts" %}</h2>
+      <p class="text-sm text-subtle mb-2">{% trans "Link your Discord account to sign in with either method." %}</p>
+      <a href="{% url 'socialaccount_connections' %}"
+         class="btn-secondary inline-block">{% trans "Manage Connected Accounts" %}</a>
+    </div>
   </div>
 {% endblock content %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load socialaccount %}
+{% load svg_tags %}
+{% block title %}
+  {% translate "Connected Accounts" %}
+{% endblock title %}
+{% block content %}
+  <div class="container-narrow page-section">
+    <h1 class="page-title">{% translate "Connected Accounts" %}</h1>
+    <p class="text-sm text-subtle mb-6">
+      {% translate "Link your Discord account so you can sign in with either email or Discord." %}
+    </p>
+    {% if form.accounts %}
+      <div class="card mb-6">
+        <h2 class="text-lg font-semibold mb-4">{% translate "Your connected accounts" %}</h2>
+        <form method="post" action="{% url 'socialaccount_connections' %}">
+          {% csrf_token %}
+          {% for acc in form.fields.account.choices %}
+            {% with account=acc.0.instance.get_provider_account %}
+              <div class="flex items-center justify-between py-3 border-b border-weak last:border-b-0">
+                <div class="flex items-center gap-3">
+                  <input type="radio"
+                         name="account"
+                         id="id_account_{{ account.account.pk }}"
+                         value="{{ account.account.pk }}" />
+                  <label for="id_account_{{ account.account.pk }}"
+                         class="flex items-center gap-2">
+                    {% svg 'discord' "h-5 w-5" %}
+                    <span class="font-medium">{{ account }}</span>
+                    <span class="text-xs text-muted bg-subtle px-2 py-0.5 rounded">{{ account.get_brand.name }}</span>
+                  </label>
+                </div>
+              </div>
+            {% endwith %}
+          {% endfor %}
+          <div class="mt-4">
+            <button type="submit" class="btn-danger text-sm">{% translate "Remove selected" %}</button>
+          </div>
+        </form>
+      </div>
+    {% else %}
+      <div class="card mb-6">
+        <p class="text-muted">{% translate "You currently have no third-party accounts connected." %}</p>
+      </div>
+    {% endif %}
+    <div class="card">
+      <h2 class="text-lg font-semibold mb-4">{% translate "Add a connection" %}</h2>
+      <form method="post"
+            action="{% provider_login_url 'discord' process='connect' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-primary flex items-center gap-2">
+          {% svg 'discord' "h-5 w-5" %}
+          {% translate "Connect Discord" %}
+        </button>
+      </form>
+    </div>
+    <div class="mt-6">
+      <a href="{% url 'user_profile' %}"
+         class="text-sm text-brand-blue hover:underline">← {% translate "Back to profile" %}</a>
+    </div>
+  </div>
+{% endblock content %}

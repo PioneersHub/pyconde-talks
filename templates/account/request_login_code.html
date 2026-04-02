@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load i18n %}
 {% load svg_tags %}
+{% load socialaccount %}
 {% block title %}
   {% translate "Sign In" %}
 {% endblock title %}
@@ -9,8 +10,43 @@
 {% endblock meta_description %}
 {% block content %}
   <div class="max-w-md mx-auto p-4 animate-fade-in">
+    {% if request.GET.error %}
+      <div class="alert-error mb-4 flex items-start gap-2" role="alert">
+        {% svg 'exclamation-circle' "flex-shrink-0 mt-0.5" %}
+        <span>
+          {% if request.GET.error == "not_in_server" %}
+            {% translate "You are not a member of the Discord server. Please join first." %}
+          {% elif request.GET.error == "missing_role" %}
+            {% translate "Your Discord account does not have the required role. Please check that you have the correct role on the server." %}
+          {% elif request.GET.error == "discord_error" %}
+            {% translate "An error occurred while verifying your Discord account. Please try again later." %}
+          {% else %}
+            {% translate "An error occurred during login. Please try again." %}
+          {% endif %}
+        </span>
+      </div>
+    {% endif %}
+    <!-- Discord login -->
+    <div class="card mb-4">
+      <h1 class="text-2xl font-bold text-center mb-2">{% translate "Sign In" %}</h1>
+      <p class="text-muted text-center mb-6">{% translate "Use your Discord account or email to sign in" %}</p>
+      <form method="post" action="{% provider_login_url 'discord' %}">
+        {% csrf_token %}
+        <button type="submit"
+                class="w-full btn-primary flex items-center justify-center gap-2">
+          {% svg 'discord' "h-5 w-5" %}
+          {% translate "Sign in with Discord" %}
+        </button>
+      </form>
+    </div>
+    <div class="flex items-center gap-4 mb-4">
+      <hr class="flex-1 border-weak">
+      <span class="text-sm text-muted">{% translate "or" %}</span>
+      <hr class="flex-1 border-weak">
+    </div>
+    <!-- Email login -->
     <div class="card">
-      <h1 class="text-2xl font-bold text-center mb-2">{% translate "Sign in with Email" %}</h1>
+      <h2 class="text-xl font-bold text-center mb-2">{% translate "Sign in with Email" %}</h2>
       <p class="text-muted text-center mb-6">{% translate "We'll send a secure login code to your email" %}</p>
       {% if form.non_field_errors %}
         <div class="alert-error mb-4 flex items-start gap-2" role="alert">
