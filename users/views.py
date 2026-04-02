@@ -9,6 +9,7 @@ from allauth.account.adapter import get_adapter
 from allauth.account.internal import flows
 from allauth.account.models import EmailAddress
 from allauth.account.views import RequestLoginCodeView
+from allauth.core.internal.cryptokit import generate_user_code  # cspell:words cryptokit
 from allauth.socialaccount.models import SocialAccount
 from allauth.socialaccount.views import ConnectionsView
 from django.conf import settings
@@ -238,6 +239,7 @@ def connections_view(request: HttpRequest) -> HttpResponse:
     request.has_verified_email = has_verified_email  # type: ignore[attr-defined]
     request.disconnect_blocked_reason = disconnect_blocked_reason  # type: ignore[attr-defined]
     request.needs_ticket_email = needs_ticket_email  # type: ignore[attr-defined]
+    request.verified_email = verified_email or ""  # type: ignore[attr-defined]
     return cast("HttpResponse", view(request))
 
 
@@ -246,7 +248,6 @@ def connections_view(request: HttpRequest) -> HttpResponse:
 # ---------------------------------------------------------------------------
 
 _ADD_EMAIL_SESSION_KEY = "_add_email"
-_ADD_EMAIL_CODE_LENGTH = 6
 _ADD_EMAIL_CODE_TIMEOUT = 300  # 5 minutes
 _ADD_EMAIL_MAX_ATTEMPTS = 3
 _ADD_EMAIL_TEMPLATE = "users/add_email.html"
@@ -327,7 +328,7 @@ def add_email_view(request: HttpRequest) -> HttpResponse:
             return _render_form(email)
 
         # Generate code and store in session
-        code = f"{secrets.randbelow(10**_ADD_EMAIL_CODE_LENGTH):0{_ADD_EMAIL_CODE_LENGTH}d}"
+        code = generate_user_code()
         expires_at = (timezone.now() + timedelta(seconds=_ADD_EMAIL_CODE_TIMEOUT)).isoformat()
         request.session[_ADD_EMAIL_SESSION_KEY] = {
             "email": email,
@@ -338,7 +339,8 @@ def add_email_view(request: HttpRequest) -> HttpResponse:
         }
 
         # Send the code via email
-        _send_add_email_code(email, code)
+        event_name = event.name if event else ""
+        _send_add_email_code(email, code, event_name)
 
         logger.info("Add-email verification code sent", email=hash_email(email))
         return redirect("confirm_add_email")
@@ -389,8 +391,8 @@ def confirm_add_email_view(request: HttpRequest) -> HttpResponse:
             )
             return redirect("add_email")
 
-        # Verify code (constant-time comparison)
-        if not secrets.compare_digest(entered_code, session_data["code"]):
+        # Verify code (constant-time comparison, case-insensitive)
+        if not secrets.compare_digest(entered_code.upper(), session_data["code"].upper()):
             error = _("The code you entered is incorrect. Please try again.")
             return render(
                 request,
@@ -422,10 +424,20 @@ def confirm_add_email_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-def _send_add_email_code(email: str, code: str) -> None:
+def _send_add_email_code(email: str, code: str, event_name: str) -> None:
     """Send the verification code to the given email address."""
-    subject = _("Your email verification code")
-    context = {"code": code}
+    timeout_seconds = _ADD_EMAIL_CODE_TIMEOUT
+    timeout_minutes = round(timeout_seconds / 60, 1)
+    timeout_display = (
+        int(timeout_minutes) if timeout_minutes == int(timeout_minutes) else timeout_minutes
+    )
+    prefix = f"{event_name} " if event_name else ""
+    subject = _("%sEmail Verification Code") % prefix
+    context = {
+        "code": code,
+        "brand_event_name": event_name,
+        "timeout_minutes": timeout_display,
+    }
     body = render_to_string("users/email/add_email_code.txt", context)
     html_body = render_to_string("users/email/add_email_code.html", context)
     send_mail(

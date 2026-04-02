@@ -1,10 +1,8 @@
 <div style="max-width: 600px; margin: 0 auto; padding: 20px">
-  <h1 style="color: #1a365d; margin-bottom: 20px">Email Verification Code</h1>
+  <h1 style="color: #1a365d; margin-bottom: 20px">{{ brand_event_name }} Verification Code</h1>
   <p style="font-size: 18px; margin-bottom: 20px">
     Your verification code is: <strong style="font-size: 24px; color: #2563eb">{{ code }}</strong>
   </p>
-  <p style="color: #64748b; margin-bottom: 20px">
-    Enter this code on the verification page to link this email to your account.
-  </p>
+  <p style="color: #64748b; margin-bottom: 20px">This code will expire in {{ timeout_minutes }} minutes.</p>
   <p style="color: #64748b">If you did not request this, you can safely ignore this email.</p>
 </div>

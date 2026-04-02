@@ -64,7 +64,7 @@
           {% endfor %}
           <p class="mt-4 text-sm text-subtle">
             {% if request.disconnect_blocked_reason == "email_not_authorized" %}
-              {% translate "Your email is not authorized for independent login. You can only remove Discord if your email is associated with a ticket purchase." %}
+              {% blocktranslate with email=request.verified_email %}Your Discord email ({{ email }}) is not authorized for independent login. You can only remove Discord if your email is associated with a ticket purchase.{% endblocktranslate %}
             {% else %}
               {% translate "Discord is your only sign-in method. Add a verified email address before removing it." %}
             {% endif %}

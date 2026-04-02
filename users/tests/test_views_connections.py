@@ -1,5 +1,7 @@
 """Tests for the add-email and connections views."""
 
+# cspell:words RPQJ NBKC TKLM BVWZ rpqj nbkc
+
 from datetime import timedelta
 from http import HTTPStatus
 from typing import Any
@@ -138,6 +140,8 @@ class TestConnectionsView:
         content = response.content.decode()
         assert "Remove selected" not in content
         assert "not authorized" in content
+        # The actual email should be shown in the blocked message
+        assert email_user.email in content
 
     def test_discord_only_user_sees_add_email(
         self,
@@ -301,6 +305,38 @@ class TestDisconnectProtection:
         assert response.status_code == HTTPStatus.OK
         assert SocialAccount.objects.filter(pk=email_user_with_discord.pk).exists()
 
+    @patch("users.forms.get_account_adapter")
+    def test_disconnect_works_after_ticket_email_change(
+        self,
+        mock_adapter: Any,
+        client: Any,
+        discord_user_with_verified_email: CustomUser,
+    ) -> None:
+        """Disconnect should succeed when primary email is now authorized."""
+        user = discord_user_with_verified_email
+        sa = SocialAccount.objects.get(user=user)
+        # Old Discord email demoted, new ticket email is primary
+        old = EmailAddress.objects.get(user=user, email=user.email)
+        old.primary = False
+        old.save()
+        EmailAddress.objects.create(
+            user=user,
+            email="ticket@example.com",
+            verified=True,
+            primary=True,
+        )
+        user.email = "ticket@example.com"
+        user.save()
+
+        mock_adapter.return_value.can_login_by_email.return_value = True
+        client.force_login(user)
+        response = client.post(
+            reverse("socialaccount_connections"),
+            {"account": sa.pk},
+        )
+        assert response.status_code == HTTPStatus.FOUND
+        assert not SocialAccount.objects.filter(pk=sa.pk).exists()
+
 
 # ---------------------------------------------------------------------------
 # Add email view
@@ -419,7 +455,7 @@ class TestAddEmailView:
         client: Any,
         discord_user: CustomUser,
     ) -> None:
-        """The verification code email should include an HTML body."""
+        """The verification code email should include an HTML body with branding."""
         mock_adapter = mock_get_adapter.return_value
         mock_adapter.is_email_authorized.return_value = True
         client.force_login(discord_user)
@@ -430,6 +466,7 @@ class TestAddEmailView:
         html_content, mime = msg.alternatives[0]  # type: ignore[union-attr]
         assert mime == "text/html"
         assert "verification code" in str(html_content).lower()
+        assert "expire" in str(html_content).lower()
 
     def test_unauthenticated_redirect(self, client: Any) -> None:
         """Unauthenticated users are redirected."""
@@ -494,11 +531,27 @@ class TestConfirmAddEmailView:
     ) -> None:
         """Correct code should create a verified EmailAddress and redirect."""
         client.force_login(discord_user)
-        self._set_session(client, code="654321")
-        response = client.post(reverse("confirm_add_email"), {"code": "654321"})
+        self._set_session(client, code="RPQJ-NBKC")
+        response = client.post(reverse("confirm_add_email"), {"code": "RPQJ-NBKC"})
         assert response.status_code == HTTPStatus.FOUND
         assert reverse("socialaccount_connections") in response.url
         # Verify EmailAddress was created
+        assert EmailAddress.objects.filter(
+            user=discord_user,
+            email="new@example.com",
+            verified=True,
+        ).exists()
+
+    def test_code_is_case_insensitive(
+        self,
+        client: Any,
+        discord_user: CustomUser,
+    ) -> None:
+        """Code comparison should be case-insensitive."""
+        client.force_login(discord_user)
+        self._set_session(client, code="RPQJ-NBKC")
+        response = client.post(reverse("confirm_add_email"), {"code": "rpqj-nbkc"})
+        assert response.status_code == HTTPStatus.FOUND
         assert EmailAddress.objects.filter(
             user=discord_user,
             email="new@example.com",
@@ -512,8 +565,8 @@ class TestConfirmAddEmailView:
     ) -> None:
         """Wrong code should re-render with error."""
         client.force_login(discord_user)
-        self._set_session(client, code="654321")
-        response = client.post(reverse("confirm_add_email"), {"code": "000000"})
+        self._set_session(client, code="RPQJ-NBKC")
+        response = client.post(reverse("confirm_add_email"), {"code": "XXXX-YYYY"})
         assert response.status_code == HTTPStatus.OK
         assert b"incorrect" in response.content
 
@@ -536,10 +589,10 @@ class TestConfirmAddEmailView:
     ) -> None:
         """Exceeding max attempts should redirect back to add_email."""
         client.force_login(discord_user)
-        self._set_session(client, code="654321")
+        self._set_session(client, code="RPQJ-NBKC")
         # Exhaust attempts
         for _ in range(4):
-            client.post(reverse("confirm_add_email"), {"code": "000000"})
+            client.post(reverse("confirm_add_email"), {"code": "XXXX-YYYY"})
         # Session should be cleared, next attempt redirects
         response = client.get(reverse("confirm_add_email"))
         assert response.status_code == HTTPStatus.FOUND
@@ -552,8 +605,8 @@ class TestConfirmAddEmailView:
         """If the verified email differs from the user's current email, update it."""
         client.force_login(discord_user)
         new_email = "different@example.com"
-        self._set_session(client, email=new_email, code="111111")
-        client.post(reverse("confirm_add_email"), {"code": "111111"})
+        self._set_session(client, email=new_email, code="TKLM-BVWZ")
+        client.post(reverse("confirm_add_email"), {"code": "TKLM-BVWZ"})
         discord_user.refresh_from_db()
         assert discord_user.email == new_email
 

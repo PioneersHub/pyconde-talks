@@ -202,6 +202,7 @@ class PasswordlessDisconnectForm(DisconnectForm):  # type: ignore[misc]
                 social_adapter = get_adapter()
                 verified_email = (
                     EmailAddress.objects.filter(user=account.user, verified=True)
+                    .order_by("-primary")
                     .values_list("email", flat=True)
                     .first()
                 )
