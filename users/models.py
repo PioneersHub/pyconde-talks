@@ -207,3 +207,42 @@ class CustomUser(AbstractUser):
         if not self.is_superuser and self.has_usable_password():
             self.set_unusable_password()
         super().save(*args, **kwargs)
+
+
+MAX_TICKET_ID_LENGTH = 10
+
+
+class Ticket(models.Model):
+    """Links a user to an event via a unique ticket identifier."""
+
+    user = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.CASCADE,
+        related_name="tickets",
+    )
+    event = models.ForeignKey(
+        "events.Event",
+        on_delete=models.CASCADE,
+        related_name="tickets",
+    )
+    ticket_id = models.CharField(
+        max_length=MAX_TICKET_ID_LENGTH,
+        help_text=_("Unique ticket identifier for this event."),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        """Metadata for the Ticket model."""
+
+        verbose_name = _("Ticket")
+        verbose_name_plural = _("Tickets")
+        constraints: ClassVar[list[models.UniqueConstraint]] = [
+            models.UniqueConstraint(
+                fields=["event", "ticket_id"],
+                name="unique_ticket_per_event",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        """Return the ticket ID and event."""
+        return f"{self.ticket_id} ({self.event})"
