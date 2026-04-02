@@ -269,7 +269,7 @@ sudo systemctl reload nginx
 [django-anymail]: https://anymail.dev/
 [django-structlog]: https://django-structlog.readthedocs.io/
 [pytest]: https://docs.pytest.org/
-[pytanis]: https://github.com/jbsilva/pytanis
+[pytanis]: https://github.com/PioneersHub/pytanis
 [structlog]: https://www.structlog.org/
 [uv]: https://docs.astral.sh/uv
 [tailwindCSS]: https://tailwindcss.com/
