@@ -17,7 +17,7 @@ from django.shortcuts import redirect, render
 from django.utils.translation import gettext as _
 
 from events.models import Event
-from utils.email_utils import hash_email
+from utils.email_utils import hash_email, obfuscate_email
 
 from .forms import ProfileForm
 
@@ -158,4 +158,10 @@ def profile_view(request: HttpRequest) -> HttpResponse:
     else:
         form = ProfileForm(instance=user)
 
-    return render(request, "users/profile.html", {"form": form})
+    qa_display_name = (
+        user.display_name.strip()
+        or user.get_full_name().strip()
+        or obfuscate_email(user.email)
+        or _("Anonymous")
+    )
+    return render(request, "users/profile.html", {"form": form, "qa_display_name": qa_display_name})
