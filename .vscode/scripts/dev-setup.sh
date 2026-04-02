@@ -392,8 +392,10 @@ initialize_django() {
     fi
 
     if [ "$GEN_TEST_USERS" = "true" ]; then
-        log "Assigning test users to random events..."
+        log "Assigning test users to a random event..."
 		run_django_shell <<-'PYTHON' || warn "Failed to assign test users to events"
+            import random
+
             from events.models import Event
             from users.models import CustomUser
 
@@ -406,9 +408,9 @@ initialize_django() {
                 if user is None:
                     print(f'Skipping missing user {email}')
                     continue
-                user.events.set(events)
-                slugs = ', '.join(e.slug for e in events)
-                print(f'Assigned {email} to: {slugs}')
+                event = random.choice(events)
+                user.events.add(event)
+                print(f'Assigned {email} to {event.slug}')
 		PYTHON
     fi
 }
