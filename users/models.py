@@ -15,6 +15,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from users.validators import validate_display_name
+
 
 if TYPE_CHECKING:
     from django_stubs_ext.db.models.manager import RelatedManager
@@ -156,6 +158,7 @@ class CustomUser(AbstractUser):
     display_name = models.CharField(
         max_length=100,
         blank=True,
+        validators=[validate_display_name],
         help_text=_(
             "Public name shown when asking questions (optional). "
             "If blank, we'll use your full name or email.",

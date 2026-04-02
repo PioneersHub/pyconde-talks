@@ -17,6 +17,7 @@ from django.shortcuts import redirect, render
 from django.utils.translation import gettext as _
 
 from events.models import Event
+from users.validators import validate_display_name
 from utils.email_utils import hash_email, obfuscate_email
 
 from .forms import ProfileForm
@@ -158,8 +159,19 @@ def profile_view(request: HttpRequest) -> HttpResponse:
     else:
         form = ProfileForm(instance=user)
 
+    # Only use the display name in the preview if it passes validation.
+    # On POST with invalid input, fall through to full name or masked email.
+    display_name = (
+        form.cleaned_data.get("display_name", "").strip()
+        if form.is_bound and form.is_valid()
+        else user.display_name.strip()
+    )
+    try:
+        validate_display_name(display_name)
+    except ValidationError:
+        display_name = ""
     qa_display_name = (
-        user.display_name.strip()
+        display_name
         or user.get_full_name().strip()
         or obfuscate_email(user.email)
         or _("Anonymous")
