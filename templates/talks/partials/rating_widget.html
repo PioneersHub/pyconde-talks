@@ -2,22 +2,25 @@
 <div id="rating-widget">
   <div class="flex items-center gap-3 flex-wrap">
     <span class="text-sm font-medium text-heading">Rate this talk</span>
-    <div class="flex items-center gap-1">
+    <div class="flex items-center gap-1"
+         id="star-buttons"
+         onmouseleave="document.querySelectorAll('#star-buttons button svg').forEach(s => { s.style.color = ''; s.style.transform = ''; })">
       {% for i in "12345" %}
         <button type="button"
-                class="focus:outline-none transition-transform hover:scale-125"
+                class="focus:outline-none"
                 hx-post="{% url 'rate_talk' talk.id %}"
                 hx-target="#rating-widget"
                 hx-swap="outerHTML"
                 hx-include="#comment"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-vals='{"score": "{{ forloop.counter }}"}'
-                title="Rate {{ forloop.counter }} out of 5">
+                title="Rate {{ forloop.counter }} out of 5"
+                onmouseenter="document.querySelectorAll('#star-buttons button').forEach((b, j) => { const s = b.querySelector('svg'); if (j < {{ forloop.counter }}) { s.style.color = '#facc15'; s.style.transform = 'scale(1.25)'; } else { s.style.color = ''; s.style.transform = ''; } })">
           <span class="sr-only">Rate {{ forloop.counter }} out of 5</span>
           {% if user_rating and forloop.counter <= user_rating.score %}
-            {% svg 'star' "h-6 w-6 text-yellow-400 fill-current" %}
+            {% svg 'star' "h-6 w-6 text-yellow-400 fill-current transition-transform" %}
           {% else %}
-            {% svg 'star' "h-6 w-6 text-gray-300 fill-current hover:text-yellow-300" %}
+            {% svg 'star' "h-6 w-6 text-gray-300 fill-current transition-transform" %}
           {% endif %}
         </button>
       {% endfor %}
