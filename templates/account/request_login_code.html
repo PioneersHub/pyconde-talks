@@ -17,7 +17,7 @@
           {% if request.GET.error == "not_in_server" %}
             {% translate "You are not a member of the Discord server. Please join first." %}
           {% elif request.GET.error == "missing_role" %}
-            {% translate "Your Discord account does not have the required role. Please check that you have the correct role on the server." %}
+            {% translate "Please register in the #registration channel on our Discord server to get access." %}
           {% elif request.GET.error == "discord_error" %}
             {% translate "An error occurred while verifying your Discord account. Please try again later." %}
           {% else %}
