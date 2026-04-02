@@ -224,10 +224,14 @@ def connections_view(request: HttpRequest) -> HttpResponse:
         else:
             disconnect_blocked_reason = "email_not_authorized"
 
+    # Discord user whose email is not in the validation API needs to connect a ticket email.
+    needs_ticket_email = has_discord and disconnect_blocked_reason == "email_not_authorized"
+
     request.can_disconnect = can_disconnect  # type: ignore[attr-defined]
     request.has_discord = has_discord  # type: ignore[attr-defined]
     request.has_verified_email = has_verified_email  # type: ignore[attr-defined]
     request.disconnect_blocked_reason = disconnect_blocked_reason  # type: ignore[attr-defined]
+    request.needs_ticket_email = needs_ticket_email  # type: ignore[attr-defined]
     return cast("HttpResponse", view(request))
 
 
@@ -252,8 +256,23 @@ def add_email_view(request: HttpRequest) -> HttpResponse:
     """
     user = cast("CustomUser", request.user)
 
-    # Already has a verified email - nothing to do
-    if EmailAddress.objects.filter(user=user, verified=True).exists():
+    # Allow through if the user needs to connect a ticket email (Discord user
+    # whose current email is not recognized by the validation API).
+    has_discord = SocialAccount.objects.filter(user=user, provider="discord").exists()
+    verified_email = (
+        EmailAddress.objects.filter(user=user, verified=True)
+        .values_list("email", flat=True)
+        .first()
+    )
+    email_authorized = False
+    if verified_email:
+        adapter = get_adapter(request)
+        email_authorized = adapter.can_login_by_email(verified_email)
+
+    needs_ticket_email = has_discord and verified_email and not email_authorized
+
+    # Redirect unless this user actually needs to connect a ticket email
+    if verified_email and not needs_ticket_email:
         return redirect("socialaccount_connections")
 
     events = Event.objects.filter(is_active=True).order_by("name")
@@ -414,6 +433,11 @@ def _finalize_add_email(
     event_slug: str,
 ) -> None:
     """Create verified EmailAddress, update user email if needed, link to event."""
+    # Demote any existing primary emails for this user
+    EmailAddress.objects.filter(user=user, primary=True).exclude(email__iexact=email).update(
+        primary=False,
+    )
+
     # Create or update the EmailAddress record
     email_obj, created = EmailAddress.objects.get_or_create(
         user=user,

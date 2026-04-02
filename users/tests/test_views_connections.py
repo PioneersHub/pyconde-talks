@@ -57,6 +57,21 @@ def discord_social_account(discord_user: CustomUser) -> SocialAccount:
 
 
 @pytest.fixture()
+def discord_user_with_verified_email(
+    discord_user: CustomUser,
+    discord_social_account: SocialAccount,
+) -> CustomUser:
+    """Discord user with a verified EmailAddress (created by allauth on Discord login)."""
+    EmailAddress.objects.create(
+        user=discord_user,
+        email=discord_user.email,
+        verified=True,
+        primary=True,
+    )
+    return discord_user
+
+
+@pytest.fixture()
 def email_user_with_discord(email_user: CustomUser) -> SocialAccount:
     """Link a Discord social account to the email_user (has both login methods)."""
     return SocialAccount.objects.create(
@@ -135,17 +150,58 @@ class TestConnectionsView:
         content = response.content.decode()
         assert "Add Email" in content
 
+    @patch("users.views.get_adapter")
     def test_email_user_does_not_see_add_email(
         self,
+        mock_get_adapter: Any,
         client: Any,
         email_user: CustomUser,
         email_user_with_discord: SocialAccount,
     ) -> None:
-        """User with verified email should not see the add-email card."""
+        """User with authorized verified email should not see the add-email card."""
+        mock_get_adapter.return_value.can_login_by_email.return_value = True
         client.force_login(email_user)
         response = client.get(reverse("socialaccount_connections"))
         content = response.content.decode()
         assert reverse("add_email") not in content
+
+    @patch("users.views.get_adapter")
+    def test_discord_user_unauthorized_email_sees_ticket_email_card(
+        self,
+        mock_get_adapter: Any,
+        client: Any,
+        discord_user_with_verified_email: CustomUser,
+    ) -> None:
+        """Discord user whose email is not in validation API sees 'Connect ticket email'."""
+        mock_get_adapter.return_value.can_login_by_email.return_value = False
+        client.force_login(discord_user_with_verified_email)
+        response = client.get(reverse("socialaccount_connections"))
+        content = response.content.decode()
+        assert "Connect Ticket Email" in content
+        assert reverse("add_email") in content
+
+    def test_discord_user_does_not_see_link_discord_text(
+        self,
+        client: Any,
+        discord_user: CustomUser,
+        discord_social_account: SocialAccount,
+    ) -> None:
+        """User with Discord linked should not see 'Link your Discord account' text."""
+        client.force_login(discord_user)
+        response = client.get(reverse("socialaccount_connections"))
+        content = response.content.decode()
+        assert "Link your Discord" not in content
+
+    def test_email_user_sees_link_discord_text(
+        self,
+        client: Any,
+        email_user: CustomUser,
+    ) -> None:
+        """User without Discord should see 'Link your Discord account' text."""
+        client.force_login(email_user)
+        response = client.get(reverse("socialaccount_connections"))
+        content = response.content.decode()
+        assert "Link your Discord" in content
 
     def test_unauthenticated_redirect(self, client: Any) -> None:
         """Unauthenticated users are redirected."""
@@ -234,16 +290,33 @@ class TestAddEmailView:
         assert response.status_code == HTTPStatus.OK
         assert b"Add Email Address" in response.content
 
-    def test_redirect_if_already_has_email(
+    @patch("users.views.get_adapter")
+    def test_redirect_if_already_has_authorized_email(
         self,
+        mock_get_adapter: Any,
         client: Any,
         email_user: CustomUser,
     ) -> None:
-        """Users with a verified email should be redirected to connections."""
+        """Users with a verified and authorized email should be redirected."""
+        mock_get_adapter.return_value.can_login_by_email.return_value = True
         client.force_login(email_user)
         response = client.get(reverse("add_email"))
         assert response.status_code == HTTPStatus.FOUND
         assert reverse("socialaccount_connections") in response.url
+
+    @patch("users.views.get_adapter")
+    def test_discord_user_unauthorized_email_sees_form(
+        self,
+        mock_get_adapter: Any,
+        client: Any,
+        discord_user_with_verified_email: CustomUser,
+    ) -> None:
+        """Discord user whose email is NOT in validation API should see the add-email form."""
+        mock_get_adapter.return_value.can_login_by_email.return_value = False
+        client.force_login(discord_user_with_verified_email)
+        response = client.get(reverse("add_email"))
+        assert response.status_code == HTTPStatus.OK
+        assert b"Add Email Address" in response.content
 
     def test_invalid_email_format(
         self,
@@ -459,6 +532,27 @@ class TestConfirmAddEmailView:
         """Unauthenticated users are redirected."""
         response = client.get(reverse("confirm_add_email"))
         assert response.status_code == HTTPStatus.FOUND
+
+    def test_old_primary_email_demoted(
+        self,
+        client: Any,
+        discord_user: CustomUser,
+    ) -> None:
+        """When a new email is verified, the old primary EmailAddress is demoted."""
+        old_email = EmailAddress.objects.create(
+            user=discord_user,
+            email="old@example.com",
+            verified=True,
+            primary=True,
+        )
+        client.force_login(discord_user)
+        self._set_session(client, email="new-ticket@example.com", code="777777")
+        client.post(reverse("confirm_add_email"), {"code": "777777"})
+        old_email.refresh_from_db()
+        assert old_email.primary is False
+        new_email = EmailAddress.objects.get(user=discord_user, email="new-ticket@example.com")
+        assert new_email.primary is True
+        assert new_email.verified is True
 
 
 # ---------------------------------------------------------------------------

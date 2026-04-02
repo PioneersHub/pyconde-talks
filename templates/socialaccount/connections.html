@@ -17,9 +17,11 @@
         </div>
       {% endif %}
     {% endfor %}
-    <p class="text-sm text-subtle mb-6">
-      {% translate "Link your Discord account so you can sign in with either email or Discord." %}
-    </p>
+    {% if not request.has_discord %}
+      <p class="text-sm text-subtle mb-6">
+        {% translate "Link your Discord account so you can sign in with either email or Discord." %}
+      </p>
+    {% endif %}
     {% if form.accounts %}
       <div class="card mb-6">
         <h2 class="text-lg font-semibold mb-4">{% translate "Your connected accounts" %}</h2>
@@ -82,6 +84,18 @@
            class="btn-primary inline-flex items-center gap-2">
           {% svg 'envelope' "h-5 w-5" %}
           {% translate "Add Email" %}
+        </a>
+      </div>
+    {% elif request.needs_ticket_email %}
+      <div class="card mb-6">
+        <h2 class="text-lg font-semibold mb-4">{% translate "Connect your ticket email" %}</h2>
+        <p class="text-sm text-subtle mb-4">
+          {% translate "Your current email is not associated with a ticket. Connect the email you used to purchase your ticket so you can also sign in without Discord." %}
+        </p>
+        <a href="{% url 'add_email' %}"
+           class="btn-primary inline-flex items-center gap-2">
+          {% svg 'envelope' "h-5 w-5" %}
+          {% translate "Connect Ticket Email" %}
         </a>
       </div>
     {% endif %}
