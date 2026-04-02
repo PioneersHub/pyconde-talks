@@ -1,25 +1,34 @@
-"""Custom adapter for django-allauth that validates e-mails using an external API."""
+"""Custom adapters for django-allauth (e-mail and Discord social login)."""
 
+from http import HTTPStatus
 from json.decoder import JSONDecodeError
 from typing import TYPE_CHECKING, Any, cast
 
 import httpx
 import structlog
 from allauth.account.adapter import DefaultAccountAdapter
+from allauth.account.models import EmailAddress
+from allauth.core.exceptions import ImmediateHttpResponse
+from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError, OperationalError
+from django.shortcuts import redirect
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from utils.email_utils import hash_email
 
 
 if TYPE_CHECKING:
+    from django.http import HttpRequest
+
     from events.models import Event
     from users.models import CustomUser
 
 
 logger = structlog.get_logger(__name__)
+
+_DISCORD_API = "https://discord.com/api/v10"
 
 
 class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
@@ -29,13 +38,13 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
     This adapter implements a multi-layered, event-aware authorization strategy:
     1. Superusers and whitelisted emails are always authorized.
     2. If the user already exists and is associated with the selected event, let them in.
-    3. If the user exists but is NOT associated with the selected event, call the event's
-       validation API. If valid, associate the user with the event.
+    3. If the user exists but is NOT associated with the selected event, call the event's validation
+       API. If valid, associate the user with the event.
     4. If the user does not exist, call the event's validation API. If valid, the user will be
        created and associated with the event.
 
-    The selected event is passed via the login form's ``event`` field and stored on the adapter
-    as ``self._selected_event``.
+    The selected event is passed via the login form's ``event`` field and stored on the adapter as
+    ``self._selected_event``.
     """
 
     _selected_event: Event | None = None
@@ -209,3 +218,207 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
             },
         )
         super().send_mail(template_prefix, email, context)
+
+
+# ---------------------------------------------------------------------------
+# Discord / social adapter
+# ---------------------------------------------------------------------------
+
+
+class _DiscordNotInGuildError(Exception):
+    """Raised when the Discord user is not a member of the required guild."""
+
+
+class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
+    """
+    Enforce Discord role-based access control and prevent duplicate accounts.
+
+    Links Discord logins to existing email-based accounts.
+    Login is granted only to users who hold at least one role listed in
+    ``settings.DISCORD_ALLOWED_ROLES``. If the list is empty, all Discord logins are rejected.
+
+    Role-to-Django permission mapping (applied only on new user creation via ``save_user``):
+    - ``DISCORD_ADMIN_ROLES``: grants ``is_superuser = True`` and ``is_staff = True``
+    - ``DISCORD_STAFF_ROLES``: grants ``is_staff = True``
+    - all others / empty lists: no elevated permissions
+
+    Existing users keep their current permissions on subsequent logins. Admin/staff flags can be
+    managed through the Django admin interface independently of Discord roles.
+
+    Required settings::
+
+        DISCORD_GUILD_ID       str        Your server's numeric ID
+        DISCORD_ROLES          dict       Full {role_name: role_id} map
+        DISCORD_ALLOWED_ROLES  list[str]  Role names permitted to log in (empty = no access)
+
+    Optional settings::
+
+        DISCORD_ADMIN_ROLES  list[str]  Role names that grant is_superuser + is_staff on signup
+        DISCORD_STAFF_ROLES  list[str]  Role names that grant is_staff only on signup
+        DISCORD_API_TIMEOUT  int        Seconds before Discord API calls time out (default 5)
+    """
+
+    # ------------------------------------------------------------------
+    # allauth hooks
+    # ------------------------------------------------------------------
+
+    def pre_social_login(self, request: HttpRequest, sociallogin: Any) -> None:
+        """
+        Run after Discord authenticates the user but before the session is created.
+
+        Order of operations:
+        1. Only applies to Discord logins (other providers pass through).
+        2. Check the user holds at least one allowed Discord role; reject if not.
+        3. For already-connected social accounts: just return (permissions are not touched).
+        4. For brand-new social logins: try to connect to an existing email-based account
+           with the same address (requires a verified Discord email).
+           If no existing account is found, allauth proceeds to ``save_user`` (new signup).
+        """
+        if sociallogin.account.provider != "discord":
+            return
+
+        # Step 1: role check
+        try:
+            member_role_ids = self._fetch_member_role_ids(
+                token=sociallogin.token.token,
+                guild_id=settings.DISCORD_GUILD_ID,
+            )
+        except _DiscordNotInGuildError:
+            logger.warning("Discord login rejected: user not in guild")
+            raise ImmediateHttpResponse(
+                redirect("/accounts/login/?error=not_in_server"),
+            ) from None
+        except httpx.HTTPError as exc:
+            logger.warning("Discord API error during role check", error=str(exc))
+            raise ImmediateHttpResponse(
+                redirect("/accounts/login/?error=discord_error"),
+            ) from exc
+
+        matched_names = self._match_allowed_roles(member_role_ids)
+        if not matched_names:
+            logger.warning("Discord login rejected: no allowed roles")
+            raise ImmediateHttpResponse(redirect("/accounts/login/?error=missing_role"))
+
+        logger.info("Discord login authorised", matched_roles=sorted(matched_names))
+        sociallogin.account.extra_data["matched_roles"] = sorted(matched_names)
+
+        # Step 2: existing social account - nothing more to do
+        if sociallogin.is_existing:
+            return
+
+        # Step 3: new social login - connect to existing email account if possible
+        self._connect_to_existing_account(request, sociallogin)
+
+    def save_user(self, request: HttpRequest, sociallogin: Any, form: Any = None) -> Any:
+        """Persist a brand-new user and set initial permissions based on Discord roles."""
+        user = super().save_user(request, sociallogin, form)
+        matched_names = set(sociallogin.account.extra_data.get("matched_roles", []))
+        self._apply_initial_permissions(user, matched_names)
+        return user
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _connect_to_existing_account(
+        self,
+        request: HttpRequest,
+        sociallogin: Any,
+    ) -> None:
+        """
+        Connect the social account to an existing email-based account.
+
+        If the Discord account has a verified email and an ``EmailAddress`` record already exists
+        for it, connect the social account to that user. This prevents a second User from being
+        created when someone has already registered via the passwordless e-mail flow.
+
+        A verified Discord email is required for this step because we need to trust that the Discord
+        user actually owns that address before linking accounts.
+
+        Note: ``sociallogin.connect()`` completes the login and raises ``ImmediateHttpResponse``, so
+        no code after that call will execute when a match is found.
+        """
+        if not sociallogin.account.extra_data.get("verified", False):
+            return  # Cannot trust unverified email for account linking
+
+        email: str = sociallogin.account.extra_data.get("email", "").lower().strip()
+        if not email:
+            return
+
+        try:
+            existing_email = EmailAddress.objects.get(email__iexact=email)
+        except EmailAddress.DoesNotExist:
+            return  # No existing account - allauth will call save_user for a new signup
+
+        existing_user = existing_email.user
+
+        logger.info(
+            "Connected Discord social account to existing email account",
+            user_pk=existing_user.pk,
+        )
+        sociallogin.connect(request, existing_user)
+
+    def _match_allowed_roles(self, member_role_ids: set[str]) -> set[str]:
+        """Return the subset of allowed role names the member actually holds."""
+        role_map: dict[str, str] = getattr(settings, "DISCORD_ROLES", {})
+        allowed = self._allowed_roles
+        return {
+            name
+            for name, role_id in role_map.items()
+            if role_id in member_role_ids and name in allowed
+        }
+
+    def _apply_initial_permissions(self, user: Any, matched_names: set[str]) -> None:
+        """Set ``is_superuser`` and ``is_staff`` for a brand-new user based on Discord roles."""
+        new_superuser = bool(matched_names & self._admin_roles)
+        new_staff = new_superuser or bool(matched_names & self._staff_roles)
+
+        if new_superuser or new_staff:
+            user.is_superuser = new_superuser
+            user.is_staff = new_staff
+            user.save(update_fields=["is_superuser", "is_staff"])
+            logger.info(
+                "Set initial Discord role permissions",
+                user_pk=user.pk,
+                is_superuser=new_superuser,
+                is_staff=new_staff,
+            )
+
+    @staticmethod
+    def _fetch_member_role_ids(token: str, guild_id: str) -> set[str]:
+        """
+        Return the set of role IDs the authenticated user holds in the guild.
+
+        Calls ``GET /users/@me/guilds/{guild_id}/member`` with the OAuth Bearer token (requires the
+        ``guilds.members.read`` scope).
+
+        Raises:
+            _DiscordNotInGuildError: if the user is not a member of the guild.
+            httpx.HTTPError: on any other non-2xx response or network failure.
+
+        """
+        response = httpx.get(
+            f"{_DISCORD_API}/users/@me/guilds/{guild_id}/member",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=getattr(settings, "DISCORD_API_TIMEOUT", 5),
+        )
+        if response.status_code == HTTPStatus.NOT_FOUND:
+            raise _DiscordNotInGuildError
+        response.raise_for_status()
+        return set(response.json().get("roles", []))
+
+    # ------------------------------------------------------------------
+    # Role name sets from settings (empty when not configured)
+    # ------------------------------------------------------------------
+
+    @property
+    def _allowed_roles(self) -> frozenset[str]:
+        return frozenset(getattr(settings, "DISCORD_ALLOWED_ROLES", []))
+
+    @property
+    def _admin_roles(self) -> frozenset[str]:
+        return frozenset(getattr(settings, "DISCORD_ADMIN_ROLES", []))
+
+    @property
+    def _staff_roles(self) -> frozenset[str]:
+        return frozenset(getattr(settings, "DISCORD_STAFF_ROLES", []))
