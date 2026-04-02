@@ -373,8 +373,9 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
         logger.info("Discord login authorised", matched_roles=sorted(matched_names))
         sociallogin.account.extra_data["matched_roles"] = sorted(matched_names)
 
-        # Step 2: existing social account - nothing more to do
+        # Step 2: existing social account - ensure default event access
         if sociallogin.is_existing:
+            self._add_default_event(sociallogin.user)
             return
 
         # Step 3: new social login - connect to existing email account if possible
@@ -385,6 +386,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
         user = super().save_user(request, sociallogin, form)
         matched_names = set(sociallogin.account.extra_data.get("matched_roles", []))
         self._apply_initial_permissions(user, matched_names)
+        self._add_default_event(user)
         return user
 
     # ------------------------------------------------------------------
@@ -427,6 +429,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
             "Connected Discord social account to existing email account",
             user_pk=existing_user.pk,
         )
+        self._add_default_event(existing_user)
         sociallogin.connect(request, existing_user)
 
     def _match_allowed_roles(self, member_role_ids: set[str]) -> set[str]:
@@ -438,6 +441,21 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
             for name, role_id in role_map.items()
             if role_id in member_role_ids and name in allowed
         }
+
+    @staticmethod
+    def _add_default_event(user: Any) -> None:
+        """Associate the user with the DEFAULT_EVENT if configured."""
+        slug = getattr(settings, "DEFAULT_EVENT", "")
+        if not slug:
+            return
+        try:
+            event = Event.objects.get(slug=slug)
+        except Event.DoesNotExist:
+            logger.warning("DEFAULT_EVENT not found", slug=slug)
+            return
+        if not user.events.filter(pk=event.pk).exists():
+            user.events.add(event)
+            logger.info("Associated user with default event", user_pk=user.pk, event_slug=slug)
 
     def _apply_initial_permissions(self, user: Any, matched_names: set[str]) -> None:
         """Set ``is_superuser`` and ``is_staff`` for a brand-new user based on Discord roles."""

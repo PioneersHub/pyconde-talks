@@ -8,6 +8,7 @@ import pytest
 from allauth.core.exceptions import ImmediateHttpResponse
 from django.test import RequestFactory
 
+from events.models import Event
 from users.adapters import SocialAccountAdapter, _DiscordNotInGuildError
 
 
@@ -513,3 +514,81 @@ class TestRoleProperties:
         discord_settings.DISCORD_ALLOWED_ROLES = []
         result = adapter._match_allowed_roles({"111", "222"})
         assert result == set()
+
+
+# ---------------------------------------------------------------------------
+# _add_default_event
+# ---------------------------------------------------------------------------
+
+
+class TestAddDefaultEvent:
+    """Tests for the _add_default_event helper."""
+
+    def test_adds_default_event(self, settings: Any, user_model: type[Any]) -> None:
+        """User is associated with the DEFAULT_EVENT."""
+        event = Event.objects.create(slug="pycon-2026", name="PyCon 2026", year=2026)
+        settings.DEFAULT_EVENT = "pycon-2026"
+        user = user_model.objects.create_user(email="test@example.com")
+        SocialAccountAdapter._add_default_event(user)
+        assert event in user.events.all()
+
+    def test_no_op_when_already_associated(self, settings: Any, user_model: type[Any]) -> None:
+        """No duplicate is created if the user already has the event."""
+        event = Event.objects.create(slug="pycon-2026", name="PyCon 2026", year=2026)
+        settings.DEFAULT_EVENT = "pycon-2026"
+        user = user_model.objects.create_user(email="test@example.com")
+        user.events.add(event)
+        SocialAccountAdapter._add_default_event(user)
+        assert user.events.count() == 1
+
+    def test_no_op_when_setting_empty(self, settings: Any, user_model: type[Any]) -> None:
+        """No error when DEFAULT_EVENT is empty."""
+        settings.DEFAULT_EVENT = ""
+        user = user_model.objects.create_user(email="test@example.com")
+        SocialAccountAdapter._add_default_event(user)
+        assert user.events.count() == 0
+
+    def test_no_op_when_event_not_found(self, settings: Any, user_model: type[Any]) -> None:
+        """No error when the DEFAULT_EVENT slug doesn't match any Event."""
+        settings.DEFAULT_EVENT = "nonexistent"
+        user = user_model.objects.create_user(email="test@example.com")
+        SocialAccountAdapter._add_default_event(user)
+        assert user.events.count() == 0
+
+    @patch.object(SocialAccountAdapter, "_fetch_member_role_ids")
+    def test_existing_login_gets_default_event(
+        self,
+        mock_fetch: MagicMock,
+        discord_settings: Any,
+        user_model: type[Any],
+    ) -> None:
+        """An existing social account login adds the DEFAULT_EVENT."""
+        event = Event.objects.create(slug="pycon-2026", name="PyCon 2026", year=2026)
+        discord_settings.DEFAULT_EVENT = "pycon-2026"
+        mock_fetch.return_value = {"111"}  # attendee
+        user = user_model.objects.create_user(email="existing@test.com")
+        sl = _make_sociallogin(is_existing=True, user=user)
+        request = RequestFactory().get("/")
+        SocialAccountAdapter().pre_social_login(request, sl)
+        assert event in user.events.all()
+
+    @patch.object(SocialAccountAdapter, "_apply_initial_permissions")
+    def test_save_user_gets_default_event(
+        self,
+        mock_apply: MagicMock,
+        discord_settings: Any,
+    ) -> None:
+        """A brand-new user created via save_user gets the DEFAULT_EVENT."""
+        event = Event.objects.create(slug="pycon-2026", name="PyCon 2026", year=2026)
+        discord_settings.DEFAULT_EVENT = "pycon-2026"
+        sl = _make_sociallogin(
+            extra_data={"email": "new@test.com", "verified": True, "matched_roles": ["attendee"]},
+        )
+        request = RequestFactory().get("/")
+        with patch("users.adapters.DefaultSocialAccountAdapter.save_user") as mock_super:
+            mock_user = MagicMock()
+            mock_user.events = MagicMock()
+            mock_user.events.filter.return_value.exists.return_value = False
+            mock_super.return_value = mock_user
+            SocialAccountAdapter().save_user(request, sl)
+            mock_user.events.add.assert_called_once_with(event)
