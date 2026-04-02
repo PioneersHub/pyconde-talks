@@ -185,7 +185,12 @@ def profile_view(request: HttpRequest) -> HttpResponse:
         or obfuscate_email(user.email)
         or _("Anonymous")
     )
-    return render(request, "users/profile.html", {"form": form, "qa_display_name": qa_display_name})
+    has_discord = SocialAccount.objects.filter(user=user, provider="discord").exists()
+    return render(
+        request,
+        "users/profile.html",
+        {"form": form, "qa_display_name": qa_display_name, "has_discord": has_discord},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -207,6 +212,7 @@ def connections_view(request: HttpRequest) -> HttpResponse:
     has_discord = SocialAccount.objects.filter(user=user, provider="discord").exists()
     verified_email = (
         EmailAddress.objects.filter(user=user, verified=True)
+        .order_by("-primary")
         .values_list("email", flat=True)
         .first()
     )
@@ -261,6 +267,7 @@ def add_email_view(request: HttpRequest) -> HttpResponse:
     has_discord = SocialAccount.objects.filter(user=user, provider="discord").exists()
     verified_email = (
         EmailAddress.objects.filter(user=user, verified=True)
+        .order_by("-primary")
         .values_list("email", flat=True)
         .first()
     )
@@ -418,12 +425,15 @@ def confirm_add_email_view(request: HttpRequest) -> HttpResponse:
 def _send_add_email_code(email: str, code: str) -> None:
     """Send the verification code to the given email address."""
     subject = _("Your email verification code")
-    body = render_to_string("users/email/add_email_code.txt", {"code": code})
+    context = {"code": code}
+    body = render_to_string("users/email/add_email_code.txt", context)
+    html_body = render_to_string("users/email/add_email_code.html", context)
     send_mail(
         subject,
         body,
         settings.DEFAULT_FROM_EMAIL,
         [email],
+        html_message=html_body,
     )
 
 

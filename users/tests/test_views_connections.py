@@ -8,6 +8,7 @@ from unittest.mock import patch
 import pytest
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount
+from django.core import mail as django_mail
 from django.urls import reverse
 from django.utils import timezone
 from model_bakery import baker
@@ -203,6 +204,36 @@ class TestConnectionsView:
         content = response.content.decode()
         assert "Link your Discord" in content
 
+    @patch("users.views.get_adapter")
+    def test_discord_user_with_authorized_primary_can_disconnect(
+        self,
+        mock_get_adapter: Any,
+        client: Any,
+        discord_user_with_verified_email: CustomUser,
+    ) -> None:
+        """After connecting a ticket email, primary email is authorized - can disconnect."""
+        user = discord_user_with_verified_email
+        # Old Discord email (non-primary, still verified)
+        old = EmailAddress.objects.get(user=user, email=user.email)
+        old.primary = False
+        old.save()
+        # New authorized ticket email
+        EmailAddress.objects.create(
+            user=user,
+            email="ticket@example.com",
+            verified=True,
+            primary=True,
+        )
+        user.email = "ticket@example.com"
+        user.save()
+
+        mock_get_adapter.return_value.can_login_by_email.return_value = True
+        client.force_login(user)
+        response = client.get(reverse("socialaccount_connections"))
+        content = response.content.decode()
+        assert "Remove selected" in content
+        assert "Connect Ticket Email" not in content
+
     def test_unauthenticated_redirect(self, client: Any) -> None:
         """Unauthenticated users are redirected."""
         response = client.get(reverse("socialaccount_connections"))
@@ -380,6 +411,25 @@ class TestAddEmailView:
         session = client.session
         assert _ADD_EMAIL_SESSION_KEY in session
         assert session[_ADD_EMAIL_SESSION_KEY]["email"] == "new@example.com"
+
+    @patch("users.views.get_adapter")
+    def test_add_email_code_sends_html_email(
+        self,
+        mock_get_adapter: Any,
+        client: Any,
+        discord_user: CustomUser,
+    ) -> None:
+        """The verification code email should include an HTML body."""
+        mock_adapter = mock_get_adapter.return_value
+        mock_adapter.is_email_authorized.return_value = True
+        client.force_login(discord_user)
+        client.post(reverse("add_email"), {"email": "new@example.com"})
+        assert len(django_mail.outbox) == 1
+        msg = django_mail.outbox[0]
+        assert hasattr(msg, "alternatives")
+        html_content, mime = msg.alternatives[0]  # type: ignore[union-attr]
+        assert mime == "text/html"
+        assert "verification code" in str(html_content).lower()
 
     def test_unauthenticated_redirect(self, client: Any) -> None:
         """Unauthenticated users are redirected."""

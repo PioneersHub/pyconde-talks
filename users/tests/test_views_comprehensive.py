@@ -4,6 +4,7 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 import pytest
+from allauth.socialaccount.models import SocialAccount
 from django.urls import reverse
 from model_bakery import baker
 
@@ -59,3 +60,29 @@ class TestProfileView:
         url = reverse("user_profile")
         response = client.get(url)
         assert response.status_code == HTTPStatus.FOUND
+
+    def test_discord_user_does_not_see_link_discord_text(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """Profile page hides 'Link your Discord' when Discord is connected."""
+        SocialAccount.objects.create(
+            user=user,
+            provider="discord",
+            uid="111",
+            extra_data={},
+        )
+        client.force_login(user)
+        response = client.get(reverse("user_profile"))
+        assert b"Link your Discord" not in response.content
+
+    def test_user_without_discord_sees_link_discord_text(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """Profile page shows 'Link your Discord' when no Discord is linked."""
+        client.force_login(user)
+        response = client.get(reverse("user_profile"))
+        assert b"Link your Discord" in response.content
