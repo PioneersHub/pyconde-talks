@@ -1,5 +1,5 @@
 """Tests for the generate_fake_talks management command."""
-# ruff: noqa: SLF001 PLR2004 PT018
+# ruff: noqa: PLR2004, PT018
 
 import random
 from datetime import datetime, time, timedelta

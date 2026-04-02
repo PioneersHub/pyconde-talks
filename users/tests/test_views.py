@@ -39,7 +39,7 @@ def view() -> CustomRequestLoginCodeView:
 
 
 @pytest.mark.django_db
-def test_form_valid_authorized_existing_user(  # noqa: PLR0913
+def test_form_valid_authorized_existing_user(
     request_factory: RequestFactory,
     login_form_data: dict[str, str],
     view: CustomRequestLoginCodeView,
@@ -91,7 +91,7 @@ def test_form_valid_authorized_existing_user(  # noqa: PLR0913
 
 
 @pytest.mark.django_db
-def test_form_valid_authorized_new_user(  # noqa: PLR0913
+def test_form_valid_authorized_new_user(
     request_factory: RequestFactory,
     login_form_data: dict[str, str],
     view: CustomRequestLoginCodeView,

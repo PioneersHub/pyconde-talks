@@ -1,5 +1,4 @@
 """Tests for the Event model."""
-# ruff: noqa: SLF001
 
 import pytest
 from django.db import IntegrityError

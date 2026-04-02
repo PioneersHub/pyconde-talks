@@ -1,6 +1,6 @@
 """Tests for :class:`TalkImageGenerator` image generation."""
 
-# ruff: noqa: SLF001, D102, PLR2004
+# ruff: noqa: D102, PLR2004
 
 from typing import TYPE_CHECKING
 from unittest.mock import patch

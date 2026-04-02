@@ -85,7 +85,7 @@ class TestScheduleView:
         self,
         client: pytest.fixture,  # type: ignore[type-arg,valid-type]
         user: CustomUser,
-        today_talks: list[Talk],  # noqa: ARG002
+        today_talks: list[Talk],
     ) -> None:
         """The schedule shows talks for the first available date by default."""
         client.force_login(user)
@@ -100,8 +100,8 @@ class TestScheduleView:
         self,
         client: pytest.fixture,  # type: ignore[type-arg,valid-type]
         user: CustomUser,
-        today_talks: list[Talk],  # noqa: ARG002
-        rooms: list[Room],  # noqa: ARG002
+        today_talks: list[Talk],
+        rooms: list[Room],
     ) -> None:
         """Room names appear as column headers."""
         client.force_login(user)
@@ -128,7 +128,7 @@ class TestScheduleView:
         self,
         client: pytest.fixture,  # type: ignore[type-arg,valid-type]
         user: CustomUser,
-        today_talks: list[Talk],  # noqa: ARG002
+        today_talks: list[Talk],
     ) -> None:
         """An invalid date parameter falls back to the first available date."""
         client.force_login(user)
@@ -169,7 +169,7 @@ class TestScheduleView:
         self,
         client: pytest.fixture,  # type: ignore[type-arg,valid-type]
         user: CustomUser,
-        today_talks: list[Talk],  # noqa: ARG002
+        today_talks: list[Talk],
     ) -> None:
         """The CSS Grid schedule renders grid-area styles for talk cards."""
         client.force_login(user)
@@ -182,7 +182,7 @@ class TestScheduleView:
         self,
         client: pytest.fixture,  # type: ignore[type-arg,valid-type]
         user: CustomUser,
-        today_talks: list[Talk],  # noqa: ARG002
+        today_talks: list[Talk],
     ) -> None:
         """The grid-template-rows CSS is rendered with named time slices."""
         client.force_login(user)
@@ -196,7 +196,7 @@ class TestScheduleView:
         self,
         client: pytest.fixture,  # type: ignore[type-arg,valid-type]
         user: CustomUser,
-        today_talks: list[Talk],  # noqa: ARG002
+        today_talks: list[Talk],
     ) -> None:
         """Each talk card has a bookmark toggle button."""
         client.force_login(user)

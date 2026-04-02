@@ -1,5 +1,5 @@
 """Tests for users.admin covering admin views & actions."""
-# ruff: noqa: ARG002 PLC0415 PLR2004 SLF001
+# ruff: noqa: PLC0415, PLR2004
 
 from http import HTTPStatus
 from typing import TYPE_CHECKING

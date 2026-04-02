@@ -1,5 +1,5 @@
 """Tests for talks.admin covering all admin classes and actions."""
-# ruff: noqa: PLC0415 PLR2004 SLF001
+# ruff: noqa: PLC0415, PLR2004
 
 from datetime import timedelta
 

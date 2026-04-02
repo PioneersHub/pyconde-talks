@@ -1,5 +1,4 @@
 """Tests for event-related logic in the user views (login flow)."""
-# ruff: noqa: ARG002
 
 from typing import TYPE_CHECKING, Any
 
@@ -112,7 +111,7 @@ class TestFormValidEventSelection:
         view.form_valid(form)
         mock_adapter.set_selected_event.assert_called_once_with(None)
 
-    def test_new_user_linked_to_event(  # noqa: PLR0913
+    def test_new_user_linked_to_event(
         self,
         request_factory: RequestFactory,
         view: CustomRequestLoginCodeView,
@@ -147,7 +146,7 @@ class TestFormValidEventSelection:
         assert user.events.filter(pk=event.pk).exists()
         assert isinstance(result, HttpResponseRedirect)
 
-    def test_existing_user_linked_to_event(  # noqa: PLR0913
+    def test_existing_user_linked_to_event(
         self,
         request_factory: RequestFactory,
         view: CustomRequestLoginCodeView,

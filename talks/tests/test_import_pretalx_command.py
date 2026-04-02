@@ -3,7 +3,7 @@ Unit tests for the import_pretalx_talks management command.
 
 Tests cover the core logic without making actual API calls.
 """
-# ruff: noqa: SLF001, PLR2004, ARG002
+# ruff: noqa: PLR2004
 # mypy: disable-error-code="arg-type"
 
 from datetime import UTC, datetime, timedelta

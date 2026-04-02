@@ -51,12 +51,12 @@ class TestSetSelectedEvent:
     def test_set_event(self, adapter: AccountAdapter, event_with_api: Event) -> None:
         """Setting the selected event stores it on the adapter."""
         adapter.set_selected_event(event_with_api)
-        assert adapter._selected_event == event_with_api  # noqa: SLF001
+        assert adapter._selected_event == event_with_api
 
     def test_set_none(self, adapter: AccountAdapter) -> None:
         """Setting None clears the selected event."""
         adapter.set_selected_event(None)
-        assert adapter._selected_event is None  # noqa: SLF001
+        assert adapter._selected_event is None
 
 
 @pytest.mark.django_db
