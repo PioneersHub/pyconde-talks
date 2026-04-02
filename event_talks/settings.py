@@ -95,6 +95,8 @@ THIRD_PARTY_APPS = [
     "daphne",
     "allauth",
     "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.discord",
     "django_htmx",
     "template_partials",
     "markdownify.apps.MarkdownifyConfig",
@@ -214,6 +216,36 @@ ACCOUNT_EMAIL_SUBJECT_PREFIX = env(
     "ACCOUNT_EMAIL_SUBJECT_PREFIX",
     default="",
 )
+
+# --------------------------
+# Social accounts (Discord)
+# https://docs.allauth.org/en/latest/socialaccount/configuration.html
+# --------------------------
+SOCIALACCOUNT_ADAPTER = "users.adapters.SocialAccountAdapter"
+SOCIALACCOUNT_STORE_TOKENS = True
+
+SOCIALACCOUNT_PROVIDERS = {
+    "discord": {
+        "SCOPE": ["identify", "email", "guilds.members.read"],
+        "APPS": [
+            {
+                "client_id": env("DISCORD_CLIENT_ID", default=""),
+                "secret": env("DISCORD_CLIENT_SECRET", default=""),
+            },
+        ],
+    },
+}
+
+# Discord guild and role configuration
+DISCORD_API_TIMEOUT = env.int("DISCORD_API_TIMEOUT", default=5)
+DISCORD_GUILD_ID = env("DISCORD_GUILD_ID", default="")
+DISCORD_ROLES = env.json("DISCORD_ROLES", default={})
+DISCORD_ALLOWED_ROLES = env.list(
+    "DISCORD_ALLOWED_ROLES",
+    default=[],
+)
+DISCORD_ADMIN_ROLES = env.list("DISCORD_ADMIN_ROLES", default=[])
+DISCORD_STAFF_ROLES = env.list("DISCORD_STAFF_ROLES", default=[])
 
 
 # --------------------------------------------------------------------------------------------------

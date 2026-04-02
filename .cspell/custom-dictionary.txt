@@ -6,6 +6,7 @@ armv
 asgi
 autoplay
 autouse
+authorised
 batisteo
 bezier
 bothify
@@ -107,6 +108,7 @@ onclick
 oninput
 onsubmit
 openpyxl
+organiser
 passwordless
 pgdata
 pilmoji
@@ -144,6 +146,7 @@ sched
 sdist
 slido
 socialaccount
+sociallogin
 sqlite
 startpartial
 staticfiles
