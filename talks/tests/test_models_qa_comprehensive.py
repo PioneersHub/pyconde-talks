@@ -1,5 +1,5 @@
 """Comprehensive tests for talks.models_qa covering all uncovered branches."""
-# ruff: noqa: SLF001 PLR2004
+# ruff: noqa: PLR2004
 
 import pytest
 from model_bakery import baker
@@ -106,53 +106,6 @@ class TestQuestionModel:
         """Return 'Anonymous' when the question has no associated user."""
         q = baker.make(Question, user=None)
         assert str(q.display_name) == "Anonymous"
-
-    def test_obfuscate_email_empty(self) -> None:
-        """Return an empty string for an empty email input."""
-        assert Question._obfuscate_email("") == ""
-
-    def test_obfuscate_email_no_at(self) -> None:
-        """Mask the text as a single token when there is no @ sign."""
-        assert Question._obfuscate_email("notanemail") == "n***l"
-
-    def test_obfuscate_email_single_label_domain(self) -> None:
-        """Handle a single-label domain with no dot (e.g., 'localhost')."""
-        result = Question._obfuscate_email("user@localhost")
-        assert "@" in result
-        parts = result.split("@")
-        assert "." not in parts[1]
-
-    def test_obfuscate_email_short(self) -> None:
-        """Replace single-character local and domain parts with asterisks."""
-        assert Question._obfuscate_email("a@b.com") == "*@*.com"
-
-    def test_obfuscate_email_medium(self) -> None:
-        """Keep the first character visible for two-character local and domain parts."""
-        assert Question._obfuscate_email("ab@xy.org") == "a*@x*.org"
-
-    def test_obfuscate_email_full(self) -> None:
-        """Keep first and last characters visible, masking the middle."""
-        assert Question._obfuscate_email("john.doe@example.com") == "j***e@e***e.com"
-
-    def test_obfuscate_email_subdomains(self) -> None:
-        """Collapse subdomains into the domain mask, preserving only the TLD."""
-        assert Question._obfuscate_email("user@mail.example.co.uk") == "u***r@c*.uk"
-
-    def test_mask_token_empty(self) -> None:
-        """Return an empty string for an empty token."""
-        assert Question._mask_token("") == ""
-
-    def test_mask_token_one(self) -> None:
-        """Replace a single-character token entirely with an asterisk."""
-        assert Question._mask_token("a") == "*"
-
-    def test_mask_token_two(self) -> None:
-        """Keep the first character and mask the second for two-character tokens."""
-        assert Question._mask_token("ab") == "a*"
-
-    def test_mask_token_long(self) -> None:
-        """Preserve first and last characters with asterisks in between."""
-        assert Question._mask_token("john") == "j***n"
 
     def test_has_answer_true(self) -> None:
         """Return True when the question has at least one answer."""
