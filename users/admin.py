@@ -5,13 +5,14 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from allauth.account.models import EmailAddress
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
+from django.db.models import Prefetch
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import URLPattern, path, reverse
 from django.utils.translation import gettext_lazy as _
 
 from .forms import CustomUserChangeForm, RegularUserCreationForm, SuperUserCreationForm
-from .models import CustomUser
+from .models import CustomUser, Ticket
 
 
 if TYPE_CHECKING:
@@ -46,6 +47,16 @@ class EmailVerificationListFilter(admin.SimpleListFilter):
         return queryset
 
 
+class TicketInline(admin.TabularInline[Ticket, CustomUser]):
+    """Inline admin interface for Ticket objects."""
+
+    model = Ticket
+    extra = 1
+    fields: ClassVar[tuple[str, ...]] = ("ticket_id", "event", "created_at")
+    readonly_fields: ClassVar[list[str]] = ["created_at"]
+    autocomplete_fields: ClassVar[tuple[str, ...]] = ("event",)
+
+
 class EmailAddressInline(admin.TabularInline[EmailAddress, CustomUser]):
     """Inline admin interface for EmailAddress objects."""
 
@@ -77,6 +88,7 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
     list_display = (
         "email",
         "full_name",
+        "ticket_ids",
         "event_names",
         "is_active",
         "is_staff",
@@ -226,7 +238,7 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
 
     readonly_fields = ("date_joined", "last_login")
     filter_horizontal = ("events",)
-    inlines = (EmailAddressInline,)
+    inlines = (EmailAddressInline, TicketInline)
     list_per_page = 25
 
     def get_urls(self) -> list[URLPattern]:
@@ -314,14 +326,27 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
         )
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[CustomUser]:
-        """Optimize query by prefetching related email addresses and groups."""
+        """Optimize query by prefetching relations used in the changelist."""
         queryset = super().get_queryset(request)
-        return queryset.prefetch_related("emailaddress_set", "groups")
+        return queryset.prefetch_related(
+            "emailaddress_set",
+            "groups",
+            Prefetch(
+                "tickets",
+                queryset=Ticket.objects.select_related("event").order_by("ticket_id"),
+            ),
+        )
 
     @admin.display(description=_("Full Name"))
     def full_name(self, obj: CustomUser) -> str:
         """Display the user's full name."""
         return f"{obj.first_name} {obj.last_name}".strip() or "-"
+
+    @admin.display(description=_("Tickets"))
+    def ticket_ids(self, obj: CustomUser) -> str:
+        """Display ticket IDs assigned to the user."""
+        ticket_ids = sorted(ticket.ticket_id for ticket in obj.tickets.all())
+        return ", ".join(ticket_ids) if ticket_ids else "-"
 
     @admin.display(description=_("Events"))
     def event_names(self, obj: CustomUser) -> str:
@@ -436,3 +461,15 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
                 email=obj.email,
                 defaults={"primary": True, "verified": True},
             )
+
+
+@admin.register(Ticket)
+class TicketAdmin(admin.ModelAdmin[Ticket]):
+    """Admin configuration for the Ticket model."""
+
+    list_display = ("ticket_id", "user", "event", "created_at")
+    list_filter = ("event",)
+    search_fields = ("ticket_id", "user__email")
+    readonly_fields: ClassVar[list[str]] = ["created_at"]
+    autocomplete_fields: ClassVar[tuple[str, ...]] = ("user", "event")
+    list_per_page = 25

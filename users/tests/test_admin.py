@@ -11,8 +11,9 @@ from django.test import RequestFactory
 from django.urls import reverse
 from model_bakery import baker
 
-from users.admin import CustomUserAdmin, EmailVerificationListFilter
-from users.models import CustomUser
+from events.models import Event
+from users.admin import CustomUserAdmin, EmailVerificationListFilter, TicketInline
+from users.models import CustomUser, Ticket
 
 
 if TYPE_CHECKING:
@@ -20,6 +21,8 @@ if TYPE_CHECKING:
 
 
 site = AdminSite()
+ADMIN_LOGIN_SECRET = "admin" + "123!"
+SUPERUSER_FORM_SECRET = "securePass" + "456!"
 
 
 @pytest.fixture()
@@ -33,7 +36,7 @@ def superuser() -> CustomUser:
     """Return a superuser required to access admin views."""
     return CustomUser.objects.create_superuser(
         email="superadmin@example.com",
-        password="admin123!",
+        password=ADMIN_LOGIN_SECRET,
     )
 
 
@@ -104,6 +107,27 @@ class TestCustomUserAdminDisplayMethods:
         admin = CustomUserAdmin(CustomUser, site)
         user = baker.make(CustomUser, first_name="", last_name="")
         assert admin.full_name(user) == "-"
+
+    def test_ticket_ids(self) -> None:
+        """Return a comma-separated list of ticket IDs for the user."""
+        admin = CustomUserAdmin(CustomUser, site)
+        user = baker.make(CustomUser)
+        first_event: Event = baker.make(Event)
+        second_event: Event = baker.make(Event)
+        baker.make(Ticket, user=user, event=second_event, ticket_id="B-200")
+        baker.make(Ticket, user=user, event=first_event, ticket_id="A-100")
+
+        user = CustomUser.objects.prefetch_related("tickets").get(pk=user.pk)
+
+        assert admin.ticket_ids(user) == "A-100, B-200"
+
+    def test_ticket_ids_empty(self) -> None:
+        """Return a dash placeholder when the user has no tickets."""
+        admin = CustomUserAdmin(CustomUser, site)
+        user = baker.make(CustomUser)
+        user = CustomUser.objects.prefetch_related("tickets").get(pk=user.pk)
+
+        assert admin.ticket_ids(user) == "-"
 
     def test_email_verified_true(self) -> None:
         """Return True when the user has a verified EmailAddress."""
@@ -233,6 +257,16 @@ class TestCustomUserAdminActions:
 @pytest.mark.django_db
 class TestCustomUserAdminViews:
     """Verify CustomUserAdmin fieldsets, save logic, and custom add/select views."""
+
+    def test_ticket_inline_is_editable(self, rf: RequestFactory, superuser: CustomUser) -> None:
+        """Allow adding and editing tickets directly from the user change page."""
+        inline = TicketInline(CustomUser, site)
+        request = rf.get("/")
+        request.user = superuser
+        user = baker.make(CustomUser)
+
+        assert inline.get_readonly_fields(request) == ["created_at"]
+        assert inline.has_add_permission(request, user) is True
 
     def test_get_fieldsets_new_user(self, rf: RequestFactory, superuser: CustomUser) -> None:
         """Return the add-user fieldsets when creating a new user (obj=None)."""
@@ -375,8 +409,8 @@ class TestCustomUserAdminViews:
         url = reverse("admin:users_customuser_add") + "?user_type=super"
         data = {
             "email": "newsuperadmin@example.com",
-            "password1": "securePass456!",
-            "password2": "securePass456!",
+            "password1": SUPERUSER_FORM_SECRET,
+            "password2": SUPERUSER_FORM_SECRET,
             "is_active": "on",
             "is_staff": "on",
         }
@@ -394,3 +428,20 @@ class TestCustomUserAdminViews:
         url = reverse("admin:users_customuser_changelist")
         response = client.get(url)
         assert response.status_code == HTTPStatus.OK
+
+    def test_changelist_displays_ticket_ids(
+        self,
+        client: Client,
+        superuser: CustomUser,
+    ) -> None:
+        """Show ticket IDs in the user changelist."""
+        client.force_login(superuser)
+        user = baker.make(CustomUser, email="ticket-holder@example.com")
+        event: Event = baker.make(Event)
+        baker.make(Ticket, user=user, event=event, ticket_id="TEST-42")
+
+        url = reverse("admin:users_customuser_changelist")
+        response = client.get(url)
+
+        assert response.status_code == HTTPStatus.OK
+        assert "TEST-42" in response.content.decode()

@@ -179,6 +179,7 @@ class CustomUser(AbstractUser):
 
     if TYPE_CHECKING:
         emailaddress_set: RelatedManager[EmailAddress]
+        tickets: RelatedManager[Ticket]
 
     class Meta:
         """Metadata for CustomUser model."""
