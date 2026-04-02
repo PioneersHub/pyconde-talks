@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}
+  {% translate "Delete Account" %}
+{% endblock title %}
+{% block content %}
+  <div class="container-narrow page-section">
+    <h1 class="page-title text-red-600 dark:text-red-400">{% translate "Delete Account" %}</h1>
+    <div class="card mb-6">
+      <p class="text-sm mb-4">
+        {% translate "This will permanently delete your account and all associated data. This action cannot be undone." %}
+      </p>
+      <ul class="text-sm text-subtle list-disc list-inside mb-4">
+        <li>{% translate "Your profile and login credentials will be removed." %}</li>
+        <li>{% translate "Any connected social accounts (e.g. Discord) will be unlinked." %}</li>
+        <li>{% translate "Questions and answers you posted will remain but will no longer be attributed to you." %}</li>
+      </ul>
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox"
+                   name="confirm"
+                   id="id_confirm"
+                   required
+                   class="focus-ring-primary" />
+            {{ form.confirm.label }}
+          </label>
+          {% if form.confirm.errors %}<p class="form-error mt-1">{{ form.confirm.errors|striptags }}</p>{% endif %}
+        </div>
+        <div class="flex items-center gap-4">
+          <button type="submit" class="btn-danger">{% translate "Delete my account" %}</button>
+          <a href="{% url 'user_profile' %}"
+             class="text-sm text-brand-blue hover:underline">{% translate "Cancel" %}</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock content %}

@@ -6,11 +6,15 @@ from typing import TYPE_CHECKING, Any, cast
 
 import httpx
 import structlog
-from allauth.account.adapter import DefaultAccountAdapter
+from allauth.account.adapter import (
+    DefaultAccountAdapter,
+    get_adapter as get_account_adapter,
+)
 from allauth.account.models import EmailAddress
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError, OperationalError
 from django.shortcuts import redirect
@@ -373,8 +377,17 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
         logger.info("Discord login authorised", matched_roles=sorted(matched_names))
         sociallogin.account.extra_data["matched_roles"] = sorted(matched_names)
 
-        # Step 2: existing social account - ensure default event access
+        # Step 2: existing social account
         if sociallogin.is_existing:
+            # Auto-merge: if the authenticated user differs from the social
+            # account owner and has an API-validated email, absorb the orphan.
+            current_user = getattr(request, "user", None)
+            if (
+                current_user is not None
+                and current_user.is_authenticated
+                and sociallogin.user != current_user
+            ):
+                self._try_merge_accounts(request, sociallogin)
             self._add_default_event(sociallogin.user)
             return
 
@@ -392,6 +405,64 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _try_merge_accounts(
+        self,
+        request: HttpRequest,
+        sociallogin: Any,
+    ) -> None:
+        """
+        Merge an orphan social-only account into the authenticated user.
+
+        When a user with an API-validated email tries to link Discord but the
+        Discord account already belongs to a different (orphan) user, this method:
+        1. Verifies the current user has a validated email.
+        2. Transfers event associations from the orphan.
+        3. Reassigns the SocialAccount to the current user.
+        4. Deletes the orphan user.
+        """
+        current_user = cast("CustomUser", request.user)
+        orphan_user = sociallogin.user
+
+        # The current user must have an API-validated email.
+        verified_email = (
+            EmailAddress.objects.filter(user=current_user, verified=True)
+            .order_by("-primary")
+            .values_list("email", flat=True)
+            .first()
+        )
+        if not verified_email:
+            return
+
+        adapter = get_account_adapter(request)
+        if not adapter.can_login_by_email(verified_email):
+            return
+
+        # Transfer event associations.
+        for event in orphan_user.events.all():
+            current_user.events.add(event)
+
+        # Move the SocialAccount to the current user.
+        sociallogin.account.user = current_user
+        sociallogin.account.save(update_fields=["user_id"])
+        sociallogin.user = current_user
+
+        # Delete the orphan user (cascades EmailAddress, Ticket, etc.).
+        orphan_pk = orphan_user.pk
+        orphan_user.delete()
+
+        logger.info(
+            "Merged orphan Discord account into authenticated user",
+            orphan_pk=orphan_pk,
+            target_pk=current_user.pk,
+        )
+
+        messages.success(
+            request,
+            _("Your Discord account has been linked and the duplicate account removed."),
+            extra_tags="connections",
+        )
+        raise ImmediateHttpResponse(redirect("socialaccount_connections"))
 
     def _connect_to_existing_account(
         self,

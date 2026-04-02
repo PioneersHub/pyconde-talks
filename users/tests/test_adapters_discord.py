@@ -6,7 +6,11 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 from allauth.core.exceptions import ImmediateHttpResponse
+from allauth.socialaccount.models import SocialAccount
+from django.contrib.messages.middleware import MessageMiddleware
+from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory
+from model_bakery import baker
 
 from events.models import Event
 from users.adapters import SocialAccountAdapter, _DiscordNotInGuildError
@@ -445,6 +449,157 @@ class TestConnectToExistingAccount:
         request = rf.get("/")
         adapter._connect_to_existing_account(request, sl)
         sl.connect.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# _try_merge_accounts
+# ---------------------------------------------------------------------------
+
+
+def _add_session(request: Any) -> None:
+    """Attach session and messages middleware to a RequestFactory-produced request."""
+    noop: Any = lambda _: None  # noqa: E731
+    SessionMiddleware(noop).process_request(request)
+    request.session.save()
+    MessageMiddleware(noop).process_request(request)
+
+
+class TestTryMergeAccounts:
+    """Tests for the _try_merge_accounts helper."""
+
+    @patch("users.adapters.get_account_adapter")
+    def test_merge_deletes_orphan_and_reassigns(
+        self,
+        mock_get_adapter: MagicMock,
+        adapter: SocialAccountAdapter,
+        rf: RequestFactory,
+        user_model: type[Any],
+    ) -> None:
+        """Orphan user is deleted and the SocialAccount is assigned to the current user."""
+        current_user = user_model.objects.create_user(email="me@test.com")
+        orphan = user_model.objects.create_user(email="orphan@test.com")
+        sa = SocialAccount.objects.create(
+            user=orphan,
+            provider="discord",
+            uid="merge-uid",
+            extra_data={},
+        )
+
+        mock_get_adapter.return_value.can_login_by_email.return_value = True
+
+        sl = MagicMock()
+        sl.account = sa
+        sl.user = orphan
+        sl.is_existing = True
+
+        request = rf.get("/")
+        request.user = current_user
+        _add_session(request)
+
+        with pytest.raises(ImmediateHttpResponse):
+            adapter._try_merge_accounts(request, sl)
+
+        sa.refresh_from_db()
+        assert sa.user == current_user
+        assert not user_model.objects.filter(pk=orphan.pk).exists()
+
+    @patch("users.adapters.get_account_adapter")
+    def test_merge_transfers_events(
+        self,
+        mock_get_adapter: MagicMock,
+        adapter: SocialAccountAdapter,
+        rf: RequestFactory,
+        user_model: type[Any],
+    ) -> None:
+        """Event associations are transferred from the orphan to the current user."""
+        current_user = user_model.objects.create_user(email="me@test.com")
+        orphan = user_model.objects.create_user(email="orphan@test.com")
+        event = Event.objects.create(slug="evt", name="E", year=2026)
+        orphan.events.add(event)
+        sa = SocialAccount.objects.create(
+            user=orphan,
+            provider="discord",
+            uid="merge-uid-2",
+            extra_data={},
+        )
+
+        mock_get_adapter.return_value.can_login_by_email.return_value = True
+
+        sl = MagicMock()
+        sl.account = sa
+        sl.user = orphan
+        sl.is_existing = True
+
+        request = rf.get("/")
+        request.user = current_user
+        _add_session(request)
+
+        with pytest.raises(ImmediateHttpResponse):
+            adapter._try_merge_accounts(request, sl)
+
+        assert current_user.events.filter(pk=event.pk).exists()
+
+    @patch("users.adapters.get_account_adapter")
+    def test_no_merge_when_no_verified_email(
+        self,
+        mock_get_adapter: MagicMock,
+        adapter: SocialAccountAdapter,
+        rf: RequestFactory,
+        user_model: type[Any],
+    ) -> None:
+        """Merge is skipped if the current user has no verified email."""
+        # Use baker.make so no EmailAddress is auto-created.
+        current_user = baker.make(user_model, email="me@test.com")
+        orphan = user_model.objects.create_user(email="orphan@test.com")
+        SocialAccount.objects.create(
+            user=orphan,
+            provider="discord",
+            uid="no-merge",
+            extra_data={},
+        )
+
+        sl = MagicMock()
+        sl.user = orphan
+        sl.is_existing = True
+
+        request = rf.get("/")
+        request.user = current_user
+
+        adapter._try_merge_accounts(request, sl)
+
+        # Orphan should still exist
+        assert user_model.objects.filter(pk=orphan.pk).exists()
+
+    @patch("users.adapters.get_account_adapter")
+    def test_no_merge_when_email_not_validated(
+        self,
+        mock_get_adapter: MagicMock,
+        adapter: SocialAccountAdapter,
+        rf: RequestFactory,
+        user_model: type[Any],
+    ) -> None:
+        """Merge is skipped if the current user's email is not API-validated."""
+        current_user = user_model.objects.create_user(email="me@test.com")
+        orphan = user_model.objects.create_user(email="orphan@test.com")
+        SocialAccount.objects.create(
+            user=orphan,
+            provider="discord",
+            uid="no-merge-2",
+            extra_data={},
+        )
+
+        mock_get_adapter.return_value.can_login_by_email.return_value = False
+
+        sl = MagicMock()
+        sl.user = orphan
+        sl.is_existing = True
+
+        request = rf.get("/")
+        request.user = current_user
+
+        adapter._try_merge_accounts(request, sl)
+
+        assert user_model.objects.filter(pk=orphan.pk).exists()
 
 
 # ---------------------------------------------------------------------------

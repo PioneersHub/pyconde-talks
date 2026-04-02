@@ -175,6 +175,15 @@ class ProfileForm(forms.ModelForm[CustomUser]):
         }
 
 
+class DeleteAccountForm(forms.Form):
+    """Confirmation form for account deletion."""
+
+    confirm = forms.BooleanField(
+        required=True,
+        label=_("I understand this action is permanent and cannot be undone"),
+    )
+
+
 class PasswordlessDisconnectForm(DisconnectForm):  # type: ignore[misc]
     """
     Custom disconnect form for passwordless apps.

@@ -10,6 +10,7 @@ from .views import (
     add_email_view,
     confirm_add_email_view,
     connections_view,
+    delete_account_view,
     profile_view,
 )
 
@@ -24,6 +25,7 @@ urlpatterns = [
     ),
     path("logout/", login_not_required(logout), name="account_logout"),
     path("profile/", profile_view, name="user_profile"),
+    path("profile/delete/", delete_account_view, name="delete_account"),
     # Email management (for Discord-only users adding an email)
     path("email/add/", add_email_view, name="add_email"),
     path("email/add/confirm/", confirm_add_email_view, name="confirm_add_email"),

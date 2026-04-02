@@ -14,7 +14,7 @@ from allauth.socialaccount.models import SocialAccount
 from allauth.socialaccount.views import ConnectionsView
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.decorators import login_not_required
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
@@ -30,7 +30,7 @@ from events.models import Event
 from users.validators import validate_display_name
 from utils.email_utils import hash_email, obfuscate_email
 
-from .forms import ProfileForm
+from .forms import DeleteAccountForm, ProfileForm
 
 
 if TYPE_CHECKING:
@@ -192,6 +192,29 @@ def profile_view(request: HttpRequest) -> HttpResponse:
         "users/profile.html",
         {"form": form, "qa_display_name": qa_display_name, "has_discord": has_discord},
     )
+
+
+def delete_account_view(request: HttpRequest) -> HttpResponse:
+    """Allow the authenticated user to permanently delete their account."""
+    user = cast("CustomUser", request.user)
+
+    if request.method == "POST":
+        form = DeleteAccountForm(request.POST)
+        if form.is_valid():
+            user_pk = user.pk
+            email_hash = hash_email(user.email)
+            # Log out first so the session is cleared before the user row vanishes.
+            logout(request)
+            # Delete cascades to EmailAddress, SocialAccount, Ticket, etc.
+            # Question/Answer FKs are SET_NULL so content is preserved.
+            get_user_model().objects.filter(pk=user_pk).delete()
+            logger.info("User deleted their account", user_pk=user_pk, email=email_hash)
+            messages.success(request, _("Your account has been deleted."))
+            return redirect("account_login")
+    else:
+        form = DeleteAccountForm()
+
+    return render(request, "users/delete_account.html", {"form": form})
 
 
 # ---------------------------------------------------------------------------

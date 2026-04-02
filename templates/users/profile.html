@@ -59,5 +59,11 @@
       <a href="{% url 'socialaccount_connections' %}"
          class="btn-secondary inline-block">{% trans "Manage Connected Accounts" %}</a>
     </div>
+    <div class="section-gap mt-8 pt-6 border-strong">
+      <h2 class="text-lg font-semibold mb-2 text-red-600 dark:text-red-400">{% trans "Delete Account" %}</h2>
+      <p class="text-sm text-subtle mb-2">{% trans "Permanently delete your account and all associated data." %}</p>
+      <a href="{% url 'delete_account' %}"
+         class="btn-danger inline-block text-sm">{% trans "Delete Account" %}</a>
+    </div>
   </div>
 {% endblock content %}
