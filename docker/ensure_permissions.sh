@@ -15,9 +15,20 @@ MEDIA_DIR="${MEDIA_DIR:-/var/opt/${APP_DOMAIN}/media/}"
 LOGS_DIR="${LOGS_DIR:-/var/log/${APP_DOMAIN}/}"
 STATIC_DIR="${STATIC_DIR:-/var/cache/${APP_DOMAIN}/staticfiles/}"
 
+# Resolve default Nginx UID/GID from the nginx or www-data user
+_default_nginx_uid=33
+_default_nginx_gid=33
+for _u in nginx www-data; do
+    if id "$_u" >/dev/null 2>&1; then
+        _default_nginx_uid="$(id -u "$_u")"
+        _default_nginx_gid="$(id -g "$_u")"
+        break
+    fi
+done
+
 # UIDs/GIDs (can be overridden via env)
-NGINX_UID="${NGINX_UID:-33}"
-NGINX_GID="${NGINX_GID:-33}"
+NGINX_UID="${NGINX_UID:-$_default_nginx_uid}"
+NGINX_GID="${NGINX_GID:-$_default_nginx_gid}"
 DJANGO_UID="${DJANGO_UID:-10000}"
 DJANGO_GID="${DJANGO_GID:-999}"
 
