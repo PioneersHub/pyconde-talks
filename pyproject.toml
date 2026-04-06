@@ -148,7 +148,8 @@ ignore = [
     "ARG002",  # Allow unused method arguments in tests (for pytest fixtures)
     "PLR0913", # Allow many arguments in test helpers
     "S101",    # Allow assert in tests
-    "S106",    # Allow hardcoded password in tests
+    "S105",    # Allow hardcoded password in strings tests
+    "S106",    # Allow hardcoded password in function calls in tests
     "S107",    # Allow hardcoded default password in tests
     "SLF001",  # Allow private member access in tests
 ]
