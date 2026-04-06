@@ -73,7 +73,7 @@
             hx-get="{% url 'talk_list' %}"
             hx-target="#talks-container"
             hx-push-url="true"
-            hx-trigger="change from:select, change from:input[name='saved']"
+            hx-trigger="change"
             hx-include="#filters-form, #search-form"
             hx-indicator="#loading-indicator"
             class="flex flex-wrap gap-4 items-center">
@@ -84,7 +84,7 @@
                     {% if event.id|stringformat:"s" == selected_event %}selected{% endif %}>{{ event.name }}</option>
           {% endfor %}
         </select>
-        <select name="date" class="form-select">
+        <select id="date-filter" name="date" class="form-select">
           <option value="">All Days</option>
           {% for date in dates %}
             <option value="{{ date|date:'Y-m-d' }}"
@@ -97,21 +97,21 @@
             </option>
           {% endfor %}
         </select>
-        <select name="room" class="form-select">
+        <select id="room-filter" name="room" class="form-select">
           <option value="">All Rooms</option>
           {% for room in rooms %}
             <option value="{{ room.id }}"
                     {% if room.id|stringformat:"s" == selected_room %}selected{% endif %}>{{ room.name }}</option>
           {% endfor %}
         </select>
-        <select name="presentation_type" class="form-select">
+        <select id="type-filter" name="presentation_type" class="form-select">
           <option value="">All Types</option>
           {% for type_value, type_label in presentation_types %}
             <option value="{{ type_value }}"
                     {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
           {% endfor %}
         </select>
-        <select name="track" class="form-select truncate w-60">
+        <select id="track-filter" name="track" class="form-select truncate w-60">
           <option value="">All Tracks</option>
           {% for track in tracks %}
             <option value="{{ track }}"
@@ -132,6 +132,51 @@
     </div>
     <!-- Define the talks partial -->
     {% startpartial talk-list %}
+    {% if is_htmx_request %}
+      {# OOB-swap all filter dropdowns so they stay in sync with the selected event. #}
+      {# djlint:off H025 #}
+      <select id="date-filter" name="date" class="form-select" hx-swap-oob="true">
+        <option value="">All Days</option>
+        {% for date in dates %}
+          <option value="{{ date|date:'Y-m-d' }}"
+                  {% if date|date:'Y-m-d' == selected_date %}selected{% endif %}>
+            {% if has_multiple_years %}
+              {{ date|date:"l, F j, Y" }}
+            {% else %}
+              {{ date|date:"l, F j" }}
+            {% endif %}
+          </option>
+        {% endfor %}
+      </select>
+      <select id="room-filter" name="room" class="form-select" hx-swap-oob="true">
+        <option value="">All Rooms</option>
+        {% for room in rooms %}
+          <option value="{{ room.id }}"
+                  {% if room.id|stringformat:"s" == selected_room %}selected{% endif %}>{{ room.name }}</option>
+        {% endfor %}
+      </select>
+      <select id="type-filter"
+              name="presentation_type"
+              class="form-select"
+              hx-swap-oob="true">
+        <option value="">All Types</option>
+        {% for type_value, type_label in presentation_types %}
+          <option value="{{ type_value }}"
+                  {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
+        {% endfor %}
+      </select>
+      <select id="track-filter"
+              name="track"
+              class="form-select truncate w-60"
+              hx-swap-oob="true">
+        <option value="">All Tracks</option>
+        {% for track in tracks %}
+          <option value="{{ track }}"
+                  {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
+        {% endfor %}
+      </select>
+      {# djlint:on #}
+    {% endif %}
     <div class="space-y-4">
       {% for talk in talks %}
         <div class="relative rounded shadow overflow-hidden {% if talk.is_current %} ring-current {% elif talk.is_upcoming %} ring-upcoming {% endif %}">

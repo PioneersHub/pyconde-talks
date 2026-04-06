@@ -147,6 +147,145 @@ class TestTalkListView:
         assert response.status_code == HTTPStatus.OK
         assert "Speaker Test" in response.content.decode()
 
+    def test_event_switch_refreshes_all_dropdowns_via_htmx(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """
+        Switching events via HTMX should OOB-swap all filter dropdowns.
+
+        When a user selects a different event, stale filter values from the
+        previous event (room, date, track, type) must be cleared and the
+        dropdown options must reflect the newly selected event.
+        """
+        event_a = baker.make(Event, is_active=True)
+        event_b = baker.make(Event, is_active=True)
+        user.events.add(event_a, event_b)
+
+        room_a = baker.make(Room, name="Room A")
+        room_b = baker.make(Room, name="Room B")
+
+        now = timezone.now()
+        tomorrow = now + timedelta(days=1)
+
+        baker.make(
+            Talk,
+            title="Event A Talk",
+            event=event_a,
+            room=room_a,
+            start_time=now,
+            track="Track A",
+            presentation_type=Talk.PresentationType.TALK,
+        )
+        baker.make(
+            Talk,
+            title="Event B Talk",
+            event=event_b,
+            room=room_b,
+            start_time=tomorrow,
+            track="Track B",
+            presentation_type=Talk.PresentationType.TUTORIAL,
+        )
+
+        # Request Event B while keeping stale filter values from Event A
+        client.force_login(user)
+        response = client.get(
+            reverse("talk_list"),
+            {
+                "event": str(event_b.pk),
+                "room": str(room_a.pk),
+                "date": timezone.localdate(now).isoformat(),
+                "track": "Track A",
+                "presentation_type": Talk.PresentationType.TALK,
+            },
+            HTTP_HX_REQUEST="true",
+        )
+
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        ctx = response.context
+
+        # All stale selections must be cleared
+        assert ctx["selected_room"] == ""
+        assert ctx["selected_date"] == ""
+        assert ctx["selected_track"] == ""
+        assert ctx["selected_type"] == ""
+
+        # OOB swap elements for every dropdown must be present
+        oob_attr = 'hx-swap-oob="true"'
+        for filter_id in ("room-filter", "date-filter", "track-filter", "type-filter"):
+            assert f'id="{filter_id}"' in content
+        assert content.count(oob_attr) == len(("room", "date", "track", "type"))
+
+        # Only Event B data should appear
+        assert "Room B" in content
+        assert "Track B" in content
+        assert "Event B Talk" in content
+        assert "Event A Talk" not in content
+
+    def test_all_events_shows_combined_filter_options(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """Selecting "All Events" should show filter options from all events."""
+        event_a = baker.make(Event, is_active=True)
+        event_b = baker.make(Event, is_active=True)
+        user.events.add(event_a, event_b)
+
+        room_a = baker.make(Room, name="Alpha Room")
+        room_b = baker.make(Room, name="Beta Room")
+
+        baker.make(Talk, event=event_a, room=room_a, track="ML")
+        baker.make(Talk, event=event_b, room=room_b, track="Web")
+
+        client.force_login(user)
+        response = client.get(reverse("talk_list"), {"event": "all"})
+
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        assert "Alpha Room" in content
+        assert "Beta Room" in content
+        assert "ML" in content
+        assert "Web" in content
+
+    def test_combined_filters_with_no_matching_talks(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """Combining valid filters that have no intersection should show no talks."""
+        event = baker.make(Event, is_active=True)
+        user.events.add(event)
+
+        room_a = baker.make(Room, name="Room A")
+        room_b = baker.make(Room, name="Room B")
+
+        now = timezone.now()
+        tomorrow = now + timedelta(days=1)
+
+        # Room A has talks only today; Room B has talks only tomorrow.
+        baker.make(Talk, title="Room A Today", event=event, room=room_a, start_time=now)
+        baker.make(Talk, title="Room B Tomorrow", event=event, room=room_b, start_time=tomorrow)
+
+        # Select Room A + tomorrow's date: valid individually, empty together.
+        client.force_login(user)
+        response = client.get(
+            reverse("talk_list"),
+            {
+                "event": str(event.pk),
+                "room": str(room_a.pk),
+                "date": timezone.localdate(tomorrow).isoformat(),
+            },
+        )
+
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        assert "Room A Today" not in content
+        assert "Room B Tomorrow" not in content
+        assert "No talks found" in content
+
 
 @pytest.mark.django_db
 class TestDashboardStats:
