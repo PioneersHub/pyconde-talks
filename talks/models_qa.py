@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 CONTENT_PREVIEW_LENGTH = 50
 
 
-class QuestionQuerySet(models.QuerySet["Question"]):
+class QuestionQuerySet(models.QuerySet["Question"]):  # type: ignore[call-arg]
     """Custom QuerySet for Question model with additional methods."""
 
     def with_vote_count(self) -> Self:
