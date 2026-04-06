@@ -33,7 +33,7 @@ classifiers = [
 dependencies = [
     "argon2-cffi>=25.1.0",
     "daphne>=4.2.1",
-    "django-allauth[socialaccount]>=65.15.0",
+    "django-allauth[socialaccount]>=65.15.1",
     "django-anymail[mailgun]>=14.0",
     "django-environ>=0.13.0",
     "django-health-check[psutil]>=4.2.1",
@@ -50,7 +50,7 @@ dependencies = [
     "model-bakery>=1.23.4",
     "openpyxl>=3.1.5",
     "pandas>=2.3.3,<3",
-    "pillow>=12.1.1",
+    "pillow>=12.2.0",
     "pilmoji>=2.0.5",
     "pytanis>=0.10",
     "structlog>=25.5.0",
@@ -68,8 +68,8 @@ dev = [
     "pandas-stubs>=2.3.3.260113,<3",
     "prek>=0.3.8",
     "psycopg2-binary>=2.9.11",
-    "ruff>=0.15.8",
-    "zuban>=0.6.2",
+    "ruff>=0.15.9",
+    "zuban>=0.7.0",
 ]
 test = [
     "pytest>=9.0.2",
@@ -92,6 +92,7 @@ Issues = "https://github.com/PioneersHub/pyconde-talks/issues"
 
 [tool.uv]
 exclude-newer = "1 day"
+exclude-newer-package = { ruff = "12 hours", zuban = "12 hours" }
 
 [tool.uv.sources]
 pytanis = { git = "https://github.com/jbsilva/pytanis" }
