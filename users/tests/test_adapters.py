@@ -248,3 +248,123 @@ def test_api_authorization_valid_false(
 
     assert adapter.is_email_authorized("rejected@example.com") is False
     assert respx_mock.calls.call_count == 1
+
+
+# ---------------------------------------------------------------------------
+# OAuth2 Bearer token tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def oauth2_settings(settings: SettingsWrapper) -> dict[str, str]:
+    """Configure OAuth2 client-credentials settings and return the URLs."""
+    token_url = "https://keycloak.example.com/realms/test/protocol/openid-connect/token"
+    api_url = "https://fake-api.example.com/validate"
+    settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_ID = "test-client"
+    settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET = "test-secret"
+    settings.EMAIL_VALIDATION_API_OAUTH2_TOKEN_URL = token_url
+    settings.EMAIL_VALIDATION_API_URL_FALLBACK = api_url
+    settings.EMAIL_VALIDATION_API_TIMEOUT = 1
+    settings.AUTHORIZED_EMAILS_WHITELIST = []
+    return {"token_url": token_url, "api_url": api_url}
+
+
+@pytest.mark.django_db
+def test_oauth2_bearer_token_sent(
+    adapter: AccountAdapter,
+    oauth2_settings: dict[str, str],
+    respx_mock: respx.MockRouter,
+) -> None:
+    """When OAuth2 is configured, the validation API call includes a Bearer token."""
+    token_url = oauth2_settings["token_url"]
+    api_url = oauth2_settings["api_url"]
+
+    respx_mock.post(token_url).mock(
+        return_value=httpx.Response(200, json={"access_token": "tok-123", "expires_in": 300}),
+    )
+    respx_mock.post(api_url).mock(
+        return_value=httpx.Response(200, json={"valid": True}),
+    )
+
+    assert adapter.is_email_authorized("user@example.com") is True
+
+    # Token endpoint called once
+    token_calls = [c for c in respx_mock.calls if str(c.request.url) == token_url]
+    assert len(token_calls) == 1
+
+    # Validation API called with Bearer header
+    api_calls = [c for c in respx_mock.calls if str(c.request.url) == api_url]
+    assert len(api_calls) == 1
+    assert api_calls[0].request.headers["Authorization"] == "Bearer tok-123"
+
+
+@pytest.mark.django_db
+def test_oauth2_disabled_no_auth_header(
+    adapter: AccountAdapter,
+    settings: SettingsWrapper,
+    respx_mock: respx.MockRouter,
+) -> None:
+    """When OAuth2 settings are empty, no Authorization header is sent."""
+    api_url = "https://fake-api.example.com/validate"
+    settings.EMAIL_VALIDATION_API_URL_FALLBACK = api_url
+    settings.EMAIL_VALIDATION_API_TIMEOUT = 1
+    settings.AUTHORIZED_EMAILS_WHITELIST = []
+    settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_ID = ""
+    settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET = ""
+    settings.EMAIL_VALIDATION_API_OAUTH2_TOKEN_URL = ""
+
+    respx_mock.post(api_url).mock(
+        return_value=httpx.Response(200, json={"valid": True}),
+    )
+
+    assert adapter.is_email_authorized("user@example.com") is True
+    assert respx_mock.calls.call_count == 1
+    assert "Authorization" not in respx_mock.calls[0].request.headers
+
+
+@pytest.mark.django_db
+def test_oauth2_token_cached_across_calls(
+    adapter: AccountAdapter,
+    oauth2_settings: dict[str, str],
+    respx_mock: respx.MockRouter,
+) -> None:
+    """The OAuth2 token is fetched once and reused for subsequent validation calls."""
+    token_url = oauth2_settings["token_url"]
+    api_url = oauth2_settings["api_url"]
+
+    respx_mock.post(token_url).mock(
+        return_value=httpx.Response(200, json={"access_token": "cached-tok", "expires_in": 300}),
+    )
+    respx_mock.post(api_url).mock(
+        return_value=httpx.Response(200, json={"valid": True}),
+    )
+
+    assert adapter.is_email_authorized("a@example.com") is True
+    assert adapter.is_email_authorized("b@example.com") is True
+
+    token_calls = [c for c in respx_mock.calls if str(c.request.url) == token_url]
+    assert len(token_calls) == 1  # Only one token fetch
+
+
+@pytest.mark.django_db
+def test_oauth2_token_fetch_failure_propagates(
+    adapter: AccountAdapter,
+    oauth2_settings: dict[str, str],
+    respx_mock: respx.MockRouter,
+) -> None:
+    """When the token endpoint fails, the validation call fails gracefully."""
+    token_url = oauth2_settings["token_url"]
+    api_url = oauth2_settings["api_url"]
+
+    respx_mock.post(token_url).mock(
+        return_value=httpx.Response(401, json={"error": "invalid_client"}),
+    )
+    respx_mock.post(api_url).mock(
+        return_value=httpx.Response(200, json={"valid": True}),
+    )
+
+    assert adapter.is_email_authorized("user@example.com") is False
+
+    # Validation API should not have been called
+    api_calls = [c for c in respx_mock.calls if str(c.request.url) == api_url]
+    assert len(api_calls) == 0

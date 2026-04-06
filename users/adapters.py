@@ -1,5 +1,7 @@
 """Custom adapters for django-allauth (e-mail and Discord social login)."""
 
+import threading
+import time
 from http import HTTPStatus
 from json.decoder import JSONDecodeError
 from typing import TYPE_CHECKING, Any, cast
@@ -34,6 +36,67 @@ if TYPE_CHECKING:
 logger = structlog.get_logger(__name__)
 
 _DISCORD_API = "https://discord.com/api/v10"
+
+# Safety margin (seconds) subtracted from the token's expires_in so we refresh before expiry.
+_TOKEN_EXPIRY_MARGIN = 30
+
+
+class _OAuthTokenCache:
+    """
+    Cache for OAuth2 client-credentials access tokens.
+
+    Fetches a new token when the cached one is missing or about to expire.
+    All three settings must be non-empty for OAuth2 to be active.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._token: str | None = None
+        self._expires_at: float = 0.0
+
+    def get_token(self) -> str | None:
+        """Return a valid Bearer token, or ``None`` if OAuth2 is not configured."""
+        client_id = getattr(settings, "EMAIL_VALIDATION_API_OAUTH2_CLIENT_ID", "")
+        client_secret = getattr(settings, "EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET", "")
+        token_url = getattr(settings, "EMAIL_VALIDATION_API_OAUTH2_TOKEN_URL", "")
+
+        if not (client_id and client_secret and token_url):
+            return None
+
+        with self._lock:
+            if self._token and time.monotonic() < self._expires_at:
+                return self._token
+
+            self._token, self._expires_at = self._fetch_token(client_id, client_secret, token_url)
+            return self._token
+
+    @staticmethod
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError)),
+        reraise=True,
+    )
+    def _fetch_token(client_id: str, client_secret: str, token_url: str) -> tuple[str, float]:
+        """Exchange client credentials for an access token."""
+        response = httpx.post(
+            token_url,
+            data={
+                "grant_type": "client_credentials",
+                "client_id": client_id,
+                "client_secret": client_secret,
+            },
+            timeout=getattr(settings, "EMAIL_VALIDATION_API_TIMEOUT", 10),
+        )
+        response.raise_for_status()
+        data = response.json()
+        access_token: str = data["access_token"]
+        expires_in: int = data.get("expires_in", 300)
+        expires_at = time.monotonic() + max(expires_in - _TOKEN_EXPIRY_MARGIN, 0)
+        return access_token, expires_at
+
+
+_oauth_token_cache = _OAuthTokenCache()
 
 
 class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
@@ -194,10 +257,16 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
         reraise=True,
     )
     def _call_validation_api(email: str, api_url: str) -> dict[str, Any]:
-        """Call the validation API with retry."""
+        """Call the validation API with retry and optional OAuth2 Bearer token."""
+        headers: dict[str, str] = {}
+        token = _oauth_token_cache.get_token()
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
         response = httpx.post(
             api_url,
             json={"email": email},
+            headers=headers,
             timeout=getattr(settings, "EMAIL_VALIDATION_API_TIMEOUT", 5),
         )
         response.raise_for_status()

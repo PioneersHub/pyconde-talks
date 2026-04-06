@@ -6,10 +6,19 @@ import httpx
 import pytest
 from django.contrib.auth import get_user_model
 
+from users.adapters import _oauth_token_cache
+
 
 if TYPE_CHECKING:
     import respx
     from pytest_django.fixtures import SettingsWrapper
+
+
+@pytest.fixture(autouse=True)
+def _reset_oauth_token_cache() -> None:
+    """Clear the OAuth2 token cache between tests to prevent leakage."""
+    _oauth_token_cache._token = None
+    _oauth_token_cache._expires_at = 0.0
 
 
 @pytest.fixture()
@@ -36,6 +45,9 @@ def mock_email_api_base(settings: SettingsWrapper) -> str:
     fake_api_url = "https://fake-api.example.com/validate"
     settings.EMAIL_VALIDATION_API_URL_FALLBACK = fake_api_url
     settings.EMAIL_VALIDATION_API_TIMEOUT = 1
+    settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_ID = ""
+    settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET = ""
+    settings.EMAIL_VALIDATION_API_OAUTH2_TOKEN_URL = ""
 
     return fake_api_url
 
