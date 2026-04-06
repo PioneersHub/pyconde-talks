@@ -4,9 +4,9 @@ allauth
 anymail
 armv
 asgi
+authorised
 autoplay
 autouse
-authorised
 batisteo
 bezier
 blocktranslate
@@ -62,9 +62,9 @@ getpixel
 ggpht
 googlevideo
 healthcheck
+HSTS
 htmlcov
 htmx
-HSTS
 httpx
 inkscape
 ipython
@@ -162,6 +162,7 @@ supersample
 supersampled
 tailwindcss
 tamasfe
+templatetags
 textwrap
 timesince
 trixie
@@ -173,7 +174,6 @@ vimeocdn
 webp
 worktree
 wsgi
-templatetags
 xlink
 youtu
 ytimg
