@@ -207,16 +207,16 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
         """
         Check if the email can be used for passwordless code-based login.
 
-        Determines whether an email would pass authorization when the user
-        attempts to log in via the email code flow. Used to decide whether
-        disconnecting a social provider is safe (the user can still sign in).
+        Determines whether an email would pass authorization when the user attempts to log in via
+        the email code flow. Used to decide whether disconnecting a social provider is safe (the
+        user can still sign in).
 
-        Unlike ``is_email_authorized()``, this method has no side effects and
-        does not require an event selection. It checks the email against every
-        active event validation API (deduplicated by URL) plus the fallback.
+        Unlike ``is_email_authorized()``, this method has no side effects and does not require an
+        event selection. It checks the email against every active event validation API (deduplicated
+        by URL) plus the fallback.
 
-        Returns True for whitelisted emails, superuser accounts, or emails
-        recognized by any configured validation API.
+        Returns True for whitelisted emails, superuser accounts, or emails recognized by any
+        configured validation API.
         """
         email = email.lower().strip()
         email_hash = hash_email(email)
