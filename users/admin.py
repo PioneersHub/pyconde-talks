@@ -30,7 +30,7 @@ class EmailVerificationListFilter(admin.SimpleListFilter):
     def lookups(
         self,
         request: HttpRequest,  # noqa: ARG002
-        _model_admin: Any,
+        model_admin: Any,  # noqa: ARG002
     ) -> list[tuple[str, StrOrPromise]]:
         """Return filter options."""
         return [
