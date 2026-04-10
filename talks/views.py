@@ -131,7 +131,7 @@ class TalkListView(ListView[Talk]):
     Requires user authentication to access the view.
     """
 
-    model: type[Talk] = Talk
+    model = Talk
     template_name = "talks/talk_list.html"
     context_object_name = "talks"
 
@@ -143,7 +143,7 @@ class TalkListView(ListView[Talk]):
         """
         if self.request.headers.get("HX-Request"):
             return ["talks/talk_list.html#talk-list"]
-        return [self.template_name]
+        return [cast("str", self.template_name)]  # type: ignore[redundant-cast]
 
     def get_queryset(self) -> QuerySet[Talk]:
         """Get the list of talks filtered by room, date, track, presentation type, and query."""
@@ -400,9 +400,9 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
         )
 
     totals = {
-        "total": sum(r["total"] for r in event_rows),
-        "today": sum(r["today"] for r in event_rows),
-        "recorded": sum(r["recorded"] for r in event_rows),
+        "total": sum(cast("int", r["total"]) for r in event_rows),
+        "today": sum(cast("int", r["today"]) for r in event_rows),
+        "recorded": sum(cast("int", r["recorded"]) for r in event_rows),
     }
 
     context = {

@@ -5,7 +5,7 @@ This module provides class-based and function-based views for handling Question 
 listing, creating, voting, and moderation actions.
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django import forms
 from django.contrib import messages
@@ -50,7 +50,7 @@ class QuestionListView(ListView[Question]):
         """
         if self.request.headers.get("HX-Request"):
             return [self.fragment_template]
-        return [self.template_name]
+        return [cast("str", self.template_name)]  # type: ignore[redundant-cast]
 
     def get_queryset(self) -> QuestionQuerySet:
         """Get questions for the specific talk, sorted by votes."""
