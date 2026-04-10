@@ -31,7 +31,7 @@ services:
         - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
         - DJANGO_STATIC_ROOT=${DJANGO_STATIC_ROOT}
     container_name: ${CONTAINER_PREFIX}-django
-    image: ${CONTAINER_PREFIX}-django:latest
+    image: ${IMAGE_NAME:-talks-django}:${IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on:
       db:
