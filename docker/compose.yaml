@@ -42,7 +42,7 @@ services:
       - ${MOUNT_MEDIA_ROOT}:${DJANGO_MEDIA_ROOT}
       - ${MOUNT_LOGS_DIR}:${DJANGO_LOGS_DIR}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/ht/"]
       interval: 60s
