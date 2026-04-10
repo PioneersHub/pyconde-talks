@@ -27,7 +27,11 @@ class EmailVerificationListFilter(admin.SimpleListFilter):
     title = _("Email verification")
     parameter_name = "verified"
 
-    def lookups(self, _request: HttpRequest, _model_admin: Any) -> list[tuple[str, StrOrPromise]]:
+    def lookups(
+        self,
+        request: HttpRequest,  # noqa: ARG002
+        _model_admin: Any,
+    ) -> list[tuple[str, StrOrPromise]]:
         """Return filter options."""
         return [
             ("yes", _("Verified")),
@@ -36,7 +40,7 @@ class EmailVerificationListFilter(admin.SimpleListFilter):
 
     def queryset(
         self,
-        _request: HttpRequest,
+        request: HttpRequest,  # noqa: ARG002
         queryset: QuerySet[CustomUser],
     ) -> QuerySet[CustomUser]:
         """Filter queryset based on selected option."""
