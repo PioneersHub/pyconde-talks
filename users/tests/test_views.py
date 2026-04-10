@@ -218,12 +218,12 @@ def test_form_valid_user_creation_error(
     request = request_factory.post(reverse("account_login"))
 
     # Add session using middleware
-    middleware = SessionMiddleware(lambda x: x)
+    middleware = SessionMiddleware(lambda _: HttpResponse())
     middleware.process_request(request)
     request.session.save()
 
     # Add message middleware
-    message_middleware = MessageMiddleware(lambda x: x)
+    message_middleware = MessageMiddleware(lambda _: HttpResponse())
     message_middleware.process_request(request)
 
     request.user = AnonymousUser()
@@ -278,10 +278,10 @@ def test_form_valid_user_creation_integrity_error(
     form.add_error = mocker.MagicMock()
 
     request = request_factory.post(reverse("account_login"))
-    middleware = SessionMiddleware(lambda x: x)
+    middleware = SessionMiddleware(lambda _: HttpResponse())
     middleware.process_request(request)
     request.session.save()
-    message_middleware = MessageMiddleware(lambda x: x)
+    message_middleware = MessageMiddleware(lambda _: HttpResponse())
     message_middleware.process_request(request)
     request.user = AnonymousUser()
     view.request = request
