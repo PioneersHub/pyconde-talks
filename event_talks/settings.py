@@ -1,7 +1,7 @@
 """Django settings for event_talks project."""
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import django_stubs_ext
 import environ
@@ -419,7 +419,7 @@ log_dir = Path(env("DJANGO_LOGS_DIR", default=BASE_DIR / "logs"))
 log_dir.mkdir(parents=True, exist_ok=True)
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#logging
-LOGGING = {
+LOGGING: dict[str, Any] = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
@@ -480,6 +480,10 @@ LOGGING = {
             "handlers": ["error_file"],
             "level": "WARNING",
             "propagate": True,
+        },
+        "django.security.DisallowedHost": {
+            "handlers": [],
+            "propagate": False,
         },
         "django.db.backends": {
             "level": env("DJANGO_DATABASE_LOG_LEVEL", default="ERROR"),
