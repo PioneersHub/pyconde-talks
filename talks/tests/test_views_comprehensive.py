@@ -214,9 +214,15 @@ class TestTalkListView:
 
         # OOB swap elements for every dropdown must be present
         oob_attr = 'hx-swap-oob="true"'
-        for filter_id in ("room-filter", "date-filter", "track-filter", "type-filter"):
+        for filter_id in (
+            "room-filter",
+            "date-filter",
+            "track-filter",
+            "type-filter",
+            "status-filter",
+        ):
             assert f'id="{filter_id}"' in content
-        assert content.count(oob_attr) == len(("room", "date", "track", "type"))
+        assert content.count(oob_attr) == len(("room", "date", "track", "type", "status"))
 
         # Only Event B data should appear
         assert "Room B" in content

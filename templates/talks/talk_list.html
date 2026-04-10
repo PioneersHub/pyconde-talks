@@ -118,6 +118,13 @@
                     {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
           {% endfor %}
         </select>
+        <select id="status-filter" name="status" class="form-select">
+          <option value="">All Statuses</option>
+          {% for status_value, status_label in status_choices %}
+            <option value="{{ status_value }}"
+                    {% if status_value == selected_status %}selected{% endif %}>{{ status_label }}</option>
+          {% endfor %}
+        </select>
         <label class="inline-flex items-center gap-1 cursor-pointer select-none">
           <input type="checkbox"
                  name="saved"
@@ -173,6 +180,16 @@
         {% for track in tracks %}
           <option value="{{ track }}"
                   {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
+        {% endfor %}
+      </select>
+      <select id="status-filter"
+              name="status"
+              class="form-select"
+              hx-swap-oob="true">
+        <option value="">All Statuses</option>
+        {% for status_value, status_label in status_choices %}
+          <option value="{{ status_value }}"
+                  {% if status_value == selected_status %}selected{% endif %}>{{ status_label }}</option>
         {% endfor %}
       </select>
       {# djlint:on #}

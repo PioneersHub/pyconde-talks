@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, cast
 from django.conf import settings as django_settings
 from django.contrib import messages
 from django.db import IntegrityError
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, F, Q
 from django.db.models.functions import TruncDate
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -235,6 +235,11 @@ class TalkListView(ListView[Talk]):
                 saved_by__user=self.request.user,
             )
 
+        # Filter by talk status
+        status = self.request.GET.get("status", "")
+        if status:
+            queryset = _apply_status_filter(queryset, status)
+
         return queryset
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
@@ -303,6 +308,14 @@ class TalkListView(ListView[Talk]):
         context["search_query"] = self.request.GET.get("q", "")
         context["search_in"] = self.request.GET.getlist("search_in") or ["all"]
         context["filter_saved"] = self.request.GET.get("saved", "")
+
+        # Status filter
+        context["selected_status"] = self.request.GET.get("status", "")
+        context["status_choices"] = [
+            ("current", "Happening Now"),
+            ("upcoming", "Upcoming"),
+            ("completed", "Completed"),
+        ]
 
         # Build a set of saved talk IDs for the current user
         if self.request.user.is_authenticated:
@@ -488,6 +501,30 @@ def _render_rating_htmx_response(
         context,
     ).content.decode()
     return HttpResponse(widget_html + oob_html)
+
+
+def _apply_status_filter(queryset: QuerySet[Talk], status: str) -> QuerySet[Talk]:
+    """Filter talks by timing status (current, upcoming, completed)."""
+    now = timezone.now()
+    margin = timedelta(minutes=5)
+
+    if status == "current":
+        queryset = queryset.annotate(
+            _end_time=F("start_time") + F("duration"),
+        ).filter(
+            start_time__lte=now + margin,
+            _end_time__gte=now - margin,
+        )
+    elif status == "upcoming":
+        queryset = queryset.filter(start_time__gt=now + margin)
+    elif status == "completed":
+        queryset = queryset.annotate(
+            _end_time=F("start_time") + F("duration"),
+        ).filter(
+            _end_time__lt=now - margin,
+        )
+
+    return queryset
 
 
 def _apply_search_filter(queryset: QuerySet[Talk], request: HttpRequest) -> QuerySet[Talk]:
