@@ -6,7 +6,7 @@ Regular users do not have password fields, as they authenticate via email codes 
 Admins can login via email and password, so they have password fields.
 """
 
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from allauth.account.adapter import get_adapter as get_account_adapter
 from allauth.account.models import EmailAddress
@@ -22,6 +22,8 @@ from .models import CustomUser
 
 if TYPE_CHECKING:
     from django_stubs_ext import StrOrPromise
+
+    from .adapters import AccountAdapter
 
 
 class SuperUserCreationForm(forms.ModelForm[CustomUser]):
@@ -208,7 +210,7 @@ class PasswordlessDisconnectForm(DisconnectForm):  # type: ignore[misc]
             accounts = SocialAccount.objects.filter(user_id=account.user_id)
             is_last = not accounts.exclude(pk=account.pk).exists()
             if is_last:
-                social_adapter = get_adapter()
+                social_adapter = get_adapter()  # type: ignore[no-untyped-call]
                 verified_email = (
                     EmailAddress.objects.filter(user=account.user, verified=True)
                     .order_by("-primary")
@@ -220,7 +222,7 @@ class PasswordlessDisconnectForm(DisconnectForm):  # type: ignore[misc]
                     raise social_adapter.validation_error(error_key)
 
                 # The email exists but must also pass the validation API.
-                adapter = get_account_adapter()
+                adapter = cast("AccountAdapter", get_account_adapter())
                 if not adapter.can_login_by_email(verified_email):
                     error_key = "email_not_authorized"
                     raise social_adapter.validation_error(error_key)

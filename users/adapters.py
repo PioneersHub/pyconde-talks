@@ -503,7 +503,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
         if not verified_email:
             return
 
-        adapter = get_account_adapter(request)
+        adapter = cast("AccountAdapter", get_account_adapter(request))
         if not adapter.can_login_by_email(verified_email):
             return
 

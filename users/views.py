@@ -36,6 +36,7 @@ from .forms import DeleteAccountForm, ProfileForm
 if TYPE_CHECKING:
     from allauth.account.forms import LoginForm
 
+    from .adapters import AccountAdapter
     from .models import CustomUser
 
 
@@ -43,7 +44,7 @@ if TYPE_CHECKING:
 logger = structlog.get_logger(__name__)
 
 
-@login_not_required
+@login_not_required  # type: ignore[type-var]
 class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
     """
     Custom view that overrides the default login code request process.
@@ -79,7 +80,8 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
             user=user,
             email=email,
         )
-        return HttpResponseRedirect(self.get_success_url())
+        success_url = self.get_success_url() or "/"  # type: ignore[no-untyped-call]
+        return HttpResponseRedirect(success_url)
 
     def form_valid(self, form: LoginForm) -> HttpResponse:
         """
@@ -93,7 +95,7 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
         if getattr(settings, "LOG_EMAIL_HASH", True):
             email_hash = hash_email(email)
 
-        adapter = get_adapter(self.request)
+        adapter = cast("AccountAdapter", get_adapter(self.request))
 
         event = self._resolve_event()
         adapter.set_selected_event(event)
@@ -102,7 +104,7 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
         if not adapter.is_email_authorized(email):
             logger.warning("Unauthorized access attempt", email=email)  # Not hashed
             form.add_error("email", _("This email is not authorized for access."))
-            return cast("HttpResponse", self.form_invalid(form))
+            return self.form_invalid(form)  # type: ignore[return-value]
 
         # If the email is authorized, create user if needed
         UserModel = get_user_model()  # noqa: N806  # NOSONAR(S117)
@@ -115,18 +117,18 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
                     "email",
                     _("Unable to create account. Please ensure your email is valid."),
                 )
-                return cast("HttpResponse", self.form_invalid(form))
+                return self.form_invalid(form)  # type: ignore[return-value]
             except DatabaseError:  # pragma: no cover
                 logger.exception("Database error creating user", email=email_hash)
                 form.add_error(
                     "email",
                     _("System error while creating account. Please try again later."),
                 )
-                return cast("HttpResponse", self.form_invalid(form))
+                return self.form_invalid(form)  # type: ignore[return-value]
             except Exception:  # pragma: no cover
                 logger.exception("Unexpected error creating user", email=email_hash)
                 form.add_error("email", _("Error creating user. Please try again later."))
-                return cast("HttpResponse", self.form_invalid(form))
+                return self.form_invalid(form)  # type: ignore[return-value]
 
         # Associate existing user with the selected event
         if event:
@@ -136,7 +138,7 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
 
         # Proceed with standard login code process
         logger.info("Form is valid", email=email_hash)
-        return cast("HttpResponse", super().form_valid(form))
+        return super().form_valid(form)  # type: ignore[return-value]
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """
@@ -245,10 +247,10 @@ def connections_view(request: HttpRequest) -> HttpResponse:
     # can_disconnect requires both a verified email AND validation API approval.
     can_disconnect = False
     disconnect_blocked_reason = ""
-    if not has_verified_email:
+    if verified_email is None:
         disconnect_blocked_reason = "no_verified_email"
     else:
-        adapter = get_adapter(request)
+        adapter = cast("AccountAdapter", get_adapter(request))
         if adapter.can_login_by_email(verified_email):
             can_disconnect = True
         else:
@@ -297,7 +299,7 @@ def add_email_view(request: HttpRequest) -> HttpResponse:
     )
     email_authorized = False
     if verified_email:
-        adapter = get_adapter(request)
+        adapter = cast("AccountAdapter", get_adapter(request))
         email_authorized = adapter.can_login_by_email(verified_email)
 
     needs_ticket_email = has_discord and verified_email and not email_authorized
@@ -340,7 +342,7 @@ def add_email_view(request: HttpRequest) -> HttpResponse:
             return _render_form(email)
 
         # Validate via the authorization API (same as login)
-        adapter = get_adapter(request)
+        adapter = cast("AccountAdapter", get_adapter(request))
         event = (
             Event.objects.filter(slug=event_slug, is_active=True).first() if event_slug else None
         )
