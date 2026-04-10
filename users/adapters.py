@@ -257,7 +257,16 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
         reraise=True,
     )
     def _call_validation_api(email: str, api_url: str) -> dict[str, Any]:
-        """Call the validation API with retry and optional OAuth2 Bearer token."""
+        """
+        Call the validation API with retry and optional OAuth2 Bearer token.
+
+        Returns ``{"valid": False}`` immediately when ``api_url`` is empty or when the API responds
+        with 404 (meaning the email is not registered in the system).
+        Only transient network failures (timeouts, connection errors) trigger a retry.
+        """
+        if not api_url:
+            return {"valid": False}
+
         headers: dict[str, str] = {}
         token = _oauth_token_cache.get_token()
         if token:
@@ -269,6 +278,9 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
             headers=headers,
             timeout=getattr(settings, "EMAIL_VALIDATION_API_TIMEOUT", 5),
         )
+        # 404 means the email is not registered. Return early so tenacity does not retry.
+        if response.status_code == HTTPStatus.NOT_FOUND:
+            return {"valid": False}
         response.raise_for_status()
         return dict(response.json())
 

@@ -68,8 +68,8 @@ def test_superuser_authorization(
     """
     Test email authorization for superusers and event-associated users.
 
-    Ensures that superuser emails are authorized regardless of event association,
-    and that regular users are authorized only when associated with the selected event.
+    Ensures that superuser emails are authorized regardless of event association, and that regular
+    users are authorized only when associated with the selected event.
     """
     # Create a superuser
     user_model.objects.create_superuser(
@@ -368,3 +368,61 @@ def test_oauth2_token_fetch_failure_propagates(
     # Validation API should not have been called
     api_calls = [c for c in respx_mock.calls if str(c.request.url) == api_url]
     assert len(api_calls) == 0
+
+
+# ---------------------------------------------------------------------------
+# 404 "not found" handling
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_404_not_retried(
+    adapter: AccountAdapter,
+    mock_email_api_base: str,
+    respx_mock: respx.MockRouter,
+    settings: SettingsWrapper,
+) -> None:
+    """
+    A 404 response from the validation API is a definitive "not found" answer.
+
+    The request must not be retried (tenacity only retries transient errors) and is_email_authorized
+    must return False.
+    """
+    api_url = mock_email_api_base
+    settings.AUTHORIZED_EMAILS_WHITELIST = []
+
+    respx_mock.post(api_url).mock(
+        return_value=httpx.Response(404, json={"detail": "Email not found"}),
+    )
+
+    assert adapter.is_email_authorized("notfound@example.com") is False
+    assert respx_mock.calls.call_count == 1  # exactly once -- no retry
+
+
+@pytest.mark.django_db
+def test_can_login_by_email_404_returns_false(
+    adapter: AccountAdapter,
+    mock_email_api_base: str,
+    respx_mock: respx.MockRouter,
+    settings: SettingsWrapper,
+) -> None:
+    """
+    can_login_by_email returns False when the validation API responds with 404.
+
+    A 404 means the email is not registered in any known system; the request must not be retried.
+    """
+    api_url = mock_email_api_base
+    settings.AUTHORIZED_EMAILS_WHITELIST = []
+
+    respx_mock.post(api_url).mock(
+        return_value=httpx.Response(404, json={"detail": "Email not found"}),
+    )
+
+    assert adapter.can_login_by_email("notfound@example.com") is False
+    assert respx_mock.calls.call_count == 1  # exactly once -- no retry
+
+
+def test_call_validation_api_empty_url_returns_false() -> None:
+    """_call_validation_api returns {"valid": False} immediately for an empty api_url."""
+    result = AccountAdapter._call_validation_api("user@example.com", "")
+    assert result == {"valid": False}

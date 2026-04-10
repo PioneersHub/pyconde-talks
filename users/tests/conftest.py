@@ -77,7 +77,10 @@ def mock_email_api_valid(mock_email_api_base: str, respx_mock: respx.MockRouter)
 @pytest.fixture()
 def mock_email_api_invalid(mock_email_api_base: str, respx_mock: respx.MockRouter) -> str:
     """
-    Mock the email validation API to return valid=False for all emails.
+    Mock the email validation API to return 404 (email not found in the system).
+
+    The real API responds with 404 and ``{"detail": "Email not found"}`` when an email address is
+    not registered. This is the standard "not authorized" path, not an error.
 
     Args:
         mock_email_api_base: The base fixture that sets up infrastructure
@@ -90,7 +93,7 @@ def mock_email_api_invalid(mock_email_api_base: str, respx_mock: respx.MockRoute
     api_url = mock_email_api_base
 
     respx_mock.post(api_url).mock(
-        return_value=httpx.Response(404, json={"valid": False}),
+        return_value=httpx.Response(404, json={"detail": "Email not found"}),
     )
 
     return api_url
