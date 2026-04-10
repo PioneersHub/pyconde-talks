@@ -205,7 +205,7 @@ AUTHORIZED_EMAILS_WHITELIST = env.list(
 # Regular accounts: passwordless authentication
 # https://docs.allauth.org/en/latest/account/index.html
 ACCOUNT_ADAPTER = "users.adapters.AccountAdapter"
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_USER_MODEL_USERNAME_FIELD: None = None
 ACCOUNT_SIGNUP_FIELDS = ["email*"]
 ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False
 ACCOUNT_LOGIN_METHODS = {"email"}
@@ -248,7 +248,7 @@ SOCIALACCOUNT_PROVIDERS = {
 # Discord guild and role configuration
 DISCORD_API_TIMEOUT = env.int("DISCORD_API_TIMEOUT", default=5)
 DISCORD_GUILD_ID = env("DISCORD_GUILD_ID", default="")
-DISCORD_ROLES = env.json("DISCORD_ROLES", default={})
+DISCORD_ROLES = env.json("DISCORD_ROLES", default={})  # type: ignore[no-untyped-call]
 DISCORD_ALLOWED_ROLES = env.list(
     "DISCORD_ALLOWED_ROLES",
     default=[],

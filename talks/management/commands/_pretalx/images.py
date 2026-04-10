@@ -17,7 +17,7 @@ from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from matplotlib import font_manager
 from PIL import Image, ImageDraw, ImageFont, ImageOps, features
-from pilmoji import Pilmoji
+from pilmoji import Pilmoji  # type: ignore[attr-defined]
 
 from talks.management.commands._pretalx.avatars import (
     download_avatar_bytes_sync,
