@@ -96,6 +96,21 @@
             </div>
           {% endif %}
         {% endif %}
+        <!-- Transcription -->
+        {% if talk.get_transcription_url %}
+          <details class="mb-8 rounded-lg border border-default overflow-hidden">
+            <summary class="cursor-pointer px-4 py-3 font-medium text-muted hover:bg-subtle flex items-center gap-2">
+              {% svg 'language' "h-4 w-4" %}
+              Transcription
+            </summary>
+            <iframe src="{{ talk.get_transcription_url }}"
+                    title="Transcription for {{ talk.title }}"
+                    class="w-full"
+                    style="height: 500px;
+                           border: 0">
+            </iframe>
+          </details>
+        {% endif %}
         <!-- Description -->
         <div class="prose max-w-none mb-8">{{ talk.description|markdownify }}</div>
         <!-- Rating Section -->
