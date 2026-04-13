@@ -96,6 +96,15 @@
                 {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-1" %}
                 Q&amp;A
               </a>
+              {% if talk.get_transcription_url %}
+                <a href="{{ talk.get_transcription_url }}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="btn-secondary inline-flex items-center px-3 py-1 rounded">
+                  {% svg 'language' "h-4 w-4 mr-1" %}
+                  Transcription
+                </a>
+              {% endif %}
             </div>
           </div>
         </div>
