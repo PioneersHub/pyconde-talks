@@ -545,11 +545,21 @@ class Talk(models.Model):
 
     @property
     def video_provider(self) -> str:
-        """Return the video provider name."""
+        """
+        Return the canonical video provider name for the talk's video link.
+
+        Returns "Youtube" for both youtube.com and youtu.be links.
+        Returns "Vimeo" for vimeo.com links.
+        Returns an empty string when no video link is available.
+        """
         video_link = self.get_video_link()
-        for video_provider in VideoProvider:
-            if video_provider in video_link:
-                return video_provider.name
+        for provider in VideoProvider:
+            if provider in video_link:
+                # Normalize the short YouTube URL variant to the same name as the
+                # full one so templates only need to check for "Youtube".
+                if provider == VideoProvider.YoutubeShort:
+                    return VideoProvider.Youtube.name
+                return provider.name
         return ""
 
     @property
@@ -672,8 +682,8 @@ class Talk(models.Model):
         Return the transcription URL for this talk.
 
         Returns the talk's own transcription_url if set. Otherwise falls back to the
-        transcription_url from the matched streaming session for this talk's room and time
-        slot. Returns an empty string if neither source provides a URL.
+        transcription_url from the matched streaming session for this talk's room and time slot.
+        Returns an empty string if neither source provides a URL.
         """
         if self.transcription_url:
             return self.transcription_url

@@ -45,13 +45,16 @@ class TestTalkModel:
     @pytest.mark.parametrize(
         ("video_link", "expected_provider"),
         [
+            # Full YouTube URLs and short youtu.be links both return "Youtube"
+            # so the template only needs one string comparison.
             ("https://youtube.com/watch?v=test", VideoProvider.Youtube.name),
+            ("https://youtu.be/test", VideoProvider.Youtube.name),
             ("https://vimeo.com/test", VideoProvider.Vimeo.name),
             ("", ""),
         ],
     )
     def test_video_provider(self, video_link: str, expected_provider: str) -> None:
-        """Test the video_provider property correctly identifies the video platform."""
+        """Return the canonical provider name regardless of YouTube URL format."""
         talk = baker.prepare(Talk, video_link=video_link)
         talk.save()
 

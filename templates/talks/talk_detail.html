@@ -143,7 +143,7 @@
       </div>
     </article>
   </div>
-  {% if talk.get_video_link and talk.video_streaming_provider.lower == "vimeo" %}
+  {% if talk.get_video_link and talk.video_provider.lower == "vimeo" %}
     <script src="https://player.vimeo.com/api/player.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -169,7 +169,7 @@
     });
     </script>
   {% endif %}
-  {% if talk.get_video_link and talk.video_streaming_provider.lower == "youtube" %}
+  {% if talk.get_video_link and talk.video_provider.lower == "youtube" %}
     <script src="https://www.youtube.com/iframe_api"></script>
     <script defer>
       document.addEventListener('DOMContentLoaded', function() {

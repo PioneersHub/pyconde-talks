@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from django.core.cache import cache
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from model_bakery import baker
@@ -53,6 +54,97 @@ class TestTalkDetailView:
         url = reverse("talk_detail", args=[99999])
         response = client.get(url)
         assert response.status_code == HTTPStatus.NOT_FOUND
+
+    @override_settings(SHOW_UPCOMING_TALKS_LINKS=True)
+    def test_vimeo_player_script_included_for_vimeo_talk(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """Render the Vimeo Player API script when the talk has a Vimeo video link."""
+        past = timezone.now() - timedelta(hours=2)
+        talk = baker.make(
+            Talk,
+            video_link="https://vimeo.com/123456789",
+            video_start_time=120,
+            start_time=past,
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(user)
+        response = client.get(reverse("talk_detail", args=[talk.pk]))
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        # The Vimeo Player API script must be present so the click handler can be registered.
+        assert "player.vimeo.com/api/player.js" in content
+        assert "Vimeo.Player" in content
+        assert "jump-to-time" in content
+
+    @override_settings(SHOW_UPCOMING_TALKS_LINKS=True)
+    def test_vimeo_player_script_not_included_without_start_time(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """Skip the jump-to-time button when the talk has no video_start_time."""
+        past = timezone.now() - timedelta(hours=2)
+        talk = baker.make(
+            Talk,
+            video_link="https://vimeo.com/123456789",
+            video_start_time=None,
+            start_time=past,
+            duration=timedelta(minutes=30),
+            room=None,
+        )
+        client.force_login(user)
+        response = client.get(reverse("talk_detail", args=[talk.pk]))
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        # Player API is still loaded (needed for future Vimeo interactions)
+        # but the jump button should not be rendered.
+        assert "jump-to-time" not in content
+
+    @override_settings(SHOW_UPCOMING_TALKS_LINKS=True)
+    def test_youtube_player_script_included_for_youtube_talk(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """Render the YouTube IFrame API script when the talk has a YouTube video link."""
+        past = timezone.now() - timedelta(hours=2)
+        talk = baker.make(
+            Talk,
+            video_link="https://youtube.com/embed/abc123",
+            video_start_time=60,
+            start_time=past,
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(user)
+        response = client.get(reverse("talk_detail", args=[talk.pk]))
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        assert "youtube.com/iframe_api" in content
+        assert "seekTo" in content
+
+    @override_settings(SHOW_UPCOMING_TALKS_LINKS=True)
+    def test_youtube_short_url_loads_youtube_player(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """Treat youtu.be links as YouTube so the IFrame API is loaded."""
+        past = timezone.now() - timedelta(hours=2)
+        talk = baker.make(
+            Talk,
+            video_link="https://youtu.be/abc123",
+            video_start_time=60,
+            start_time=past,
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(user)
+        response = client.get(reverse("talk_detail", args=[talk.pk]))
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        assert "youtube.com/iframe_api" in content
 
 
 @pytest.mark.django_db
