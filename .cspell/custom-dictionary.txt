@@ -115,6 +115,7 @@ openpyxl
 organiser
 passwordless
 pgdata
+phont
 pilmoji
 prek
 pretalx

@@ -39,8 +39,8 @@ server {
     set $csp "${csp} img-src 'self' data: vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com *.ytimg.com *.ggpht.com;";
     set $csp "${csp} font-src 'self' data:;";
     set $csp "${csp} connect-src 'self' vimeo.com *.vimeo.com youtube.com *.youtube.com *.googlevideo.com;";
-    set $csp "${csp} frame-src 'self' vimeo.com *.vimeo.com player.vimeo.com *.player.vimeo.com youtube.com www.youtube.com youtube-nocookie.com;";
-    set $csp "${csp} child-src 'self' vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com;";
+    set $csp "${csp} frame-src 'self' vimeo.com *.vimeo.com player.vimeo.com *.player.vimeo.com youtube.com www.youtube.com youtube-nocookie.com speech.phont.ai;";
+    set $csp "${csp} child-src 'self' vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com speech.phont.ai;";
     add_header Content-Security-Policy $csp;
     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";
 
