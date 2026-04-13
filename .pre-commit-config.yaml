@@ -11,12 +11,12 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.3
+    rev: 0.11.6
     hooks:
       - id: uv-lock
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.9
+    rev: v0.15.10
     hooks:
       - id: ruff-check
         args: [--fix]
@@ -29,7 +29,7 @@ repos:
       - id: djlint-django
 
   - repo: https://github.com/streetsidesoftware/cspell-cli
-    rev: v9.8.0
+    rev: v10.0.0
     hooks:
       - id: cspell # Spell check changed files
       - id: cspell # Spell check the commit message
