@@ -495,3 +495,86 @@ class TestTalkComprehensive:
         """Return empty when the talk has no room assigned and no own Slido link."""
         talk = baker.make(Talk, room=None, slido_link="")
         assert talk.get_slido_link() == ""
+
+    # --- get_transcription_url ---
+    def test_get_transcription_url_own(self) -> None:
+        """Return the talk's own transcription URL when set."""
+        talk = baker.make(Talk, transcription_url="https://example.com/transcription/42")
+        assert talk.get_transcription_url() == "https://example.com/transcription/42"
+
+    def test_get_transcription_url_own_takes_priority_over_streaming(self) -> None:
+        """Return the talk's own URL even when the streaming also has one."""
+        room = baker.make(Room)
+        now = timezone.now()
+        talk = baker.make(
+            Talk,
+            room=room,
+            start_time=now,
+            duration=timedelta(minutes=30),
+            transcription_url="https://example.com/talk-specific",
+        )
+        baker.make(
+            Streaming,
+            room=room,
+            start_time=now - timedelta(hours=1),
+            end_time=now + timedelta(hours=2),
+            transcription_url="https://example.com/streaming",
+        )
+        assert talk.get_transcription_url() == "https://example.com/talk-specific"
+
+    def test_get_transcription_url_from_streaming(self) -> None:
+        """Fall back to the streaming's transcription URL when the talk has none."""
+        room = baker.make(Room)
+        now = timezone.now()
+        talk = baker.make(
+            Talk,
+            room=room,
+            start_time=now,
+            duration=timedelta(minutes=30),
+            transcription_url="",
+        )
+        baker.make(
+            Streaming,
+            room=room,
+            start_time=now - timedelta(hours=1),
+            end_time=now + timedelta(hours=2),
+            transcription_url="https://example.com/streaming",
+        )
+        assert talk.get_transcription_url() == "https://example.com/streaming"
+
+    def test_get_transcription_url_streaming_has_no_url(self) -> None:
+        """Return empty when both the talk and streaming have no transcription URL."""
+        room = baker.make(Room)
+        now = timezone.now()
+        talk = baker.make(
+            Talk,
+            room=room,
+            start_time=now,
+            duration=timedelta(minutes=30),
+            transcription_url="",
+        )
+        baker.make(
+            Streaming,
+            room=room,
+            start_time=now - timedelta(hours=1),
+            end_time=now + timedelta(hours=2),
+            transcription_url="",
+        )
+        assert talk.get_transcription_url() == ""
+
+    def test_get_transcription_url_no_room_no_own(self) -> None:
+        """Return empty when the talk has no room and no own transcription URL."""
+        talk = baker.make(Talk, room=None, transcription_url="")
+        assert talk.get_transcription_url() == ""
+
+    def test_get_transcription_url_room_no_streaming(self) -> None:
+        """Return empty when the room exists but has no matching streaming."""
+        room = baker.make(Room)
+        talk = baker.make(
+            Talk,
+            room=room,
+            transcription_url="",
+            start_time=timezone.now() - timedelta(hours=2),
+            duration=timedelta(minutes=30),
+        )
+        assert talk.get_transcription_url() == ""
