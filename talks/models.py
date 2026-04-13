@@ -110,6 +110,12 @@ class Streaming(models.Model):
         help_text=_("Link to the streaming"),
     )
 
+    transcription_url = models.URLField(
+        blank=True,
+        default="",
+        help_text=_("Link to the transcription page for talks in this streaming session."),
+    )
+
     class Meta:
         """Metadata for the Streaming model."""
 
@@ -334,6 +340,11 @@ class Talk(models.Model):
         blank=True,
         default="",
         help_text=_("Link to talk recording. Overrides the calculated streaming link if provided."),
+    )
+    transcription_url = models.URLField(
+        blank=True,
+        default="",
+        help_text=_("Link to external transcription page for this talk."),
     )
     video_start_time = models.PositiveIntegerField(
         blank=True,
@@ -653,6 +664,23 @@ class Talk(models.Model):
 
         if self.room and self.room.slido_link:
             return self.room.slido_link
+
+        return ""
+
+    def get_transcription_url(self) -> str:
+        """
+        Return the transcription URL for this talk.
+
+        Returns the talk's own transcription_url if set. Otherwise falls back to the
+        transcription_url from the matched streaming session for this talk's room and time
+        slot. Returns an empty string if neither source provides a URL.
+        """
+        if self.transcription_url:
+            return self.transcription_url
+
+        streaming = self.get_streaming()
+        if streaming and streaming.transcription_url:
+            return streaming.transcription_url
 
         return ""
 

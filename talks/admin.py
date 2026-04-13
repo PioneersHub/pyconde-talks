@@ -111,6 +111,7 @@ class StreamingAdmin(admin.ModelAdmin[Streaming]):
         "start_time",
         "end_time",
         "formatted_video_link",
+        "formatted_transcription_url",
     )
     list_filter = ("room", "start_time", "end_time")
     search_fields = ("room__name", "video_link")
@@ -126,7 +127,7 @@ class StreamingAdmin(admin.ModelAdmin[Streaming]):
         (
             _("Media"),
             {
-                "fields": ("video_link",),
+                "fields": ("video_link", "transcription_url"),
             },
         ),
     ]
@@ -139,6 +140,17 @@ class StreamingAdmin(admin.ModelAdmin[Streaming]):
                 '<a href="{}" target="_blank">{}</a>',
                 obj.video_link,
                 _("Video Link"),
+            )
+        return "-"
+
+    @admin.display(description=_("Transcription"))
+    def formatted_transcription_url(self, obj: Streaming) -> str:
+        """Display a formatted link to the transcription."""
+        if obj.transcription_url:
+            return format_html(
+                '<a href="{}" target="_blank">{}</a>',
+                obj.transcription_url,
+                _("Transcription"),
             )
         return "-"
 
@@ -296,6 +308,7 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
                     "video_link",
                     "video_start_time",
                     "display_active_streaming",
+                    "transcription_url",
                 ),
             },
         ),
