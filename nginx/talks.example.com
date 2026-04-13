@@ -9,6 +9,7 @@ upstream django_talks_app {
 
 server {
     listen 80;
+    listen [::]:80;
     server_name talks.example.com;
 
     # Redirect all HTTP traffic to HTTPS
@@ -16,7 +17,9 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
     server_name talks.example.com;
 
     # SSL Configuration (Managed by Certbot)
