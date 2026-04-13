@@ -33,7 +33,15 @@ server {
     add_header X-Frame-Options SAMEORIGIN;
     add_header X-XSS-Protection "1; mode=block";
     add_header Referrer-Policy strict-origin-when-cross-origin;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com *.ytimg.com *.googlevideo.com *.newrelic.com *.nr-data.net; style-src 'self' 'unsafe-inline' *.vimeocdn.com *.ytimg.com; img-src 'self' data: vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com *.ytimg.com *.ggpht.com; font-src 'self' data:; connect-src 'self' vimeo.com *.vimeo.com youtube.com *.youtube.com *.googlevideo.com; frame-src 'self' vimeo.com *.vimeo.com player.vimeo.com *.player.vimeo.com youtube.com www.youtube.com youtube-nocookie.com; child-src 'self' vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com;";
+    set $csp "default-src 'self';";
+    set $csp "${csp} script-src 'self' 'unsafe-inline' 'unsafe-eval' vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com *.ytimg.com *.googlevideo.com *.newrelic.com *.nr-data.net;";
+    set $csp "${csp} style-src 'self' 'unsafe-inline' *.vimeocdn.com *.ytimg.com;";
+    set $csp "${csp} img-src 'self' data: vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com *.ytimg.com *.ggpht.com;";
+    set $csp "${csp} font-src 'self' data:;";
+    set $csp "${csp} connect-src 'self' vimeo.com *.vimeo.com youtube.com *.youtube.com *.googlevideo.com;";
+    set $csp "${csp} frame-src 'self' vimeo.com *.vimeo.com player.vimeo.com *.player.vimeo.com youtube.com www.youtube.com youtube-nocookie.com;";
+    set $csp "${csp} child-src 'self' vimeo.com *.vimeo.com *.vimeocdn.com youtube.com *.youtube.com;";
+    add_header Content-Security-Policy $csp;
     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";
 
     # Gzip compression
