@@ -381,13 +381,17 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
     Login is granted only to users who hold at least one role listed in
     ``settings.DISCORD_ALLOWED_ROLES``. If the list is empty, all Discord logins are rejected.
 
-    Role-to-Django permission mapping (applied only on new user creation via ``save_user``):
+    Role-to-Django permission mapping (applied when a Discord account is connected — on brand-new
+    signups via ``save_user``, when linking to an existing email-based account, and when merging an
+    orphan Discord account into an authenticated user):
     - ``DISCORD_ADMIN_ROLES``: grants ``is_superuser = True`` and ``is_staff = True``
     - ``DISCORD_STAFF_ROLES``: grants ``is_staff = True``
     - all others / empty lists: no elevated permissions
 
-    Existing users keep their current permissions on subsequent logins. Admin/staff flags can be
-    managed through the Django admin interface independently of Discord roles.
+    Role application is additive: it only ever promotes. Existing ``is_superuser``/``is_staff``
+    flags are never cleared by Discord roles, so admin/staff granted manually (or by a prior login)
+    are preserved. Subsequent logins of an already-linked Discord account do not re-apply role
+    permissions.
 
     Required settings::
 
@@ -478,8 +482,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
     def save_user(self, request: HttpRequest, sociallogin: Any, form: Any = None) -> Any:
         """Persist a brand-new user and set initial permissions based on Discord roles."""
         user = super().save_user(request, sociallogin, form)
-        matched_names = set(sociallogin.account.extra_data.get("matched_roles", []))
-        self._apply_initial_permissions(user, matched_names)
+        self._grant_role_permissions(user, self._matched_roles(sociallogin))
         self._add_default_event(user)
         return user
 
@@ -527,6 +530,9 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
         sociallogin.account.user = current_user
         sociallogin.account.save(update_fields=["user_id"])
         sociallogin.user = current_user
+
+        # Grant Discord-role permissions to the current user (additive only).
+        self._grant_role_permissions(current_user, self._matched_roles(sociallogin))
 
         # Delete the orphan user (cascades EmailAddress, Ticket, etc.).
         orphan_pk = orphan_user.pk
@@ -582,6 +588,8 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
             user_pk=existing_user.pk,
         )
         self._add_default_event(existing_user)
+        # Grant Discord-role permissions (additive) before ``connect`` raises and exits.
+        self._grant_role_permissions(existing_user, self._matched_roles(sociallogin))
         sociallogin.connect(request, existing_user)
 
     def _match_allowed_roles(self, member_role_ids: set[str]) -> set[str]:
@@ -609,20 +617,35 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
             user.events.add(event)
             logger.info("Associated user with default event", user_pk=user.pk, event_slug=slug)
 
-    def _apply_initial_permissions(self, user: Any, matched_names: set[str]) -> None:
-        """Set ``is_superuser`` and ``is_staff`` for a brand-new user based on Discord roles."""
-        new_superuser = bool(matched_names & self._admin_roles)
-        new_staff = new_superuser or bool(matched_names & self._staff_roles)
+    @staticmethod
+    def _matched_roles(sociallogin: Any) -> set[str]:
+        """Return the set of allowed Discord role names stored by ``pre_social_login``."""
+        return set(sociallogin.account.extra_data.get("matched_roles", []))
 
-        if new_superuser or new_staff:
-            user.is_superuser = new_superuser
-            user.is_staff = new_staff
-            user.save(update_fields=["is_superuser", "is_staff"])
+    def _grant_role_permissions(self, user: Any, matched_names: set[str]) -> None:
+        """
+        Additively grant ``is_superuser`` / ``is_staff`` based on Discord roles.
+
+        Never demotes: permissions already set on the user (whether granted manually or by a
+        previous Discord login) are preserved. Only flips flags from ``False`` to ``True``.
+        """
+        grant_superuser = bool(matched_names & self._admin_roles)
+        grant_staff = grant_superuser or bool(matched_names & self._staff_roles)
+
+        updated_fields: list[str] = []
+        if grant_superuser and not user.is_superuser:
+            user.is_superuser = True
+            updated_fields.append("is_superuser")
+        if grant_staff and not user.is_staff:
+            user.is_staff = True
+            updated_fields.append("is_staff")
+
+        if updated_fields:
+            user.save(update_fields=updated_fields)
             logger.info(
-                "Set initial Discord role permissions",
+                "Granted Discord role permissions",
                 user_pk=user.pk,
-                is_superuser=new_superuser,
-                is_staff=new_staff,
+                granted=updated_fields,
             )
 
     @staticmethod

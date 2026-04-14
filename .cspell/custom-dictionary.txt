@@ -149,6 +149,7 @@ sarif
 Satoshi
 sched
 sdist
+signups
 slido
 socialaccount
 sociallogin

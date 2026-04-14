@@ -156,12 +156,12 @@ class TestMatchAllowedRoles:
 
 
 # ---------------------------------------------------------------------------
-# _apply_initial_permissions
+# _grant_role_permissions
 # ---------------------------------------------------------------------------
 
 
-class TestApplyInitialPermissions:
-    """Tests for the _apply_initial_permissions helper (new users only)."""
+class TestGrantRolePermissions:
+    """Tests for the _grant_role_permissions helper (additive; used on connect & signup)."""
 
     def test_admin_role_grants_superuser_and_staff(
         self,
@@ -169,9 +169,9 @@ class TestApplyInitialPermissions:
         discord_settings: Any,
         user_model: type[Any],
     ) -> None:
-        """A new user with an admin role gets is_superuser=True and is_staff=True."""
+        """A user with an admin role gets is_superuser=True and is_staff=True."""
         user = user_model.objects.create_user(email="admin@test.com")
-        adapter._apply_initial_permissions(user, {"organiser"})
+        adapter._grant_role_permissions(user, {"organiser"})
         user.refresh_from_db()
         assert user.is_superuser is True
         assert user.is_staff is True
@@ -182,9 +182,9 @@ class TestApplyInitialPermissions:
         discord_settings: Any,
         user_model: type[Any],
     ) -> None:
-        """A new user with only a staff role gets is_staff=True but not is_superuser."""
+        """A user with only a staff role gets is_staff=True but not is_superuser."""
         user = user_model.objects.create_user(email="staff@test.com")
-        adapter._apply_initial_permissions(user, {"session_chair"})
+        adapter._grant_role_permissions(user, {"session_chair"})
         user.refresh_from_db()
         assert user.is_superuser is False
         assert user.is_staff is True
@@ -195,9 +195,9 @@ class TestApplyInitialPermissions:
         discord_settings: Any,
         user_model: type[Any],
     ) -> None:
-        """A new user with only a regular role keeps default permissions."""
+        """A user with only a regular role keeps default permissions."""
         user = user_model.objects.create_user(email="reg@test.com")
-        adapter._apply_initial_permissions(user, {"attendee"})
+        adapter._grant_role_permissions(user, {"attendee"})
         user.refresh_from_db()
         assert user.is_superuser is False
         assert user.is_staff is False
@@ -211,7 +211,7 @@ class TestApplyInitialPermissions:
         """No DB write happens if no admin/staff roles are matched."""
         user = user_model.objects.create_user(email="ok@test.com")
         with patch.object(user, "save") as mock_save:
-            adapter._apply_initial_permissions(user, {"attendee"})
+            adapter._grant_role_permissions(user, {"attendee"})
             mock_save.assert_not_called()
 
     def test_empty_admin_and_staff_roles(
@@ -224,10 +224,55 @@ class TestApplyInitialPermissions:
         discord_settings.DISCORD_ADMIN_ROLES = []
         discord_settings.DISCORD_STAFF_ROLES = []
         user = user_model.objects.create_user(email="noperms@test.com")
-        adapter._apply_initial_permissions(user, {"organiser", "session_chair"})
+        adapter._grant_role_permissions(user, {"organiser", "session_chair"})
         user.refresh_from_db()
         assert user.is_superuser is False
         assert user.is_staff is False
+
+    def test_never_demotes_existing_superuser(
+        self,
+        adapter: SocialAccountAdapter,
+        discord_settings: Any,
+        user_model: type[Any],
+    ) -> None:
+        """A pre-existing superuser is not demoted when the Discord roles don't include admin."""
+        user = user_model.objects.create_user(email="admin@test.com")
+        user.is_superuser = True
+        user.is_staff = True
+        user.save(update_fields=["is_superuser", "is_staff"])
+        adapter._grant_role_permissions(user, {"session_chair"})
+        user.refresh_from_db()
+        assert user.is_superuser is True
+        assert user.is_staff is True
+
+    def test_never_demotes_existing_staff(
+        self,
+        adapter: SocialAccountAdapter,
+        discord_settings: Any,
+        user_model: type[Any],
+    ) -> None:
+        """A pre-existing staff user is not demoted when Discord roles grant no elevation."""
+        user = user_model.objects.create_user(email="staff@test.com")
+        user.is_staff = True
+        user.save(update_fields=["is_staff"])
+        adapter._grant_role_permissions(user, {"attendee"})
+        user.refresh_from_db()
+        assert user.is_staff is True
+
+    def test_promotes_existing_staff_to_superuser(
+        self,
+        adapter: SocialAccountAdapter,
+        discord_settings: Any,
+        user_model: type[Any],
+    ) -> None:
+        """A staff-only user gets promoted to superuser when Discord roles include admin."""
+        user = user_model.objects.create_user(email="staff@test.com")
+        user.is_staff = True
+        user.save(update_fields=["is_staff"])
+        adapter._grant_role_permissions(user, {"organiser"})
+        user.refresh_from_db()
+        assert user.is_superuser is True
+        assert user.is_staff is True
 
 
 # ---------------------------------------------------------------------------
@@ -450,6 +495,81 @@ class TestConnectToExistingAccount:
         adapter._connect_to_existing_account(request, sl)
         sl.connect.assert_called_once()
 
+    def test_connect_grants_admin_permissions(
+        self,
+        adapter: SocialAccountAdapter,
+        rf: RequestFactory,
+        discord_settings: Any,
+        user_model: type[Any],
+    ) -> None:
+        """Connecting Discord to an existing email account grants admin Discord permissions."""
+        user = user_model.objects.create_user(email="link@test.com")
+        sl = _make_sociallogin(
+            email="link@test.com",
+            verified=True,
+            extra_data={
+                "email": "link@test.com",
+                "verified": True,
+                "matched_roles": ["organiser"],
+            },
+        )
+        request = rf.get("/")
+        adapter._connect_to_existing_account(request, sl)
+        user.refresh_from_db()
+        assert user.is_superuser is True
+        assert user.is_staff is True
+
+    def test_connect_grants_staff_permissions(
+        self,
+        adapter: SocialAccountAdapter,
+        rf: RequestFactory,
+        discord_settings: Any,
+        user_model: type[Any],
+    ) -> None:
+        """Connecting Discord to an existing email account grants staff Discord permissions."""
+        user = user_model.objects.create_user(email="link@test.com")
+        sl = _make_sociallogin(
+            email="link@test.com",
+            verified=True,
+            extra_data={
+                "email": "link@test.com",
+                "verified": True,
+                "matched_roles": ["session_chair"],
+            },
+        )
+        request = rf.get("/")
+        adapter._connect_to_existing_account(request, sl)
+        user.refresh_from_db()
+        assert user.is_superuser is False
+        assert user.is_staff is True
+
+    def test_connect_does_not_demote_existing_admin(
+        self,
+        adapter: SocialAccountAdapter,
+        rf: RequestFactory,
+        discord_settings: Any,
+        user_model: type[Any],
+    ) -> None:
+        """A pre-existing admin keeps their privileges when Discord roles grant less."""
+        user = user_model.objects.create_user(email="link@test.com")
+        user.is_superuser = True
+        user.is_staff = True
+        user.save(update_fields=["is_superuser", "is_staff"])
+        sl = _make_sociallogin(
+            email="link@test.com",
+            verified=True,
+            extra_data={
+                "email": "link@test.com",
+                "verified": True,
+                "matched_roles": ["attendee"],
+            },
+        )
+        request = rf.get("/")
+        adapter._connect_to_existing_account(request, sl)
+        user.refresh_from_db()
+        assert user.is_superuser is True
+        assert user.is_staff is True
+
 
 # ---------------------------------------------------------------------------
 # _try_merge_accounts
@@ -601,6 +721,83 @@ class TestTryMergeAccounts:
 
         assert user_model.objects.filter(pk=orphan.pk).exists()
 
+    @patch("users.adapters.get_account_adapter")
+    def test_merge_grants_admin_permissions(
+        self,
+        mock_get_adapter: MagicMock,
+        adapter: SocialAccountAdapter,
+        rf: RequestFactory,
+        discord_settings: Any,
+        user_model: type[Any],
+    ) -> None:
+        """Merging an orphan grants the current user's Discord admin permissions."""
+        current_user = user_model.objects.create_user(email="me@test.com")
+        orphan = user_model.objects.create_user(email="orphan@test.com")
+        sa = SocialAccount.objects.create(
+            user=orphan,
+            provider="discord",
+            uid="merge-perm",
+            extra_data={"matched_roles": ["organiser"]},
+        )
+
+        mock_get_adapter.return_value.can_login_by_email.return_value = True
+
+        sl = MagicMock()
+        sl.account = sa
+        sl.user = orphan
+        sl.is_existing = True
+
+        request = rf.get("/")
+        request.user = current_user
+        _add_session(request)
+
+        with pytest.raises(ImmediateHttpResponse):
+            adapter._try_merge_accounts(request, sl)
+
+        current_user.refresh_from_db()
+        assert current_user.is_superuser is True
+        assert current_user.is_staff is True
+
+    @patch("users.adapters.get_account_adapter")
+    def test_merge_does_not_demote_existing_admin(
+        self,
+        mock_get_adapter: MagicMock,
+        adapter: SocialAccountAdapter,
+        rf: RequestFactory,
+        discord_settings: Any,
+        user_model: type[Any],
+    ) -> None:
+        """A pre-existing admin keeps privileges when the merged Discord roles don't elevate."""
+        current_user = user_model.objects.create_user(email="me@test.com")
+        current_user.is_superuser = True
+        current_user.is_staff = True
+        current_user.save(update_fields=["is_superuser", "is_staff"])
+        orphan = user_model.objects.create_user(email="orphan@test.com")
+        sa = SocialAccount.objects.create(
+            user=orphan,
+            provider="discord",
+            uid="merge-perm-2",
+            extra_data={"matched_roles": ["attendee"]},
+        )
+
+        mock_get_adapter.return_value.can_login_by_email.return_value = True
+
+        sl = MagicMock()
+        sl.account = sa
+        sl.user = orphan
+        sl.is_existing = True
+
+        request = rf.get("/")
+        request.user = current_user
+        _add_session(request)
+
+        with pytest.raises(ImmediateHttpResponse):
+            adapter._try_merge_accounts(request, sl)
+
+        current_user.refresh_from_db()
+        assert current_user.is_superuser is True
+        assert current_user.is_staff is True
+
 
 # ---------------------------------------------------------------------------
 # save_user
@@ -610,7 +807,7 @@ class TestTryMergeAccounts:
 class TestSaveUser:
     """Tests for the save_user hook."""
 
-    @patch.object(SocialAccountAdapter, "_apply_initial_permissions")
+    @patch.object(SocialAccountAdapter, "_grant_role_permissions")
     def test_permissions_applied_on_new_signup(
         self,
         mock_apply: MagicMock,
@@ -727,7 +924,7 @@ class TestAddDefaultEvent:
         SocialAccountAdapter().pre_social_login(request, sl)
         assert event in user.events.all()
 
-    @patch.object(SocialAccountAdapter, "_apply_initial_permissions")
+    @patch.object(SocialAccountAdapter, "_grant_role_permissions")
     def test_save_user_gets_default_event(
         self,
         mock_apply: MagicMock,
