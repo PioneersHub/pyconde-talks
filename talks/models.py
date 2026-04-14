@@ -254,6 +254,7 @@ class Talk(models.Model):
         KEYNOTE = "Keynote", _("Keynote")
         KIDS = "Kids", _("Kids")
         LIGHTNING = "Lightning", _("Lightning Talk")
+        OPEN = "Open Space", _("Open Space")
         PANEL = "Panel", _("Panel")
         PLENARY = "Plenary", _("Plenary")
         TALK = "Talk", _("Talk")
