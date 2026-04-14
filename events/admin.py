@@ -50,6 +50,7 @@ class EventAdmin(admin.ModelAdmin[Event]):
                     "code_of_conduct_url",
                     "privacy_policy_url",
                     "venue_url",
+                    "transcriptions_url",
                     "logo_svg_name",
                     "made_by_name",
                     "made_by_url",

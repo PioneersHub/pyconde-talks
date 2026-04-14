@@ -120,6 +120,11 @@
                   <a href="{{ brand_venue_url }}" class="hover:underline">Venue</a>
                 </li>
               {% endif %}
+              {% if brand_transcriptions_url %}
+                <li class="whitespace-nowrap px-3">
+                  <a href="{{ brand_transcriptions_url }}" class="hover:underline">Transcriptions</a>
+                </li>
+              {% endif %}
               {% if brand_imprint_url %}
                 <li class="whitespace-nowrap px-3">
                   <a href="{{ brand_imprint_url }}" class="hover:underline">Imprint</a>

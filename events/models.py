@@ -104,6 +104,12 @@ class Event(models.Model):
         help_text=_("Venue information URL"),
     )
 
+    transcriptions_url = models.URLField(
+        blank=True,
+        default="",
+        help_text=_("URL to the transcriptions overview page"),
+    )
+
     logo_svg_name = models.CharField(
         max_length=MAX_FIELD_LENGTH,
         blank=True,
