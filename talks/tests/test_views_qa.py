@@ -220,6 +220,45 @@ class TestQuestionModeration:
         question.refresh_from_db()
         assert question.status == Question.Status.APPROVED
 
+    def test_mark_answered_preserves_status_filter(
+        self,
+        client: Client,
+        staff_user: CustomUser,
+        question: Question,
+    ) -> None:
+        """Marking a question as answered keeps the active status filter."""
+        client.force_login(staff_user)
+        url = reverse("question_mark_answered", args=[question.pk])
+        response = client.post(
+            url,
+            {"status_filter": "approved"},
+            HTTP_HX_REQUEST="true",
+        )
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        # The returned fragment should have "approved" selected in the filter dropdown
+        assert 'value="approved"' in content
+        assert "selected" in content.split('value="approved"')[1].split(">")[0]
+
+    def test_reject_preserves_status_filter(
+        self,
+        client: Client,
+        staff_user: CustomUser,
+        question: Question,
+    ) -> None:
+        """Rejecting a question keeps the active status filter."""
+        client.force_login(staff_user)
+        url = reverse("question_reject", args=[question.pk])
+        response = client.post(
+            url,
+            {"status_filter": "approved"},
+            HTTP_HX_REQUEST="true",
+        )
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        assert 'value="approved"' in content
+        assert "selected" in content.split('value="approved"')[1].split(">")[0]
+
 
 @pytest.mark.django_db
 class TestQuestionCreate:

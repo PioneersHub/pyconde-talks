@@ -28,6 +28,11 @@ if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 
 
+def _get_status_filter(request: HttpRequest) -> str:
+    """Return the status_filter from POST (hx-vals) or GET, defaulting to 'all'."""
+    return request.POST.get("status_filter") or request.GET.get("status_filter", "all")
+
+
 class QuestionListView(ListView[Question]):
     """
     Display a list of questions for a specific talk.
@@ -259,8 +264,7 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
     # Return HTML for HTMX to replace the question list with sorted questions
     if request.headers.get("HX-Request"):
         talk = question.talk
-        status_filter = request.POST.get("status_filter") or request.GET.get("status_filter", "all")
-        return render_question_list_fragment(request, talk, status_filter)
+        return render_question_list_fragment(request, talk, _get_status_filter(request))
 
     # Fallback to JSON response for non-HTMX requests
     return JsonResponse(
@@ -281,8 +285,7 @@ def delete_question(request: HttpRequest, question_id: int) -> HttpResponse:
     question.delete()
     messages.success(request, _("Your question has been deleted."))
     if request.headers.get("HX-Request"):
-        status_filter = request.GET.get("status_filter", "all")
-        return render_question_list_fragment(request, talk, status_filter)
+        return render_question_list_fragment(request, talk, _get_status_filter(request))
     return redirect("talk_questions", talk_id=talk.pk)
 
 
@@ -313,9 +316,7 @@ class QuestionUpdateView(
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Add status filter to context."""
         ctx = super().get_context_data(**kwargs)
-        ctx["status_filter"] = (
-            self.request.GET.get("status_filter") or self.request.POST.get("status_filter") or "all"
-        )
+        ctx["status_filter"] = _get_status_filter(self.request)
         return ctx
 
     def form_valid(
@@ -333,8 +334,11 @@ class QuestionUpdateView(
         )
         if self.request.headers.get("HX-Request"):
             talk = form.instance.talk
-            status_filter = self.request.GET.get("status_filter", "all")
-            return render_question_list_fragment(self.request, talk, status_filter)
+            return render_question_list_fragment(
+                self.request,
+                talk,
+                _get_status_filter(self.request),
+            )
         return response
 
     def get_success_url(self) -> str:
@@ -371,9 +375,11 @@ def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
     messages.success(request, _("Question has been rejected."))
 
     if request.headers.get("HX-Request"):
-        talk = question.talk
-        status_filter = request.GET.get("status_filter", "all")
-        return render_question_list_fragment(request, talk, status_filter)
+        return render_question_list_fragment(
+            request,
+            question.talk,
+            _get_status_filter(request),
+        )
 
     return redirect("talk_questions", talk_id=question.talk.pk)
 
@@ -388,9 +394,11 @@ def mark_question_answered(request: HttpRequest, question_id: int) -> HttpRespon
     messages.success(request, _("Question has been marked as answered."))
 
     if request.headers.get("HX-Request"):
-        talk = question.talk
-        status_filter = request.GET.get("status_filter", "all")
-        return render_question_list_fragment(request, talk, status_filter)
+        return render_question_list_fragment(
+            request,
+            question.talk,
+            _get_status_filter(request),
+        )
 
     return redirect("talk_questions", talk_id=question.talk.pk)
 
@@ -405,9 +413,11 @@ def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
     messages.success(request, _("Question has been approved."))
 
     if request.headers.get("HX-Request"):
-        talk = question.talk
-        status_filter = request.GET.get("status_filter", "all")
-        return render_question_list_fragment(request, talk, status_filter)
+        return render_question_list_fragment(
+            request,
+            question.talk,
+            _get_status_filter(request),
+        )
 
     return redirect("talk_questions", talk_id=question.talk.pk)
 
