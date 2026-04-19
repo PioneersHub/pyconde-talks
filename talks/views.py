@@ -913,7 +913,7 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
     # Resolve selected date ---------------------------------------------------
     selected_date = _parse_schedule_date(request.GET.get("date"))
     if selected_date not in available_dates:
-        today = timezone.now().date()
+        today = timezone.localdate()
         if today in available_dates:
             selected_date = today
         else:
