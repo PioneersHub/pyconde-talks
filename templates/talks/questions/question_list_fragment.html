@@ -1,6 +1,13 @@
 {% load i18n %}
 {% load svg_tags %}
-<div id="question-list" class="space-y-6">
+<div id="question-list"
+     class="space-y-6"
+     hx-ext="morph"
+     hx-get="{% url 'talk_questions' talk.id %}{% if status_filter and status_filter != 'all' %}?status_filter={{ status_filter }}{% endif %}"
+     hx-trigger="every 10s"
+     hx-target="#question-list"
+     hx-swap="morph:outerHTML"
+     hx-select="#question-list">
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-xl font-semibold">
       {% if questions %}

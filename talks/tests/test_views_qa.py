@@ -83,6 +83,34 @@ class TestQuestionListView:
         content = response.content.decode()
         assert "<html>" not in content.lower()
 
+    def test_question_list_has_auto_refresh_polling(
+        self,
+        client: Client,
+        user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """The question list includes HTMX polling attributes for auto-refresh."""
+        client.force_login(user)
+        url = reverse("talk_questions", args=[talk.pk])
+        response = client.get(url)
+        content = response.content.decode()
+        assert 'hx-trigger="every 10s"' in content
+        assert 'hx-swap="morph:outerHTML"' in content
+        assert 'hx-ext="morph"' in content
+
+    def test_question_list_polling_preserves_status_filter(
+        self,
+        client: Client,
+        user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """The polling URL includes the active status filter."""
+        client.force_login(user)
+        url = reverse("talk_questions", args=[talk.pk]) + "?status_filter=approved"
+        response = client.get(url)
+        content = response.content.decode()
+        assert "status_filter=approved" in content
+
 
 @pytest.mark.django_db
 class TestQuestionVoting:
