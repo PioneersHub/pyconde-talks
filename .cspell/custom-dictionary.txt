@@ -66,6 +66,7 @@ HSTS
 htmlcov
 htmx
 httpx
+idiomorph
 inkscape
 ipython
 isort
