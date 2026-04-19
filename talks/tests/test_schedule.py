@@ -137,6 +137,50 @@ class TestScheduleView:
         assert response.status_code == HTTPStatus.OK
         assert b"Talk 1" in response.content
 
+    def test_default_date_uses_local_timezone(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        rooms: list[Room],
+    ) -> None:
+        """
+        The schedule defaults to today using the local timezone, not UTC.
+
+        When it is just past midnight in the local timezone (e.g. 00:30 CEST) but still the previous
+        day in UTC (22:30 UTC), the schedule should select the local date.
+        """
+        # Simulate 00:30 local time on April 16 in Europe/Berlin (22:30 UTC April 15)
+        utc_time = datetime(2026, 4, 15, 22, 30, tzinfo=UTC)
+        local_date = timezone.localdate(utc_time)  # April 16 in Europe/Berlin
+
+        # Create a talk on the local date (not the UTC date)
+        baker.make(
+            Talk,
+            title="Late Night Talk",
+            room=rooms[0],
+            start_time=datetime(2026, 4, 16, 8, 0, tzinfo=UTC),
+            duration=timedelta(minutes=30),
+        )
+        # Create a talk on the UTC date (the previous day)
+        baker.make(
+            Talk,
+            title="Yesterday Talk",
+            room=rooms[0],
+            start_time=datetime(2026, 4, 15, 10, 0, tzinfo=UTC),
+            duration=timedelta(minutes=30),
+        )
+
+        client.force_login(user)
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(timezone, "localdate", lambda *_args, **_kwargs: local_date)
+            response = client.get(reverse("schedule"))
+
+        content = response.content.decode()
+        # The selected day pill should highlight April 16 (the local date)
+        assert "Late Night Talk" in content
+        # Yesterday's talk should not appear (different date selected)
+        assert "Yesterday Talk" not in content
+
     def test_saved_talk_shows_bookmark(
         self,
         client: pytest.fixture,  # type: ignore[type-arg,valid-type]
