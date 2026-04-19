@@ -913,7 +913,11 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
     # Resolve selected date ---------------------------------------------------
     selected_date = _parse_schedule_date(request.GET.get("date"))
     if selected_date not in available_dates:
-        selected_date = available_dates[0] if available_dates else None
+        today = timezone.now().date()
+        if today in available_dates:
+            selected_date = today
+        else:
+            selected_date = available_dates[0] if available_dates else None
 
     # Build grid data ---------------------------------------------------------
     talks: list[Talk] = []
