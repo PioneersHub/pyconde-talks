@@ -15,17 +15,13 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from .models import Rating, Room, SavedTalk, Speaker, Streaming, Talk
-from .models_qa import Answer, Question, QuestionVote
+from .models_qa import CONTENT_PREVIEW_LENGTH, Answer, Question, QuestionVote
 
 
 if TYPE_CHECKING:
     from django.db.models import QuerySet
     from django.http import HttpRequest
     from django_stubs_ext import StrOrPromise
-
-
-# Constants
-CONTENT_PREVIEW_LENGTH = 50
 
 
 @admin.register(Room)
