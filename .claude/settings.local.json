@@ -1,6 +1,19 @@
 {
-  "enabledMcpjsonServers": [
-    "sonarqube"
-  ],
-  "enableAllProjectMcpServers": true
+  "enabledMcpjsonServers": ["sonarqube"],
+  "enableAllProjectMcpServers": true,
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Edit(*.py)|Write(*.py)",
+            "command": "uv run ruff check --fix \"$(jq -r '.tool_input.file_path' < /dev/stdin)\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
 }
