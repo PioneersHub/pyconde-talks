@@ -52,7 +52,9 @@ class TestEventAdmin:
 
     def test_branding_fieldset_includes_legal_links(self) -> None:
         """Branding fieldset exposes legal link fields in admin."""
-        branding_fieldset = EventAdmin.fieldsets[1][1]["fields"]
+        branding_fieldset = next(
+            fields["fields"] for name, fields in EventAdmin.fieldsets if name == "Branding"
+        )
         assert "imprint_url" in branding_fieldset
         assert "code_of_conduct_url" in branding_fieldset
         assert "privacy_policy_url" in branding_fieldset
@@ -110,3 +112,56 @@ class TestEventAdmin:
         response = client.get(url)
         assert response.status_code == HTTPStatus.OK
         assert "Edit Me" in response.content.decode()
+
+    def test_change_view_shows_users_widget(
+        self,
+        client: Client,
+        superuser: CustomUser,
+    ) -> None:
+        """Event change page exposes a users multi-select populated with existing access."""
+        client.force_login(superuser)
+        event = baker.make(Event, name="Access Event", slug="access-event", year=2025)
+        with_access = CustomUser.objects.create_user(email="in@example.com")
+        CustomUser.objects.create_user(email="out@example.com")
+        event.users.add(with_access)
+
+        url = reverse("admin:events_event_change", args=[event.pk])
+        response = client.get(url)
+        content = response.content.decode()
+
+        assert response.status_code == HTTPStatus.OK
+        assert 'name="users"' in content
+        assert f'value="{with_access.pk}" selected' in content
+
+    def test_change_view_saves_users(self, client: Client, superuser: CustomUser) -> None:
+        """Submitting the change form batch-updates which users have access."""
+        client.force_login(superuser)
+        event = baker.make(
+            Event,
+            name="Batch Event",
+            slug="batch-event",
+            year=2026,
+            validation_api_url="",
+        )
+        keep = CustomUser.objects.create_user(email="keep@example.com")
+        add = CustomUser.objects.create_user(email="add@example.com")
+        drop = CustomUser.objects.create_user(email="drop@example.com")
+        event.users.set([keep, drop])
+
+        url = reverse("admin:events_event_change", args=[event.pk])
+        response = client.post(
+            url,
+            {
+                "name": event.name,
+                "slug": event.slug,
+                "year": event.year,
+                "validation_api_url": "",
+                "is_active": "on",
+                "show_rating_summary": "on",
+                "users": [str(keep.pk), str(add.pk)],
+            },
+        )
+
+        assert response.status_code == HTTPStatus.FOUND
+        assert set(event.users.values_list("pk", flat=True)) == {keep.pk, add.pk}
+        assert drop.events.filter(pk=event.pk).count() == 0
