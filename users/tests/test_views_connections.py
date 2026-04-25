@@ -657,6 +657,28 @@ class TestConfirmAddEmailView:
         assert new_email.primary is True
         assert new_email.verified is True
 
+    def test_pre_existing_unverified_email_gets_promoted(
+        self,
+        client: Any,
+        discord_user: CustomUser,
+    ) -> None:
+        """A matching EmailAddress that existed unverified must be updated, not duplicated."""
+        existing = EmailAddress.objects.create(
+            user=discord_user,
+            email="reuse@example.com",
+            verified=False,
+            primary=False,
+        )
+        client.force_login(discord_user)
+        self._set_session(client, email="reuse@example.com", code="999999")
+        client.post(reverse("confirm_add_email"), {"code": "999999"})
+        existing.refresh_from_db()
+        assert existing.verified is True
+        assert existing.primary is True
+        # Still exactly one record for this address (not duplicated).
+        rows = EmailAddress.objects.filter(user=discord_user, email="reuse@example.com")
+        assert rows.count() == 1
+
 
 # ---------------------------------------------------------------------------
 # Error message override
