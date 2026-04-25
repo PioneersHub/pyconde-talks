@@ -96,7 +96,7 @@ class TestTalkListSearch:
     def test_search_scope_title_only(self, client: Client) -> None:
         """When limited to title, matches in author should be ignored."""
         # Title contains the token only for talk_a
-        talk_a = baker.make(Talk, title="Brian and the Holy Grail")  # noqa: F841
+        baker.make(Talk, title="Brian and the Holy Grail")
         talk_b = baker.make(Talk, title="The Bright Side of Life")
         # Speaker name contains token for talk B, but should be ignored with title scope
         sp: Speaker = baker.make(Speaker, name="Brian Cohen")
