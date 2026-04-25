@@ -139,6 +139,8 @@ pytestmark
 PYTHONDONTWRITEBYTECODE
 PYTHONUNBUFFERED
 pyupgrade
+queryset
+querysets
 Qube
 RAQM
 redef
