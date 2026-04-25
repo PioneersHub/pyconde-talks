@@ -10,7 +10,14 @@ from django.utils import timezone
 from model_bakery import baker
 
 from events.models import Event
-from talks.models import EMPTY_TRACK_NAME, Room, Speaker, Streaming, Talk
+from talks.models import (
+    EMPTY_TRACK_NAME,
+    Room,
+    Speaker,
+    Streaming,
+    Talk,
+    _talk_image_upload_path,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -578,3 +585,46 @@ class TestTalkComprehensive:
             duration=timedelta(minutes=30),
         )
         assert talk.get_transcription_url() == ""
+
+
+# ---------------------------------------------------------------------------
+# _talk_image_upload_path helper
+# ---------------------------------------------------------------------------
+@pytest.mark.django_db
+class TestTalkImageUploadPath:
+    """Uploaded talk images are scoped under the event slug so they don't collide."""
+
+    def test_uses_event_slug_subdir_when_event_set(self) -> None:
+        """Talks tied to an event upload into ``talk_images/<slug>/``."""
+        event = baker.make(Event, slug="pyconde-2099")
+        talk = baker.make(Talk, event=event)
+        assert _talk_image_upload_path(talk, "card.png") == "talk_images/pyconde-2099/card.png"
+
+    def test_falls_back_to_root_when_no_event(self) -> None:
+        """Talks without an event upload into the shared ``talk_images/`` root."""
+        talk = baker.make(Talk, event=None)
+        assert _talk_image_upload_path(talk, "card.png") == "talk_images/card.png"
+
+
+# ---------------------------------------------------------------------------
+# pretalx_code property
+# ---------------------------------------------------------------------------
+@pytest.mark.django_db
+class TestPretalxCode:
+    """``pretalx_code`` parses the submission code from the pretalx URL."""
+
+    @pytest.mark.parametrize(
+        ("link", "expected"),
+        [
+            ("https://pretalx.com/pyconde/talk/ABC123", "ABC123"),
+            ("https://pretalx.com/pyconde/talk/ABC123/", "ABC123"),
+            ("", ""),
+            # A bare host with an empty path must not explode.
+            ("https://pretalx.com", ""),
+            ("https://pretalx.com/", ""),
+        ],
+    )
+    def test_code_parsed_from_link(self, link: str, expected: str) -> None:
+        """Parse the trailing path segment, if any, stripping trailing slashes."""
+        talk = baker.make(Talk, pretalx_link=link)
+        assert talk.pretalx_code == expected
