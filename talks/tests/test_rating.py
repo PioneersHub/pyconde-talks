@@ -55,9 +55,13 @@ def admin_user() -> CustomUser:
 
 
 @pytest.fixture()
-def talk() -> Talk:
-    """Create a talk for testing."""
-    return baker.make(Talk, title="Test Talk", start_time=timezone.now())
+def talk(user: CustomUser, other_user: CustomUser) -> Talk:
+    """Create a talk for testing, with both test users granted event access."""
+    event: Event = baker.make("events.Event", show_rating_summary=True, is_active=True)
+    t = baker.make(Talk, title="Test Talk", start_time=timezone.now(), event=event)
+    user.events.add(event)
+    other_user.events.add(event)
+    return t
 
 
 @pytest.fixture()
@@ -747,10 +751,10 @@ class TestCanSeeRatingSummary:
         normal = baker.make(CustomUser, is_staff=False, is_superuser=False)
         assert _can_see_rating_summary(normal, event_hidden_ratings) is False
 
-    def test_none_event_defaults_visible(self) -> None:
-        """When event is None, summaries are visible."""
+    def test_none_event_defaults_hidden(self) -> None:
+        """When event is None, summaries are hidden to avoid bypassing per-event settings."""
         normal = baker.make(CustomUser, is_staff=False, is_superuser=False)
-        assert _can_see_rating_summary(normal, None) is True
+        assert _can_see_rating_summary(normal, None) is False
 
 
 @pytest.mark.django_db

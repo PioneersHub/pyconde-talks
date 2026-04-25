@@ -37,7 +37,9 @@ def _can_see_rating_summary(user: Any, event: Event | None) -> bool:
     if is_moderator(user):
         return True
     if event is None:
-        return True
+        # No event context (e.g. "all events" filter): default to hidden so per-event
+        # show_rating_summary=False is not silently bypassed.
+        return False
     return event.show_rating_summary
 
 
