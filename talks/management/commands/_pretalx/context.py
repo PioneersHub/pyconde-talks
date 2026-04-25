@@ -2,7 +2,7 @@
 
 import dataclasses
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from talks.management.commands._pretalx.types import LogFn, VerbosityLevel
 
@@ -52,7 +52,7 @@ class ImportContext:
 
     def evolve(self, **changes: Any) -> ImportContext:
         """Return a shallow copy with *changes* applied (frozen-dataclass update)."""
-        return dataclasses.replace(self, **changes)
+        return cast("ImportContext", dataclasses.replace(self, **changes))
 
     @classmethod
     def from_options(cls, options: dict[str, Any], *, log_fn: LogFn) -> ImportContext:
