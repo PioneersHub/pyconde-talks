@@ -54,12 +54,20 @@ class Command(BaseCommand):
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
         }
-        params = {
+        params: dict[str, str | int] = {
             "fields": "name,player_embed_url",
+            "per_page": 100,
+            "page": 1,
         }
-        response = httpx.get(url, headers=headers, params=params)
-        response.raise_for_status()
-        videos = response.json().get("data", [])
+        videos: list[dict[str, str]] = []
+        while True:
+            response = httpx.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            payload = response.json()
+            videos.extend(payload.get("data", []))
+            if not payload.get("paging", {}).get("next"):
+                break
+            params["page"] = int(params["page"]) + 1
         self.stdout.write(f"Fetched {len(videos)} videos from folder {project_id}")
         return {video["name"]: video["player_embed_url"] for video in videos}
 
