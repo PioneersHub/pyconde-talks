@@ -206,14 +206,18 @@ class PasswordlessDisconnectForm(DisconnectForm):  # type: ignore[misc]
         """Block disconnect unless the user has an API-authorized email."""
         cleaned_data = forms.Form.clean(self) or {}
         account = cleaned_data.get("account")
-        if not account:
-            return cleaned_data
+        if account:
+            self._validate_disconnect_safe(account)
+        return cleaned_data
 
+    @staticmethod
+    def _validate_disconnect_safe(account: SocialAccount) -> None:
+        """Raise a validation error if removing *account* would lock the user out."""
         has_other_accounts = (
             SocialAccount.objects.filter(user_id=account.user_id).exclude(pk=account.pk).exists()
         )
         if has_other_accounts:
-            return cleaned_data
+            return
 
         # Last social account - verify the user can still log in without it.
         social_adapter = get_adapter()  # type: ignore[no-untyped-call]
@@ -232,5 +236,3 @@ class PasswordlessDisconnectForm(DisconnectForm):  # type: ignore[misc]
         if not adapter.can_login_by_email(verified_email):
             error_key = "email_not_authorized"
             raise social_adapter.validation_error(error_key)
-
-        return cleaned_data
