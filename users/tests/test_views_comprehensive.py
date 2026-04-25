@@ -98,6 +98,23 @@ class TestProfileView:
         response = client.get(reverse("user_profile"))
         assert reverse("delete_account").encode() in response.content
 
+    def test_invalid_stored_display_name_falls_back_to_full_name(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """If the stored display_name fails validation, render full name instead."""
+        # Punctuation-only stored directly: form would reject it, but a raw save bypasses that.
+        user.display_name = "!!!"
+        user.first_name = "Full"
+        user.last_name = "Name"
+        user.save(update_fields=["display_name", "first_name", "last_name"])
+        client.force_login(user)
+        response = client.get(reverse("user_profile"))
+        assert response.status_code == HTTPStatus.OK
+        # The QA display name ignores the invalid stored value and uses full name.
+        assert response.context["qa_display_name"] == "Full Name"
+
 
 @pytest.mark.django_db
 class TestDeleteAccountView:
