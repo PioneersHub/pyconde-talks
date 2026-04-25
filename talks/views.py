@@ -23,6 +23,7 @@ from events.session import resolve_default_event
 
 from .models import Rating, Room, SavedTalk, Talk
 from .utils import get_talk_by_id_or_pretalx
+from .views_qa import is_moderator
 
 
 if TYPE_CHECKING:
@@ -33,7 +34,7 @@ if TYPE_CHECKING:
 
 def _can_see_rating_summary(user: Any, event: Event | None) -> bool:
     """Return True if the user may see aggregate rating stats for this event."""
-    if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+    if is_moderator(user):
         return True
     if event is None:
         return True
