@@ -7,6 +7,7 @@ metadata, scheduling information, and video links.
 
 from datetime import UTC, datetime, timedelta
 from enum import IntEnum
+from functools import cached_property
 from typing import TYPE_CHECKING, Any, ClassVar, Self
 from urllib.parse import urlparse
 
@@ -564,7 +565,7 @@ class Talk(models.Model):
 
         return ""
 
-    @property
+    @cached_property
     def video_provider(self) -> str:
         """
         Return the canonical video provider name for the talk's video link.
@@ -583,7 +584,7 @@ class Talk(models.Model):
                 return provider.name
         return ""
 
-    @property
+    @cached_property
     def speaker_names(self) -> str:
         """
         Return a formatted list of speaker names.
@@ -592,6 +593,9 @@ class Talk(models.Model):
         - 2 speakers: "Jane Smith & John Doe"
         - 3 speakers: "Jane Smith, John Doe & Julio Batista"
         - 4 or more: "Jane Smith, John Doe & 3 more"
+
+        Cached after first access. Callers should use prefetch_related("speakers") on the queryset
+        to avoid N+1 queries in list views.
         """
         speakers_list: list[str] = list(self.speakers.all().values_list("name", flat=True))
 
