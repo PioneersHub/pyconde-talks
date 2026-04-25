@@ -25,6 +25,7 @@ from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.views.decorators.http import require_http_methods
 
 from events.models import Event
 from events.session import set_selected_event_slug
@@ -160,6 +161,7 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
         return context
 
 
+@require_http_methods(["GET", "POST"])
 def profile_view(request: HttpRequest) -> HttpResponse:
     """Allow the authenticated user to edit their profile information."""
     user = cast("CustomUser", request.user)
@@ -197,6 +199,7 @@ def profile_view(request: HttpRequest) -> HttpResponse:
     )
 
 
+@require_http_methods(["GET", "POST"])
 def delete_account_view(request: HttpRequest) -> HttpResponse:
     """Allow the authenticated user to permanently delete their account."""
     user = cast("CustomUser", request.user)
@@ -225,6 +228,7 @@ def delete_account_view(request: HttpRequest) -> HttpResponse:
 # ---------------------------------------------------------------------------
 
 
+@require_http_methods(["GET", "POST"])
 def connections_view(request: HttpRequest) -> HttpResponse:
     """
     Show connected social accounts with awareness of whether disconnect is safe.
@@ -279,6 +283,7 @@ _ADD_EMAIL_MAX_ATTEMPTS = 3
 _ADD_EMAIL_TEMPLATE = "users/add_email.html"
 
 
+@require_http_methods(["GET", "POST"])
 def add_email_view(request: HttpRequest) -> HttpResponse:
     """
     Let a Discord-only user add and verify an email address.
@@ -374,6 +379,7 @@ def add_email_view(request: HttpRequest) -> HttpResponse:
     return _render_form()
 
 
+@require_http_methods(["GET", "POST"])
 def confirm_add_email_view(request: HttpRequest) -> HttpResponse:
     """
     Step 2: verify the code the user received by email.
