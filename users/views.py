@@ -25,6 +25,7 @@ from django.views.decorators.http import require_http_methods
 
 from events.models import Event
 from events.session import set_selected_event_slug
+from users.adapters_social import DISCORD_PROVIDER
 from users.validators import validate_display_name
 from utils.email_utils import hash_email, obfuscate_email
 
@@ -186,7 +187,7 @@ def profile_view(request: HttpRequest) -> HttpResponse:
         or obfuscate_email(user.email)
         or _("Anonymous")
     )
-    has_discord = SocialAccount.objects.filter(user=user, provider="discord").exists()
+    has_discord = SocialAccount.objects.filter(user=user, provider=DISCORD_PROVIDER).exists()
     return render(
         request,
         "users/profile.html",

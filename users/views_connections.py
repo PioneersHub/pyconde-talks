@@ -29,6 +29,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 
 from events.models import Event
+from users.adapters_social import DISCORD_PROVIDER
 from utils.email_utils import hash_email, obfuscate_email
 
 
@@ -59,7 +60,7 @@ def connections_view(request: HttpRequest) -> HttpResponse:
     """
     view = ConnectionsView.as_view()
     user = request.user
-    has_discord = SocialAccount.objects.filter(user=user, provider="discord").exists()
+    has_discord = SocialAccount.objects.filter(user=user, provider=DISCORD_PROVIDER).exists()
     verified_email = (
         EmailAddress.objects.filter(user=user, verified=True)
         .order_by("-primary")
@@ -115,7 +116,7 @@ def add_email_view(request: HttpRequest) -> HttpResponse:
 
     # Allow through if the user needs to connect a ticket email (Discord user
     # whose current email is not recognized by the validation API).
-    has_discord = SocialAccount.objects.filter(user=user, provider="discord").exists()
+    has_discord = SocialAccount.objects.filter(user=user, provider=DISCORD_PROVIDER).exists()
     verified_email = (
         EmailAddress.objects.filter(user=user, verified=True)
         .order_by("-primary")

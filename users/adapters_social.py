@@ -22,6 +22,11 @@ from django.utils.translation import gettext_lazy as _
 from events.models import Event
 
 
+# Provider key used by django-allauth's Discord integration. Centralized here so the
+# string literal isn't scattered across views and adapter code.
+DISCORD_PROVIDER = "discord"
+
+
 if TYPE_CHECKING:
     from django.http import HttpRequest
 
@@ -100,7 +105,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
            with the same address (requires a verified Discord email).
            If no existing account is found, allauth proceeds to ``save_user`` (new signup).
         """
-        if sociallogin.account.provider != "discord":
+        if sociallogin.account.provider != DISCORD_PROVIDER:
             return
 
         # Step 1: role check
