@@ -33,12 +33,11 @@ COPY uv.lock pyproject.toml /app/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project --no-default-groups --group prod
 
-# Install TailwindCSS
+# Install TailwindCSS (ADD fetches over HTTPS and applies --chmod in one layer)
 ARG PLATFORM=linux-x64
-RUN curl -sSL --proto "=https" --tlsv1.2 \
+ADD --chmod=0555 \
     "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-${PLATFORM}" \
-    -o /usr/local/bin/tailwindcss \
-    && chmod +x /usr/local/bin/tailwindcss
+    /usr/local/bin/tailwindcss
 
 # Copy project
 COPY . /app/
@@ -98,20 +97,19 @@ COPY --from=builder /venv /venv
 ENV PATH="/venv/bin:$PATH"
 
 # Copy only project files necessary for production (read-only for the django user)
-COPY --from=builder --chown=django:django --chmod=0755 /app/manage.py /app/
-COPY --from=builder --chown=django:django --chmod=0755 /app/event_talks /app/event_talks/
-COPY --from=builder --chown=django:django --chmod=0755 /app/events /app/events/
-COPY --from=builder --chown=django:django --chmod=0755 /app/svg /app/svg/
-COPY --from=builder --chown=django:django --chmod=0755 /app/talks /app/talks/
-COPY --from=builder --chown=django:django --chmod=0755 /app/templates /app/templates/
-COPY --from=builder --chown=django:django --chmod=0755 /app/users /app/users/
-COPY --from=builder --chown=django:django --chmod=0755 /app/utils /app/utils/
+COPY --from=builder --chown=django:django --chmod=0555 /app/manage.py /app/
+COPY --from=builder --chown=django:django --chmod=0555 /app/event_talks /app/event_talks/
+COPY --from=builder --chown=django:django --chmod=0555 /app/events /app/events/
+COPY --from=builder --chown=django:django --chmod=0555 /app/svg /app/svg/
+COPY --from=builder --chown=django:django --chmod=0555 /app/talks /app/talks/
+COPY --from=builder --chown=django:django --chmod=0555 /app/templates /app/templates/
+COPY --from=builder --chown=django:django --chmod=0555 /app/users /app/users/
+COPY --from=builder --chown=django:django --chmod=0555 /app/utils /app/utils/
 
-# Install font
-RUN mkdir -p /usr/share/fonts/truetype/noto && \
-    curl -sSL --proto "=https" --tlsv1.2 \
+# Install font (ADD fetches over HTTPS and applies --chmod in one layer)
+ADD --chmod=0444 \
     "https://github.com/notofonts/notofonts.github.io/raw/refs/heads/main/fonts/NotoSans/full/variable-ttf/NotoSans%5Bwdth,wght%5D.ttf" \
-    -o "/usr/share/fonts/truetype/noto/NotoSans.ttf"
+    /usr/share/fonts/truetype/noto/NotoSans.ttf
 
 # Switch to non-root user
 USER django:django
@@ -124,7 +122,7 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl --fail "http://127.0.0.1:8000/ht/?format=json" || exit 1
 
 # Run entrypoint script
-COPY --chown=django:django --chmod=0755 ./docker/docker-entrypoint.sh /usr/local/bin/
+COPY --chown=django:django --chmod=0555 ./docker/docker-entrypoint.sh /usr/local/bin/
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "event_talks.asgi:application"]
