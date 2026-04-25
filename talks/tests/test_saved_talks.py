@@ -85,6 +85,27 @@ class TestSavedTalkModel:
         user.delete()
         assert SavedTalk.objects.count() == 0
 
+    def test_talk_ids_for_returns_empty_set_when_nothing_saved(
+        self,
+        user: CustomUser,
+    ) -> None:
+        """A user who has saved no talks yields an empty set (not ``None``)."""
+        assert SavedTalk.talk_ids_for(user) == set()
+
+    def test_talk_ids_for_scopes_to_requested_user(
+        self,
+        user: CustomUser,
+        other_user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """Only the requested user's saved talks are returned; other users are ignored."""
+        other_talk = baker.make(Talk, title="Other Talk", start_time=timezone.now())
+        SavedTalk.objects.create(user=user, talk=talk)
+        SavedTalk.objects.create(user=other_user, talk=other_talk)
+
+        assert SavedTalk.talk_ids_for(user) == {talk.pk}
+        assert SavedTalk.talk_ids_for(other_user) == {other_talk.pk}
+
     def test_cascade_delete_talk(self, user: CustomUser, talk: Talk) -> None:
         """Deleting a talk cascades to saved entries."""
         SavedTalk.objects.create(user=user, talk=talk)

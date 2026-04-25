@@ -840,3 +840,13 @@ class SavedTalk(models.Model):
     def __str__(self) -> str:
         """Return a string representation of the saved talk."""
         return f"{self.user} saved {self.talk}"
+
+    @classmethod
+    def talk_ids_for(cls, user: CustomUser) -> set[int]:
+        """
+        Return the set of ``Talk`` primary keys this user has saved.
+
+        Templates use the result for fast ``talk.pk in saved_talk_ids`` membership checks on each
+        row of a talk list, which is why a ``set`` (not a queryset) is returned.
+        """
+        return set(cls.objects.filter(user=user).values_list("talk_id", flat=True))

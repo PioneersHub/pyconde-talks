@@ -287,8 +287,8 @@ class TalkListView(ListView[Talk]):
 
         # Build a set of saved talk IDs for the current user
         if self.request.user.is_authenticated:
-            context["saved_talk_ids"] = set(
-                SavedTalk.objects.filter(user=self.request.user).values_list("talk_id", flat=True),
+            context["saved_talk_ids"] = SavedTalk.talk_ids_for(
+                cast("CustomUser", self.request.user),
             )
         else:
             context["saved_talk_ids"] = set()
@@ -401,9 +401,7 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
     ).order_by("start_time")[:8]
     saved_talk_ids: set[int] = set()
     if request.user.is_authenticated:
-        saved_talk_ids = set(
-            SavedTalk.objects.filter(user=request.user).values_list("talk_id", flat=True),
-        )
+        saved_talk_ids = SavedTalk.talk_ids_for(cast("CustomUser", request.user))
     context = {
         "upcoming_talks": talks,
         "saved_talk_ids": saved_talk_ids,
@@ -888,9 +886,7 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
     # Saved talk IDs for bookmark icons
     saved_talk_ids: set[int] = set()
     if request.user.is_authenticated:
-        saved_talk_ids = set(
-            SavedTalk.objects.filter(user=request.user).values_list("talk_id", flat=True),
-        )
+        saved_talk_ids = SavedTalk.talk_ids_for(cast("CustomUser", request.user))
 
     # Filters -----------------------------------------------------------------
     search_query = request.GET.get("q", "").strip()
