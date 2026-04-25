@@ -145,6 +145,13 @@ class QuestionCreateView(CreateView[Question, forms.ModelForm[Question]]):
         return reverse("talk_questions", args=[self.kwargs["talk_id"]])
 
 
+_STATUS_Q: dict[str, Q] = {
+    "approved": Q(status=Question.Status.APPROVED),
+    "answered": Q(status=Question.Status.ANSWERED),
+    "rejected": Q(status=Question.Status.REJECTED),
+}
+
+
 def get_filtered_questions(
     request: HttpRequest,
     talk: Talk,
@@ -155,36 +162,26 @@ def get_filtered_questions(
 
     This function centralizes the filtering logic used in both QuestionListView and vote_question.
     """
-    # Get base queryset of questions for this talk with user prefetched to avoid N+1
     queryset = Question.objects.filter(talk=talk).select_related("user")
 
-    # Filter for user's own questions
     if status_filter == "mine":
         return queryset.filter(user=request.user).sorted_by_votes()
 
-    # Apply filtering based on user permissions and filter selection
-    # For moderators, respect the filter if provided
-    if is_moderator(request.user):
-        if status_filter == "approved":
-            queryset = queryset.filter(status=Question.Status.APPROVED)
-        elif status_filter == "answered":
-            queryset = queryset.filter(status=Question.Status.ANSWERED)
-        elif status_filter == "rejected":
-            queryset = queryset.filter(status=Question.Status.REJECTED)
-        # "all" doesn't need filtering as it shows everything
-    # Regular users can see approved, answered, and their own rejected questions
-    elif status_filter == "approved":
-        queryset = queryset.filter(status=Question.Status.APPROVED)
-    elif status_filter == "answered":
-        queryset = queryset.filter(status=Question.Status.ANSWERED)
-    else:
-        # Default for regular users: show approved and answered, plus their own rejected questions
-        queryset = queryset.filter(
-            Q(status__in=[Question.Status.APPROVED, Question.Status.ANSWERED])
-            | Q(status=Question.Status.REJECTED, user=request.user),
-        )
+    # "approved" and "answered" work the same for everyone
+    if status_filter in ("approved", "answered"):
+        return queryset.filter(_STATUS_Q[status_filter]).sorted_by_votes()
 
-    return queryset.sorted_by_votes()
+    # Moderators can view rejected questions and unfiltered "all"
+    if is_moderator(request.user):
+        if status_filter == "rejected":
+            return queryset.filter(_STATUS_Q["rejected"]).sorted_by_votes()
+        return queryset.sorted_by_votes()
+
+    # Default for regular users: approved + answered, plus their own rejected questions
+    return queryset.filter(
+        Q(status__in=[Question.Status.APPROVED, Question.Status.ANSWERED])
+        | Q(status=Question.Status.REJECTED, user=request.user),
+    ).sorted_by_votes()
 
 
 def build_question_list_context(
