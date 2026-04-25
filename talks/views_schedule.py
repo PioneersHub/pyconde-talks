@@ -154,33 +154,64 @@ def _build_schedule_data(
     return talks, rooms, schedule_items, grid_template_rows, time_labels
 
 
+def _talk_matches_filters(
+    talk: Talk,
+    filters: dict[str, str],
+    saved_talk_ids: set[int],
+) -> bool:
+    """Return True if a talk matches all active filters."""
+    if filters.get("saved") == "1" and talk.pk not in saved_talk_ids:
+        return False
+    filter_track = filters.get("track", "")
+    if filter_track and talk.track != filter_track:
+        return False
+    filter_type = filters.get("presentation_type", "")
+    if filter_type and talk.presentation_type != filter_type:
+        return False
+    search_query = filters.get("q", "")
+    if search_query:
+        q_lower = search_query.lower()
+        if q_lower not in talk.title.lower() and q_lower not in talk.speaker_names.lower():
+            return False
+    return True
+
+
 def _apply_schedule_filters(
     schedule_items: list[dict[str, Any]],
     filters: dict[str, str],
     saved_talk_ids: set[int],
 ) -> list[dict[str, Any]]:
     """Filter schedule items by search text, saved-only, track, and type."""
-    search_query = filters.get("q", "")
-    filter_saved = filters.get("saved", "")
-    filter_track = filters.get("track", "")
-    filter_type = filters.get("presentation_type", "")
-    if not search_query and not filter_saved and not filter_track and not filter_type:
+    if not any(filters.get(k) for k in ("q", "saved", "track", "presentation_type")):
         return schedule_items
-    filtered: list[dict[str, Any]] = []
-    for item in schedule_items:
-        talk: Talk = item["talk"]
-        if filter_saved == "1" and talk.pk not in saved_talk_ids:
-            continue
-        if filter_track and talk.track != filter_track:
-            continue
-        if filter_type and talk.presentation_type != filter_type:
-            continue
-        if search_query:
-            q_lower = search_query.lower()
-            if q_lower not in talk.title.lower() and q_lower not in talk.speaker_names.lower():
-                continue
-        filtered.append(item)
-    return filtered
+    return [
+        item
+        for item in schedule_items
+        if _talk_matches_filters(item["talk"], filters, saved_talk_ids)
+    ]
+
+
+def _resolve_selected_event_id(request: HttpRequest) -> int | None:
+    """Return the event id to filter the schedule by, or None for cross-event view."""
+    event_param = request.GET.get("event", "")
+    if event_param:
+        return int(event_param) if event_param.isdigit() else None
+    default_event = resolve_default_event(request)
+    return default_event.pk if default_event else None  # type: ignore[return-value]
+
+
+def _resolve_selected_date(
+    request: HttpRequest,
+    available_dates: list[date],
+) -> date | None:
+    """Pick the best-available schedule date: user's ?date, today, or the first one."""
+    selected_date = _parse_schedule_date(request.GET.get("date"))
+    if selected_date in available_dates:
+        return selected_date
+    today = timezone.localdate()
+    if today in available_dates:
+        return today
+    return available_dates[0] if available_dates else None
 
 
 def schedule_view(request: HttpRequest) -> HttpResponse:
@@ -192,29 +223,12 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
     """
     user = cast("CustomUser", request.user)
 
-    # Resolve event filter ----------------------------------------------------
-    event_param = request.GET.get("event", "")
-    if event_param:
-        selected_event_id: int | None = int(event_param) if event_param.isdigit() else None
-    else:
-        default_event = resolve_default_event(request)
-        selected_event_id = default_event.pk if default_event else None  # type: ignore[assignment]
-
-    if user.is_superuser:
-        available_events = Event.objects.filter(is_active=True).order_by("name")
-    else:
-        available_events = user.events.filter(is_active=True).order_by("name")
+    selected_event_id = _resolve_selected_event_id(request)
+    events_qs = Event.objects.all() if user.is_superuser else user.events.all()
+    available_events = events_qs.filter(is_active=True).order_by("name")
 
     available_dates = _get_schedule_dates(user, event_id=selected_event_id)
-
-    # Resolve selected date ---------------------------------------------------
-    selected_date = _parse_schedule_date(request.GET.get("date"))
-    if selected_date not in available_dates:
-        today = timezone.localdate()
-        if today in available_dates:
-            selected_date = today
-        else:
-            selected_date = available_dates[0] if available_dates else None
+    selected_date = _resolve_selected_date(request, available_dates)
 
     # Build grid data ---------------------------------------------------------
     talks: list[Talk] = []
