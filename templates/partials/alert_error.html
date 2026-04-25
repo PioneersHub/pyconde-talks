@@ -1,0 +1,8 @@
+{# Inline error alert used across login and account forms. Pass `message` and optionally `icon` (defaults to exclamation-circle). #}
+{% load svg_tags %}
+{% if message %}
+  <div class="alert-error mb-4 flex items-start gap-2" role="alert">
+    {% svg icon|default:"exclamation-circle" "flex-shrink-0 mt-0.5" %}
+    <span>{{ message }}</span>
+  </div>
+{% endif %}
