@@ -28,6 +28,7 @@ DISCORD_PROVIDER = "discord"
 
 
 if TYPE_CHECKING:
+    from allauth.socialaccount.models import SocialLogin
     from django.http import HttpRequest
 
     from users.models import CustomUser
@@ -93,7 +94,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
     # allauth hooks
     # ------------------------------------------------------------------
 
-    def pre_social_login(self, request: HttpRequest, sociallogin: Any) -> None:
+    def pre_social_login(self, request: HttpRequest, sociallogin: SocialLogin) -> None:
         """
         Run after Discord authenticates the user but before the session is created.
 
@@ -111,7 +112,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
         # Step 1: role check
         try:
             member_role_ids = self._fetch_member_role_ids(
-                token=sociallogin.token.token,
+                token=sociallogin.token.token,  # type: ignore[union-attr]
                 guild_id=settings.DISCORD_GUILD_ID,
             )
         except _DiscordNotInGuildError:
@@ -144,15 +145,20 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
                 and sociallogin.user != current_user
             ):
                 self._try_merge_accounts(request, sociallogin)
-            self._add_default_event(sociallogin.user)
+            self._add_default_event(cast("CustomUser", sociallogin.user))
             return
 
         # Step 3: new social login - connect to existing email account if possible
         self._connect_to_existing_account(request, sociallogin)
 
-    def save_user(self, request: HttpRequest, sociallogin: Any, form: Any = None) -> Any:
+    def save_user(
+        self,
+        request: HttpRequest,
+        sociallogin: SocialLogin,
+        form: Any = None,
+    ) -> CustomUser:
         """Persist a brand-new user and set initial permissions based on Discord roles."""
-        user = super().save_user(request, sociallogin, form)
+        user = cast("CustomUser", super().save_user(request, sociallogin, form))
         self._grant_role_permissions(user, self._matched_roles(sociallogin))
         self._add_default_event(user)
         return user
@@ -164,7 +170,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
     def _try_merge_accounts(
         self,
         request: HttpRequest,
-        sociallogin: Any,
+        sociallogin: SocialLogin,
     ) -> None:
         """
         Merge an orphan social-only account into the authenticated user.
@@ -177,7 +183,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
         4. Deletes the orphan user.
         """
         current_user = cast("CustomUser", request.user)
-        orphan_user = sociallogin.user
+        orphan_user = cast("CustomUser", sociallogin.user)
 
         # The current user must have an API-validated email.
         verified_email = (
@@ -225,7 +231,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
     def _connect_to_existing_account(
         self,
         request: HttpRequest,
-        sociallogin: Any,
+        sociallogin: SocialLogin,
     ) -> None:
         """
         Connect the social account to an existing email-based account.
@@ -274,7 +280,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
         }
 
     @staticmethod
-    def _add_default_event(user: Any) -> None:
+    def _add_default_event(user: CustomUser) -> None:
         """Associate the user with the DEFAULT_EVENT if configured."""
         slug = getattr(settings, "DEFAULT_EVENT", "")
         if not slug:
@@ -289,11 +295,11 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
             logger.info("Associated user with default event", user_pk=user.pk, event_slug=slug)
 
     @staticmethod
-    def _matched_roles(sociallogin: Any) -> set[str]:
+    def _matched_roles(sociallogin: SocialLogin) -> set[str]:
         """Return the set of allowed Discord role names stored by ``pre_social_login``."""
         return set(sociallogin.account.extra_data.get("matched_roles", []))
 
-    def _grant_role_permissions(self, user: Any, matched_names: set[str]) -> None:
+    def _grant_role_permissions(self, user: CustomUser, matched_names: set[str]) -> None:
         """
         Additively grant ``is_superuser`` / ``is_staff`` based on Discord roles.
 
