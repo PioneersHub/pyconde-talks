@@ -199,6 +199,18 @@ class CustomUser(AbstractUser):
         super().clean()
         self.email = self.email.lower()
 
+    def visible_events(self) -> models.QuerySet[Event]:
+        """
+        Return active events visible to this user, ordered by name.
+
+        Superusers see all active events; regular users see only their linked events.
+        """
+        # Resolve the Event model from the M2M descriptor so we don't need a
+        # runtime import of events.models (which would be circular).
+        event_model = self.events.model
+        base = event_model.objects.all() if self.is_superuser else self.events.all()
+        return base.filter(is_active=True).order_by("name")
+
     def save(self, *args: Any, **kwargs: Any) -> None:
         """Save superuser with a password and non-superusers without a password."""
         if self.is_superuser and not self.password:

@@ -8,7 +8,6 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_safe
 
-from events.models import Event
 from events.session import resolve_default_event
 
 from .models import FAR_FUTURE, Room, SavedTalk, Talk
@@ -226,8 +225,7 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
     user = cast("CustomUser", request.user)
 
     selected_event_id = _resolve_selected_event_id(request)
-    events_qs = Event.objects.all() if user.is_superuser else user.events.all()
-    available_events = events_qs.filter(is_active=True).order_by("name")
+    available_events = user.visible_events()
 
     available_dates = _get_schedule_dates(user, event_id=selected_event_id)
     selected_date = _resolve_selected_date(request, available_dates)

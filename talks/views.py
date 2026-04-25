@@ -215,10 +215,7 @@ class TalkListView(ListView[Talk]):
 
         # Event filter options & selection
         user = cast("CustomUser", self.request.user)
-        if user.is_superuser:
-            context["events"] = Event.objects.filter(is_active=True).order_by("name")
-        else:
-            context["events"] = user.events.filter(is_active=True).order_by("name")
+        context["events"] = user.visible_events()
 
         event_param = self.request.GET.get("event", "")
         if event_param:
@@ -319,10 +316,7 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
     current_date = timezone.now().date()
 
     # Determine which events the user may see
-    if user.is_superuser:
-        events = Event.objects.filter(is_active=True).order_by("name")
-    else:
-        events = user.events.filter(is_active=True).order_by("name")
+    events = user.visible_events()
 
     event_ids = list(events.values_list("id", flat=True))
 
