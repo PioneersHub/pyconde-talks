@@ -9,7 +9,6 @@ from .views import (
     delete_rating,
     get_talk_rating_stats,
     rate_talk,
-    schedule_view,
     talk_redirect_view,
     toggle_save_talk,
     upcoming_talks,
@@ -25,6 +24,7 @@ from .views_qa import (
     reject_question,
     vote_question,
 )
+from .views_schedule import schedule_view
 
 
 urlpatterns = [
