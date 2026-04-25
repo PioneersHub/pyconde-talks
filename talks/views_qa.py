@@ -428,9 +428,9 @@ def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
 
 
 @require_safe
-def question_redirect_view(_: HttpRequest, talk_id: str) -> HttpResponse:
+def question_redirect_view(request: HttpRequest, talk_id: str) -> HttpResponse:
     """Get talk question view by Talk ID or pretalx_id."""
-    talk = get_talk_by_id_or_pretalx(talk_id)
+    talk = get_talk_by_id_or_pretalx(talk_id, user=cast("CustomUser", request.user))
     if talk:
         return redirect("talk_questions", talk_id=talk.pk)
     msg = f"No talk found with ID or pretalx ID: {talk_id}"

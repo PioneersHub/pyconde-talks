@@ -410,9 +410,9 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
 
 
 @require_safe
-def talk_redirect_view(_: HttpRequest, talk_id: str) -> HttpResponse:
+def talk_redirect_view(request: HttpRequest, talk_id: str) -> HttpResponse:
     """Get talk detail view by Talk ID or Pretalx ID."""
-    talk = get_talk_by_id_or_pretalx(talk_id)
+    talk = get_talk_by_id_or_pretalx(talk_id, user=cast("CustomUser", request.user))
     if talk:
         return redirect("talk_detail", pk=talk.pk)
     msg = f"No talk found with ID or Pretalx ID: {talk_id}"
