@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 from django.conf import settings
 
 from events.models import Event
+from events.session import get_selected_event_slug
 from users.models import CustomUser
 
 
@@ -38,7 +39,7 @@ def _get_current_event(request: HttpRequest) -> Event | None:
 
     For anonymous users the DEFAULT_EVENT setting is used, then the first active event.
     """
-    session_slug: str = getattr(request, "session", {}).get("selected_event_slug", "")
+    session_slug = get_selected_event_slug(request)
     default_slug: str = getattr(settings, "DEFAULT_EVENT", "")
 
     if hasattr(request, "user") and request.user.is_authenticated:

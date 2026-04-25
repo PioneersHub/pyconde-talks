@@ -27,6 +27,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from events.models import Event
+from events.session import set_selected_event_slug
 from users.validators import validate_display_name
 from utils.email_utils import hash_email, obfuscate_email
 
@@ -62,8 +63,8 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
 
         # Persist the selected event slug in the session so the context
         # processor can use it after login to resolve branding.
-        if event and hasattr(self.request, "session"):
-            self.request.session["selected_event_slug"] = event.slug
+        if event:
+            set_selected_event_slug(self.request, event.slug)
 
         return event
 

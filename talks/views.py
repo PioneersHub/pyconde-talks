@@ -8,7 +8,6 @@ including listing, detail views, and statistics.
 from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
-from django.conf import settings as django_settings
 from django.contrib import messages
 from django.db import IntegrityError
 from django.db.models import Avg, Count, F, Q
@@ -23,6 +22,7 @@ from django.views.decorators.vary import vary_on_cookie
 from django.views.generic import DetailView, ListView
 
 from events.models import Event
+from events.session import resolve_default_event
 
 from .models import (
     COMMENT_MAX_LENGTH,
@@ -41,20 +41,6 @@ if TYPE_CHECKING:
     from django.db.models.query import QuerySet
 
     from users.models import CustomUser
-
-
-def _resolve_default_event(request: HttpRequest) -> Event | None:
-    """Resolve the default event from session or DEFAULT_EVENT setting."""
-    session_slug: str = getattr(request, "session", {}).get("selected_event_slug", "")
-    default_slug: str = getattr(django_settings, "DEFAULT_EVENT", "")
-
-    for slug in (session_slug, default_slug):
-        if slug:
-            event = Event.objects.filter(slug=slug, is_active=True).first()
-            if event:
-                return event
-
-    return Event.objects.filter(is_active=True).first()
 
 
 def _can_see_rating_summary(user: Any, event: Event | None) -> bool:
@@ -176,7 +162,7 @@ class TalkListView(ListView[Talk]):
             queryset = queryset.filter(event_id=event_id)
         else:
             # No explicit selection: default to the resolved current event
-            default_event = _resolve_default_event(self.request)
+            default_event = resolve_default_event(self.request)
             if default_event:
                 queryset = queryset.filter(event=default_event)
         return queryset
@@ -239,7 +225,7 @@ class TalkListView(ListView[Talk]):
         if event_param:
             context["selected_event"] = event_param
         else:
-            default_event = _resolve_default_event(self.request)
+            default_event = resolve_default_event(self.request)
             context["selected_event"] = str(default_event.pk) if default_event else ""
 
         # Scope filter options to selected event/search, not current room/date/track/type
@@ -323,7 +309,7 @@ class TalkListView(ListView[Talk]):
         if event_param and event_param != "all":
             return Event.objects.filter(pk=event_param).first()
         if not event_param:
-            return _resolve_default_event(self.request)
+            return resolve_default_event(self.request)
         return None
 
 
@@ -423,7 +409,7 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
         "saved_talk_ids": saved_talk_ids,
         "show_rating_summary": _can_see_rating_summary(
             request.user,
-            _resolve_default_event(request),
+            resolve_default_event(request),
         ),
     }
     return render(request, "talks/partials/upcoming_talks.html", context)
@@ -866,7 +852,7 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
     if event_param:
         selected_event_id: int | None = int(event_param) if event_param.isdigit() else None
     else:
-        default_event = _resolve_default_event(request)
+        default_event = resolve_default_event(request)
         selected_event_id = default_event.pk if default_event else None  # type: ignore[assignment]
 
     if user.is_superuser:
