@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% load partials %}
 {% load svg_tags %}
 {% block title %}
   {% translate "Questions for" %} {{ talk.title }}
@@ -70,9 +69,9 @@
       </form>
     </div>
     <!-- Question list -->
-    {% startpartial question-list %}
+    {% partialdef question-list %}
     {% include "talks/questions/question_list_fragment.html" %}
-  {% endpartial %}
+  {% endpartialdef %}
   <div id="question-list-container">{% partial question-list %}</div>
 </div>
 {% endblock content %}

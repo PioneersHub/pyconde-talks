@@ -98,7 +98,6 @@ THIRD_PARTY_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.discord",
     "django_htmx",
-    "template_partials",
     "markdownify.apps.MarkdownifyConfig",
     "health_check",
     "anymail",

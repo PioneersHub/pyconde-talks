@@ -40,7 +40,7 @@ emailaddress
 enablejsapi
 endblocktranslate
 endfor
-endpartial
+endpartialdef
 endwith
 esbenp
 escapejs
@@ -114,6 +114,7 @@ oninput
 onsubmit
 openpyxl
 organiser
+partialdef
 passwordless
 pgdata
 phont
@@ -155,7 +156,6 @@ slido
 socialaccount
 sociallogin
 sqlite
-startpartial
 staticfiles
 stringformat
 striptags

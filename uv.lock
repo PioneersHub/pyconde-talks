@@ -7,12 +7,12 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-04-24T13:22:41.681456Z"
+exclude-newer = "2026-04-24T13:23:17.961842Z"
 exclude-newer-span = "P1D"
 
 [options.exclude-newer-package]
-zuban = { timestamp = "2026-04-25T01:22:41.681465Z", span = "PT12H" }
-ruff = { timestamp = "2026-04-25T01:22:41.681461Z", span = "PT12H" }
+zuban = { timestamp = "2026-04-25T01:23:17.961852Z", span = "PT12H" }
+ruff = { timestamp = "2026-04-25T01:23:17.961847Z", span = "PT12H" }
 
 [[package]]
 name = "annotated-types"
@@ -635,18 +635,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/fb/e6/5dcdaa785ec3eed5fc196c7e68fb7ad9d9fe6d5acccea4690e65f2546417/django_stubs_ext-6.0.3.tar.gz", hash = "sha256:3307d42132bc295d5744de6276bc5fdf6896efc70f891e21c0ae8bdf529d2762", size = 6663, upload-time = "2026-04-18T15:10:53.667Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/10/fa/0a3a05c29d6295dbd52fa3cb4047a95de11ba4f2696072d6f3f2c1e6f370/django_stubs_ext-6.0.3-py3-none-any.whl", hash = "sha256:9e4105955419ae310d7da9cfd808e039d4dae3092c628f021057bb4f2c237f8f", size = 10354, upload-time = "2026-04-18T15:10:52.395Z" },
-]
-
-[[package]]
-name = "django-template-partials"
-version = "25.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "django" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b0/2e/957ee4a6ee0a7d46a18676ba8b01d762ef89d00b7769cc532853f9f989e1/django_template_partials-25.3.tar.gz", hash = "sha256:6d11f7bb049ce3032e6fe3331137b771e34239ce1af18c55ef6a9b667cf2ef36", size = 18052, upload-time = "2025-11-14T08:27:21.917Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9b/9d/48f8721e48b938ca2e2dde577986624543be6ff9bdccac20ccb747be4287/django_template_partials-25.3-py2.py3-none-any.whl", hash = "sha256:a19334934cf40e4e1218802a4ddfdf22b8f78cc5a0b8c75a18b97e6ea4f3c108", size = 9702, upload-time = "2025-11-14T08:27:20.243Z" },
 ]
 
 [[package]]
@@ -1521,7 +1509,6 @@ dependencies = [
     { name = "django-markdownify" },
     { name = "django-structlog" },
     { name = "django-stubs-ext" },
-    { name = "django-template-partials" },
     { name = "emoji" },
     { name = "furl" },
     { name = "httpx" },
@@ -1575,7 +1562,6 @@ requires-dist = [
     { name = "django-markdownify", specifier = ">=0.9.6" },
     { name = "django-structlog", specifier = ">=10.0.0" },
     { name = "django-stubs-ext", specifier = ">=6.0.3" },
-    { name = "django-template-partials", specifier = ">=25.3" },
     { name = "emoji", specifier = ">=1.7,<2" },
     { name = "furl", specifier = ">=2.1.4" },
     { name = "httpx", specifier = ">=0.28.1" },

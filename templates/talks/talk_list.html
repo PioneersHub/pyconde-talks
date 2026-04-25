@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load partials %}
 {% load svg_tags %}
 {% load highlight %}
 {% load rating_tags %}
@@ -138,7 +137,7 @@
       </form>
     </div>
     <!-- Define the talks partial -->
-    {% startpartial talk-list %}
+    {% partialdef talk-list %}
     {% if is_htmx_request %}
       {# OOB-swap all filter dropdowns so they stay in sync with the selected event. #}
       {# djlint:off H025 #}
@@ -276,7 +275,7 @@
         <div class="bg-surface p-4 rounded text-center text-subtle">No talks found</div>
       {% endfor %}
     </div>
-  {% endpartial %}
+  {% endpartialdef %}
   <!-- Talks container that references the partial -->
   <div id="talks-container"
        class="space-y-4"
