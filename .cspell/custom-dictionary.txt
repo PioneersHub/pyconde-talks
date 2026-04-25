@@ -19,6 +19,7 @@ cffi
 charliermarsh
 Cleese
 collectstatic
+configfile
 conftest
 createsuperuser
 createuser
