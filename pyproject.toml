@@ -71,6 +71,8 @@ dev = [
     "zuban>=0.7.0",
 ]
 test = [
+    "hypothesis>=6.152.1",
+    "inline-snapshot>=0.32.7",
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
     "pytest-django>=4.12.0",
