@@ -97,14 +97,14 @@ COPY --from=builder /venv /venv
 ENV PATH="/venv/bin:$PATH"
 
 # Copy only project files necessary for production (read-only for the django user)
-COPY --from=builder --chown=django:django --chmod=0555 /app/manage.py /app/
-COPY --from=builder --chown=django:django --chmod=0555 /app/event_talks /app/event_talks/
-COPY --from=builder --chown=django:django --chmod=0555 /app/events /app/events/
-COPY --from=builder --chown=django:django --chmod=0555 /app/svg /app/svg/
-COPY --from=builder --chown=django:django --chmod=0555 /app/talks /app/talks/
-COPY --from=builder --chown=django:django --chmod=0555 /app/templates /app/templates/
-COPY --from=builder --chown=django:django --chmod=0555 /app/users /app/users/
-COPY --from=builder --chown=django:django --chmod=0555 /app/utils /app/utils/
+COPY --from=builder --chown=root:root --chmod=0555 /app/manage.py /app/
+COPY --from=builder --chown=root:root --chmod=0555 /app/event_talks /app/event_talks/
+COPY --from=builder --chown=root:root --chmod=0555 /app/events /app/events/
+COPY --from=builder --chown=root:root --chmod=0555 /app/svg /app/svg/
+COPY --from=builder --chown=root:root --chmod=0555 /app/talks /app/talks/
+COPY --from=builder --chown=root:root --chmod=0555 /app/templates /app/templates/
+COPY --from=builder --chown=root:root --chmod=0555 /app/users /app/users/
+COPY --from=builder --chown=root:root --chmod=0555 /app/utils /app/utils/
 
 # Install font (ADD fetches over HTTPS and applies --chmod in one layer)
 ADD --chmod=0444 \
@@ -122,7 +122,7 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl --fail "http://127.0.0.1:8000/ht/?format=json" || exit 1
 
 # Run entrypoint script
-COPY --chown=django:django --chmod=0555 ./docker/docker-entrypoint.sh /usr/local/bin/
+COPY --chown=root:root --chmod=0555 ./docker/docker-entrypoint.sh /usr/local/bin/
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "event_talks.asgi:application"]
