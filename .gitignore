@@ -48,3 +48,6 @@ static/css/tailwind.min.css
 # Test coverage
 .coverage
 lcov.info
+
+# Reports (Ruff, Bandit, coverage, etc.)
+reports/

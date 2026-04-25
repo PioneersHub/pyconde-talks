@@ -179,7 +179,8 @@ addopts = [
     "--tb=short",
     "--cov=.",
     "--cov-report=term",
-    "--cov-report=lcov:lcov.info",
+    "--cov-report=lcov:reports/lcov.info",
+    "--cov-report=xml:reports/coverage.xml",
     "--verbose",
 ]
 
