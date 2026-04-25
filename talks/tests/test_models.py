@@ -13,8 +13,10 @@ from django.test import override_settings
 from django.utils import timezone
 from model_bakery import baker
 
+from events.models import Event
 from talks.models import Room, Talk
 from talks.types import VideoProvider
+from users.models import CustomUser
 
 
 @pytest.mark.django_db
@@ -194,3 +196,43 @@ class TestTalkRoomConflict:
         now = timezone.now()
         talk = baker.make(Talk, room=room, start_time=now, duration=timedelta(minutes=30))
         talk.clean()  # Should not raise
+
+
+@pytest.mark.django_db
+class TestAccessibleTo:
+    """Tests for ``Talk.objects.accessible_to(user)``."""
+
+    def test_superuser_sees_everything(self) -> None:
+        """Superusers bypass the event filter entirely, regardless of event membership."""
+        event_a = baker.make(Event, slug="a")
+        event_b = baker.make(Event, slug="b")
+        talk_a = baker.make(Talk, event=event_a)
+        talk_b = baker.make(Talk, event=event_b)
+        orphan = baker.make(Talk, event=None)
+
+        su = baker.make(CustomUser, email="root@example.com", is_superuser=True)
+
+        assert set(Talk.objects.accessible_to(su)) == {talk_a, talk_b, orphan}
+
+    def test_regular_user_sees_only_their_events_and_orphans(self) -> None:
+        """A regular user sees talks for their events plus talks with no event."""
+        event_a = baker.make(Event, slug="a")
+        event_b = baker.make(Event, slug="b")
+        talk_a = baker.make(Talk, event=event_a)
+        baker.make(Talk, event=event_b)  # not accessible
+        orphan = baker.make(Talk, event=None)
+
+        user = baker.make(CustomUser, email="u@example.com")
+        user.events.add(event_a)
+
+        assert set(Talk.objects.accessible_to(user)) == {talk_a, orphan}
+
+    def test_user_without_any_events_still_sees_orphans(self) -> None:
+        """A user with no event memberships only sees talks that have no event set."""
+        event_a = baker.make(Event, slug="a")
+        baker.make(Talk, event=event_a)  # not accessible
+        orphan = baker.make(Talk, event=None)
+
+        user = baker.make(CustomUser, email="newcomer@example.com")
+
+        assert list(Talk.objects.accessible_to(user)) == [orphan]

@@ -7,13 +7,13 @@ metadata, scheduling information, and video links.
 
 from datetime import UTC, datetime, timedelta
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, Self
 from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Avg, Count, ExpressionWrapper, F
+from django.db.models import Avg, Count, ExpressionWrapper, F, Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -24,6 +24,8 @@ from utils.url import add_query_param
 
 if TYPE_CHECKING:
     from django_stubs_ext.db.models.manager import RelatedManager
+
+    from users.models import CustomUser
 
 
 # Constants
@@ -243,6 +245,22 @@ def _talk_image_upload_path(instance: Talk, filename: str) -> str:
     return f"talk_images/{filename}"
 
 
+class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
+    """Custom queryset for ``Talk`` with access-control helpers."""
+
+    def accessible_to(self, user: CustomUser) -> Self:
+        """
+        Return talks the given user is allowed to see.
+
+        Superusers see every talk. Any other user only sees talks whose event they have access to,
+        plus talks with no event set at all (useful for seed or demo data that is intentionally
+        unattached to a specific conference).
+        """
+        if user.is_superuser:
+            return self
+        return self.filter(Q(event__isnull=True) | Q(event__in=user.events.all()))
+
+
 class Talk(models.Model):
     """Represents a conference talk."""
 
@@ -372,6 +390,8 @@ class Talk(models.Model):
     )
 
     ratings: RelatedManager[Rating]
+
+    objects: ClassVar[TalkQuerySet] = TalkQuerySet.as_manager()  # type: ignore[assignment]
 
     class Meta:
         """Metadata options for the Talk model."""

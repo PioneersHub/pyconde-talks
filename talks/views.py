@@ -79,14 +79,8 @@ class TalkDetailView(DetailView[Talk]):
 
     def get_queryset(self) -> QuerySet[Talk]:
         """Optimize query with related data."""
-        qs = Talk.objects.select_related("room").prefetch_related("speakers")
-        # Restrict to talks for events the user has access to
         user = cast("CustomUser", self.request.user)
-        if not user.is_superuser:
-            qs = qs.filter(
-                Q(event__isnull=True) | Q(event__in=user.events.all()),
-            )
-        return qs
+        return Talk.objects.select_related("room").prefetch_related("speakers").accessible_to(user)
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Enhance context with rating statistics and user's existing rating."""
@@ -159,20 +153,13 @@ class TalkListView(ListView[Talk]):
     def _base_queryset(self) -> QuerySet[Talk]:
         """Return talks scoped to user access with list-view optimizations."""
         # Defer large text fields not needed in list view to reduce memory usage
-        queryset: QuerySet[Talk] = (
+        user = cast("CustomUser", self.request.user)
+        return (
             Talk.objects.select_related("room")
             .prefetch_related("speakers")
             .defer("description", "abstract")
+            .accessible_to(user)
         )
-
-        # Restrict to talks for events the user has access to
-        user = cast("CustomUser", self.request.user)
-        if not user.is_superuser:
-            queryset = queryset.filter(
-                Q(event__isnull=True) | Q(event__in=user.events.all()),
-            )
-
-        return queryset
 
     def _filter_options_queryset(self) -> QuerySet[Talk]:
         """Return talks used to build filter options for the selected event/search scope."""
@@ -754,19 +741,16 @@ def _slice_name(dt: datetime) -> str:
 
 def _get_schedule_dates(user: CustomUser, event_id: int | None = None) -> list[date]:
     """Return available schedule dates, filtered by user event access and optional event."""
+    # Apply the event/access filter on the Talk queryset before collapsing to dates, otherwise
+    # `accessible_to` is no longer available on the post-`values_list` queryset type.
+    talks_qs = Talk.objects.exclude(start_time__year=FAR_FUTURE.year)
+    talks_qs = talks_qs.filter(event_id=event_id) if event_id else talks_qs.accessible_to(user)
     date_qs = (
-        Talk.objects.exclude(start_time__year=FAR_FUTURE.year)
-        .annotate(date=TruncDate("start_time"))
+        talks_qs.annotate(date=TruncDate("start_time"))
         .values_list("date", flat=True)
         .distinct()
         .order_by("date")
     )
-    if event_id:
-        date_qs = date_qs.filter(event_id=event_id)
-    elif not user.is_superuser:
-        date_qs = date_qs.filter(
-            Q(event__isnull=True) | Q(event__in=user.events.all()),
-        )
     return list(date_qs)
 
 
@@ -788,12 +772,7 @@ def _build_schedule_data(
         .defer("description", "abstract")
         .order_by("start_time", "room__name")
     )
-    if event_id:
-        talks_qs = talks_qs.filter(event_id=event_id)
-    elif not user.is_superuser:
-        talks_qs = talks_qs.filter(
-            Q(event__isnull=True) | Q(event__in=user.events.all()),
-        )
+    talks_qs = talks_qs.filter(event_id=event_id) if event_id else talks_qs.accessible_to(user)
     talks = list(talks_qs)
 
     # Unique rooms ordered by name
