@@ -163,14 +163,8 @@ def get_filtered_questions(
         return queryset.filter(user=request.user).sorted_by_votes()
 
     # Apply filtering based on user permissions and filter selection
-    user_is_moderator = getattr(request.user, "is_staff", False) or getattr(
-        request.user,
-        "is_superuser",
-        False,
-    )
-
     # For moderators, respect the filter if provided
-    if user_is_moderator:
+    if is_moderator(request.user):
         if status_filter == "approved":
             queryset = queryset.filter(status=Question.Status.APPROVED)
         elif status_filter == "answered":
