@@ -308,7 +308,7 @@ class TestPreSocialLogin:
         request = rf.get("/")
         with pytest.raises(ImmediateHttpResponse) as exc_info:
             adapter.pre_social_login(request, sl)
-        assert "not_in_server" in exc_info.value.response.url
+        assert "not_in_server" in exc_info.value.response.headers["Location"]
 
     @patch.object(SocialAccountAdapter, "_fetch_member_role_ids")
     def test_http_error_rejected(
@@ -324,7 +324,7 @@ class TestPreSocialLogin:
         request = rf.get("/")
         with pytest.raises(ImmediateHttpResponse) as exc_info:
             adapter.pre_social_login(request, sl)
-        assert "discord_error" in exc_info.value.response.url
+        assert "discord_error" in exc_info.value.response.headers["Location"]
 
     @patch.object(SocialAccountAdapter, "_fetch_member_role_ids")
     def test_no_allowed_roles_rejected(
@@ -340,7 +340,7 @@ class TestPreSocialLogin:
         request = rf.get("/")
         with pytest.raises(ImmediateHttpResponse) as exc_info:
             adapter.pre_social_login(request, sl)
-        assert "missing_role" in exc_info.value.response.url
+        assert "missing_role" in exc_info.value.response.headers["Location"]
 
     @patch.object(SocialAccountAdapter, "_fetch_member_role_ids")
     def test_existing_social_account_passes_through(
