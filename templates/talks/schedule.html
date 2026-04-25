@@ -131,20 +131,11 @@
                   </div>
                 </a>
                 {# ── Bookmark toggle button ──────── #}
-                <div class="absolute top-1 right-1" id="sched-save-{{ talk.pk }}">
-                  <button hx-post="{% url 'toggle_save_talk' talk.pk %}"
-                          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                          hx-target="#sched-save-{{ talk.pk }}"
-                          hx-swap="innerHTML"
-                          class="p-1 rounded hover:bg-black/10 transition-colors {% if talk.pk|is_in:saved_talk_ids %}text-yellow-500{% else %}text-gray-400{% endif %}"
-                          title="{% if talk.pk|is_in:saved_talk_ids %}Remove bookmark{% else %}Bookmark talk{% endif %}">
-                    {% if talk.pk|is_in:saved_talk_ids %}
-                      {% svg 'bookmark-solid' "h-4 w-4" %}
-                    {% else %}
-                      {% svg 'bookmark' "h-4 w-4" %}
-                    {% endif %}
-                  </button>
-                </div>
+                {% with is_saved=talk.pk|is_in:saved_talk_ids %}
+                  <div class="absolute top-1 right-1" id="sched-save-{{ talk.pk }}">
+                    {% include "talks/partials/schedule_save_button.html" %}
+                  </div>
+                {% endwith %}
               </div>
             {% endwith %}
           {% endfor %}
