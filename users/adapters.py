@@ -202,6 +202,26 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
             logger.exception("Database error checking privileged status", email=email_hash)
         return False
 
+    def _safe_call_validation_api(
+        self,
+        email: str,
+        api_url: str,
+        email_hash: str,
+        context_msg: str,
+    ) -> dict[str, Any] | None:
+        """Call the validation API, returning ``None`` (and logging) on any error."""
+        try:
+            return self._call_validation_api(email, api_url)
+        except httpx.TimeoutException:  # pragma: no cover
+            logger.warning("Timeout %s", context_msg, email=email_hash)
+        except httpx.ConnectError:  # pragma: no cover
+            logger.warning("Connection error %s", context_msg, email=email_hash)
+        except JSONDecodeError, httpx.HTTPError:  # pragma: no cover
+            logger.warning("API error %s", context_msg, email=email_hash)
+        except Exception:  # pragma: no cover
+            logger.exception("Unexpected error %s", context_msg, email=email_hash)
+        return None
+
     def _validate_email_for_event(
         self,
         email: str,
@@ -222,27 +242,12 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
             )
             return False
 
-        is_valid = False
-        try:
-            data = self._call_validation_api(email, api_url)
-            is_valid = data.get("valid", False)
-
-            if is_valid:
-                logger.info("Successfully validated email", email=email_hash)
-            else:
-                logger.warning("Email validation failed", email=email_hash)
-
-        except httpx.TimeoutException:  # pragma: no cover
-            logger.warning("Timeout validating email", email=email_hash)
-        except httpx.ConnectError:  # pragma: no cover
-            logger.warning("Connection error validating email", email=email_hash)
-        except JSONDecodeError:  # pragma: no cover
-            logger.warning("Invalid JSON response validating email", email=email_hash)
-        except httpx.HTTPError as exc:  # pragma: no cover
-            logger.warning("Request error validating email", email=email_hash, error=str(exc))
-        except Exception:  # pragma: no cover
-            logger.exception("Unexpected error validating email", email=email_hash)
-
+        data = self._safe_call_validation_api(email, api_url, email_hash, "validating email")
+        is_valid = bool(data and data.get("valid", False))
+        if is_valid:
+            logger.info("Successfully validated email", email=email_hash)
+        else:
+            logger.warning("Email validation failed", email=email_hash)
         return is_valid
 
     @staticmethod
@@ -319,22 +324,15 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
             return False
 
         for api_url in api_urls:
-            try:
-                data = self._call_validation_api(email, api_url)
-                if data.get("valid", False):
-                    logger.info("Email validated for independent login", email=email_hash)
-                    return True
-            except httpx.TimeoutException:
-                logger.warning("Timeout checking email login viability", email=email_hash)
-            except httpx.ConnectError:
-                logger.warning("Connection error checking email login viability", email=email_hash)
-            except JSONDecodeError, httpx.HTTPError:
-                logger.warning("API error checking email login viability", email=email_hash)
-            except Exception:
-                logger.exception(
-                    "Unexpected error checking email login viability",
-                    email=email_hash,
-                )
+            data = self._safe_call_validation_api(
+                email,
+                api_url,
+                email_hash,
+                "checking email login viability",
+            )
+            if data and data.get("valid", False):
+                logger.info("Email validated for independent login", email=email_hash)
+                return True
 
         return False
 
