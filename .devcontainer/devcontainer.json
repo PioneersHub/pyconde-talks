@@ -12,7 +12,7 @@
   // "forwardPorts": [],
 
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "bash .vscode/scripts/dev-setup.sh"
+  "postCreateCommand": "bash scripts/dev-setup.sh"
 
   // Configure tool-specific properties.
   // "customizations": {},

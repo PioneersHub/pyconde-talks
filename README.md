@@ -54,6 +54,7 @@ pyconde-talks/
 ├── utils/                  # Email hashing, URL helpers
 ├── templates/              # Django templates (base, home, talks, users, account)
 ├── assets/css/             # Tailwind CSS source (input.css)
+├── scripts/                # Project automation scripts (including dev-setup.sh)
 ├── static/                 # Compiled CSS/JS and per-event images
 ├── svg/                    # SVG icons loaded via template tag
 ├── docker/                 # Dockerfile, compose.yaml, entrypoint, backup scripts
@@ -100,7 +101,7 @@ To set up locally instead, run:
 
 ```bash
 RUN_SERVER=true PRETALX_SYNC=false IMPORT_STREAMS=false GEN_FAKE_DATA=true \
-  .vscode/scripts/dev-setup.sh
+  scripts/dev-setup.sh
 ```
 
 This script will:
