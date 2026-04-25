@@ -141,6 +141,10 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-cross-origin-opener-policy
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 
+# https://docs.djangoproject.com/en/dev/ref/settings/#data-upload-max-number-fields
+# Increase the limit to allow managing all users at once
+DATA_UPLOAD_MAX_NUMBER_FIELDS = env.int("DATA_UPLOAD_MAX_NUMBER_FIELDS", default=3_000)
+
 
 # --------------------------------------------------------------------------------------------------
 # ADMIN
