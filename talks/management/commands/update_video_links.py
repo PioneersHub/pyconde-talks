@@ -1,7 +1,7 @@
 """
 Management command for updating the video links with rough cuts from Vimeo.
 
-Assumes the video name is in the format {pretalx_id}_{title}.
+Assumes the video name is in the format {pretalx_id}{SEPARATOR}{title}.
 """
 
 from itertools import chain
@@ -13,6 +13,9 @@ from django.core.management.base import BaseCommand, CommandParser
 from django.db import transaction
 
 from talks.models import Talk
+
+
+SEPARATOR = "-"
 
 
 class Command(BaseCommand):
@@ -72,7 +75,7 @@ class Command(BaseCommand):
     def update_video_links(self, vimeo_data: dict[str, str]) -> None:
         """Update video links in the database."""
         for name, video_link in vimeo_data.items():
-            pretalx_id = name.split("_")[0]
+            pretalx_id = name.split(SEPARATOR)[0]
             talk = Talk.objects.filter(pretalx_link__contains=pretalx_id).first()
             if talk:
                 talk.video_link = video_link

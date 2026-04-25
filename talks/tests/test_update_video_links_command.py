@@ -25,8 +25,8 @@ def command() -> Command:
 
 VIMEO_RESPONSE: dict[str, Any] = {
     "data": [
-        {"name": "ABC123_My Talk Title", "player_embed_url": "https://player.vimeo.com/video/111"},
-        {"name": "DEF456_Another Talk", "player_embed_url": "https://player.vimeo.com/video/222"},
+        {"name": "ABC123-My Talk Title", "player_embed_url": "https://player.vimeo.com/video/111"},
+        {"name": "DEF456-Another Talk", "player_embed_url": "https://player.vimeo.com/video/222"},
     ],
 }
 
@@ -51,8 +51,8 @@ class TestFetchSingleFolder:
 
         result = command.fetch_single_folder("token", "proj1")
         assert result == {
-            "ABC123_My Talk Title": "https://player.vimeo.com/video/111",
-            "DEF456_Another Talk": "https://player.vimeo.com/video/222",
+            "ABC123-My Talk Title": "https://player.vimeo.com/video/111",
+            "DEF456-Another Talk": "https://player.vimeo.com/video/222",
         }
 
     @patch("httpx.get")
@@ -65,6 +65,33 @@ class TestFetchSingleFolder:
 
         result = command.fetch_single_folder("token", "proj1")
         assert result == {}
+
+    @patch("httpx.get")
+    def test_follows_pagination(self, mock_get: MagicMock, command: Command) -> None:
+        """Follow paging.next across pages and merge all videos into one map."""
+        page1 = MagicMock()
+        page1.json.return_value = {
+            "data": [
+                {"name": "ABC123-Talk 1", "player_embed_url": "https://vimeo.com/1"},
+            ],
+            "paging": {"next": "/me/projects/proj1/videos?page=2"},
+        }
+        page2 = MagicMock()
+        page2.json.return_value = {
+            "data": [
+                {"name": "DEF456-Talk 2", "player_embed_url": "https://vimeo.com/2"},
+            ],
+            "paging": {"next": None},
+        }
+        mock_get.side_effect = [page1, page2]
+
+        result = command.fetch_single_folder("token", "proj1")
+
+        assert result == {
+            "ABC123-Talk 1": "https://vimeo.com/1",
+            "DEF456-Talk 2": "https://vimeo.com/2",
+        }
+        assert mock_get.call_count == 2
 
     @patch("httpx.get")
     def test_raises_on_http_error(self, mock_get: MagicMock, command: Command) -> None:
@@ -95,20 +122,20 @@ class TestFetchVimeoData:
     ) -> None:
         """Merge video data from multiple Vimeo project folders into one dict."""
         mock_fetch_folder.side_effect = [
-            {"ABC_Talk1": "https://vimeo.com/1"},
-            {"DEF_Talk2": "https://vimeo.com/2"},
+            {"ABC-Talk1": "https://vimeo.com/1"},
+            {"DEF-Talk2": "https://vimeo.com/2"},
         ]
         result = command.fetch_vimeo_data("token", ["proj1", "proj2"])
         assert len(result) == 2
-        assert "ABC_Talk1" in result
-        assert "DEF_Talk2" in result
+        assert "ABC-Talk1" in result
+        assert "DEF-Talk2" in result
 
     @patch.object(Command, "fetch_single_folder")
     def test_single_folder(self, mock_fetch_folder: MagicMock, command: Command) -> None:
         """Return the data from a single folder without merging."""
-        mock_fetch_folder.return_value = {"ABC_Talk1": "https://vimeo.com/1"}
+        mock_fetch_folder.return_value = {"ABC-Talk1": "https://vimeo.com/1"}
         result = command.fetch_vimeo_data("token", ["proj1"])
-        assert result == {"ABC_Talk1": "https://vimeo.com/1"}
+        assert result == {"ABC-Talk1": "https://vimeo.com/1"}
 
 
 # ---------------------------------------------------------------------------
@@ -125,7 +152,7 @@ class TestUpdateVideoLinks:
             pretalx_link="https://pretalx.com/pyconde/talk/ABC123/",
             video_link="",
         )
-        vimeo_data = {"ABC123_Talk Title": "https://player.vimeo.com/video/111"}
+        vimeo_data = {"ABC123-Talk Title": "https://player.vimeo.com/video/111"}
         command.update_video_links(vimeo_data)
         talk.refresh_from_db()
         assert talk.video_link == "https://player.vimeo.com/video/111"
@@ -133,7 +160,7 @@ class TestUpdateVideoLinks:
 
     def test_no_matching_talk_logs_warning(self, command: Command) -> None:
         """Log a warning when no talk matches the pretalx ID from the video name."""
-        vimeo_data = {"MISSING_Talk": "https://player.vimeo.com/video/999"}
+        vimeo_data = {"MISSING-Talk": "https://player.vimeo.com/video/999"}
         command.update_video_links(vimeo_data)
         output = command.stdout.getvalue()  # type: ignore[union-attr]
         assert "Talk not found" in output
@@ -143,8 +170,8 @@ class TestUpdateVideoLinks:
         t1 = baker.make(Talk, pretalx_link="https://pretalx.com/t/ABC123/", video_link="")
         t2 = baker.make(Talk, pretalx_link="https://pretalx.com/t/DEF456/", video_link="")
         vimeo_data = {
-            "ABC123_Talk 1": "https://vimeo.com/1",
-            "DEF456_Talk 2": "https://vimeo.com/2",
+            "ABC123-Talk 1": "https://vimeo.com/1",
+            "DEF456-Talk 2": "https://vimeo.com/2",
         }
         command.update_video_links(vimeo_data)
         t1.refresh_from_db()
@@ -168,7 +195,7 @@ class TestHandleCommand:
             pretalx_link="https://pretalx.com/t/ABC123/",
             video_link="",
         )
-        mock_fetch.return_value = {"ABC123_Talk": "https://vimeo.com/1"}
+        mock_fetch.return_value = {"ABC123-Talk": "https://vimeo.com/1"}
 
         stdout = StringIO()
         call_command(
@@ -189,7 +216,7 @@ class TestHandleCommand:
             pretalx_link="https://pretalx.com/t/ABC123/",
             video_link="",
         )
-        mock_fetch.return_value = {"ABC123_Talk": "https://vimeo.com/1"}
+        mock_fetch.return_value = {"ABC123-Talk": "https://vimeo.com/1"}
 
         stdout = StringIO()
         call_command(
