@@ -216,10 +216,17 @@ class TestGenerateTitle:
         result = command._generate_title("Natural Language Processing", fake)
         assert isinstance(result, str) and len(result) > 0
 
-    def test_devops_track(self, command: Command, fake: Faker) -> None:
-        """Generate a non-empty title for the MLOps & DevOps track."""
+    def test_mlops_track_matches_ml_branch_first(self, command: Command, fake: Faker) -> None:
+        """'MLOps' is matched by the 'ML' branch, not the DevOps one."""
         result = command._generate_title("MLOps & DevOps", fake)
-        assert isinstance(result, str) and len(result) > 0
+        # The ML branch uses a framework name; the DevOps branch uses a tool like Docker.
+        assert any(fw in result for fw in ("PyTorch", "TensorFlow", "scikit-learn"))
+
+    def test_pure_devops_track(self, command: Command, fake: Faker) -> None:
+        """Generate a DevOps-flavoured title when the track is clearly DevOps-only."""
+        result = command._generate_title("DevOps", fake)
+        assert any(artifact in result for artifact in ("Pipeline", "Workflow", "Automation"))
+        assert any(tool in result for tool in ("Docker", "Kubernetes", "GitHub Actions"))
 
     def test_unknown_track(self, command: Command, fake: Faker) -> None:
         """Fall back to a generic 'Python' title for unrecognized tracks."""
