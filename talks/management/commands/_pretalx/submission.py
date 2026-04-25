@@ -56,58 +56,42 @@ class SubmissionData:
 
     @staticmethod
     def _extract_room(submission: Submission) -> str:
-        if (
-            hasattr(submission, "slots")
-            and submission.slots
-            and hasattr(submission.slots[0], "room")
-            and submission.slots[0].room
-            and hasattr(submission.slots[0].room, "name")
-            and submission.slots[0].room.name
-            and "en" in submission.slots[0].room.name
-        ):
-            return str(submission.slots[0].room.name["en"])[:MAX_ROOM_NAME_LENGTH]
-        return ""
+        # Pretalx nests room names as submission.slots[0].room.name["en"].
+        # Any missing level means "no room assigned".
+        try:
+            name = submission.slots[0].room.name["en"]  # type: ignore[index,union-attr]
+        except AttributeError, IndexError, KeyError, TypeError:
+            return ""
+        return str(name)[:MAX_ROOM_NAME_LENGTH] if name else ""
 
     @staticmethod
     def _extract_track(submission: Submission) -> str:
-        if (
-            hasattr(submission, "track")
-            and submission.track
-            and hasattr(submission.track, "name")
-            and submission.track.name
-            and hasattr(submission.track.name, "en")
-            and submission.track.name.en
-        ):
-            return submission.track.name.en[:MAX_TRACK_NAME_LENGTH]
-        return ""
+        try:
+            name = submission.track.name.en  # type: ignore[union-attr]
+        except AttributeError, TypeError:
+            return ""
+        return name[:MAX_TRACK_NAME_LENGTH] if name else ""
 
     @staticmethod
     def _extract_start_time(submission: Submission) -> datetime:
-        if (
-            hasattr(submission, "slots")
-            and submission.slots
-            and hasattr(submission.slots[0], "start")
-            and submission.slots[0].start
-        ):
-            return submission.slots[0].start
-        return FAR_FUTURE
+        try:
+            start = submission.slots[0].start  # type: ignore[index]
+        except AttributeError, IndexError, TypeError:
+            return FAR_FUTURE
+        return start or FAR_FUTURE
 
     @staticmethod
     def _extract_duration(submission: Submission) -> timedelta | None:
-        if hasattr(submission, "duration") and submission.duration:
-            return timedelta(minutes=submission.duration)
-        return None
+        duration = getattr(submission, "duration", None)
+        return timedelta(minutes=duration) if duration else None
 
     @staticmethod
     def _extract_submission_type(submission: Submission) -> str:
-        if (
-            hasattr(submission, "submission_type")
-            and submission.submission_type
-            and hasattr(submission.submission_type, "en")
-            and submission.submission_type.en
-        ):
-            return str(submission.submission_type.en)
-        return ""
+        try:
+            en = submission.submission_type.en  # type: ignore[union-attr]
+        except AttributeError, TypeError:
+            return ""
+        return str(en) if en else ""
 
 
 # ------------------------------------------------------------------
