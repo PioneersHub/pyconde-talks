@@ -172,6 +172,7 @@ stringformat
 striptags
 structlog
 stylesheet
+shelldre
 sunos
 supersample
 supersampled

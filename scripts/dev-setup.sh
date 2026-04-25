@@ -29,25 +29,33 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# Restrict curl to https and TLS 1.2+ for every download in this script.
+readonly CURL_PROTO="=https"
+
 # Output functions
 log() {
     local msg="$1"
     echo -e "${GREEN}[INFO]${NC} ${msg}"
+    return 0
 }
 warn() {
     local msg="$1"
     echo -e "${YELLOW}[WARN]${NC} ${msg}"
+    return 0
 }
 error() {
     local msg="$1"
     echo -e "${RED}[ERROR]${NC} ${msg}" >&2
     exit 1
+    # unreachable: exit terminates the process. Keeps shelldre:S7682 happy.
+    return 1
 }
 
 # Helper to run Django shell with dedented input
 run_django_shell() {
     "$VENV_PYTHON" -c "import sys, textwrap; sys.stdout.write(textwrap.dedent(sys.stdin.read()))" \
         | "$VENV_PYTHON" manage.py shell
+    return 0
 }
 
 # Detect operating system
@@ -88,6 +96,7 @@ detect_os() {
     fi
 
     echo "$os"
+    return 0
 }
 
 # Detect architecture
@@ -118,6 +127,7 @@ detect_arch() {
     fi
 
     echo "$arch"
+    return 0
 }
 
 # Detect platform
@@ -133,6 +143,7 @@ detect_platform() {
 
     # Return "os-arch"
     echo "$os-$arch"
+    return 0
 }
 
 # Setup dependencies
@@ -153,7 +164,7 @@ setup_dependencies() {
 
         # Try with curl
         if command -v curl &>/dev/null; then
-            curl --proto "=https" --tlsv1.2 -sSf https://astral.sh/uv/install.sh | sh
+            curl --proto "$CURL_PROTO" --tlsv1.2 -sSf https://astral.sh/uv/install.sh | sh
         # Try with wget
         elif command -v wget &>/dev/null; then
             wget --max-redirect=0 -qO- https://astral.sh/uv/install.sh | sh
@@ -214,7 +225,7 @@ setup_tailwind() {
             PLATFORM=$(detect_platform alt)
             log "Detected platform: $PLATFORM"
 
-            curl --proto "=https" --tlsv1.2 -sSL "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-${PLATFORM}" -o "$VENV_TAILWIND"
+            curl --proto "$CURL_PROTO" --tlsv1.2 -sSL "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-${PLATFORM}" -o "$VENV_TAILWIND"
             chmod +x "$VENV_TAILWIND"
         fi
     fi
@@ -246,7 +257,7 @@ setup_mailpit() {
             PLATFORM=$(detect_platform)
             log "Detected platform: $PLATFORM"
 
-            curl --proto "=https" --tlsv1.2 -sSL "https://github.com/axllent/mailpit/releases/latest/download/mailpit-${PLATFORM}.tar.gz" | tar -xz -C "$VENV_DIR/bin" mailpit
+            curl --proto "$CURL_PROTO" --tlsv1.2 -sSL "https://github.com/axllent/mailpit/releases/latest/download/mailpit-${PLATFORM}.tar.gz" | tar -xz -C "$VENV_DIR/bin" mailpit
             chmod +x "$VENV_MAILPIT"
         fi
     fi
@@ -283,7 +294,7 @@ initialize_django() {
     if [[ "$DOWNLOAD_FONT" == "true" ]]; then
         log "Downloading Noto font..."
         mkdir -p "./assets/fonts"
-        curl --proto "=https" --tlsv1.2 -sSL "https://github.com/notofonts/notofonts.github.io/raw/refs/heads/main/fonts/NotoSans/full/variable-ttf/NotoSans%5Bwdth,wght%5D.ttf" -o "./assets/fonts/NotoSans.ttf"
+        curl --proto "$CURL_PROTO" --tlsv1.2 -sSL "https://github.com/notofonts/notofonts.github.io/raw/refs/heads/main/fonts/NotoSans/full/variable-ttf/NotoSans%5Bwdth,wght%5D.ttf" -o "./assets/fonts/NotoSans.ttf"
     fi
 
     # Generate test data if requested
@@ -463,16 +474,18 @@ start_services() {
     else
         log "Setup complete (server not started)"
     fi
+    return 0
 }
 
 # Collect static files
 collect_static() {
     if [[ "$SKIP_STEPS" == *"collectstatic"* ]]; then
         log "Skipping static files collection"
-        return
+        return 0
     fi
     log "Collecting static files..."
     "$VENV_PYTHON" manage.py collectstatic --noinput
+    return 0
 }
 
 # Main execution flow
@@ -484,6 +497,7 @@ main() {
     initialize_django
     start_services
     collect_static
+    return 0
 }
 
 # Run the script
