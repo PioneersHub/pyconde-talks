@@ -30,73 +30,22 @@
     <div class="mt-8 border-t border-weak pt-8 w-full max-w-2xl">
       <h3 class="text-xl font-semibold text-label mb-4 text-center">You might be looking for:</h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <a href="{% url 'talk_list' %}"
-           class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
-          <span class="text-brand-blue">📝</span>
-          <span>List of Talks</span>
-        </a>
+        {% url 'talk_list' as talk_list_url %}
+        {% include "partials/useful_link_card.html" with url=talk_list_url icon="📝" label="List of Talks" %}
         {% if user.is_authenticated %}
-          <a href="{% url 'account_logout' %}"
-             class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
-            <span class="text-brand-blue">🚪</span>
-            <span>Logout</span>
-          </a>
+          {% url 'account_logout' as auth_url %}
+          {% include "partials/useful_link_card.html" with url=auth_url icon="🚪" label="Logout" %}
         {% else %}
-          <a href="{% url 'account_login' %}"
-             class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
-            <span class="text-brand-blue">🔑</span>
-            <span>Login</span>
-          </a>
+          {% url 'account_login' as auth_url %}
+          {% include "partials/useful_link_card.html" with url=auth_url icon="🔑" label="Login" %}
         {% endif %}
-        {% if pretalx_schedule_url %}
-          <a href="{{ pretalx_schedule_url }}"
-             class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
-            <span class="text-brand-blue">📅</span>
-            <span>Event Schedule</span>
-          </a>
-        {% endif %}
-        {% if pretalx_speakers_url %}
-          <a href="{{ pretalx_speakers_url }}"
-             class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
-            <span class="text-brand-blue">🎤</span>
-            <span>Speakers</span>
-          </a>
-        {% endif %}
-        {% if brand_venue_url %}
-          <a href="{{ brand_venue_url }}"
-             class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
-            <span class="text-brand-blue">🏢</span>
-            <span>Venue Information</span>
-          </a>
-        {% endif %}
-        {% if brand_main_website_url %}
-          <a href="{{ brand_main_website_url }}"
-             class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
-            <span class="text-brand-blue">🌐</span>
-            <span>Main Website</span>
-          </a>
-        {% endif %}
-        {% if brand_imprint_url %}
-          <a href="{{ brand_imprint_url }}"
-             class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
-            <span class="text-brand-blue">📄</span>
-            <span>Imprint</span>
-          </a>
-        {% endif %}
-        {% if brand_code_of_conduct_url %}
-          <a href="{{ brand_code_of_conduct_url }}"
-             class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
-            <span class="text-brand-blue">🤝</span>
-            <span>Code of Conduct</span>
-          </a>
-        {% endif %}
-        {% if brand_privacy_policy_url %}
-          <a href="{{ brand_privacy_policy_url }}"
-             class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
-            <span class="text-brand-blue">🔒</span>
-            <span>Privacy Policy</span>
-          </a>
-        {% endif %}
+        {% include "partials/useful_link_card.html" with url=pretalx_schedule_url icon="📅" label="Event Schedule" %}
+        {% include "partials/useful_link_card.html" with url=pretalx_speakers_url icon="🎤" label="Speakers" %}
+        {% include "partials/useful_link_card.html" with url=brand_venue_url icon="🏢" label="Venue Information" %}
+        {% include "partials/useful_link_card.html" with url=brand_main_website_url icon="🌐" label="Main Website" %}
+        {% include "partials/useful_link_card.html" with url=brand_imprint_url icon="📄" label="Imprint" %}
+        {% include "partials/useful_link_card.html" with url=brand_code_of_conduct_url icon="🤝" label="Code of Conduct" %}
+        {% include "partials/useful_link_card.html" with url=brand_privacy_policy_url icon="🔒" label="Privacy Policy" %}
       </div>
     </div>
   </div>

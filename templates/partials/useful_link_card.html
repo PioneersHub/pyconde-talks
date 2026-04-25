@@ -1,0 +1,8 @@
+{# Small "useful link" card used on the 404 and 500 error pages. Callers pass `url`, `icon`, `label`. Renders nothing when `url` is empty so conditional guards stay out of the calling template. #}
+{% if url %}
+  <a href="{{ url }}"
+     class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
+    <span class="text-brand-blue">{{ icon }}</span>
+    <span>{{ label }}</span>
+  </a>
+{% endif %}
