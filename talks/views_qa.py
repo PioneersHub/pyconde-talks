@@ -16,7 +16,7 @@ from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_safe
 from django.views.generic import CreateView, ListView, UpdateView
 
 from .models import Talk
@@ -414,6 +414,7 @@ def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
     return redirect("talk_questions", talk_id=question.talk.pk)
 
 
+@require_safe
 def question_redirect_view(_: HttpRequest, talk_id: str) -> HttpResponse:
     """Get talk question view by Talk ID or pretalx_id."""
     talk = get_talk_by_id_or_pretalx(talk_id)
