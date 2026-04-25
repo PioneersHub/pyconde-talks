@@ -5,7 +5,6 @@ This module defines the Django admin interfaces for the Speaker, Talk, Room, Str
 Question, QuestionVote, and Answer models.
 """
 
-from datetime import timedelta
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.contrib import admin
@@ -394,15 +393,7 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
         if not obj.room or not obj.start_time:
             return str(_("No room or time scheduled"))
 
-        margin = timedelta(minutes=1)
-        min_duration = obj.duration / 2
-
-        streaming = Streaming.objects.filter(
-            room=obj.room,
-            start_time__lte=obj.start_time + margin,
-            end_time__gt=obj.start_time + min_duration,
-        ).first()
-
+        streaming = obj.get_streaming()
         if streaming:
             return format_html(
                 str(_('Streaming from {} to {} - <a href="{}" target="_blank">Video Link</a>')),
