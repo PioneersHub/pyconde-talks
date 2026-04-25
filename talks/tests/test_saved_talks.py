@@ -13,6 +13,7 @@ from django.utils import timezone
 from model_bakery import baker
 
 from talks.models import SavedTalk, Talk
+from talks.templatetags.saved_tags import is_in
 from users.models import CustomUser
 
 
@@ -250,3 +251,8 @@ class TestIsInFilter:
         template = Template("{% load saved_tags %}{{ value|is_in:container }}")
         context = Context({"value": 1, "container": set()})
         assert template.render(context) == "False"
+
+    def test_non_iterable_container_returns_false(self) -> None:
+        """Falls back to False when the container is not iterable (e.g. None)."""
+        assert is_in(1, None) is False
+        assert is_in("x", 42) is False
