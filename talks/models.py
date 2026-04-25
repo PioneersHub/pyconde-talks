@@ -7,7 +7,7 @@ metadata, scheduling information, and video links.
 
 from datetime import UTC, datetime, timedelta
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -17,7 +17,7 @@ from django.db.models import Avg, Count, ExpressionWrapper, F, Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from talks.types import VideoProvider
+from talks.types import RatingStats, VideoProvider
 from talks.validators import validate_video_link
 from utils.url import add_query_param
 
@@ -726,127 +726,36 @@ class Talk(models.Model):
         return RatingStats(average=stats["average"], total=stats["total"])
 
 
-class RatingStats(NamedTuple):
-    """
-    Aggregate rating statistics returned by ``Talk.get_rating_stats``.
-
-    ``total`` is the number of ratings (kept distinct from the built-in tuple ``count`` method).
-    """
-
-    average: float | None
-    total: int
-
-
-# Rating constants
-MIN_RATING_SCORE = 1
-MAX_RATING_SCORE = 5
-COMMENT_MAX_LENGTH = 2000
+# Rating + SavedTalk models live in talks.models_rating. Import them here so that importing
+# talks.models always registers every Talk-related model with Django - migrations, admin
+# autodiscovery, and model_bakery all rely on that side effect.
+from talks.models_rating import (  # noqa: E402
+    COMMENT_MAX_LENGTH,
+    MAX_RATING_SCORE,
+    MIN_RATING_SCORE,
+    Rating,
+    SavedTalk,
+)
 
 
-class Rating(models.Model):
-    """Represents a user's rating of a talk, with an optional comment visible only to admins."""
-
-    talk = models.ForeignKey(
-        Talk,
-        on_delete=models.CASCADE,
-        related_name="ratings",
-        help_text=_("The talk being rated"),
-    )
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="ratings",
-        help_text=_("The user who submitted the rating"),
-    )
-    score = models.PositiveSmallIntegerField(
-        help_text=_("Rating score from 1 to 5"),
-    )
-    comment = models.TextField(
-        blank=True,
-        max_length=COMMENT_MAX_LENGTH,
-        help_text=_("Optional comment about the talk (visible only to admins)"),
-    )
-    created_at = models.DateTimeField(
-        default=timezone.now,
-        help_text=_("When this rating was created"),
-    )
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        help_text=_("When this rating was last modified"),
-    )
-
-    class Meta:
-        """Metadata for the Rating model."""
-
-        verbose_name = _("Rating")
-        verbose_name_plural = _("Ratings")
-        ordering: ClassVar[list[str]] = ["-created_at"]
-        indexes: ClassVar[list[models.Index]] = [
-            models.Index(fields=["talk", "user"]),
-            models.Index(fields=["talk", "-created_at"]),
-        ]
-        constraints: ClassVar[list[models.CheckConstraint | models.UniqueConstraint]] = [
-            models.UniqueConstraint(
-                fields=["talk", "user"],
-                name="unique_user_talk_rating",
-            ),
-            models.CheckConstraint(
-                condition=models.Q(score__gte=MIN_RATING_SCORE, score__lte=MAX_RATING_SCORE),
-                name="rating_score_range",
-            ),
-        ]
-
-    def __str__(self) -> str:
-        """Return a string representation of the rating."""
-        return f"{self.user} rated {self.talk}: {self.score}/{MAX_RATING_SCORE}"
-
-
-class SavedTalk(models.Model):
-    """Represents a user's saved/bookmarked talk."""
-
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="saved_talks",
-        help_text=_("The user who saved the talk"),
-    )
-    talk = models.ForeignKey(
-        Talk,
-        on_delete=models.CASCADE,
-        related_name="saved_by",
-        help_text=_("The saved talk"),
-    )
-    created_at = models.DateTimeField(
-        default=timezone.now,
-        help_text=_("When this talk was saved"),
-    )
-
-    class Meta:
-        """Metadata for the SavedTalk model."""
-
-        verbose_name = _("Saved Talk")
-        verbose_name_plural = _("Saved Talks")
-        ordering: ClassVar[list[str]] = ["-created_at"]
-        indexes: ClassVar[list[models.Index]] = [
-            models.Index(fields=["user", "talk"]),
-        ]
-        constraints: ClassVar[list[models.UniqueConstraint]] = [
-            models.UniqueConstraint(
-                fields=["user", "talk"],
-                name="unique_user_saved_talk",
-            ),
-        ]
-
-    def __str__(self) -> str:
-        """Return a string representation of the saved talk."""
-        return f"{self.user} saved {self.talk}"
-
-    @classmethod
-    def talk_ids_for(cls, user: CustomUser) -> set[int]:
-        """
-        Return the set of ``Talk`` primary keys this user has saved.
-
-        Templates use the result for fast ``talk.pk in saved_talk_ids`` membership checks on each
-        row of a talk list, which is why a ``set`` (not a queryset) is returned.
-        """
-        return set(cls.objects.filter(user=user).values_list("talk_id", flat=True))
+__all__ = [
+    "COMMENT_MAX_LENGTH",
+    "EMPTY_TRACK_NAME",
+    "FAR_FUTURE",
+    "MAX_PRETALX_ID_LENGTH",
+    "MAX_PRONOUNS_LENGTH",
+    "MAX_RATING_SCORE",
+    "MAX_ROOM_NAME_LENGTH",
+    "MAX_SPEAKER_NAME_LENGTH",
+    "MAX_TALK_TITLE_LENGTH",
+    "MAX_TRACK_NAME_LENGTH",
+    "MIN_RATING_SCORE",
+    "Rating",
+    "RatingStats",
+    "Room",
+    "SavedTalk",
+    "Speaker",
+    "Streaming",
+    "Talk",
+    "TalkQuerySet",
+]
