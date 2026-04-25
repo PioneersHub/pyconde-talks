@@ -32,6 +32,7 @@ Defence
 devcontainers
 dhparams
 djlint
+docstrings
 Dynamicum
 Ebene
 EDITMSG
@@ -62,6 +63,7 @@ getdata
 getpixel
 ggpht
 googlevideo
+gpgconf
 healthcheck
 HSTS
 htmlcov
@@ -121,6 +123,7 @@ passwordless
 pgdata
 phont
 pilmoji
+pinentry
 prek
 pretalx
 privkey
