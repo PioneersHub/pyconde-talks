@@ -116,9 +116,11 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
     ordering = ("-date_joined",)
     actions = ("verify_email", "activate_users", "deactivate_users")
 
-    # Override UserAdmin fieldsets to use email instead of username
-    fieldsets: ClassVar[list[Any]] = [
-        (None, {"fields": ("email", "password")}),
+    # Sections shared by superuser and regular-user edit layouts. The only difference between the
+    # two is whether the top section includes the password field, so keep everything below
+    # ("Personal info" through "Important dates") in one tuple and prepend the right header
+    # section below.
+    _shared_edit_sections: ClassVar[tuple[tuple[Any, dict[str, Any]], ...]] = (
         (_("Personal info"), {"fields": ("first_name", "last_name")}),
         (
             _("Events"),
@@ -150,42 +152,18 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
                 "description": _("Shows when the user first registered and last logged in."),
             },
         ),
+    )
+
+    # Override UserAdmin fieldsets to use email instead of username (superuser edit view)
+    fieldsets: ClassVar[list[Any]] = [
+        (None, {"fields": ("email", "password")}),
+        *_shared_edit_sections,
     ]
 
     # Field layout for regular users in edit mode (no password)
-    regular_user_fieldsets = (
+    regular_user_fieldsets: ClassVar[tuple[Any, ...]] = (
         (None, {"fields": ("email",)}),
-        (_("Personal info"), {"fields": ("first_name", "last_name")}),
-        (
-            _("Events"),
-            {
-                "fields": ("events",),
-                "description": _("Events this user has access to."),
-            },
-        ),
-        (
-            _("Permissions"),
-            {
-                "fields": (
-                    "is_active",
-                    "is_staff",
-                    "is_superuser",
-                    "groups",
-                    "user_permissions",
-                ),
-                "description": _(
-                    "Only superusers and staff members can log in to the admin site. "
-                    "Normal users login through the passwordless authentication.",
-                ),
-            },
-        ),
-        (
-            _("Important dates"),
-            {
-                "fields": ("last_login", "date_joined"),
-                "description": _("Shows when the user first registered and last logged in."),
-            },
-        ),
+        *_shared_edit_sections,
     )
 
     # Override UserAdmin add_fieldsets to use email instead of username
