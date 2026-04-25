@@ -16,6 +16,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from users.validators import validate_display_name
+from utils.email_utils import obfuscate_email
 
 
 if TYPE_CHECKING:
@@ -36,7 +37,7 @@ class InvalidEmailError(Exception):
 
         """
         self.email = email
-        super().__init__(f"Invalid email address: {email}")
+        super().__init__(f"Invalid email address: {obfuscate_email(email)}")
 
 
 class CreateUserExtraFields(TypedDict, total=False):
