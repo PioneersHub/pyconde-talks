@@ -188,6 +188,19 @@ class TestModerationNonHtmx:
         response = client.post(url)
         assert response.status_code == HTTPStatus.FOUND
 
+    @pytest.mark.parametrize("action", ["question_mark_answered", "question_approve"])
+    def test_non_moderator_is_forbidden(
+        self,
+        client: Client,
+        question: Question,
+        action: str,
+    ) -> None:
+        """Only moderators may mark answered / approve; others get 403."""
+        outsider = baker.make(CustomUser, email="outsider@example.com")
+        client.force_login(outsider)
+        response = client.post(reverse(action, args=[question.pk]))
+        assert response.status_code == HTTPStatus.FORBIDDEN
+
 
 @pytest.mark.django_db
 class TestQuestionRedirectView:
