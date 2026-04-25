@@ -157,6 +157,8 @@ signups
 slido
 socialaccount
 sociallogin
+sonarlint
+SonarQube
 sqlite
 staticfiles
 stringformat
