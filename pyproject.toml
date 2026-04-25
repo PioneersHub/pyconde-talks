@@ -199,7 +199,15 @@ omit = [
 ]
 
 [tool.bandit]
-exclude_dirs = [".git", ".venv", "__pycache__", "generate_fake_talks.py", "migrations", "tests"]
+exclude_dirs = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "_fake_talks",
+    "generate_fake_talks.py",
+    "migrations",
+    "tests",
+]
 
 [tool.bandit.assert_used]
 skips = ['*_test.py', '*/test_*.py']

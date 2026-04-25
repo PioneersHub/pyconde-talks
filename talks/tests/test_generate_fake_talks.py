@@ -12,17 +12,17 @@ from faker import Faker
 from model_bakery import baker
 
 from events.models import Event
-from talks.management.commands.generate_fake_talks import (
+from talks.management.commands._fake_talks.availability import RoomAvailability
+from talks.management.commands._fake_talks.constants import (
     _ROOM_CLI_KEYS,
     _ROOM_CONFIGS,
     KEYNOTE_DURATION_MIN,
     SLOT_ALIGNMENT_MINUTES,
     TALK_SHORT_DURATIONS_MIN,
     TUTORIAL_DURATIONS_MIN,
-    Command,
-    RoomAvailability,
     RoomConfig,
 )
+from talks.management.commands.generate_fake_talks import Command
 from talks.models import Room, Speaker, Streaming, Talk
 
 
