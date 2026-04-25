@@ -11,14 +11,17 @@ from model_bakery import baker
 
 from talks.admin import (
     AnswerAdmin,
+    HasCommentFilter,
     QuestionAdmin,
     QuestionVoteAdmin,
+    RatingAdmin,
     RoomAdmin,
     SpeakerAdmin,
     StreamingAdmin,
     TalkAdmin,
+    TalkHasRatingCommentsFilter,
 )
-from talks.models import Room, Speaker, Streaming, Talk
+from talks.models import Rating, Room, SavedTalk, Speaker, Streaming, Talk
 from talks.models_qa import Answer, Question, QuestionVote
 from users.models import CustomUser
 
@@ -88,6 +91,50 @@ class TestRoomAdmin:
 
 
 # ---------------------------------------------------------------------------
+# Rating filters: the "no value" (unselected) branch
+# ---------------------------------------------------------------------------
+@pytest.mark.django_db
+class TestRatingFiltersNoValue:
+    """The two rating filters leave the queryset untouched when nothing is selected."""
+
+    def test_has_comment_filter_returns_input_when_unselected(
+        self,
+        rf: RequestFactory,
+    ) -> None:
+        """HasCommentFilter with no value passes the queryset through unchanged."""
+        talk = baker.make(Talk)
+        user = baker.make(CustomUser, email="filter-user@example.com")
+        baker.make(Rating, talk=talk, user=user, score=5, comment="Nice")
+
+        request = rf.get("/")
+        instance = HasCommentFilter(
+            request=request,
+            params={},
+            model=Rating,
+            model_admin=RatingAdmin(Rating, site),
+        )
+        qs = Rating.objects.all()
+        assert list(instance.queryset(request, qs)) == list(qs)
+
+    def test_talk_rating_comments_filter_returns_input_when_unselected(
+        self,
+        rf: RequestFactory,
+    ) -> None:
+        """TalkHasRatingCommentsFilter with no value passes the queryset through unchanged."""
+        baker.make(Talk)
+
+        request = rf.get("/")
+        instance = TalkHasRatingCommentsFilter(
+            request=request,
+            params={},
+            model=Talk,
+            model_admin=TalkAdmin(Talk, site),
+        )
+        qs = Talk.objects.all()
+        assert list(instance.queryset(request, qs)) == list(qs)
+
+
+# ---------------------------------------------------------------------------
 # StreamingAdmin
 # ---------------------------------------------------------------------------
 @pytest.mark.django_db
@@ -117,6 +164,30 @@ class TestStreamingAdmin:
             end_time=timezone.now() + timedelta(hours=1),
         )
         assert admin.formatted_video_link(streaming) == "-"
+
+    def test_formatted_transcription_url(self) -> None:
+        """Render the transcription URL as a clickable HTML anchor tag."""
+        admin = StreamingAdmin(Streaming, site)
+        streaming = baker.make(
+            Streaming,
+            transcription_url="https://transcripts.example.com/123",
+            start_time=timezone.now(),
+            end_time=timezone.now() + timedelta(hours=1),
+        )
+        result = admin.formatted_transcription_url(streaming)
+        assert "transcripts.example.com" in result
+        assert "<a " in result
+
+    def test_formatted_transcription_url_empty(self) -> None:
+        """Return a dash placeholder when no transcription URL is set."""
+        admin = StreamingAdmin(Streaming, site)
+        streaming = baker.make(
+            Streaming,
+            transcription_url="",
+            start_time=timezone.now(),
+            end_time=timezone.now() + timedelta(hours=1),
+        )
+        assert admin.formatted_transcription_url(streaming) == "-"
 
 
 # ---------------------------------------------------------------------------
@@ -158,15 +229,6 @@ class TestSpeakerAdmin:
 @pytest.mark.django_db
 class TestTalkAdmin:
     """Verify TalkAdmin list display columns, image preview, and streaming info."""
-
-    def test_get_queryset(self, rf: RequestFactory) -> None:
-        """Queryset includes prefetched speakers and room for efficient display."""
-        admin = TalkAdmin(Talk, site)
-        baker.make(Talk)
-        request = rf.get("/")
-        request.user = baker.make(CustomUser, is_superuser=True, is_staff=True)
-        qs = admin.get_queryset(request)
-        assert qs.count() > 0
 
     def test_room_name(self) -> None:
         """Display the associated room name for a talk."""
@@ -266,6 +328,48 @@ class TestTalkAdmin:
         result = str(admin.display_active_streaming(talk))
         assert "No active streaming" in result
 
+    def test_avg_rating_with_ratings(self, rf: RequestFactory, admin_user: CustomUser) -> None:
+        """The annotated ``avg_rating`` column shows one decimal when ratings exist."""
+        talk = baker.make(Talk)
+        Rating.objects.create(talk=talk, user=admin_user, score=4)
+        other = baker.make(CustomUser, email="other@example.com")
+        Rating.objects.create(talk=talk, user=other, score=5)
+
+        admin = TalkAdmin(Talk, site)
+        request = rf.get("/")
+        request.user = admin_user
+        qs = admin.get_queryset(request)
+        talk_obj = qs.get(pk=talk.pk)
+        assert admin.avg_rating(talk_obj) == "4.5"
+        assert admin.num_ratings(talk_obj) == 2
+
+    def test_avg_rating_without_ratings(self, rf: RequestFactory, admin_user: CustomUser) -> None:
+        """The annotated ``avg_rating`` column returns ``-`` when no ratings exist."""
+        talk = baker.make(Talk)
+        admin = TalkAdmin(Talk, site)
+        request = rf.get("/")
+        request.user = admin_user
+        qs = admin.get_queryset(request)
+        talk_obj = qs.get(pk=talk.pk)
+        assert admin.avg_rating(talk_obj) == "-"
+        assert admin.num_ratings(talk_obj) == 0
+        assert admin.num_saves(talk_obj) == 0
+
+    def test_num_saves_annotation(self, rf: RequestFactory, admin_user: CustomUser) -> None:
+        """``num_saves`` reflects the bookmark count annotated on the queryset."""
+        talk = baker.make(Talk)
+        user_a = baker.make(CustomUser, email="save-a@example.com")
+        user_b = baker.make(CustomUser, email="save-b@example.com")
+        SavedTalk.objects.create(user=user_a, talk=talk)
+        SavedTalk.objects.create(user=user_b, talk=talk)
+
+        admin = TalkAdmin(Talk, site)
+        request = rf.get("/")
+        request.user = admin_user
+        qs = admin.get_queryset(request)
+        talk_obj = qs.get(pk=talk.pk)
+        assert admin.num_saves(talk_obj) == 2
+
 
 # ---------------------------------------------------------------------------
 # QuestionAdmin
@@ -293,6 +397,29 @@ class TestQuestionAdmin:
         assert admin.has_answers(q) is False
         baker.make(Answer, question=q)
         assert admin.has_answers(q) is True
+
+    def test_has_answers_uses_annotation_when_present(
+        self,
+        rf: RequestFactory,
+        admin_user: CustomUser,
+    ) -> None:
+        """``has_answers`` should read the annotated ``_has_answers`` Exists() column."""
+        admin = QuestionAdmin(Question, site)
+        q_with = baker.make(Question)
+        q_without = baker.make(Question)
+        baker.make(Answer, question=q_with)
+
+        request = rf.get("/")
+        request.user = admin_user
+        qs = admin.get_queryset(request)
+
+        with_obj = qs.get(pk=q_with.pk)
+        without_obj = qs.get(pk=q_without.pk)
+        # Annotation populated by get_queryset drives the result.
+        assert with_obj._has_answers is True  # type: ignore[attr-defined]
+        assert without_obj._has_answers is False  # type: ignore[attr-defined]
+        assert admin.has_answers(with_obj) is True
+        assert admin.has_answers(without_obj) is False
 
     def test_vote_count_display(self) -> None:
         """Vote count column returns zero for a question with no votes."""
