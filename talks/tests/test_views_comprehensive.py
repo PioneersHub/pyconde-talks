@@ -1,4 +1,5 @@
 """Tests for talks.views."""
+# ruff: noqa: PLR2004
 
 from datetime import timedelta
 from http import HTTPStatus
@@ -6,13 +7,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 from django.core.cache import cache
+from django.db import IntegrityError
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from model_bakery import baker
 
 from events.models import Event
-from talks.models import Room, Speaker, Talk
+from talks.models import Rating, Room, Speaker, Talk
 from users.models import CustomUser
 
 
@@ -532,3 +534,204 @@ class TestTalkRedirectView:
         url = reverse("talk_redirect", args=["NONEXISTENT"])
         response = client.get(url)
         assert response.status_code == HTTPStatus.NOT_FOUND
+
+
+@pytest.mark.django_db
+class TestStatusFilter:
+    """Verify the ?status= filter splits talks into current/upcoming/completed."""
+
+    def _make_talks(self, event: Event) -> dict[str, Talk]:
+        """Build one talk for each timing bucket, all within the same event."""
+        now = timezone.now()
+        return {
+            "current": baker.make(
+                Talk,
+                title="LiveTimingTalk",
+                event=event,
+                start_time=now - timedelta(minutes=10),
+                duration=timedelta(minutes=30),
+            ),
+            "upcoming": baker.make(
+                Talk,
+                title="FutureTimingTalk",
+                event=event,
+                start_time=now + timedelta(hours=2),
+                duration=timedelta(minutes=30),
+            ),
+            "completed": baker.make(
+                Talk,
+                title="PastTimingTalk",
+                event=event,
+                start_time=now - timedelta(hours=3),
+                duration=timedelta(minutes=30),
+            ),
+        }
+
+    @pytest.mark.parametrize(
+        ("status", "visible", "hidden"),
+        [
+            ("current", "LiveTimingTalk", ("FutureTimingTalk", "PastTimingTalk")),
+            ("upcoming", "FutureTimingTalk", ("LiveTimingTalk", "PastTimingTalk")),
+            ("completed", "PastTimingTalk", ("LiveTimingTalk", "FutureTimingTalk")),
+        ],
+    )
+    def test_status_filter(
+        self,
+        client: Client,
+        user: CustomUser,
+        status: str,
+        visible: str,
+        hidden: tuple[str, ...],
+    ) -> None:
+        """Each status keyword shows only talks in that bucket."""
+        event = baker.make(Event, is_active=True)
+        user.events.add(event)
+        self._make_talks(event)
+        client.force_login(user)
+        response = client.get(reverse("talk_list"), {"status": status})
+        content = response.content.decode()
+        assert visible in content
+        for title in hidden:
+            assert title not in content
+
+    def test_unknown_status_shows_all(self, client: Client, user: CustomUser) -> None:
+        """An unrecognized status string leaves the queryset unfiltered."""
+        event = baker.make(Event, is_active=True)
+        user.events.add(event)
+        self._make_talks(event)
+        client.force_login(user)
+        response = client.get(reverse("talk_list"), {"status": "weird"})
+        content = response.content.decode()
+        for title in ("LiveTimingTalk", "FutureTimingTalk", "PastTimingTalk"):
+            assert title in content
+
+
+@pytest.mark.django_db
+class TestDashboardStatsRecorded:
+    """The 'recorded' column counts talks that resolve to a video link."""
+
+    @pytest.fixture(autouse=True)
+    def _clear_cache(self) -> Generator[None]:
+        """Clear Django cache around tests to avoid @cache_page interference."""
+        cache.clear()
+        yield
+        cache.clear()
+
+    @override_settings(SHOW_UPCOMING_TALKS_LINKS=True)
+    def test_recorded_counts_only_talks_with_video(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """Only talks whose ``get_video_link`` resolves non-empty count as recorded."""
+        event = baker.make(Event, is_active=True)
+        user.events.add(event)
+        past = timezone.now() - timedelta(hours=2)
+        baker.make(
+            Talk,
+            event=event,
+            start_time=past,
+            video_link="https://vimeo.com/1",
+            room=None,
+        )
+        baker.make(Talk, event=event, start_time=past, video_link="", room=None)
+        client.force_login(user)
+        response = client.get(reverse("dashboard_stats"))
+        assert response.status_code == HTTPStatus.OK
+        # One recorded out of two talks.
+        content = response.content.decode()
+        assert "1" in content
+
+
+@pytest.mark.django_db
+class TestRateTalkHTMX:
+    """HTMX paths through rate_talk return fragments, not redirects."""
+
+    def test_htmx_rating_returns_widget(self, client: Client, user: CustomUser) -> None:
+        """A successful HTMX rating returns both the widget and the OOB title stars."""
+        talk = baker.make(Talk, title="HTMX Talk")
+        client.force_login(user)
+        response = client.post(
+            reverse("rate_talk", args=[talk.pk]),
+            {"score": "5"},
+            HTTP_HX_REQUEST="true",
+        )
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        # Widget + out-of-band stars both render.
+        assert "rating-widget" in content
+        assert "hx-swap-oob" in content
+
+    def test_htmx_invalid_score_returns_422(self, client: Client, user: CustomUser) -> None:
+        """Non-numeric scores on the HTMX path come back as a plain 422."""
+        talk = baker.make(Talk)
+        client.force_login(user)
+        response = client.post(
+            reverse("rate_talk", args=[talk.pk]),
+            {"score": "abc"},
+            HTTP_HX_REQUEST="true",
+        )
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def test_htmx_score_out_of_range_returns_422(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """HTMX score=6 triggers the range branch of the validator."""
+        talk = baker.make(Talk)
+        client.force_login(user)
+        response = client.post(
+            reverse("rate_talk", args=[talk.pk]),
+            {"score": "42"},
+            HTTP_HX_REQUEST="true",
+        )
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def test_htmx_comment_save_persists_and_keeps_score(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """Saving a comment via HTMX stores the stripped comment without replaying defaults."""
+        talk = baker.make(Talk)
+        client.force_login(user)
+        # First, star-only click (no comment change).
+        client.post(
+            reverse("rate_talk", args=[talk.pk]),
+            {"score": "3", "comment": "Typed but not saved"},
+            HTTP_HX_REQUEST="true",
+        )
+        # Then explicitly save the comment.
+        response = client.post(
+            reverse("rate_talk", args=[talk.pk]),
+            {"score": "3", "comment": "  Final comment  ", "save_comment": "1"},
+            HTTP_HX_REQUEST="true",
+        )
+        assert response.status_code == HTTPStatus.OK
+
+        rating = Rating.objects.get(talk=talk, user=user)
+        assert rating.score == 3
+        assert rating.comment == "Final comment"
+
+    def test_htmx_integrity_error_returns_500(
+        self,
+        client: Client,
+        user: CustomUser,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A DB-level integrity violation during save becomes a 500 for HTMX clients."""
+        talk = baker.make(Talk)
+
+        def boom(**_kwargs: object) -> None:
+            msg = "unique constraint"
+            raise IntegrityError(msg)
+
+        monkeypatch.setattr(Rating.objects, "update_or_create", boom)
+        client.force_login(user)
+        response = client.post(
+            reverse("rate_talk", args=[talk.pk]),
+            {"score": "4"},
+            HTTP_HX_REQUEST="true",
+        )
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
