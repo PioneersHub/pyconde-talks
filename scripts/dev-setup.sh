@@ -30,10 +30,17 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Output functions
-log() { echo -e "${GREEN}[INFO]${NC} $1"; }
-warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log() {
+    local msg="$1"
+    echo -e "${GREEN}[INFO]${NC} ${msg}"
+}
+warn() {
+    local msg="$1"
+    echo -e "${YELLOW}[WARN]${NC} ${msg}"
+}
 error() {
-    echo -e "${RED}[ERROR]${NC} $1" >&2
+    local msg="$1"
+    echo -e "${RED}[ERROR]${NC} ${msg}" >&2
     exit 1
 }
 
@@ -70,12 +77,13 @@ detect_os() {
     esac
 
     # Alternative format (like macos)
-    if [ "$format" = "alt" ]; then
+    if [[ "$format" == "alt" ]]; then
         case "$os" in
         darwin) os="macos" ;;
         linux) os="linux" ;;
         windows) os="win" ;;
         freebsd) os="fbsd" ;;
+        *) ;;
         esac
     fi
 
@@ -85,16 +93,18 @@ detect_os() {
 # Detect architecture
 detect_arch() {
     local format="${1:-default}"
-    local arch=$(uname -m)
+    local arch
+    arch=$(uname -m)
 
     # Normalize architecture names based on format
-    if [ "$format" = "alt" ]; then
+    if [[ "$format" == "alt" ]]; then
         # Alternative format (like x64)
         case "$arch" in
         x86_64) arch="x64" ;;
         i686 | i386) arch="x86" ;;
         armv6* | armv7*) arch="arm" ;;
         aarch64 | arm64) arch="arm64" ;;
+        *) ;;
         esac
     else
         # Default format (like amd64)
@@ -103,6 +113,7 @@ detect_arch() {
         i686 | i386) arch="386" ;;
         armv6* | armv7*) arch="arm" ;;
         aarch64 | arm64) arch="arm64" ;;
+        *) ;;
         esac
     fi
 
@@ -116,8 +127,9 @@ detect_platform() {
     local format="${1:-default}"
 
     # Get OS and architecture with the same format
-    local os=$(detect_os "$format")
-    local arch=$(detect_arch "$format")
+    local os arch
+    os=$(detect_os "$format")
+    arch=$(detect_arch "$format")
 
     # Return "os-arch"
     echo "$os-$arch"
@@ -141,10 +153,10 @@ setup_dependencies() {
 
         # Try with curl
         if command -v curl &>/dev/null; then
-            curl -LsSf https://astral.sh/uv/install.sh | sh
+            curl --proto "=https" --tlsv1.2 -sSf https://astral.sh/uv/install.sh | sh
         # Try with wget
         elif command -v wget &>/dev/null; then
-            wget -qO- https://astral.sh/uv/install.sh | sh
+            wget --max-redirect=0 -qO- https://astral.sh/uv/install.sh | sh
         else
             error "Please install curl or wget."
         fi
@@ -159,7 +171,7 @@ setup_dependencies() {
     fi
 
     # Create virtual environment if needed
-    if [ ! -d "$VENV_DIR" ]; then
+    if [[ ! -d "$VENV_DIR" ]]; then
         log "Creating virtual environment..."
         uv venv "$VENV_DIR"
     fi
@@ -170,7 +182,7 @@ setup_dependencies() {
     log "Installing pre-commit hooks..."
     $VENV_DIR/bin/prek install
 
-    if [ ! -f "django-vars.env" ]; then
+    if [[ ! -f "django-vars.env" ]]; then
         warn "django-vars.env file not found. Reading settings from environment variables..."
         export DJANGO_READ_VARS_FILE=False
     else
@@ -189,7 +201,7 @@ setup_tailwind() {
     log "Setting up TailwindCSS..."
 
     # Download TailwindCSS if needed
-    if [ ! -f "$VENV_TAILWIND" ]; then
+    if [[ ! -f "$VENV_TAILWIND" ]]; then
         mkdir -p "$(dirname "$VENV_TAILWIND")"
         if command -v tailwindcss &>/dev/null; then
             TAILWIND_VERSION=$(tailwindcss --help 2>/dev/null | head -n 1 | grep -o "v[0-9]\+\.[0-9]\+\.[0-9]\+")
@@ -202,7 +214,7 @@ setup_tailwind() {
             PLATFORM=$(detect_platform alt)
             log "Detected platform: $PLATFORM"
 
-            curl -sL "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-${PLATFORM}" -o "$VENV_TAILWIND"
+            curl --proto "=https" --tlsv1.2 -sSL "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-${PLATFORM}" -o "$VENV_TAILWIND"
             chmod +x "$VENV_TAILWIND"
         fi
     fi
@@ -221,7 +233,7 @@ setup_mailpit() {
     log "Setting up Mailpit..."
 
     # Download Mailpit if necessary
-    if [ ! -f "$VENV_MAILPIT" ]; then
+    if [[ ! -f "$VENV_MAILPIT" ]]; then
         mkdir -p "$(dirname "$VENV_MAILPIT")"
         if command -v mailpit &>/dev/null; then
             MAILPIT_VERSION=$(mailpit version)
@@ -234,7 +246,7 @@ setup_mailpit() {
             PLATFORM=$(detect_platform)
             log "Detected platform: $PLATFORM"
 
-            curl -sL "https://github.com/axllent/mailpit/releases/latest/download/mailpit-${PLATFORM}.tar.gz" | tar -xz -C "$VENV_DIR/bin" mailpit
+            curl --proto "=https" --tlsv1.2 -sSL "https://github.com/axllent/mailpit/releases/latest/download/mailpit-${PLATFORM}.tar.gz" | tar -xz -C "$VENV_DIR/bin" mailpit
             chmod +x "$VENV_MAILPIT"
         fi
     fi
@@ -261,21 +273,21 @@ initialize_django() {
     "$VENV_PYTHON" manage.py createsuperuser --noinput || warn "Superuser creation failed"
 
     # Create test users
-    if [ "$GEN_TEST_USERS" = "true" ]; then
+    if [[ "$GEN_TEST_USERS" == "true" ]]; then
         log "Creating test users..."
         "$VENV_PYTHON" manage.py createuser --email=user1@example.com || warn "User1 creation failed"
         "$VENV_PYTHON" manage.py createuser --email=user2@example.com || warn "User2 creation failed"
     fi
 
     # Download Noto font
-    if [ "$DOWNLOAD_FONT" = "true" ]; then
+    if [[ "$DOWNLOAD_FONT" == "true" ]]; then
         log "Downloading Noto font..."
         mkdir -p "./assets/fonts"
-        curl -sL "https://github.com/notofonts/notofonts.github.io/raw/refs/heads/main/fonts/NotoSans/full/variable-ttf/NotoSans%5Bwdth,wght%5D.ttf" -o "./assets/fonts/NotoSans.ttf"
+        curl --proto "=https" --tlsv1.2 -sSL "https://github.com/notofonts/notofonts.github.io/raw/refs/heads/main/fonts/NotoSans/full/variable-ttf/NotoSans%5Bwdth,wght%5D.ttf" -o "./assets/fonts/NotoSans.ttf"
     fi
 
     # Generate test data if requested
-    if [ "$GEN_FAKE_DATA" = "true" ]; then
+    if [[ "$GEN_FAKE_DATA" == "true" ]]; then
         log "Creating sample events..."
 		run_django_shell <<-'PYTHON' || warn "Failed to create default event"
             from events.models import Event
@@ -345,10 +357,10 @@ initialize_django() {
     fi
 
     # Sync with Pretalx
-    if [ "$PRETALX_SYNC" = "true" ]; then
+    if [[ "$PRETALX_SYNC" == "true" ]]; then
         local pretalx_import_args=(--verbosity 3 --image-format "$IMAGE_FORMAT")
 
-        if [ "$NO_AVATARS" = "true" ]; then
+        if [[ "$NO_AVATARS" == "true" ]]; then
             pretalx_import_args+=(--no-avatars)
         fi
 
@@ -386,12 +398,12 @@ initialize_django() {
     fi
 
     # Sync with Google Sheets
-    if [ "$IMPORT_STREAMS" = "true" ]; then
+    if [[ "$IMPORT_STREAMS" == "true" ]]; then
         log "Importing streams from Google Sheets..."
         "$VENV_PYTHON" manage.py import_livestream_urls || warn "Failed to import livestreams from Google Sheets"
     fi
 
-    if [ "$GEN_TEST_USERS" = "true" ]; then
+    if [[ "$GEN_TEST_USERS" == "true" ]]; then
         log "Assigning test users to a random event..."
 		run_django_shell <<-'PYTHON' || warn "Failed to assign test users to events"
             import random
@@ -421,7 +433,7 @@ start_services() {
 
     # Only build TailwindCSS if not skipped
     if [[ "$SKIP_STEPS" != *"tailwind"* ]]; then
-        if [ "$DEBUG" = "true" ]; then
+        if [[ "$DEBUG" == "true" ]]; then
             # Start TailwindCSS in background
             log "Starting TailwindCSS watcher..."
             "$VENV_TAILWIND" -i ./assets/css/input.css -o ./static/css/tailwind.min.css --watch &
@@ -445,9 +457,9 @@ start_services() {
     fi
 
     # Start Django server if requested
-    if [ "$RUN_SERVER" = "true" ]; then
+    if [[ "$RUN_SERVER" == "true" ]]; then
         log "Starting Django development server..."
-        "$VENV_PYTHON" manage.py runserver ${DJANGO_PORT}
+        "$VENV_PYTHON" manage.py runserver "${DJANGO_PORT}"
     else
         log "Setup complete (server not started)"
     fi

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Run as root in the host
-if [ "$(id -u)" -ne 0 ]; then
+if [[ "$(id -u)" -ne 0 ]]; then
     echo "This script must be run as root"
     exit 1
 fi
