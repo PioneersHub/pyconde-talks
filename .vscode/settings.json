@@ -1,30 +1,76 @@
 {
+  // =============================
+  // Language associations
+  // =============================
   "files.associations": {
     "**/nginx/*": "nginx"
   },
+
+  // =============================
+  // Editor
+  // =============================
+  "editor.rulers": [100],
+
+  // =============================
+  // Explorer, search, and watchers
+  // =============================
+  "files.exclude": {
+    "**/.pytest_cache": true,
+    "**/.ruff_cache": true,
+    "**/__pycache__": true,
+    ".venv": true
+  },
+  "search.exclude": {
+    "**/.venv": true
+  },
+  "files.watcherExclude": {
+    "**/.venv/**": true
+  },
+
+  // =============================
+  // TOML
+  // =============================
   "evenBetterToml.formatter.allowedBlankLines": 2,
   "evenBetterToml.formatter.columnWidth": 100,
+
+  // =============================
+  // Bandit
+  // =============================
   "bandit.importStrategy": "fromEnvironment",
   "bandit.args": ["-c", "pyproject.toml"],
+
+  // =============================
+  // Djlint
+  // =============================
   "[django-html]": {
     "editor.defaultFormatter": "monosans.djlint"
   },
+  "djlint.configuration": "pyproject.toml",
   "djlint.enableLinting": true,
   "djlint.useVenv": true,
-  "djlint.configuration": "pyproject.toml",
+
+  // =============================
+  // Python
+  // =============================
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "python.envFile": "${workspaceFolder}/.vscode/python.env",
+  "python.terminal.activateEnvironment": true,
+  "python.terminal.useEnvFile": true,
+  "python.analysis.exclude": ["**/.venv/**"],
   "python.testing.pytestArgs": ["--import-mode=importlib"],
   "python.testing.pytestEnabled": true,
   "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.fixAll.ruff": "explicit",
       "source.organizeImports.ruff": "explicit"
-    },
-    "editor.defaultFormatter": "charliermarsh.ruff"
+    }
   },
-  "editor.rulers": [100],
+
+  // =============================
+  // SonarLint
+  // =============================
   "sonarlint.connectedMode.project": {
     "connectionId": "pioneers-hub",
     "projectKey": "PioneersHub_pyconde-talks"
