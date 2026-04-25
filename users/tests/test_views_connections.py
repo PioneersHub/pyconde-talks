@@ -19,7 +19,7 @@ from events.models import Event
 from users.adapters import AccountAdapter
 from users.adapters_social import SocialAccountAdapter
 from users.models import CustomUser
-from users.views import _ADD_EMAIL_SESSION_KEY
+from users.views_connections import _ADD_EMAIL_SESSION_KEY
 
 
 pytestmark = pytest.mark.django_db
@@ -108,7 +108,7 @@ class TestConnectionsView:
         assert "Remove selected" not in content
         assert "only sign-in method" in content
 
-    @patch("users.views.get_adapter")
+    @patch("users.views_connections.get_adapter")
     def test_email_user_with_discord_can_disconnect(
         self,
         mock_get_adapter: Any,
@@ -125,7 +125,7 @@ class TestConnectionsView:
         assert "Remove selected" in content
         assert "only sign-in method" not in content
 
-    @patch("users.views.get_adapter")
+    @patch("users.views_connections.get_adapter")
     def test_verified_email_not_in_api_blocks_disconnect(
         self,
         mock_get_adapter: Any,
@@ -156,7 +156,7 @@ class TestConnectionsView:
         content = response.content.decode()
         assert "Add Email" in content
 
-    @patch("users.views.get_adapter")
+    @patch("users.views_connections.get_adapter")
     def test_email_user_does_not_see_add_email(
         self,
         mock_get_adapter: Any,
@@ -171,7 +171,7 @@ class TestConnectionsView:
         content = response.content.decode()
         assert reverse("add_email") not in content
 
-    @patch("users.views.get_adapter")
+    @patch("users.views_connections.get_adapter")
     def test_discord_user_unauthorized_email_sees_ticket_email_card(
         self,
         mock_get_adapter: Any,
@@ -209,7 +209,7 @@ class TestConnectionsView:
         content = response.content.decode()
         assert "Link your Discord" in content
 
-    @patch("users.views.get_adapter")
+    @patch("users.views_connections.get_adapter")
     def test_discord_user_with_authorized_primary_can_disconnect(
         self,
         mock_get_adapter: Any,
@@ -358,7 +358,7 @@ class TestAddEmailView:
         assert response.status_code == HTTPStatus.OK
         assert b"Add Email Address" in response.content
 
-    @patch("users.views.get_adapter")
+    @patch("users.views_connections.get_adapter")
     def test_redirect_if_already_has_authorized_email(
         self,
         mock_get_adapter: Any,
@@ -372,7 +372,7 @@ class TestAddEmailView:
         assert response.status_code == HTTPStatus.FOUND
         assert reverse("socialaccount_connections") in response.url
 
-    @patch("users.views.get_adapter")
+    @patch("users.views_connections.get_adapter")
     def test_discord_user_unauthorized_email_sees_form(
         self,
         mock_get_adapter: Any,
@@ -409,8 +409,8 @@ class TestAddEmailView:
         assert response.status_code == HTTPStatus.OK
         assert b"already in use" in response.content
 
-    @patch("users.views.get_adapter")
-    @patch("users.views._send_add_email_code")
+    @patch("users.views_connections.get_adapter")
+    @patch("users.views_connections._send_add_email_code")
     def test_unauthorized_email_rejected(
         self,
         mock_send: Any,
@@ -427,8 +427,8 @@ class TestAddEmailView:
         assert b"not authorized" in response.content
         mock_send.assert_not_called()
 
-    @patch("users.views.get_adapter")
-    @patch("users.views._send_add_email_code")
+    @patch("users.views_connections.get_adapter")
+    @patch("users.views_connections._send_add_email_code")
     def test_authorized_email_sends_code(
         self,
         mock_send: Any,
@@ -449,7 +449,7 @@ class TestAddEmailView:
         assert _ADD_EMAIL_SESSION_KEY in session
         assert session[_ADD_EMAIL_SESSION_KEY]["email"] == "new@example.com"
 
-    @patch("users.views.get_adapter")
+    @patch("users.views_connections.get_adapter")
     def test_add_email_code_sends_html_email(
         self,
         mock_get_adapter: Any,

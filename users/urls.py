@@ -5,14 +5,8 @@ from allauth.socialaccount.providers.discord.urls import urlpatterns as discord_
 from django.contrib.auth.decorators import login_not_required
 from django.urls import include, path
 
-from .views import (
-    CustomRequestLoginCodeView,
-    add_email_view,
-    confirm_add_email_view,
-    connections_view,
-    delete_account_view,
-    profile_view,
-)
+from .views import CustomRequestLoginCodeView, delete_account_view, profile_view
+from .views_connections import add_email_view, confirm_add_email_view, connections_view
 
 
 urlpatterns = [
