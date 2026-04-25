@@ -137,6 +137,7 @@ pytestmark
 PYTHONDONTWRITEBYTECODE
 PYTHONUNBUFFERED
 pyupgrade
+Qube
 RAQM
 redef
 regularuser
@@ -149,6 +150,7 @@ ryanluker
 SAMEORIGIN
 sarif
 Satoshi
+scannerwork
 sched
 sdist
 signups

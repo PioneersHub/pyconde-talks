@@ -51,3 +51,6 @@ lcov.info
 
 # Reports (Ruff, Bandit, coverage, etc.)
 reports/
+
+# SonarQube
+.scannerwork/
