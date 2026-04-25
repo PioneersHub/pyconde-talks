@@ -15,6 +15,12 @@ from talks.models import Room, Streaming
 
 logger = structlog.get_logger(__name__)
 
+COL_ROOM = "Room"
+COL_START_TIME = "Start Time"
+COL_END_TIME = "End Time"
+COL_EMBED_LINK = "Embed Link"
+COL_VIMEO_RESTREAM = "Vimeo / Restream"
+
 
 class Command(BaseCommand):
     """Fetch streamings from Google Sheets and save them to the database."""
@@ -51,12 +57,14 @@ class Command(BaseCommand):
             response.raise_for_status()
             data = io.BytesIO(response.content)
             s_df = pd.read_excel(data, sheet_name=worksheet_name)
-            s_df = s_df[(s_df["Vimeo / Restream"] == "Vimeo") & (s_df["Embed Link"].notna())]
-            s_df = s_df[["Room", "Start Time", "End Time", "Embed Link"]]
+            s_df = s_df[(s_df[COL_VIMEO_RESTREAM] == "Vimeo") & (s_df[COL_EMBED_LINK].notna())]
+            s_df = s_df[[COL_ROOM, COL_START_TIME, COL_END_TIME, COL_EMBED_LINK]]
 
             # Localize timestamps
-            s_df["Start Time"] = pd.to_datetime(s_df["Start Time"]).dt.tz_localize("Europe/Berlin")
-            s_df["End Time"] = pd.to_datetime(s_df["End Time"]).dt.tz_localize("Europe/Berlin")
+            s_df[COL_START_TIME] = pd.to_datetime(s_df[COL_START_TIME]).dt.tz_localize(
+                "Europe/Berlin",
+            )
+            s_df[COL_END_TIME] = pd.to_datetime(s_df[COL_END_TIME]).dt.tz_localize("Europe/Berlin")
         except Exception as exc:
             self.stderr.write(self.style.ERROR(f"Error fetching spreadsheet data: {exc}"))
             raise
@@ -68,10 +76,73 @@ class Command(BaseCommand):
         room_name = room_name.strip()
         return Room.objects.filter(name=room_name).first()
 
+    def _import_streams(self, s_df: pd.DataFrame) -> None:
+        """Replace existing streams with the ones in the DataFrame."""
+        deleted_count = Streaming.objects.all().delete()[0]
+        self.stdout.write(
+            self.style.WARNING(f"Deleted {deleted_count} existing streaming sessions"),
+        )
+
+        streams_to_create: list[Streaming] = []
+        skipped_count = 0
+
+        for _, row in s_df.iterrows():
+            room = self.get_room(row[COL_ROOM])
+            if not room:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Room '{row[COL_ROOM].strip()}' not found. Skipping this row.",
+                    ),
+                )
+                skipped_count += 1
+                continue
+            streams_to_create.append(
+                Streaming(
+                    room=room,
+                    start_time=row[COL_START_TIME],
+                    end_time=row[COL_END_TIME],
+                    video_link=row[COL_EMBED_LINK],
+                ),
+            )
+
+        if streams_to_create:
+            Streaming.objects.bulk_create(streams_to_create, batch_size=100)
+            for stream in streams_to_create:
+                self.stdout.write(self.style.SUCCESS(f"Created {stream}"))
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Successfully imported {len(streams_to_create)} streaming sessions "
+                f"(skipped: {skipped_count}).",
+            ),
+        )
+
+    def _report_dry_run(self, s_df: pd.DataFrame) -> None:
+        """Print what would be imported without touching the database."""
+        valid_count = 0
+        invalid_count = 0
+
+        for _, row in s_df.iterrows():
+            room = self.get_room(row[COL_ROOM])
+            if room:
+                valid_count += 1
+                self.stdout.write(
+                    f"Would process: Room={room.name}, "
+                    f"Start={row[COL_START_TIME]}, End={row[COL_END_TIME]}",
+                )
+            else:
+                invalid_count += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Dry run completed. Would process {valid_count} streaming sessions "
+                f"(would skip: {invalid_count}).",
+            ),
+        )
+
     @transaction.atomic
     def handle(self, *args: Any, **options: Any) -> None:  # noqa: ARG002
         """Execute the command to import streaming sessions from Google Sheets."""
-        # Extract options
         sheet_id = options["livestreams_sheet_id"]
         worksheet_name = options["livestreams_worksheet_name"]
         dry_run = options.get("dry_run", False)
@@ -80,78 +151,13 @@ class Command(BaseCommand):
             if dry_run:
                 self.stdout.write(self.style.NOTICE("DRY RUN: No database changes will be made"))
 
-            # Fetch data
             s_df = self.fetch_spreadsheet_data(sheet_id, worksheet_name)
             self.stdout.write(f"Found {len(s_df)} potential streaming sessions")
 
-            # Handle database operations
-            if not dry_run:
-                # Clear existing records
-                deleted_count = Streaming.objects.all().delete()[0]
-                self.stdout.write(
-                    self.style.WARNING(f"Deleted {deleted_count} existing streaming sessions"),
-                )
-
-                # Prepare for bulk operations
-                streams_to_create = []
-                skipped_count = 0
-
-                for _, row in s_df.iterrows():
-                    room = self.get_room(row["Room"])
-
-                    if not room:
-                        self.stdout.write(
-                            self.style.WARNING(
-                                f"Room '{row['Room'].strip()}' not found. Skipping this row.",
-                            ),
-                        )
-                        skipped_count += 1
-                        continue
-
-                    streams_to_create.append(
-                        Streaming(
-                            room=room,
-                            start_time=row["Start Time"],
-                            end_time=row["End Time"],
-                            video_link=row["Embed Link"],
-                        ),
-                    )
-
-                # Perform bulk creation
-                if streams_to_create:
-                    Streaming.objects.bulk_create(streams_to_create, batch_size=100)
-                    for stream in streams_to_create:
-                        self.stdout.write(self.style.SUCCESS(f"Created {stream}"))
-
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f"Successfully imported {len(streams_to_create)} streaming sessions "
-                        f"(skipped: {skipped_count}).",
-                    ),
-                )
+            if dry_run:
+                self._report_dry_run(s_df)
             else:
-                # Dry run reporting
-                valid_count = 0
-                invalid_count = 0
-
-                for _, row in s_df.iterrows():
-                    room = self.get_room(row["Room"])
-                    if room:
-                        valid_count += 1
-                        self.stdout.write(
-                            f"Would process: Room={room.name}, "
-                            f"Start={row['Start Time']}, End={row['End Time']}",
-                        )
-                    else:
-                        invalid_count += 1
-
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f"Dry run completed. Would process {valid_count} streaming sessions "
-                        f"(would skip: {invalid_count}).",
-                    ),
-                )
-
+                self._import_streams(s_df)
         except Exception as exc:
             self.stderr.write(self.style.ERROR(f"Command failed: {exc!s}"))
             logger.exception("Error importing streaming sessions")
