@@ -191,6 +191,11 @@ omit = [
     "event_talks/wsgi.py",
     "event_talks/settings.py",
     "*/migrations/*",
+    # Live integration tests - module-level `pytest.skip` when RUN_LIVE_IMPORT_TEST is unset
+    # leaves their bodies permanently uncovered.
+    "talks/tests/test_import_livestream_urls.py",
+    "talks/tests/test_import_pretalx_integration.py",
+    "talks/tests/test_update_video_links.py",
 ]
 
 [tool.bandit]
