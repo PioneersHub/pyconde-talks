@@ -9,7 +9,7 @@
       // Prevent flash of wrong theme – runs synchronously before first paint
       (function() {
         var stored = localStorage.getItem('theme');
-        if (stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        if (stored === 'dark' || (!stored && globalThis.matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.classList.add('dark');
         }
       })();
@@ -174,7 +174,7 @@
         });
 
         // Listen for system theme changes when no explicit preference is stored
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        globalThis.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
           if (!localStorage.getItem('theme')) {
             html.classList.toggle('dark', e.matches);
             updateIcons();
