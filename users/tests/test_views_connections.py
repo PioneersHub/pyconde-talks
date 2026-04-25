@@ -16,7 +16,8 @@ from django.utils import timezone
 from model_bakery import baker
 
 from events.models import Event
-from users.adapters import AccountAdapter, SocialAccountAdapter
+from users.adapters import AccountAdapter
+from users.adapters_social import SocialAccountAdapter
 from users.models import CustomUser
 from users.views import _ADD_EMAIL_SESSION_KEY
 

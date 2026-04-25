@@ -13,7 +13,7 @@ from django.test import RequestFactory
 from model_bakery import baker
 
 from events.models import Event
-from users.adapters import SocialAccountAdapter, _DiscordNotInGuildError
+from users.adapters_social import SocialAccountAdapter, _DiscordNotInGuildError
 
 
 pytestmark = pytest.mark.django_db
@@ -98,7 +98,7 @@ def discord_settings(settings: Any) -> Any:
 class TestFetchMemberRoleIds:
     """Tests for the _fetch_member_role_ids static method."""
 
-    @patch("users.adapters.httpx.get")
+    @patch("users.adapters_social.httpx.get")
     def test_returns_role_ids(self, mock_get: MagicMock) -> None:
         """Successful API call returns the set of role IDs."""
         mock_get.return_value = MagicMock(
@@ -109,14 +109,14 @@ class TestFetchMemberRoleIds:
         result = SocialAccountAdapter._fetch_member_role_ids("tok", "999")
         assert result == {"111", "222"}
 
-    @patch("users.adapters.httpx.get")
+    @patch("users.adapters_social.httpx.get")
     def test_not_found_raises(self, mock_get: MagicMock) -> None:
         """A 404 response raises _DiscordNotInGuildError."""
         mock_get.return_value = MagicMock(status_code=404)
         with pytest.raises(_DiscordNotInGuildError):
             SocialAccountAdapter._fetch_member_role_ids("tok", "999")
 
-    @patch("users.adapters.httpx.get")
+    @patch("users.adapters_social.httpx.get")
     def test_server_error_raises(self, mock_get: MagicMock) -> None:
         """A 500 response raises httpx.HTTPStatusError."""
         resp = httpx.Response(500, request=httpx.Request("GET", "http://x"))
@@ -608,7 +608,7 @@ def _add_session(request: Any) -> None:
 class TestTryMergeAccounts:
     """Tests for the _try_merge_accounts helper."""
 
-    @patch("users.adapters.get_account_adapter")
+    @patch("users.adapters_social.get_account_adapter")
     def test_merge_deletes_orphan_and_reassigns(
         self,
         mock_get_adapter: MagicMock,
@@ -644,7 +644,7 @@ class TestTryMergeAccounts:
         assert sa.user == current_user
         assert not user_model.objects.filter(pk=orphan.pk).exists()
 
-    @patch("users.adapters.get_account_adapter")
+    @patch("users.adapters_social.get_account_adapter")
     def test_merge_transfers_events(
         self,
         mock_get_adapter: MagicMock,
@@ -680,7 +680,7 @@ class TestTryMergeAccounts:
 
         assert current_user.events.filter(pk=event.pk).exists()
 
-    @patch("users.adapters.get_account_adapter")
+    @patch("users.adapters_social.get_account_adapter")
     def test_no_merge_when_no_verified_email(
         self,
         mock_get_adapter: MagicMock,
@@ -711,7 +711,7 @@ class TestTryMergeAccounts:
         # Orphan should still exist
         assert user_model.objects.filter(pk=orphan.pk).exists()
 
-    @patch("users.adapters.get_account_adapter")
+    @patch("users.adapters_social.get_account_adapter")
     def test_no_merge_when_email_not_validated(
         self,
         mock_get_adapter: MagicMock,
@@ -742,7 +742,7 @@ class TestTryMergeAccounts:
 
         assert user_model.objects.filter(pk=orphan.pk).exists()
 
-    @patch("users.adapters.get_account_adapter")
+    @patch("users.adapters_social.get_account_adapter")
     def test_merge_grants_admin_permissions(
         self,
         mock_get_adapter: MagicMock,
@@ -779,7 +779,7 @@ class TestTryMergeAccounts:
         assert current_user.is_superuser is True
         assert current_user.is_staff is True
 
-    @patch("users.adapters.get_account_adapter")
+    @patch("users.adapters_social.get_account_adapter")
     def test_merge_does_not_demote_existing_admin(
         self,
         mock_get_adapter: MagicMock,
@@ -846,7 +846,7 @@ class TestSaveUser:
         )
         request = rf.get("/")
         with patch(
-            "users.adapters.DefaultSocialAccountAdapter.save_user",
+            "users.adapters_social.DefaultSocialAccountAdapter.save_user",
         ) as mock_super:
             mock_user = MagicMock()
             mock_super.return_value = mock_user
@@ -958,7 +958,7 @@ class TestAddDefaultEvent:
             extra_data={"email": "new@test.com", "verified": True, "matched_roles": ["attendee"]},
         )
         request = RequestFactory().get("/")
-        with patch("users.adapters.DefaultSocialAccountAdapter.save_user") as mock_super:
+        with patch("users.adapters_social.DefaultSocialAccountAdapter.save_user") as mock_super:
             mock_user = MagicMock()
             mock_user.events = MagicMock()
             mock_user.events.filter.return_value.exists.return_value = False
