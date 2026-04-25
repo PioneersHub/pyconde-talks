@@ -64,5 +64,9 @@ def svg(name: str, css_class: str = "") -> SafeString:
         {% svg 'arrow' 'h-4 w-4 text-blue-500' %}
 
     """
-    svg_path = str(Path(settings.BASE_DIR) / "svg" / f"{name}.svg")
-    return mark_safe(_read_svg(svg_path, css_class))  # nosec: B308, B703  # noqa: S308
+    svg_dir = Path(settings.BASE_DIR) / "svg"
+    svg_path = (svg_dir / f"{name}.svg").resolve()
+    # Guard against path traversal (e.g. name="../../etc/passwd")
+    if not svg_path.is_relative_to(svg_dir.resolve()):
+        return mark_safe("")  # nosec: B308
+    return mark_safe(_read_svg(str(svg_path), css_class))  # nosec: B308, B703  # noqa: S308
