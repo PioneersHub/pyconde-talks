@@ -35,7 +35,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Install TailwindCSS
 ARG PLATFORM=linux-x64
-RUN curl -sL \
+RUN curl -sSL --proto "=https" --tlsv1.2 \
     "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-${PLATFORM}" \
     -o /usr/local/bin/tailwindcss \
     && chmod +x /usr/local/bin/tailwindcss
@@ -49,8 +49,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-default-groups --group prod && \
     python manage.py collectstatic --noinput && \
     # Generate minified CSS with Tailwind
-    mkdir -p ${DJANGO_STATIC_ROOT}/css && \
-    /usr/local/bin/tailwindcss -i /app/assets/css/input.css -o ${DJANGO_STATIC_ROOT}/css/tailwind.min.css --minify
+    mkdir -p "${DJANGO_STATIC_ROOT}/css" && \
+    /usr/local/bin/tailwindcss -i /app/assets/css/input.css -o "${DJANGO_STATIC_ROOT}/css/tailwind.min.css" --minify
 
 # Stage 2: extract static files
 #
@@ -81,15 +81,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     MPLCONFIGDIR=/tmp/matplotlib
 
-# Install runtime dependencies only
+# Install runtime dependencies only and create non-root user
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libpq5 \
     vim \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user
-RUN groupadd -r django && useradd --no-log-init -r -g django django -u 10000
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -r django \
+    && useradd --no-log-init -r -g django django -u 10000
 
 WORKDIR /app
 
@@ -98,19 +97,19 @@ WORKDIR /app
 COPY --from=builder /venv /venv
 ENV PATH="/venv/bin:$PATH"
 
-# Copy only project files necessary for production
-COPY --from=builder --chown=django:django /app/manage.py /app/
-COPY --from=builder --chown=django:django /app/event_talks /app/event_talks/
-COPY --from=builder --chown=django:django /app/events /app/events/
-COPY --from=builder --chown=django:django /app/svg /app/svg/
-COPY --from=builder --chown=django:django /app/talks /app/talks/
-COPY --from=builder --chown=django:django /app/templates /app/templates/
-COPY --from=builder --chown=django:django /app/users /app/users/
-COPY --from=builder --chown=django:django /app/utils /app/utils/
+# Copy only project files necessary for production (read-only for the django user)
+COPY --from=builder --chown=django:django --chmod=0755 /app/manage.py /app/
+COPY --from=builder --chown=django:django --chmod=0755 /app/event_talks /app/event_talks/
+COPY --from=builder --chown=django:django --chmod=0755 /app/events /app/events/
+COPY --from=builder --chown=django:django --chmod=0755 /app/svg /app/svg/
+COPY --from=builder --chown=django:django --chmod=0755 /app/talks /app/talks/
+COPY --from=builder --chown=django:django --chmod=0755 /app/templates /app/templates/
+COPY --from=builder --chown=django:django --chmod=0755 /app/users /app/users/
+COPY --from=builder --chown=django:django --chmod=0755 /app/utils /app/utils/
 
 # Install font
 RUN mkdir -p /usr/share/fonts/truetype/noto && \
-    curl -sL \
+    curl -sSL --proto "=https" --tlsv1.2 \
     "https://github.com/notofonts/notofonts.github.io/raw/refs/heads/main/fonts/NotoSans/full/variable-ttf/NotoSans%5Bwdth,wght%5D.ttf" \
     -o "/usr/share/fonts/truetype/noto/NotoSans.ttf"
 
@@ -125,8 +124,7 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl --fail "http://127.0.0.1:8000/ht/?format=json" || exit 1
 
 # Run entrypoint script
-COPY --chown=django:django ./docker/docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+COPY --chown=django:django --chmod=0755 ./docker/docker-entrypoint.sh /usr/local/bin/
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "event_talks.asgi:application"]

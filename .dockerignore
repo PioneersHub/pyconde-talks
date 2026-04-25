@@ -40,6 +40,9 @@ htmlcov/
 # Environment
 .venv
 env.example
+*.env
+django-vars.env
+docker/.env
 
 # Editors and dev environments
 .idea/
