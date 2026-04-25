@@ -2,6 +2,7 @@
 
 # ruff: noqa: PLR2004
 
+from datetime import timedelta
 from http import HTTPStatus
 from typing import TYPE_CHECKING
 
@@ -804,6 +805,123 @@ class TestRatingVisibilityDetailView:
         assert response.context["average_rating"] == 3.0
         assert response.context["rating_count"] == 1
         assert response.context["show_rating_summary"] is True
+
+
+@pytest.mark.django_db
+class TestRatingCommentsOnTalkDetailView:
+    """Tests for exposing rating comments to superusers on the talk detail page."""
+
+    def test_superuser_sees_comments_in_context(
+        self,
+        client: Client,
+        admin_user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """Superusers get the list of commented ratings in ``rating_comments``."""
+        rater = baker.make(CustomUser, email="rater-a@example.com")
+        Rating.objects.create(talk=talk, user=rater, score=5, comment="Brilliant!")
+        client.force_login(admin_user)
+        response = client.get(reverse("talk_detail", args=[talk.pk]))
+        comments = list(response.context["rating_comments"])
+        assert len(comments) == 1
+        assert comments[0].comment == "Brilliant!"
+        assert comments[0].user == rater
+
+    def test_empty_comments_are_excluded(
+        self,
+        client: Client,
+        admin_user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """Star-only ratings (empty comment) never reach the superuser context list."""
+        silent_rater = baker.make(CustomUser, email="silent@example.com")
+        loud_rater = baker.make(CustomUser, email="loud@example.com")
+        Rating.objects.create(talk=talk, user=silent_rater, score=4, comment="")
+        Rating.objects.create(talk=talk, user=loud_rater, score=3, comment="So-so")
+        client.force_login(admin_user)
+        response = client.get(reverse("talk_detail", args=[talk.pk]))
+        comments = list(response.context["rating_comments"])
+        assert [c.user for c in comments] == [loud_rater]
+
+    def test_comments_are_ordered_newest_first(
+        self,
+        client: Client,
+        admin_user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """``rating_comments`` is ordered by ``-created_at`` so the freshest feedback is first."""
+        rater_old = baker.make(CustomUser, email="old@example.com")
+        rater_new = baker.make(CustomUser, email="new@example.com")
+        Rating.objects.create(
+            talk=talk,
+            user=rater_old,
+            score=2,
+            comment="Old",
+            created_at=timezone.now() - timedelta(days=1),
+        )
+        Rating.objects.create(
+            talk=talk,
+            user=rater_new,
+            score=5,
+            comment="New",
+            created_at=timezone.now(),
+        )
+        client.force_login(admin_user)
+        response = client.get(reverse("talk_detail", args=[talk.pk]))
+        comments = list(response.context["rating_comments"])
+        assert [c.comment for c in comments] == ["New", "Old"]
+
+    def test_staff_user_does_not_see_comments(
+        self,
+        client: Client,
+        staff_user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """Staff users (non-superuser) are not given the private comments list."""
+        rater = baker.make(CustomUser, email="ratep-b@example.com")
+        Rating.objects.create(talk=talk, user=rater, score=5, comment="Secret")
+        client.force_login(staff_user)
+        response = client.get(reverse("talk_detail", args=[talk.pk]))
+        assert "rating_comments" not in response.context
+
+    def test_regular_user_does_not_see_comments(
+        self,
+        client: Client,
+        user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """Regular users never get a ``rating_comments`` context entry."""
+        other = baker.make(CustomUser, email="other-c@example.com")
+        Rating.objects.create(talk=talk, user=other, score=5, comment="Still secret")
+        client.force_login(user)
+        response = client.get(reverse("talk_detail", args=[talk.pk]))
+        assert "rating_comments" not in response.context
+
+    def test_superuser_template_renders_comment_text(
+        self,
+        client: Client,
+        admin_user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """The rendered HTML for a superuser actually contains the comment text."""
+        rater = baker.make(CustomUser, email="writer@example.com")
+        Rating.objects.create(talk=talk, user=rater, score=5, comment="This is visible!")
+        client.force_login(admin_user)
+        response = client.get(reverse("talk_detail", args=[talk.pk]))
+        assert b"This is visible!" in response.content
+
+    def test_non_superuser_template_hides_comment_text(
+        self,
+        client: Client,
+        user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """A regular user's rendered page must not contain anyone else's comment text."""
+        other = baker.make(CustomUser, email="other-d@example.com")
+        Rating.objects.create(talk=talk, user=other, score=5, comment="Should be hidden")
+        client.force_login(user)
+        response = client.get(reverse("talk_detail", args=[talk.pk]))
+        assert b"Should be hidden" not in response.content
 
 
 @pytest.mark.django_db

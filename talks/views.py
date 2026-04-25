@@ -94,6 +94,17 @@ class TalkDetailView(DetailView[Talk]):
                 user=self.request.user,
             ).exists()
 
+        # Expose rating comments to superusers only. The field is otherwise kept private
+        # (hence the admin-only copy in the Rating model's help_text), but superusers need to
+        # read attendee feedback from the frontend in addition to the admin site.
+        if getattr(self.request.user, "is_superuser", False):
+            context["rating_comments"] = list(
+                Rating.objects.filter(talk=talk)
+                .exclude(comment="")
+                .select_related("user")
+                .order_by("-created_at"),
+            )
+
         return context
 
 

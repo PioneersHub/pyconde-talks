@@ -115,6 +115,35 @@
         <div class="prose max-w-none mb-8">{{ talk.description|markdownify }}</div>
         <!-- Rating Section -->
         <div class="box-muted mb-8">{% include "talks/partials/rating_widget.html" %}</div>
+        {% if rating_comments %}
+          <!-- Rating comments (superusers only) -->
+          <section class="box-muted mb-8"
+                   aria-label="Attendee rating comments (visible to superusers only)">
+            <div class="flex items-center gap-2 mb-4">
+              {% svg 'chat-bubble-left-ellipsis' "h-5 w-5 text-muted" %}
+              <h2 class="text-lg font-semibold text-heading">
+                Rating comments
+                <span class="badge badge-gray ml-2 text-xs">superusers only</span>
+              </h2>
+            </div>
+            <ul class="space-y-4">
+              {% for rating in rating_comments %}
+                <li class="border-l-4 border-brand-blue pl-4">
+                  <div class="flex flex-wrap items-center gap-2 text-sm text-subtle mb-1">
+                    <span class="font-medium text-muted">{{ rating.user.email }}</span>
+                    <span>·</span>
+                    <span>{{ rating.score }}/5</span>
+                    <span>·</span>
+                    <time datetime="{{ rating.created_at|date:'c' }}">
+                      {{ rating.created_at|date:"M j, Y g:i A" }}
+                    </time>
+                  </div>
+                  <p class="whitespace-pre-line text-muted">{{ rating.comment }}</p>
+                </li>
+              {% endfor %}
+            </ul>
+          </section>
+        {% endif %}
         <!-- Action Buttons -->
         <div class="flex flex-wrap gap-4">
           <a href="{{ talk.pretalx_link }}"
