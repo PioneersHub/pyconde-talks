@@ -6,7 +6,7 @@ each other without pulling the core Talk list/detail views along with them.
 """
 
 from http import HTTPStatus
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib import messages
 from django.db import IntegrityError
@@ -17,6 +17,10 @@ from django.views.decorators.http import require_POST, require_safe
 
 from .models import COMMENT_MAX_LENGTH, MAX_RATING_SCORE, MIN_RATING_SCORE, Rating, Talk
 from .views import _can_see_rating_summary
+
+
+if TYPE_CHECKING:
+    from users.models import CustomUser
 
 
 def _rating_error_response(
@@ -72,7 +76,8 @@ def rate_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     If a rating already exists, it is updated.
     Returns a partial HTML fragment for HTMX requests or redirects otherwise.
     """
-    talk = get_object_or_404(Talk, pk=talk_id)
+    user = cast("CustomUser", request.user)
+    talk = get_object_or_404(Talk.objects.accessible_to(user), pk=talk_id)
     is_htmx = request.headers.get("HX-Request") == "true"
     is_comment_save = request.POST.get("save_comment") == "1"
 
@@ -132,7 +137,8 @@ def delete_rating(request: HttpRequest, talk_id: int) -> HttpResponse:
 
     Returns a partial HTML fragment for HTMX requests or redirects otherwise.
     """
-    talk = get_object_or_404(Talk, pk=talk_id)
+    user = cast("CustomUser", request.user)
+    talk = get_object_or_404(Talk.objects.accessible_to(user), pk=talk_id)
     is_htmx = request.headers.get("HX-Request") == "true"
     deleted_count, _detail = Rating.objects.filter(talk=talk, user=request.user).delete()
 
@@ -153,7 +159,8 @@ def get_talk_rating_stats(request: HttpRequest, talk_id: int) -> JsonResponse:
 
     Returns average_rating, rating_count, and the current user's rating if it exists.
     """
-    talk = get_object_or_404(Talk, pk=talk_id)
+    user = cast("CustomUser", request.user)
+    talk = get_object_or_404(Talk.objects.accessible_to(user), pk=talk_id)
 
     stats = talk.get_rating_stats()
 

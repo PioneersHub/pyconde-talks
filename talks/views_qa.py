@@ -27,10 +27,21 @@ from .utils import get_talk_by_id_or_pretalx
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 
+    from users.models import CustomUser
+
 
 def _get_status_filter(request: HttpRequest) -> str:
     """Return the status_filter from POST (hx-vals) or GET, defaulting to 'all'."""
     return request.POST.get("status_filter") or request.GET.get("status_filter", "all")
+
+
+def _get_accessible_question(user: AbstractBaseUser | AnonymousUser, question_id: int) -> Question:
+    """Return the question if the user has access to its talk's event, or raise Http404."""
+    question = get_object_or_404(Question.objects.select_related("talk"), pk=question_id)
+    accessible = Talk.objects.accessible_to(cast("CustomUser", user))
+    if not accessible.filter(pk=question.talk_id).exists():
+        raise Http404
+    return question
 
 
 class QuestionListView(ListView[Question]):
@@ -59,7 +70,8 @@ class QuestionListView(ListView[Question]):
 
     def get_queryset(self) -> QuestionQuerySet:
         """Get questions for the specific talk, sorted by votes."""
-        self.talk = get_object_or_404(Talk, pk=self.kwargs["talk_id"])
+        user = cast("CustomUser", self.request.user)
+        self.talk = get_object_or_404(Talk.objects.accessible_to(user), pk=self.kwargs["talk_id"])
 
         # Get the status filter from the request
         self.status_filter = self.request.GET.get("status_filter", "all")
@@ -109,7 +121,11 @@ class QuestionCreateView(CreateView[Question, forms.ModelForm[Question]]):
         question: Question = form.instance
 
         # Set the talk and user
-        question.talk = get_object_or_404(Talk, pk=self.kwargs["talk_id"])
+        user = cast("CustomUser", self.request.user)
+        question.talk = get_object_or_404(
+            Talk.objects.accessible_to(user),
+            pk=self.kwargs["talk_id"],
+        )
         question.user = self.request.user
 
         # Save the question
@@ -232,7 +248,7 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
     If the user has already voted, the vote is removed (toggle behavior).
     Returns HTML for HTMX to replace the voting div.
     """
-    question = get_object_or_404(Question, pk=question_id)
+    question = _get_accessible_question(request.user, question_id)
 
     # Check if user has already voted
     existing_vote = QuestionVote.objects.filter(
@@ -269,7 +285,7 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
 @require_POST
 def delete_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """Allow a user to delete their own question."""
-    question = get_object_or_404(Question, pk=question_id)
+    question = _get_accessible_question(request.user, question_id)
     if question.user != request.user and not is_moderator(request.user):
         return HttpResponse(status=403)
     talk = question.talk
@@ -359,7 +375,7 @@ def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """Reject a question."""
     if not is_moderator(request.user):
         raise PermissionDenied
-    question = get_object_or_404(Question, pk=question_id)
+    question = _get_accessible_question(request.user, question_id)
     question.reject()
     messages.success(request, _("Question has been rejected."))
 
@@ -378,7 +394,7 @@ def mark_question_answered(request: HttpRequest, question_id: int) -> HttpRespon
     """Mark a question as answered."""
     if not is_moderator(request.user):
         raise PermissionDenied
-    question = get_object_or_404(Question, pk=question_id)
+    question = _get_accessible_question(request.user, question_id)
     question.mark_as_answered()
     messages.success(request, _("Question has been marked as answered."))
 
@@ -397,7 +413,7 @@ def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """Approve a question."""
     if not is_moderator(request.user):
         raise PermissionDenied
-    question = get_object_or_404(Question, pk=question_id)
+    question = _get_accessible_question(request.user, question_id)
     question.approve()
     messages.success(request, _("Question has been approved."))
 

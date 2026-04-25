@@ -5,7 +5,7 @@ Split out from ``talks.views`` so the bookmark toggle endpoint is isolated from 
 rating views.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
@@ -18,6 +18,8 @@ from .models import SavedTalk, Talk
 if TYPE_CHECKING:
     from django.http import HttpRequest, HttpResponse
 
+    from users.models import CustomUser
+
 
 @require_POST
 def toggle_save_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
@@ -27,7 +29,8 @@ def toggle_save_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     If the talk is already saved, it removes the saved status. Otherwise, it saves the talk.
     Returns an HTMX partial with the updated bookmark button.
     """
-    talk = get_object_or_404(Talk, pk=talk_id)
+    user = cast("CustomUser", request.user)
+    talk = get_object_or_404(Talk.objects.accessible_to(user), pk=talk_id)
     saved_talk, created = SavedTalk.objects.get_or_create(
         user=request.user,
         talk=talk,
