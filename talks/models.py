@@ -63,9 +63,8 @@ class Room(models.Model):
         help_text=_("Link to Slido for this room"),
     )
 
-    if TYPE_CHECKING:
-        streamings: RelatedManager[Streaming]
-        talks: RelatedManager[Talk]
+    streamings: RelatedManager[Streaming]
+    talks: RelatedManager[Talk]
 
     class Meta:
         """Metadata for the Room model."""
@@ -217,8 +216,7 @@ class Speaker(models.Model):
         help_text=_("Unique identifier for the speaker in the Pretalx system"),
     )
 
-    if TYPE_CHECKING:
-        talks: RelatedManager[Talk]
+    talks: RelatedManager[Talk]
 
     class Meta:
         """Metadata for the Speaker model."""
@@ -373,8 +371,7 @@ class Talk(models.Model):
         help_text=_("When this talk was last modified"),
     )
 
-    if TYPE_CHECKING:
-        ratings: RelatedManager[Rating]
+    ratings: RelatedManager[Rating]
 
     class Meta:
         """Metadata options for the Talk model."""

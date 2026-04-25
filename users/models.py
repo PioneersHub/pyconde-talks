@@ -177,9 +177,8 @@ class CustomUser(AbstractUser):
 
     objects: ClassVar[CustomUserManager] = CustomUserManager()  # type: ignore[assignment]
 
-    if TYPE_CHECKING:
-        emailaddress_set: RelatedManager[EmailAddress]
-        tickets: RelatedManager[Ticket]
+    emailaddress_set: RelatedManager[EmailAddress]
+    tickets: RelatedManager[Ticket]
 
     class Meta:
         """Metadata for CustomUser model."""

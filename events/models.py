@@ -139,9 +139,8 @@ class Event(models.Model):
         help_text=_("Pretalx event base URL (e.g., 'https://pretalx.com/my-event')"),
     )
 
-    if TYPE_CHECKING:
-        talks: RelatedManager[Talk]
-        users: RelatedManager[CustomUser]
+    talks: RelatedManager[Talk]
+    users: RelatedManager[CustomUser]
 
     class Meta:
         """Metadata for the Event model."""

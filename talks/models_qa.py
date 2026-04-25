@@ -100,11 +100,10 @@ class Question(models.Model):
     # Use our custom QuerySet manager
     objects: ClassVar[QuestionQuerySet] = QuestionQuerySet.as_manager()  # type: ignore[assignment]
 
-    if TYPE_CHECKING:
-        user_voted: bool  # Set in build_question_list_context
-        votes_count: int  # Set by with_vote_count() queryset annotation
-        votes: RelatedManager[QuestionVote]
-        answers: RelatedManager[Answer]
+    user_voted: bool  # Set in build_question_list_context
+    votes_count: int  # Set by with_vote_count() queryset annotation
+    votes: RelatedManager[QuestionVote]
+    answers: RelatedManager[Answer]
 
     class Meta:
         """Metadata for the Question model."""

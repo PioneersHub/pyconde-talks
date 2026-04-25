@@ -286,9 +286,8 @@ def delete_question(request: HttpRequest, question_id: int) -> HttpResponse:
 class QuestionOwnerRequiredMixin(UserPassesTestMixin):
     """Mixin to require that the current user owns the question."""
 
-    if TYPE_CHECKING:
-        request: HttpRequest
-        kwargs: dict[str, Any]
+    request: HttpRequest
+    kwargs: dict[str, Any]
 
     def test_func(self) -> bool:
         """Return True if the current user is the owner of the target question."""
@@ -351,8 +350,7 @@ def is_moderator(user: AbstractBaseUser | AnonymousUser) -> bool:
 class ModeratorRequiredMixin(UserPassesTestMixin):  # pragma: no cover
     """Mixin to require moderator permissions."""
 
-    if TYPE_CHECKING:
-        request: HttpRequest
+    request: HttpRequest
 
     def test_func(self) -> bool:
         """Check if the user is a moderator."""
