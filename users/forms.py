@@ -206,24 +206,31 @@ class PasswordlessDisconnectForm(DisconnectForm):  # type: ignore[misc]
         """Block disconnect unless the user has an API-authorized email."""
         cleaned_data = forms.Form.clean(self) or {}
         account = cleaned_data.get("account")
-        if account:
-            accounts = SocialAccount.objects.filter(user_id=account.user_id)
-            is_last = not accounts.exclude(pk=account.pk).exists()
-            if is_last:
-                social_adapter = get_adapter()  # type: ignore[no-untyped-call]
-                verified_email = (
-                    EmailAddress.objects.filter(user=account.user, verified=True)
-                    .order_by("-primary")
-                    .values_list("email", flat=True)
-                    .first()
-                )
-                if not verified_email:
-                    error_key = "no_password"
-                    raise social_adapter.validation_error(error_key)
+        if not account:
+            return cleaned_data
 
-                # The email exists but must also pass the validation API.
-                adapter = cast("AccountAdapter", get_account_adapter())
-                if not adapter.can_login_by_email(verified_email):
-                    error_key = "email_not_authorized"
-                    raise social_adapter.validation_error(error_key)
+        has_other_accounts = (
+            SocialAccount.objects.filter(user_id=account.user_id).exclude(pk=account.pk).exists()
+        )
+        if has_other_accounts:
+            return cleaned_data
+
+        # Last social account - verify the user can still log in without it.
+        social_adapter = get_adapter()  # type: ignore[no-untyped-call]
+        verified_email = (
+            EmailAddress.objects.filter(user=account.user, verified=True)
+            .order_by("-primary")
+            .values_list("email", flat=True)
+            .first()
+        )
+        if not verified_email:
+            error_key = "no_password"
+            raise social_adapter.validation_error(error_key)
+
+        # The email exists but must also pass the validation API.
+        adapter = cast("AccountAdapter", get_account_adapter())
+        if not adapter.can_login_by_email(verified_email):
+            error_key = "email_not_authorized"
+            raise social_adapter.validation_error(error_key)
+
         return cleaned_data
