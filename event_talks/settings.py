@@ -115,6 +115,7 @@ INSTALLED_APPS = LOCAL_APPS + THIRD_PARTY_APPS + DJANGO_APPS
 # SECURITY
 # --------------------------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
+# The default below is an obvious dev-only placeholder; the real key is loaded from env in prod.
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="unsafe-secret-key")
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
@@ -421,6 +422,8 @@ LOG_EMAIL_HASH = env.bool("LOG_EMAIL_HASH", default=True)
 log_dir = Path(env("DJANGO_LOGS_DIR", default=BASE_DIR / "logs"))
 log_dir.mkdir(parents=True, exist_ok=True)
 
+_TIMED_ROTATING_FILE_HANDLER = "logging.handlers.TimedRotatingFileHandler"
+
 # https://docs.djangoproject.com/en/dev/ref/settings/#logging
 LOGGING: dict[str, Any] = {
     "version": 1,
@@ -441,14 +444,14 @@ LOGGING: dict[str, Any] = {
             "formatter": "colored_console",
         },
         "json_file": {
-            "class": "logging.handlers.TimedRotatingFileHandler",
+            "class": _TIMED_ROTATING_FILE_HANDLER,
             "filename": log_dir / "django.log",
             "formatter": "json_formatter",
             "when": "midnight",
             "backupCount": 30,
         },
         "error_file": {
-            "class": "logging.handlers.TimedRotatingFileHandler",
+            "class": _TIMED_ROTATING_FILE_HANDLER,
             "filename": log_dir / "error.log",
             "formatter": "json_formatter",
             "when": "midnight",
@@ -456,7 +459,7 @@ LOGGING: dict[str, Any] = {
             "level": "ERROR",
         },
         "auth_file": {
-            "class": "logging.handlers.TimedRotatingFileHandler",
+            "class": _TIMED_ROTATING_FILE_HANDLER,
             "filename": log_dir / "auth.log",
             "formatter": "json_formatter",
             "when": "midnight",
