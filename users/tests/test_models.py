@@ -5,7 +5,8 @@ from typing import Any, Required
 import pytest
 from django.core.exceptions import ValidationError
 
-from users.models import CreateUserExtraFields, CustomUser, InvalidEmailError
+from events.models import Event
+from users.models import CreateUserExtraFields, CustomUser, InvalidEmailError, Ticket
 
 
 class UserTestData(CreateUserExtraFields, total=False):
@@ -228,3 +229,12 @@ def test_user_save_non_superuser_with_password() -> None:
 
     user.save()
     assert not user.has_usable_password()
+
+
+@pytest.mark.django_db
+def test_ticket_str_includes_id_and_event() -> None:
+    """A Ticket's string representation combines the ticket ID and event."""
+    event = Event.objects.create(slug="pyconde-2030", name="PyConDE 2030", year=2030)
+    user = CustomUser.objects.create_user(email="holder@example.com")
+    ticket = Ticket.objects.create(user=user, event=event, ticket_id="ABC123")
+    assert str(ticket) == f"ABC123 ({event})"
