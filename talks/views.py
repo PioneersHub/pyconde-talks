@@ -295,13 +295,11 @@ class TalkListView(ListView[Talk]):
             ("completed", "Completed"),
         ]
 
-        # Build a set of saved talk IDs for the current user
-        if self.request.user.is_authenticated:
-            context["saved_talk_ids"] = SavedTalk.talk_ids_for(
-                cast("CustomUser", self.request.user),
-            )
-        else:
-            context["saved_talk_ids"] = set()
+        # Build a set of saved talk IDs for the current user. LoginRequiredMiddleware ensures
+        # this view only runs for authenticated users.
+        context["saved_talk_ids"] = SavedTalk.talk_ids_for(
+            cast("CustomUser", self.request.user),
+        )
 
         # Determine whether rating summaries are visible to this user
         selected_event = self._resolve_selected_event()
