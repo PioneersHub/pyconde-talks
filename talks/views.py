@@ -93,17 +93,12 @@ class TalkDetailView(DetailView[Talk]):
         context = super().get_context_data(**kwargs)
         talk = self.object
 
-        # Aggregate rating stats in a single query
-        stats = Rating.objects.filter(talk=talk).aggregate(
-            avg=Avg("score"),
-            count=Count("id"),
-        )
-
+        stats = talk.get_rating_stats()
         show_summary = _can_see_rating_summary(self.request.user, talk.event)
 
         if show_summary:
-            context["rating_count"] = stats["count"]
-            context["average_rating"] = stats["avg"]
+            context["rating_count"] = stats.total
+            context["average_rating"] = stats.average
         else:
             context["rating_count"] = 0
             context["average_rating"] = None
@@ -478,16 +473,13 @@ def _render_rating_htmx_response(
     is_comment_save: bool,
 ) -> HttpResponse:
     """Render the rating widget and OOB title stars for an HTMX response."""
-    stats = Rating.objects.filter(talk=talk).aggregate(
-        avg=Avg("score"),
-        count=Count("id"),
-    )
+    stats = talk.get_rating_stats()
     user_rating = Rating.objects.filter(talk=talk, user=request.user).first()
     show_summary = _can_see_rating_summary(request.user, talk.event)
     context = {
         "talk": talk,
-        "average_rating": stats["avg"] if show_summary else None,
-        "rating_count": stats["count"] if show_summary else 0,
+        "average_rating": stats.average if show_summary else None,
+        "rating_count": stats.total if show_summary else 0,
         "user_rating": user_rating,
         "show_comment_form": not is_comment_save,
         "show_rating_summary": show_summary,
@@ -640,10 +632,7 @@ def get_talk_rating_stats(request: HttpRequest, talk_id: int) -> JsonResponse:
     """
     talk = get_object_or_404(Talk, pk=talk_id)
 
-    stats = Rating.objects.filter(talk=talk).aggregate(
-        average=Avg("score"),
-        count=Count("id"),
-    )
+    stats = talk.get_rating_stats()
 
     user_rating = None
     if request.user.is_authenticated:
@@ -657,10 +646,8 @@ def get_talk_rating_stats(request: HttpRequest, talk_id: int) -> JsonResponse:
     show_summary = _can_see_rating_summary(request.user, talk.event)
     return JsonResponse(
         {
-            "average_rating": (
-                round(stats["average"], 1) if show_summary and stats["average"] else None
-            ),
-            "rating_count": stats["count"] if show_summary else 0,
+            "average_rating": (round(stats.average, 1) if show_summary and stats.average else None),
+            "rating_count": stats.total if show_summary else 0,
             "user_rating": user_rating,
         },
     )

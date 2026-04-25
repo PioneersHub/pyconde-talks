@@ -164,6 +164,40 @@ class TestRatingModel:
         ratings = list(Rating.objects.all())
         assert ratings == [r2, r1]
 
+    def test_get_rating_stats_with_no_ratings(self, talk: Talk) -> None:
+        """Return ``average=None`` and ``total=0`` for a talk with no ratings."""
+        stats = talk.get_rating_stats()
+        assert stats.average is None
+        assert stats.total == 0
+
+    def test_get_rating_stats_aggregates_scores(
+        self,
+        user: CustomUser,
+        other_user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """Aggregate the mean score and total count across all ratings for this talk."""
+        Rating.objects.create(talk=talk, user=user, score=4)
+        Rating.objects.create(talk=talk, user=other_user, score=2)
+        stats = talk.get_rating_stats()
+        assert stats.average == 3
+        assert stats.total == 2
+
+    def test_get_rating_stats_ignores_other_talks(
+        self,
+        user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """Only ratings for this talk are counted, not ratings for unrelated talks."""
+        other_talk = baker.make(Talk, title="Other", start_time=timezone.now())
+        Rating.objects.create(talk=talk, user=user, score=5)
+        # A rating on a different talk must not contaminate the stats.
+        other_rater = baker.make(CustomUser, email="rater2@example.com")
+        Rating.objects.create(talk=other_talk, user=other_rater, score=1)
+        stats = talk.get_rating_stats()
+        assert stats.average == 5
+        assert stats.total == 1
+
 
 # ---------------------------------------------------------------------------
 # Rating Admin Tests

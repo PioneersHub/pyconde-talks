@@ -7,13 +7,13 @@ metadata, scheduling information, and video links.
 
 from datetime import UTC, datetime, timedelta
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import ExpressionWrapper, F
+from django.db.models import Avg, Count, ExpressionWrapper, F
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -373,6 +373,9 @@ class Talk(models.Model):
         help_text=_("When this talk was last modified"),
     )
 
+    if TYPE_CHECKING:
+        ratings: RelatedManager[Rating]
+
     class Meta:
         """Metadata options for the Talk model."""
 
@@ -694,6 +697,27 @@ class Talk(models.Model):
             return streaming.transcription_url
 
         return ""
+
+    def get_rating_stats(self) -> RatingStats:
+        """
+        Return the aggregate rating statistics for this talk in a single query.
+
+        ``average`` is ``None`` when no ratings exist (matching Django's ``Avg`` semantics); callers
+        that want a numeric fallback should coalesce explicitly.
+        """
+        stats = self.ratings.aggregate(average=Avg("score"), total=Count("id"))
+        return RatingStats(average=stats["average"], total=stats["total"])
+
+
+class RatingStats(NamedTuple):
+    """
+    Aggregate rating statistics returned by ``Talk.get_rating_stats``.
+
+    ``total`` is the number of ratings (kept distinct from the built-in tuple ``count`` method).
+    """
+
+    average: float | None
+    total: int
 
 
 # Rating constants
