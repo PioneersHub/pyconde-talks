@@ -17,7 +17,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.cache import cache_page
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_safe
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic import DetailView, ListView
 
@@ -323,6 +323,7 @@ class TalkListView(ListView[Talk]):
         return None
 
 
+@require_safe
 @cache_page(60)  # Cache for 60 seconds to reduce database queries
 @vary_on_cookie
 def dashboard_stats(request: HttpRequest) -> HttpResponse:
@@ -391,6 +392,7 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
     return render(request, "talks/partials/dashboard_stats.html", context)
 
 
+@require_safe
 @cache_page(30)  # Cache for 30 seconds - talks list changes infrequently
 @vary_on_cookie
 def upcoming_talks(request: HttpRequest) -> HttpResponse:
@@ -423,6 +425,7 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
     return render(request, "talks/partials/upcoming_talks.html", context)
 
 
+@require_safe
 def talk_redirect_view(_: HttpRequest, talk_id: str) -> HttpResponse:
     """Get talk detail view by Talk ID or Pretalx ID."""
     talk = get_talk_by_id_or_pretalx(talk_id)
@@ -605,6 +608,7 @@ def delete_rating(request: HttpRequest, talk_id: int) -> HttpResponse:
     return _render_rating_htmx_response(request, talk, is_comment_save=False)
 
 
+@require_safe
 def get_talk_rating_stats(request: HttpRequest, talk_id: int) -> JsonResponse:
     """
     Return rating statistics for a talk as JSON.
