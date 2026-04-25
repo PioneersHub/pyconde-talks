@@ -88,6 +88,7 @@ makemigrations
 markdownify
 matplotlib
 maxlength
+Mcpjson
 minmax
 misclick
 miterlimit
