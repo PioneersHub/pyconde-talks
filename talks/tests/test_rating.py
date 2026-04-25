@@ -16,7 +16,8 @@ from django.utils import timezone
 from model_bakery import baker
 
 from events.models import Event
-from talks.admin import HasCommentFilter, RatingAdmin, TalkAdmin, TalkHasRatingCommentsFilter
+from talks.admin import TalkAdmin, TalkHasRatingCommentsFilter
+from talks.admin_rating import HasCommentFilter, RatingAdmin
 from talks.models import MAX_RATING_SCORE, MIN_RATING_SCORE, Rating, Talk
 from talks.views import _can_see_rating_summary
 from users.models import CustomUser

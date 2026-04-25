@@ -1,8 +1,7 @@
 """
-Admin configuration for conference talk management.
+Admin configuration for core talk models (Room, Streaming, Speaker, Talk).
 
-This module defines the Django admin interfaces for the Speaker, Talk, Room, Streaming,
-Question, QuestionVote, and Answer models.
+Q&A admins live in ``talks.admin_qa``, and rating/saved admins in ``talks.admin_rating``.
 """
 
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -13,8 +12,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import Rating, Room, SavedTalk, Speaker, Streaming, Talk
-from .models_qa import CONTENT_PREVIEW_LENGTH, Answer, Question, QuestionVote
+from .models import Rating, Room, Speaker, Streaming, Talk
 
 
 if TYPE_CHECKING:
@@ -23,35 +21,9 @@ if TYPE_CHECKING:
     from django_stubs_ext import StrOrPromise
 
 
-class HasCommentFilter(admin.SimpleListFilter):
-    """Filter ratings by whether the ``comment`` text field is populated."""
-
-    title = _("Has comment")
-    parameter_name = "has_comment"
-
-    def lookups(
-        self,
-        request: HttpRequest,  # noqa: ARG002
-        model_admin: Any,  # noqa: ARG002
-    ) -> list[tuple[str, StrOrPromise]]:
-        """Return the two-choice filter options."""
-        return [
-            ("yes", _("With comment")),
-            ("no", _("Without comment")),
-        ]
-
-    def queryset(
-        self,
-        request: HttpRequest,  # noqa: ARG002
-        queryset: QuerySet[Rating],
-    ) -> QuerySet[Rating]:
-        """Keep only ratings with or without a non-empty ``comment``."""
-        # Rating.comment is a TextField(blank=True) so "empty" means empty string, not NULL.
-        if self.value() == "yes":
-            return queryset.exclude(comment="")
-        if self.value() == "no":
-            return queryset.filter(comment="")
-        return queryset
+# Keep Q&A and rating admin modules imported so Django's autodiscovery registers them.
+import talks.admin_qa as _admin_qa  # noqa: F401
+import talks.admin_rating as _admin_rating  # noqa: F401
 
 
 class TalkHasRatingCommentsFilter(admin.SimpleListFilter):
@@ -77,8 +49,6 @@ class TalkHasRatingCommentsFilter(admin.SimpleListFilter):
         queryset: QuerySet[Talk],
     ) -> QuerySet[Talk]:
         """Keep only talks that have (or don't have) at least one rating with a comment."""
-        # `Exists(...)` is cheaper and safer than filter + distinct: joining via the reverse
-        # ``ratings`` accessor on a 1-to-many relation would otherwise produce duplicate rows.
         commented = Rating.objects.filter(talk=OuterRef("pk")).exclude(comment="")
         if self.value() == "yes":
             return queryset.filter(Exists(commented))
@@ -468,256 +438,3 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
             )
 
         return _("No active streaming found for this time slot")
-
-
-class AnswerInline(admin.TabularInline[Answer, Question]):
-    """Inline admin for Answer model."""
-
-    model = Answer
-    extra = 1
-    fields = ("content", "user", "is_official", "created_at")
-    readonly_fields = ("created_at",)
-
-
-@admin.register(Question)
-class QuestionAdmin(admin.ModelAdmin[Question]):
-    """
-    Admin configuration for the Question model.
-
-    Attributes:
-        list_display: Fields to display in the admin list view.
-        list_filter: Fields to filter by in the admin list view.
-        search_fields: Fields to search by in the admin list view.
-        actions: Custom admin actions.
-        readonly_fields: Fields that cannot be edited in the admin.
-        inlines: Related models to display inline.
-        list_select_related: Related models to prefetch for list view optimization.
-
-    """
-
-    list_display = (
-        "content_preview",
-        "talk",
-        "display_name",
-        "vote_count",
-        "status",
-        "has_answers",
-        "created_at",
-    )
-    list_filter = ("status", "created_at", "talk__title")
-    search_fields = ("content", "user__email", "user__first_name", "user__last_name", "talk__title")
-    actions = ("approve_questions", "reject_questions", "mark_as_answered")
-    readonly_fields = ("vote_count", "created_at", "updated_at")
-    inlines = (AnswerInline,)
-    list_select_related = ("talk", "user")
-
-    def get_queryset(self, request: HttpRequest) -> QuerySet[Question]:
-        """Annotate queryset with vote count and answer existence to avoid N+1 queries."""
-        qs = super().get_queryset(request)
-        return qs.annotate(
-            votes_count=Count("votes"),
-            _has_answers=Exists(Answer.objects.filter(question=OuterRef("pk"))),
-        )
-
-    fieldsets: ClassVar[list[Any]] = [
-        (
-            None,
-            {
-                "fields": ("talk", "content", "status"),
-            },
-        ),
-        (
-            _("Author"),
-            {
-                "fields": ("user",),
-            },
-        ),
-        (
-            _("Metadata"),
-            {
-                "fields": ("vote_count", "created_at", "updated_at"),
-                "classes": ("collapse",),
-            },
-        ),
-    ]
-
-    @admin.display(description=_("Question"))
-    def content_preview(self, obj: Question) -> str:
-        """Display a preview of the question content."""
-        if len(obj.content) > CONTENT_PREVIEW_LENGTH:
-            return f"{obj.content[:CONTENT_PREVIEW_LENGTH]}..."
-        return obj.content
-
-    @admin.display(boolean=True, description=_("Has Answers"))
-    def has_answers(self, obj: Question) -> bool:
-        """Display whether the question has answers."""
-        if hasattr(obj, "_has_answers"):
-            return bool(obj._has_answers)  # noqa: SLF001
-        return obj.has_answer
-
-    @admin.display(description=_("Votes"))
-    def vote_count(self, obj: Question) -> int:
-        """Display the number of votes for this question."""
-        return obj.vote_count
-
-    @admin.action(description=_("Reject selected questions (hide from public)"))
-    def reject_questions(self, request: HttpRequest, queryset: QuerySet[Question]) -> None:
-        """Mark selected questions as rejected, hiding them from public view."""
-        # Use bulk update for efficiency
-        updated = queryset.update(status=Question.Status.REJECTED, updated_at=timezone.now())
-        self.message_user(
-            request,
-            _("%(count)d question(s) have been rejected.") % {"count": updated},
-        )
-
-    @admin.action(description=_("Mark selected questions as answered"))
-    def mark_as_answered(self, request: HttpRequest, queryset: QuerySet[Question]) -> None:
-        """Mark selected questions as answered."""
-        updated = queryset.update(status=Question.Status.ANSWERED, updated_at=timezone.now())
-        self.message_user(
-            request,
-            _("%(count)d question(s) have been marked as answered.") % {"count": updated},
-        )
-
-    @admin.action(description=_("Approve selected questions"))
-    def approve_questions(self, request: HttpRequest, queryset: QuerySet[Question]) -> None:
-        """Mark selected questions as approved."""
-        updated = queryset.update(status=Question.Status.APPROVED, updated_at=timezone.now())
-        self.message_user(
-            request,
-            _("%(count)d question(s) have been approved.") % {"count": updated},
-        )
-
-
-@admin.register(QuestionVote)
-class QuestionVoteAdmin(admin.ModelAdmin[QuestionVote]):
-    """
-    Admin configuration for the QuestionVote model.
-
-    Attributes:
-        list_display: Fields to display in the admin list view.
-        list_filter: Fields to filter by in the admin list view.
-        search_fields: Fields to search by in the admin list view.
-        readonly_fields: Fields that cannot be edited in the admin.
-
-    """
-
-    list_display = ("question_preview", "user", "created_at")
-    list_filter = ("created_at",)
-    search_fields = ("question__content", "user__email")
-    readonly_fields = ("created_at",)
-
-    @admin.display(description=_("Question"))
-    def question_preview(self, obj: QuestionVote) -> str:
-        """Display a preview of the question content."""
-        content = obj.question.content
-        if len(content) > CONTENT_PREVIEW_LENGTH:
-            return f"{content[:CONTENT_PREVIEW_LENGTH]}..."
-        return content
-
-
-@admin.register(Answer)
-class AnswerAdmin(admin.ModelAdmin[Answer]):
-    """
-    Admin configuration for the Answer model.
-
-    Attributes:
-        list_display: Fields to display in the admin list view.
-        list_filter: Fields to filter by in the admin list view.
-        search_fields: Fields to search by in the admin list view.
-        readonly_fields: Fields that cannot be edited in the admin.
-        list_select_related: Related models to prefetch for list view optimization.
-
-    """
-
-    list_display = ("content_preview", "question_preview", "user", "is_official", "created_at")
-    list_filter = ("is_official", "created_at")
-    search_fields = ("content", "question__content", "user__email")
-    readonly_fields = ("created_at", "updated_at")
-    list_select_related = ("question", "user")
-
-    fieldsets: ClassVar[list[Any]] = [
-        (
-            None,
-            {
-                "fields": ("question", "content", "user", "is_official"),
-            },
-        ),
-        (
-            _("Metadata"),
-            {
-                "fields": ("created_at", "updated_at"),
-                "classes": ("collapse",),
-            },
-        ),
-    ]
-
-    @admin.display(description=_("Answer"))
-    def content_preview(self, obj: Answer) -> str:
-        """Display a preview of the answer content."""
-        if len(obj.content) > CONTENT_PREVIEW_LENGTH:
-            return f"{obj.content[:CONTENT_PREVIEW_LENGTH]}..."
-        return obj.content
-
-    @admin.display(description=_("Question"))
-    def question_preview(self, obj: Answer) -> str:
-        """Display a preview of the question content."""
-        content = obj.question.content
-        if len(content) > CONTENT_PREVIEW_LENGTH:
-            return f"{content[:CONTENT_PREVIEW_LENGTH]}..."
-        return content
-
-
-@admin.register(Rating)
-class RatingAdmin(admin.ModelAdmin[Rating]):
-    """
-    Admin configuration for the Rating model.
-
-    Displays ratings with their comments (visible only to admins).
-
-    Attributes:
-        list_display: Fields to display in the admin list view.
-        list_filter: Fields to filter by in the admin list view.
-        search_fields: Fields to search by in the admin list view.
-        readonly_fields: Fields that cannot be edited in the admin.
-        list_select_related: Related models to prefetch for list view optimization.
-
-    """
-
-    list_display = ("talk", "user", "score", "has_comment", "created_at")
-    list_filter = (HasCommentFilter, "score", "created_at")
-    search_fields = ("talk__title", "user__email", "comment")
-    readonly_fields = ("created_at", "updated_at")
-    list_select_related = ("talk", "user")
-
-    fieldsets: ClassVar[list[Any]] = [
-        (
-            None,
-            {
-                "fields": ("talk", "user", "score", "comment"),
-            },
-        ),
-        (
-            _("Metadata"),
-            {
-                "fields": ("created_at", "updated_at"),
-                "classes": ("collapse",),
-            },
-        ),
-    ]
-
-    @admin.display(boolean=True, description=_("Has Comment"))
-    def has_comment(self, obj: Rating) -> bool:
-        """Display whether the rating has a comment."""
-        return bool(obj.comment)
-
-
-@admin.register(SavedTalk)
-class SavedTalkAdmin(admin.ModelAdmin[SavedTalk]):
-    """Admin configuration for the SavedTalk model."""
-
-    list_display = ("user", "talk", "created_at")
-    list_filter = ("created_at",)
-    search_fields = ("user__email", "talk__title")
-    raw_id_fields = ("user", "talk")
-    readonly_fields = ("created_at",)

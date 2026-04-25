@@ -10,17 +10,14 @@ from django.utils import timezone
 from model_bakery import baker
 
 from talks.admin import (
-    AnswerAdmin,
-    HasCommentFilter,
-    QuestionAdmin,
-    QuestionVoteAdmin,
-    RatingAdmin,
     RoomAdmin,
     SpeakerAdmin,
     StreamingAdmin,
     TalkAdmin,
     TalkHasRatingCommentsFilter,
 )
+from talks.admin_qa import AnswerAdmin, QuestionAdmin, QuestionVoteAdmin
+from talks.admin_rating import HasCommentFilter, RatingAdmin
 from talks.models import Rating, Room, SavedTalk, Speaker, Streaming, Talk
 from talks.models_qa import Answer, Question, QuestionVote
 from users.models import CustomUser
