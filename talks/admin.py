@@ -23,6 +23,70 @@ if TYPE_CHECKING:
     from django_stubs_ext import StrOrPromise
 
 
+class HasCommentFilter(admin.SimpleListFilter):
+    """Filter ratings by whether the ``comment`` text field is populated."""
+
+    title = _("Has comment")
+    parameter_name = "has_comment"
+
+    def lookups(
+        self,
+        request: HttpRequest,  # noqa: ARG002
+        model_admin: Any,  # noqa: ARG002
+    ) -> list[tuple[str, StrOrPromise]]:
+        """Return the two-choice filter options."""
+        return [
+            ("yes", _("With comment")),
+            ("no", _("Without comment")),
+        ]
+
+    def queryset(
+        self,
+        request: HttpRequest,  # noqa: ARG002
+        queryset: QuerySet[Rating],
+    ) -> QuerySet[Rating]:
+        """Keep only ratings with or without a non-empty ``comment``."""
+        # Rating.comment is a TextField(blank=True) so "empty" means empty string, not NULL.
+        if self.value() == "yes":
+            return queryset.exclude(comment="")
+        if self.value() == "no":
+            return queryset.filter(comment="")
+        return queryset
+
+
+class TalkHasRatingCommentsFilter(admin.SimpleListFilter):
+    """Filter talks by whether any of their ratings carries a comment."""
+
+    title = _("Rating comments")
+    parameter_name = "has_rating_comments"
+
+    def lookups(
+        self,
+        request: HttpRequest,  # noqa: ARG002
+        model_admin: Any,  # noqa: ARG002
+    ) -> list[tuple[str, StrOrPromise]]:
+        """Return the two-choice filter options."""
+        return [
+            ("yes", _("With comments")),
+            ("no", _("Without comments")),
+        ]
+
+    def queryset(
+        self,
+        request: HttpRequest,  # noqa: ARG002
+        queryset: QuerySet[Talk],
+    ) -> QuerySet[Talk]:
+        """Keep only talks that have (or don't have) at least one rating with a comment."""
+        # `Exists(...)` is cheaper and safer than filter + distinct: joining via the reverse
+        # ``ratings`` accessor on a 1-to-many relation would otherwise produce duplicate rows.
+        commented = Rating.objects.filter(talk=OuterRef("pk")).exclude(comment="")
+        if self.value() == "yes":
+            return queryset.filter(Exists(commented))
+        if self.value() == "no":
+            return queryset.filter(~Exists(commented))
+        return queryset
+
+
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin[Room]):
     """
@@ -256,6 +320,7 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
         "track",
         "hide",
         "start_time",
+        TalkHasRatingCommentsFilter,
     )
     search_fields = (
         "title",
@@ -620,7 +685,7 @@ class RatingAdmin(admin.ModelAdmin[Rating]):
     """
 
     list_display = ("talk", "user", "score", "has_comment", "created_at")
-    list_filter = ("score", "created_at")
+    list_filter = (HasCommentFilter, "score", "created_at")
     search_fields = ("talk__title", "user__email", "comment")
     readonly_fields = ("created_at", "updated_at")
     list_select_related = ("talk", "user")

@@ -15,7 +15,7 @@ from django.utils import timezone
 from model_bakery import baker
 
 from events.models import Event
-from talks.admin import RatingAdmin
+from talks.admin import HasCommentFilter, RatingAdmin, TalkAdmin, TalkHasRatingCommentsFilter
 from talks.models import MAX_RATING_SCORE, MIN_RATING_SCORE, Rating, Talk
 from talks.views import _can_see_rating_summary
 from users.models import CustomUser
@@ -226,6 +226,117 @@ class TestRatingAdmin:
         assert "score" in admin_instance.list_display
         assert "has_comment" in admin_instance.list_display
         assert "created_at" in admin_instance.list_display
+
+    def test_has_comment_filter_registered(self) -> None:
+        """The ratings changelist exposes the has-comment filter."""
+        admin_instance = RatingAdmin(Rating, site)
+        assert HasCommentFilter in admin_instance.list_filter
+
+    def test_has_comment_filter_yes_keeps_only_commented_ratings(
+        self,
+        user: CustomUser,
+        other_user: CustomUser,
+        talk: Talk,
+        rf: RequestFactory,
+    ) -> None:
+        """Selecting ``yes`` restricts the queryset to ratings with a non-empty comment."""
+        with_comment = baker.make(Rating, talk=talk, user=user, score=4, comment="Loved it!")
+        baker.make(Rating, talk=talk, user=other_user, score=2, comment="")
+
+        request = rf.get("/")
+        instance = HasCommentFilter(
+            request=request,
+            params={"has_comment": ["yes"]},
+            model=Rating,
+            model_admin=RatingAdmin(Rating, site),
+        )
+        result = instance.queryset(request, Rating.objects.all())
+        assert result is not None
+        assert list(result) == [with_comment]
+
+    def test_has_comment_filter_no_keeps_only_silent_ratings(
+        self,
+        user: CustomUser,
+        other_user: CustomUser,
+        talk: Talk,
+        rf: RequestFactory,
+    ) -> None:
+        """Selecting ``no`` restricts the queryset to ratings with an empty comment."""
+        baker.make(Rating, talk=talk, user=user, score=4, comment="Loved it!")
+        silent = baker.make(Rating, talk=talk, user=other_user, score=2, comment="")
+
+        request = rf.get("/")
+        instance = HasCommentFilter(
+            request=request,
+            params={"has_comment": ["no"]},
+            model=Rating,
+            model_admin=RatingAdmin(Rating, site),
+        )
+        result = instance.queryset(request, Rating.objects.all())
+        assert result is not None
+        assert list(result) == [silent]
+
+
+@pytest.mark.django_db
+class TestTalkHasRatingCommentsFilter:
+    """Tests for ``TalkHasRatingCommentsFilter`` used on ``TalkAdmin``."""
+
+    def test_yes_keeps_talks_with_at_least_one_commented_rating(
+        self,
+        user: CustomUser,
+        rf: RequestFactory,
+    ) -> None:
+        """A talk appears only if any of its ratings carries a non-empty comment."""
+        commented_talk = baker.make(Talk, title="Commented", start_time=timezone.now())
+        silent_talk = baker.make(Talk, title="Silent", start_time=timezone.now())
+        baker.make(Rating, talk=commented_talk, user=user, score=5, comment="Great")
+        baker.make(
+            Rating,
+            talk=silent_talk,
+            user=baker.make(CustomUser, email="u2@example.com"),
+            score=3,
+            comment="",
+        )
+
+        request = rf.get("/")
+        instance = TalkHasRatingCommentsFilter(
+            request=request,
+            params={"has_rating_comments": ["yes"]},
+            model=Talk,
+            model_admin=TalkAdmin(Talk, site),
+        )
+        result = instance.queryset(request, Talk.objects.all())
+        assert result is not None
+        assert list(result) == [commented_talk]
+
+    def test_no_hides_talks_that_have_any_commented_rating(
+        self,
+        user: CustomUser,
+        rf: RequestFactory,
+    ) -> None:
+        """The complementary branch keeps only talks without a single commented rating."""
+        commented_talk = baker.make(Talk, title="Commented", start_time=timezone.now())
+        silent_talk = baker.make(Talk, title="Silent", start_time=timezone.now())
+        no_ratings_talk = baker.make(Talk, title="No ratings", start_time=timezone.now())
+        baker.make(Rating, talk=commented_talk, user=user, score=5, comment="Great")
+        baker.make(
+            Rating,
+            talk=silent_talk,
+            user=baker.make(CustomUser, email="u2@example.com"),
+            score=3,
+            comment="",
+        )
+
+        request = rf.get("/")
+        instance = TalkHasRatingCommentsFilter(
+            request=request,
+            params={"has_rating_comments": ["no"]},
+            model=Talk,
+            model_admin=TalkAdmin(Talk, site),
+        )
+        result = instance.queryset(request, Talk.objects.all())
+        assert result is not None
+        assert set(result) == {silent_talk, no_ratings_talk}
 
 
 # ---------------------------------------------------------------------------
