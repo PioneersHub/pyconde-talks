@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, cast
 from django.db.models.functions import TruncDate
 from django.shortcuts import render
 from django.utils import timezone
+from django.views.decorators.http import require_safe
 
 from events.models import Event
 from events.session import resolve_default_event
@@ -214,6 +215,7 @@ def _resolve_selected_date(
     return available_dates[0] if available_dates else None
 
 
+@require_safe
 def schedule_view(request: HttpRequest) -> HttpResponse:
     """
     Render a Pretalx-style CSS Grid schedule.
