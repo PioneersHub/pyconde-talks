@@ -150,7 +150,7 @@ class TestProcessSpeakerPhoto:
         photo = self._make_photo(size=(800, 800))
         result = TalkImageGenerator._process_speaker_photo(photo, size=200)
         alpha_band = result.split()[3]
-        unique_alpha = set(alpha_band.getdata())  # type: ignore[call-overload]
+        unique_alpha = set(alpha_band.get_flattened_data())
 
         # A supersampled mask produces intermediate values at the edge.
         assert len(unique_alpha) > 2, (
