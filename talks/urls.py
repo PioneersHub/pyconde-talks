@@ -6,11 +6,7 @@ from .views import (
     TalkDetailView,
     TalkListView,
     dashboard_stats,
-    delete_rating,
-    get_talk_rating_stats,
-    rate_talk,
     talk_redirect_view,
-    toggle_save_talk,
     upcoming_talks,
 )
 from .views_qa import (
@@ -24,6 +20,8 @@ from .views_qa import (
     reject_question,
     vote_question,
 )
+from .views_rating import delete_rating, get_talk_rating_stats, rate_talk
+from .views_saved import toggle_save_talk
 from .views_schedule import schedule_view
 
 

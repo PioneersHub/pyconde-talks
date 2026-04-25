@@ -1,38 +1,27 @@
 """
 Views for managing and displaying Talk objects.
 
-This module provides class-based and function-based views for handling Talk-related operations,
-including listing, detail views, and statistics.
+Core browsing: list, detail, dashboard, upcoming, and ID-or-pretalx redirect. Rating endpoints
+live in ``talks.views_rating`` and the bookmark toggle in ``talks.views_saved``.
 """
 
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, cast
 
-from django.contrib import messages
-from django.db import IntegrityError
 from django.db.models import Avg, Count, F, Q
 from django.db.models.functions import TruncDate
-from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.http import Http404, HttpRequest, HttpResponse
+from django.shortcuts import redirect, render
 from django.utils import timezone
-from django.utils.translation import gettext as _
 from django.views.decorators.cache import cache_page
-from django.views.decorators.http import require_POST, require_safe
+from django.views.decorators.http import require_safe
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic import DetailView, ListView
 
 from events.models import Event
 from events.session import resolve_default_event
 
-from .models import (
-    COMMENT_MAX_LENGTH,
-    MAX_RATING_SCORE,
-    MIN_RATING_SCORE,
-    Rating,
-    Room,
-    SavedTalk,
-    Talk,
-)
+from .models import Rating, Room, SavedTalk, Talk
 from .utils import get_talk_by_id_or_pretalx
 
 
@@ -433,50 +422,6 @@ def talk_redirect_view(_: HttpRequest, talk_id: str) -> HttpResponse:
     raise Http404(msg)
 
 
-def _rating_error_response(
-    request: HttpRequest,
-    talk_id: int,
-    message: str,
-    *,
-    is_htmx: bool,
-    status: int = 422,
-) -> HttpResponse:
-    """Return an error response for rating operations (HTMX fragment or redirect)."""
-    if is_htmx:
-        return HttpResponse(message, status=status)
-    messages.error(request, message)
-    return redirect("talk_detail", pk=talk_id)
-
-
-def _render_rating_htmx_response(
-    request: HttpRequest,
-    talk: Talk,
-    *,
-    is_comment_save: bool,
-) -> HttpResponse:
-    """Render the rating widget and OOB title stars for an HTMX response."""
-    stats = talk.get_rating_stats()
-    user_rating = Rating.objects.filter(talk=talk, user=request.user).first()
-    show_summary = _can_see_rating_summary(request.user, talk.event)
-    context = {
-        "talk": talk,
-        "average_rating": stats.average if show_summary else None,
-        "rating_count": stats.total if show_summary else 0,
-        "user_rating": user_rating,
-        "show_comment_form": not is_comment_save,
-        "show_rating_summary": show_summary,
-        # Preserve in-progress comment text on star clicks (not saved to DB)
-        "draft_comment": request.POST.get("comment") if not is_comment_save else None,
-    }
-    widget_html = render(request, "talks/partials/rating_widget.html", context).content.decode()
-    oob_html = render(
-        request,
-        "talks/partials/title_star_rating_oob.html",
-        context,
-    ).content.decode()
-    return HttpResponse(widget_html + oob_html)
-
-
 def _apply_status_filter(queryset: QuerySet[Talk], status: str) -> QuerySet[Talk]:
     """Filter talks by timing status (current, upcoming, completed)."""
     now = timezone.now()
@@ -521,157 +466,3 @@ def _apply_search_filter(queryset: QuerySet[Talk], request: HttpRequest) -> Quer
         q_obj |= Q(speakers__name__icontains=query)
 
     return queryset.filter(q_obj).distinct()
-
-
-@require_POST
-def rate_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
-    """
-    Handle talk rating submission.
-
-    Users can rate a talk from 1 to 5 stars with an optional comment.
-    If a rating already exists, it is updated.
-    Returns a partial HTML fragment for HTMX requests or redirects otherwise.
-    """
-    talk = get_object_or_404(Talk, pk=talk_id)
-    is_htmx = request.headers.get("HX-Request") == "true"
-    is_comment_save = request.POST.get("save_comment") == "1"
-
-    # Validate score
-    try:
-        score = int(request.POST.get("score"))  # type: ignore[arg-type]
-    except TypeError, ValueError:  # fmt: skip
-        return _rating_error_response(request, talk_id, _("Invalid rating value."), is_htmx=is_htmx)
-
-    if score < MIN_RATING_SCORE or score > MAX_RATING_SCORE:
-        return _rating_error_response(
-            request,
-            talk_id,
-            _("Rating must be between %(min)s and %(max)s stars.")
-            % {"min": MIN_RATING_SCORE, "max": MAX_RATING_SCORE},
-            is_htmx=is_htmx,
-        )
-
-    # Build defaults: only update comment when explicitly saving it (HTMX star clicks skip comment)
-    defaults: dict[str, Any] = {"score": score}
-    if is_comment_save or not is_htmx:
-        defaults["comment"] = request.POST.get("comment", "").strip()[:COMMENT_MAX_LENGTH]
-
-    # Create or update rating
-    try:
-        _rating, created = Rating.objects.update_or_create(
-            talk=talk,
-            user=request.user,
-            defaults=defaults,
-        )
-        if not is_htmx:
-            msg = (
-                _("Your rating has been submitted!")
-                if created
-                else _("Your rating has been updated!")
-            )
-            messages.success(request, msg)
-    except IntegrityError:
-        return _rating_error_response(
-            request,
-            talk_id,
-            _("Error submitting rating. Please try again."),
-            is_htmx=is_htmx,
-            status=500,
-        )
-
-    if is_htmx:
-        return _render_rating_htmx_response(request, talk, is_comment_save=is_comment_save)
-
-    return redirect("talk_detail", pk=talk_id)
-
-
-@require_POST
-def delete_rating(request: HttpRequest, talk_id: int) -> HttpResponse:
-    """
-    Delete the current user's rating for a talk.
-
-    Returns a partial HTML fragment for HTMX requests or redirects otherwise.
-    """
-    talk = get_object_or_404(Talk, pk=talk_id)
-    is_htmx = request.headers.get("HX-Request") == "true"
-    deleted_count, _detail = Rating.objects.filter(talk=talk, user=request.user).delete()
-
-    if not is_htmx:
-        if deleted_count:
-            messages.success(request, _("Your rating has been removed."))
-        else:
-            messages.info(request, _("No rating to remove."))
-        return redirect("talk_detail", pk=talk_id)
-
-    return _render_rating_htmx_response(request, talk, is_comment_save=False)
-
-
-@require_safe
-def get_talk_rating_stats(request: HttpRequest, talk_id: int) -> JsonResponse:
-    """
-    Return rating statistics for a talk as JSON.
-
-    Returns average_rating, rating_count, and the current user's rating if it exists.
-    """
-    talk = get_object_or_404(Talk, pk=talk_id)
-
-    stats = talk.get_rating_stats()
-
-    user_rating = None
-    if request.user.is_authenticated:
-        rating = Rating.objects.filter(talk=talk, user=request.user).first()
-        if rating:
-            user_rating = {
-                "score": rating.score,
-                "comment": rating.comment,
-            }
-
-    show_summary = _can_see_rating_summary(request.user, talk.event)
-    return JsonResponse(
-        {
-            "average_rating": (round(stats.average, 1) if show_summary and stats.average else None),
-            "rating_count": stats.total if show_summary else 0,
-            "user_rating": user_rating,
-        },
-    )
-
-
-@require_POST
-def toggle_save_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
-    """
-    Toggle a talk's saved/bookmarked status for the current user.
-
-    If the talk is already saved, it removes the saved status. Otherwise, it saves the talk.
-    Returns an HTMX partial with the updated bookmark button.
-    """
-    talk = get_object_or_404(Talk, pk=talk_id)
-    saved_talk, created = SavedTalk.objects.get_or_create(
-        user=request.user,
-        talk=talk,
-    )
-
-    if not created:
-        saved_talk.delete()
-
-    is_saved = created
-    is_htmx = request.headers.get("HX-Request") == "true"
-
-    if is_htmx:
-        # Schedule cards use a compact icon-only partial (no text label).
-        hx_target = request.headers.get("HX-Target", "")
-        template = (
-            "talks/partials/schedule_save_button.html"
-            if hx_target.startswith("sched-save-")
-            else "talks/partials/save_button.html"
-        )
-        return render(
-            request,
-            template,
-            {"talk": talk, "is_saved": is_saved},
-        )
-
-    if is_saved:
-        messages.success(request, _("Talk saved!"))
-    else:
-        messages.info(request, _("Talk removed from saved."))
-    return redirect("talk_detail", pk=talk_id)
