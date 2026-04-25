@@ -10,6 +10,7 @@ from django.utils import timezone
 from model_bakery import baker
 
 from talks.models import Room, SavedTalk, Talk
+from talks.views_schedule import _build_grid_slices
 from users.models import CustomUser
 
 
@@ -283,6 +284,113 @@ class TestScheduleView:
         assert "Talk 2" not in content
         assert "Talk 3" not in content
 
+    def test_track_filter_hides_mismatching_talks(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        rooms: list[Room],
+    ) -> None:
+        """Only talks in the selected track appear on the schedule."""
+        now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)
+        baker.make(
+            Talk,
+            title="Pythonic Talk",
+            room=rooms[0],
+            track="PyData",
+            start_time=now,
+            duration=timedelta(minutes=30),
+        )
+        baker.make(
+            Talk,
+            title="Different Track Talk",
+            room=rooms[0],
+            track="Devops",
+            start_time=now + timedelta(minutes=45),
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(user)
+        response = client.get(reverse("schedule"), {"track": "PyData"})
+        content = response.content.decode()
+        assert "Pythonic Talk" in content
+        assert "Different Track Talk" not in content
+
+    def test_presentation_type_filter_hides_mismatching_talks(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        rooms: list[Room],
+    ) -> None:
+        """Only talks of the selected presentation type appear."""
+        now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)
+        baker.make(
+            Talk,
+            title="Tutorial Item",
+            room=rooms[0],
+            presentation_type=Talk.PresentationType.TUTORIAL,
+            start_time=now,
+            duration=timedelta(minutes=30),
+        )
+        baker.make(
+            Talk,
+            title="Keynote Item",
+            room=rooms[0],
+            presentation_type=Talk.PresentationType.KEYNOTE,
+            start_time=now + timedelta(minutes=45),
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(user)
+        response = client.get(
+            reverse("schedule"),
+            {"presentation_type": Talk.PresentationType.TUTORIAL},
+        )
+        content = response.content.decode()
+        assert "Tutorial Item" in content
+        assert "Keynote Item" not in content
+
+    def test_schedule_skips_talks_without_rooms(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        rooms: list[Room],
+    ) -> None:
+        """Talks without a room should not produce schedule grid items."""
+        now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)
+        baker.make(
+            Talk,
+            title="RoomedTalk",
+            room=rooms[0],
+            start_time=now,
+            duration=timedelta(minutes=30),
+        )
+        # A talk without a room on the same day must still load as a Talk row but never get a
+        # grid item (no column). This exercises the "if not t.room: continue" branch.
+        baker.make(
+            Talk,
+            title="NoRoomTalk",
+            room=None,
+            start_time=now,
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(user)
+        response = client.get(reverse("schedule"))
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        assert "RoomedTalk" in content
+        # Talks without a room are never laid out as grid cards because the template only
+        # renders schedule_items through their grid-area.
+        assert "NoRoomTalk" not in content
+
+    def test_non_digit_event_param_falls_back_to_default(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        today_talks: list[Talk],
+    ) -> None:
+        """Garbage ``?event=`` values should be ignored rather than crashing."""
+        client.force_login(user)
+        response = client.get(reverse("schedule"), {"event": "not-a-number"})
+        assert response.status_code == HTTPStatus.OK
+
     def test_overlapping_talks_side_by_side(
         self,
         client: pytest.fixture,  # type: ignore[type-arg,valid-type]
@@ -355,3 +463,16 @@ class TestScheduleCellTag:
         grid = {datetime(2026, 3, 1, 10, 0, tzinfo=UTC): {1: "TalkA"}}
         context = Context({"grid": grid, "slot": slot, "rid": 1})
         assert template.render(context).strip() == "no"
+
+
+# ---------------------------------------------------------------------------
+# _build_grid_slices
+# ---------------------------------------------------------------------------
+class TestBuildGridSlices:
+    """Unit tests for the pure-function grid slice builder."""
+
+    def test_no_talks_produces_empty_grid(self) -> None:
+        """With no talks there are no row boundaries and no template rows."""
+        bounds, rows = _build_grid_slices([])
+        assert bounds == []
+        assert rows == ""
