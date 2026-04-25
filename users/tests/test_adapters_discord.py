@@ -362,6 +362,27 @@ class TestPreSocialLogin:
         assert user.is_superuser is False
         assert user.is_staff is False
 
+    @patch.object(SocialAccountAdapter, "_try_merge_accounts")
+    @patch.object(SocialAccountAdapter, "_fetch_member_role_ids")
+    def test_existing_account_with_different_authenticated_user_triggers_merge(
+        self,
+        mock_fetch: MagicMock,
+        mock_merge: MagicMock,
+        adapter: SocialAccountAdapter,
+        rf: RequestFactory,
+        discord_settings: Any,
+        user_model: type[Any],
+    ) -> None:
+        """When an existing orphan social account belongs to someone else, try to merge."""
+        orphan = user_model.objects.create_user(email="orphan@test.com")
+        current = user_model.objects.create_user(email="current@test.com")
+        mock_fetch.return_value = {"111"}
+        sl = _make_sociallogin(is_existing=True, user=orphan)
+        request = rf.get("/")
+        request.user = current
+        adapter.pre_social_login(request, sl)
+        mock_merge.assert_called_once_with(request, sl)
+
     @patch.object(SocialAccountAdapter, "_connect_to_existing_account")
     @patch.object(SocialAccountAdapter, "_fetch_member_role_ids")
     def test_new_login_connects_to_existing_email_account(

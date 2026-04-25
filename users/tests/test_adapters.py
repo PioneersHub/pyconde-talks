@@ -426,3 +426,29 @@ def test_call_validation_api_empty_url_returns_false() -> None:
     """_call_validation_api returns {"valid": False} immediately for an empty api_url."""
     result = AccountAdapter._call_validation_api("user@example.com", "")
     assert result == {"valid": False}
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "side_effect",
+    [
+        httpx.TimeoutException("slow"),
+        httpx.ConnectError("down"),
+        json.JSONDecodeError("broken", "{", 0),
+        httpx.HTTPError("bad status"),
+        RuntimeError("unexpected"),
+    ],
+)
+def test_can_login_by_email_swallows_errors(
+    adapter: AccountAdapter,
+    mock_email_api_base: str,
+    respx_mock: respx.MockRouter,
+    settings: SettingsWrapper,
+    side_effect: Exception,
+) -> None:
+    """Every error raised by the validation API must downgrade to a safe False result."""
+    api_url = mock_email_api_base
+    settings.AUTHORIZED_EMAILS_WHITELIST = []
+    respx_mock.post(api_url).mock(side_effect=side_effect)
+
+    assert adapter.can_login_by_email("user@example.com") is False
