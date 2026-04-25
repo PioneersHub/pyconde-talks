@@ -672,20 +672,20 @@ class TestClampProbability:
 
     def test_within_range(self) -> None:
         """Values already inside [0, 1] are returned unchanged."""
-        assert Command._clamp_probability(0.5) == 0.5
+        assert Command._clamp_probability(0.5) == pytest.approx(0.5)
 
     def test_below_zero(self) -> None:
         """Negative values are clamped to 0.0."""
-        assert Command._clamp_probability(-0.5) == 0.0
+        assert Command._clamp_probability(-0.5) == pytest.approx(0.0)
 
     def test_above_one(self) -> None:
         """Values above 1.0 are clamped to 1.0."""
-        assert Command._clamp_probability(1.5) == 1.0
+        assert Command._clamp_probability(1.5) == pytest.approx(1.0)
 
     def test_boundaries(self) -> None:
         """Exact boundary values 0.0 and 1.0 are returned as-is."""
-        assert Command._clamp_probability(0.0) == 0.0
-        assert Command._clamp_probability(1.0) == 1.0
+        assert Command._clamp_probability(0.0) == pytest.approx(0.0)
+        assert Command._clamp_probability(1.0) == pytest.approx(1.0)
 
 
 # ---------------------------------------------------------------------------

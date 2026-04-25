@@ -565,7 +565,7 @@ class TestGetTalkRatingStatsView:
         response = client.get(url)
         assert response.status_code == HTTPStatus.OK
         data = response.json()
-        assert data["average_rating"] == 3.0
+        assert data["average_rating"] == pytest.approx(3.0)
         assert data["rating_count"] == 2
         assert data["user_rating"]["score"] == 4
 
@@ -615,7 +615,7 @@ class TestTalkDetailViewRating:
         response = client.get(url)
         assert response.status_code == HTTPStatus.OK
         assert response.context["rating_count"] == 1
-        assert response.context["average_rating"] == 4.0
+        assert response.context["average_rating"] == pytest.approx(4.0)
         assert response.context["user_rating"].score == 4
 
     def test_context_no_ratings(
@@ -650,7 +650,7 @@ class TestTalkListViewRating:
         response = client.get(url)
         assert response.status_code == HTTPStatus.OK
         talk_obj = response.context["talks"][0]
-        assert talk_obj.average_rating == 5.0
+        assert talk_obj.average_rating == pytest.approx(5.0)
         assert talk_obj.rating_count == 1
 
 
@@ -786,7 +786,7 @@ class TestRatingVisibilityDetailView:
         client.force_login(staff_user)
         url = reverse("talk_detail", args=[talk.pk])
         response = client.get(url)
-        assert response.context["average_rating"] == 4.0
+        assert response.context["average_rating"] == pytest.approx(4.0)
         assert response.context["rating_count"] == 1
         assert response.context["show_rating_summary"] is True
 
@@ -802,7 +802,7 @@ class TestRatingVisibilityDetailView:
         client.force_login(admin_user)
         url = reverse("talk_detail", args=[talk.pk])
         response = client.get(url)
-        assert response.context["average_rating"] == 3.0
+        assert response.context["average_rating"] == pytest.approx(3.0)
         assert response.context["rating_count"] == 1
         assert response.context["show_rating_summary"] is True
 
@@ -1008,5 +1008,5 @@ class TestRatingVisibilityStatsEndpoint:
         url = reverse("talk_rating_stats", args=[talk.pk])
         response = client.get(url)
         data = response.json()
-        assert data["average_rating"] == 4.0
+        assert data["average_rating"] == pytest.approx(4.0)
         assert data["rating_count"] == 1
