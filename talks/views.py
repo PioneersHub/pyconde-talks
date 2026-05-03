@@ -387,10 +387,8 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
         Talk.objects.select_related("room")
         .prefetch_related("speakers")
         .filter(start_time__gt=current_time)
+        .accessible_to(user)
     )
-    if not user.is_superuser:
-        accessible_event_ids = user.events.values_list("id", flat=True)
-        talks_qs = talks_qs.filter(event_id__in=accessible_event_ids)
     talks = talks_qs.annotate(
         average_rating=Avg("ratings__score"),
         rating_count=Count("ratings"),
