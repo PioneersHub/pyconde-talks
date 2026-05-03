@@ -7,6 +7,7 @@ and account-deletion views stay in ``users.views``.
 """
 
 import secrets
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
@@ -43,6 +44,44 @@ if TYPE_CHECKING:
 logger = structlog.get_logger(__name__)
 
 
+@dataclass(frozen=True)
+class _ConnectionStatus:
+    """Snapshot of a user's Discord / email-authorization state."""
+
+    has_discord: bool
+    verified_email: str | None
+    email_authorized: bool
+
+    @property
+    def has_verified_email(self) -> bool:
+        return self.verified_email is not None
+
+    @property
+    def needs_ticket_email(self) -> bool:
+        """A Discord-only user whose email is not in the validation API."""
+        return self.has_discord and self.has_verified_email and not self.email_authorized
+
+
+def _connection_status(request: HttpRequest, user: CustomUser) -> _ConnectionStatus:
+    """Look up Discord membership, primary verified email, and API authorization."""
+    has_discord = SocialAccount.objects.filter(user=user, provider=DISCORD_PROVIDER).exists()
+    verified_email = (
+        EmailAddress.objects.filter(user=user, verified=True)
+        .order_by("-primary")
+        .values_list("email", flat=True)
+        .first()
+    )
+    email_authorized = False
+    if verified_email:
+        adapter = cast("AccountAdapter", get_adapter(request))
+        email_authorized = adapter.can_login_by_email(verified_email)
+    return _ConnectionStatus(
+        has_discord=has_discord,
+        verified_email=verified_email,
+        email_authorized=email_authorized,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Connected accounts (wraps allauth's ConnectionsView with extra context)
 # ---------------------------------------------------------------------------
@@ -59,37 +98,23 @@ def connections_view(request: HttpRequest) -> HttpResponse:
     Discord email, and reconnecting to create unlimited accounts.
     """
     view = ConnectionsView.as_view()
-    user = request.user
-    has_discord = SocialAccount.objects.filter(user=user, provider=DISCORD_PROVIDER).exists()
-    verified_email = (
-        EmailAddress.objects.filter(user=user, verified=True)
-        .order_by("-primary")
-        .values_list("email", flat=True)
-        .first()
-    )
-    has_verified_email = verified_email is not None
+    status = _connection_status(request, cast("CustomUser", request.user))
 
     # can_disconnect requires both a verified email AND validation API approval.
-    can_disconnect = False
-    disconnect_blocked_reason = ""
-    if verified_email is None:
+    can_disconnect = status.email_authorized
+    if not status.has_verified_email:
         disconnect_blocked_reason = "no_verified_email"
+    elif not status.email_authorized:
+        disconnect_blocked_reason = "email_not_authorized"
     else:
-        adapter = cast("AccountAdapter", get_adapter(request))
-        if adapter.can_login_by_email(verified_email):
-            can_disconnect = True
-        else:
-            disconnect_blocked_reason = "email_not_authorized"
-
-    # Discord user whose email is not in the validation API needs to connect a ticket email.
-    needs_ticket_email = has_discord and disconnect_blocked_reason == "email_not_authorized"
+        disconnect_blocked_reason = ""
 
     request.can_disconnect = can_disconnect  # type: ignore[attr-defined]
-    request.has_discord = has_discord  # type: ignore[attr-defined]
-    request.has_verified_email = has_verified_email  # type: ignore[attr-defined]
+    request.has_discord = status.has_discord  # type: ignore[attr-defined]
+    request.has_verified_email = status.has_verified_email  # type: ignore[attr-defined]
     request.disconnect_blocked_reason = disconnect_blocked_reason  # type: ignore[attr-defined]
-    request.needs_ticket_email = needs_ticket_email  # type: ignore[attr-defined]
-    request.verified_email = verified_email or ""  # type: ignore[attr-defined]
+    request.needs_ticket_email = status.needs_ticket_email  # type: ignore[attr-defined]
+    request.verified_email = status.verified_email or ""  # type: ignore[attr-defined]
     return cast("HttpResponse", view(request))
 
 
@@ -116,22 +141,10 @@ def add_email_view(request: HttpRequest) -> HttpResponse:
 
     # Allow through if the user needs to connect a ticket email (Discord user
     # whose current email is not recognized by the validation API).
-    has_discord = SocialAccount.objects.filter(user=user, provider=DISCORD_PROVIDER).exists()
-    verified_email = (
-        EmailAddress.objects.filter(user=user, verified=True)
-        .order_by("-primary")
-        .values_list("email", flat=True)
-        .first()
-    )
-    email_authorized = False
-    if verified_email:
-        adapter = cast("AccountAdapter", get_adapter(request))
-        email_authorized = adapter.can_login_by_email(verified_email)
-
-    needs_ticket_email = has_discord and verified_email and not email_authorized
+    status = _connection_status(request, user)
 
     # Redirect unless this user actually needs to connect a ticket email
-    if verified_email and not needs_ticket_email:
+    if status.has_verified_email and not status.needs_ticket_email:
         return redirect("socialaccount_connections")
 
     events = Event.objects.filter(is_active=True).order_by("name")
