@@ -21,7 +21,7 @@ from django.views.generic import CreateView, ListView, UpdateView
 
 from .models import Talk
 from .models_qa import Question, QuestionQuerySet, QuestionVote
-from .utils import get_talk_by_id_or_pretalx
+from .utils import get_talk_by_id_or_pretalx, is_htmx_request
 
 
 if TYPE_CHECKING:
@@ -64,7 +64,7 @@ class QuestionListView(ListView[Question]):
 
         Return a partial fragment for HTMX requests.
         """
-        if self.request.headers.get("HX-Request"):
+        if is_htmx_request(self.request):
             return [self.fragment_template]
         return [cast("str", self.template_name)]  # type: ignore[redundant-cast]
 
@@ -141,7 +141,7 @@ class QuestionCreateView(CreateView[Question, forms.ModelForm[Question]]):
         messages.success(self.request, _("Your question has been posted."))
 
         # If this is an HTMX request, return to the question list
-        if self.request.headers.get("HX-Request"):
+        if is_htmx_request(self.request):
             user_can_moderate = is_moderator(self.request.user)
             status_filter = self.request.GET.get("status_filter", "all")
             return render(
@@ -269,7 +269,7 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
         question.user_voted = True
 
     # Return HTML for HTMX to replace the question list with sorted questions
-    if request.headers.get("HX-Request"):
+    if is_htmx_request(request):
         talk = question.talk
         return render_question_list_fragment(request, talk, _get_status_filter(request))
 
@@ -291,7 +291,7 @@ def delete_question(request: HttpRequest, question_id: int) -> HttpResponse:
     talk = question.talk
     question.delete()
     messages.success(request, _("Your question has been deleted."))
-    if request.headers.get("HX-Request"):
+    if is_htmx_request(request):
         return render_question_list_fragment(request, talk, _get_status_filter(request))
     return redirect("talk_questions", talk_id=talk.pk)
 
@@ -338,7 +338,7 @@ class QuestionUpdateView(
             self.request,
             _("Your question was updated and all previous votes were cleared."),
         )
-        if self.request.headers.get("HX-Request"):
+        if is_htmx_request(self.request):
             talk = form.instance.talk
             return render_question_list_fragment(
                 self.request,
@@ -379,7 +379,7 @@ def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
     question.reject()
     messages.success(request, _("Question has been rejected."))
 
-    if request.headers.get("HX-Request"):
+    if is_htmx_request(request):
         return render_question_list_fragment(
             request,
             question.talk,
@@ -398,7 +398,7 @@ def mark_question_answered(request: HttpRequest, question_id: int) -> HttpRespon
     question.mark_as_answered()
     messages.success(request, _("Question has been marked as answered."))
 
-    if request.headers.get("HX-Request"):
+    if is_htmx_request(request):
         return render_question_list_fragment(
             request,
             question.talk,
@@ -417,7 +417,7 @@ def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
     question.approve()
     messages.success(request, _("Question has been approved."))
 
-    if request.headers.get("HX-Request"):
+    if is_htmx_request(request):
         return render_question_list_fragment(
             request,
             question.talk,

@@ -13,6 +13,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from .models import SavedTalk, Talk
+from .utils import is_htmx_request
 
 
 if TYPE_CHECKING:
@@ -40,7 +41,7 @@ def toggle_save_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
         saved_talk.delete()
 
     is_saved = created
-    is_htmx = request.headers.get("HX-Request") == "true"
+    is_htmx = is_htmx_request(request)
 
     if is_htmx:
         # Schedule cards use a compact icon-only partial (no text label).

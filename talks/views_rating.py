@@ -16,6 +16,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST, require_safe
 
 from .models import COMMENT_MAX_LENGTH, MAX_RATING_SCORE, MIN_RATING_SCORE, Rating, Talk
+from .utils import is_htmx_request
 from .views import _can_see_rating_summary
 
 
@@ -78,7 +79,7 @@ def rate_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     """
     user = cast("CustomUser", request.user)
     talk = get_object_or_404(Talk.objects.accessible_to(user), pk=talk_id)
-    is_htmx = request.headers.get("HX-Request") == "true"
+    is_htmx = is_htmx_request(request)
     is_comment_save = request.POST.get("save_comment") == "1"
 
     # Validate score
@@ -139,7 +140,7 @@ def delete_rating(request: HttpRequest, talk_id: int) -> HttpResponse:
     """
     user = cast("CustomUser", request.user)
     talk = get_object_or_404(Talk.objects.accessible_to(user), pk=talk_id)
-    is_htmx = request.headers.get("HX-Request") == "true"
+    is_htmx = is_htmx_request(request)
     deleted_count, _detail = Rating.objects.filter(talk=talk, user=request.user).delete()
 
     if not is_htmx:

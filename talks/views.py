@@ -22,7 +22,7 @@ from events.models import Event
 from events.session import resolve_default_event
 
 from .models import Rating, Room, SavedTalk, Talk
-from .utils import get_talk_by_id_or_pretalx
+from .utils import get_talk_by_id_or_pretalx, is_htmx_request
 from .views_qa import is_moderator
 
 
@@ -118,7 +118,7 @@ class TalkListView(ListView[Talk]):
 
         Return a partial fragment for HTMX requests.
         """
-        if self.request.headers.get("HX-Request"):
+        if is_htmx_request(self.request):
             return ["talks/talk_list.html#talk-list"]
         return [cast("str", self.template_name)]  # type: ignore[redundant-cast]
 
@@ -296,7 +296,7 @@ class TalkListView(ListView[Talk]):
             self.request.user,
             selected_event,
         )
-        context["is_htmx_request"] = bool(self.request.headers.get("HX-Request"))
+        context["is_htmx_request"] = is_htmx_request(self.request)
 
         return context
 

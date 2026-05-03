@@ -6,7 +6,14 @@ from .models import Talk
 
 
 if TYPE_CHECKING:
+    from django.http import HttpRequest
+
     from users.models import CustomUser
+
+
+def is_htmx_request(request: HttpRequest) -> bool:
+    """Return True when *request* was issued by HTMX."""
+    return request.headers.get("HX-Request") == "true"
 
 
 def get_talk_by_id_or_pretalx(talk_id: str, *, user: CustomUser | None = None) -> Talk | None:
