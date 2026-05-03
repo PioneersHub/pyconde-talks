@@ -26,6 +26,7 @@ from .utils import get_talk_by_id_or_pretalx, is_htmx_request
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
+    from django.utils.functional import _StrPromise as StrOrPromise
 
     from users.models import CustomUser
 
@@ -370,14 +371,18 @@ class ModeratorRequiredMixin(UserPassesTestMixin):  # pragma: no cover
         return is_moderator(self.request.user)
 
 
-@require_POST
-def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
-    """Reject a question."""
+def _moderate_question(
+    request: HttpRequest,
+    question_id: int,
+    action: str,
+    success_message: StrOrPromise,
+) -> HttpResponse:
+    """Apply a moderator-only state change to a question and respond."""
     if not is_moderator(request.user):
         raise PermissionDenied
     question = _get_accessible_question(request.user, question_id)
-    question.reject()
-    messages.success(request, _("Question has been rejected."))
+    getattr(question, action)()
+    messages.success(request, success_message)
 
     if is_htmx_request(request):
         return render_question_list_fragment(
@@ -385,46 +390,40 @@ def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
             question.talk,
             _get_status_filter(request),
         )
-
     return redirect("talk_questions", talk_id=question.talk.pk)
+
+
+@require_POST
+def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
+    """Reject a question."""
+    return _moderate_question(
+        request,
+        question_id,
+        "reject",
+        _("Question has been rejected."),
+    )
 
 
 @require_POST
 def mark_question_answered(request: HttpRequest, question_id: int) -> HttpResponse:
     """Mark a question as answered."""
-    if not is_moderator(request.user):
-        raise PermissionDenied
-    question = _get_accessible_question(request.user, question_id)
-    question.mark_as_answered()
-    messages.success(request, _("Question has been marked as answered."))
-
-    if is_htmx_request(request):
-        return render_question_list_fragment(
-            request,
-            question.talk,
-            _get_status_filter(request),
-        )
-
-    return redirect("talk_questions", talk_id=question.talk.pk)
+    return _moderate_question(
+        request,
+        question_id,
+        "mark_as_answered",
+        _("Question has been marked as answered."),
+    )
 
 
 @require_POST
 def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """Approve a question."""
-    if not is_moderator(request.user):
-        raise PermissionDenied
-    question = _get_accessible_question(request.user, question_id)
-    question.approve()
-    messages.success(request, _("Question has been approved."))
-
-    if is_htmx_request(request):
-        return render_question_list_fragment(
-            request,
-            question.talk,
-            _get_status_filter(request),
-        )
-
-    return redirect("talk_questions", talk_id=question.talk.pk)
+    return _moderate_question(
+        request,
+        question_id,
+        "approve",
+        _("Question has been approved."),
+    )
 
 
 @require_safe
