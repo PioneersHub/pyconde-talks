@@ -26,6 +26,13 @@ if TYPE_CHECKING:
 CONTENT_PREVIEW_LENGTH = 50
 
 
+def _truncate_for_preview(text: str) -> str:
+    """Return *text* truncated to CONTENT_PREVIEW_LENGTH chars with an ellipsis."""
+    if len(text) > CONTENT_PREVIEW_LENGTH:
+        return f"{text[:CONTENT_PREVIEW_LENGTH]}..."
+    return text
+
+
 class QuestionQuerySet(models.QuerySet["Question"]):  # type: ignore[call-arg]
     """Custom QuerySet for Question model with additional methods."""
 
@@ -118,9 +125,7 @@ class Question(models.Model):
 
     def __str__(self) -> str:
         """Return a string representation of the question."""
-        if len(self.content) > CONTENT_PREVIEW_LENGTH:
-            return f"{self.content[:CONTENT_PREVIEW_LENGTH]}..."
-        return self.content
+        return _truncate_for_preview(self.content)
 
     @property
     def display_name(self) -> StrOrPromise:
@@ -259,9 +264,7 @@ class Answer(models.Model):
 
     def __str__(self) -> str:
         """Return a string representation of the answer."""
-        if len(self.content) > CONTENT_PREVIEW_LENGTH:
-            return f"{self.content[:CONTENT_PREVIEW_LENGTH]}..."
-        return self.content
+        return _truncate_for_preview(self.content)
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         """

@@ -12,7 +12,7 @@ from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .models_qa import CONTENT_PREVIEW_LENGTH, Answer, Question, QuestionVote
+from .models_qa import Answer, Question, QuestionVote
 
 
 if TYPE_CHECKING:
@@ -94,9 +94,7 @@ class QuestionAdmin(admin.ModelAdmin[Question]):
     @admin.display(description=_("Question"))
     def content_preview(self, obj: Question) -> str:
         """Display a preview of the question content."""
-        if len(obj.content) > CONTENT_PREVIEW_LENGTH:
-            return f"{obj.content[:CONTENT_PREVIEW_LENGTH]}..."
-        return obj.content
+        return str(obj)
 
     @admin.display(boolean=True, description=_("Has Answers"))
     def has_answers(self, obj: Question) -> bool:
@@ -159,10 +157,7 @@ class QuestionVoteAdmin(admin.ModelAdmin[QuestionVote]):
     @admin.display(description=_("Question"))
     def question_preview(self, obj: QuestionVote) -> str:
         """Display a preview of the question content."""
-        content = obj.question.content
-        if len(content) > CONTENT_PREVIEW_LENGTH:
-            return f"{content[:CONTENT_PREVIEW_LENGTH]}..."
-        return content
+        return str(obj.question)
 
 
 @admin.register(Answer)
@@ -204,14 +199,9 @@ class AnswerAdmin(admin.ModelAdmin[Answer]):
     @admin.display(description=_("Answer"))
     def content_preview(self, obj: Answer) -> str:
         """Display a preview of the answer content."""
-        if len(obj.content) > CONTENT_PREVIEW_LENGTH:
-            return f"{obj.content[:CONTENT_PREVIEW_LENGTH]}..."
-        return obj.content
+        return str(obj)
 
     @admin.display(description=_("Question"))
     def question_preview(self, obj: Answer) -> str:
         """Display a preview of the question content."""
-        content = obj.question.content
-        if len(content) > CONTENT_PREVIEW_LENGTH:
-            return f"{content[:CONTENT_PREVIEW_LENGTH]}..."
-        return content
+        return str(obj.question)
