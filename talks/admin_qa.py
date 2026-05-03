@@ -18,6 +18,7 @@ from .models_qa import Answer, Question, QuestionVote
 if TYPE_CHECKING:
     from django.db.models import QuerySet
     from django.http import HttpRequest
+    from django.utils.functional import _StrPromise as StrOrPromise
 
 
 class AnswerInline(admin.TabularInline[Answer, Question]):
@@ -108,31 +109,45 @@ class QuestionAdmin(admin.ModelAdmin[Question]):
         """Display the number of votes for this question."""
         return obj.vote_count
 
+    def _bulk_set_status(
+        self,
+        request: HttpRequest,
+        queryset: QuerySet[Question],
+        status: Question.Status,
+        message_template: StrOrPromise,
+    ) -> None:
+        """Update *queryset*'s status and notify the admin user."""
+        updated = queryset.update(status=status, updated_at=timezone.now())
+        self.message_user(request, message_template % {"count": updated})
+
     @admin.action(description=_("Reject selected questions (hide from public)"))
     def reject_questions(self, request: HttpRequest, queryset: QuerySet[Question]) -> None:
         """Mark selected questions as rejected, hiding them from public view."""
-        updated = queryset.update(status=Question.Status.REJECTED, updated_at=timezone.now())
-        self.message_user(
+        self._bulk_set_status(
             request,
-            _("%(count)d question(s) have been rejected.") % {"count": updated},
+            queryset,
+            Question.Status.REJECTED,
+            _("%(count)d question(s) have been rejected."),
         )
 
     @admin.action(description=_("Mark selected questions as answered"))
     def mark_as_answered(self, request: HttpRequest, queryset: QuerySet[Question]) -> None:
         """Mark selected questions as answered."""
-        updated = queryset.update(status=Question.Status.ANSWERED, updated_at=timezone.now())
-        self.message_user(
+        self._bulk_set_status(
             request,
-            _("%(count)d question(s) have been marked as answered.") % {"count": updated},
+            queryset,
+            Question.Status.ANSWERED,
+            _("%(count)d question(s) have been marked as answered."),
         )
 
     @admin.action(description=_("Approve selected questions"))
     def approve_questions(self, request: HttpRequest, queryset: QuerySet[Question]) -> None:
         """Mark selected questions as approved."""
-        updated = queryset.update(status=Question.Status.APPROVED, updated_at=timezone.now())
-        self.message_user(
+        self._bulk_set_status(
             request,
-            _("%(count)d question(s) have been approved.") % {"count": updated},
+            queryset,
+            Question.Status.APPROVED,
+            _("%(count)d question(s) have been approved."),
         )
 
 
