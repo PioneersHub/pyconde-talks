@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from model_bakery import baker
 
+from events.models import Event
 from talks.models import Room, SavedTalk, Talk
 from talks.views_schedule import _build_grid_slices
 from users.models import CustomUser
@@ -209,6 +210,33 @@ class TestScheduleView:
         response = client.get(url)
         # Falls back to first available date since tomorrow isn't in available_dates
         assert response.status_code == HTTPStatus.OK
+
+    def test_event_param_does_not_leak_other_event(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        rooms: list[Room],
+    ) -> None:
+        """A user must not read another event's schedule by passing ?event=<other_id>."""
+        other_event = baker.make(Event, name="Secret Event")
+        now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)
+        secret_talk = baker.make(
+            Talk,
+            title="Secret Keynote",
+            room=rooms[0],
+            start_time=now,
+            duration=timedelta(minutes=30),
+            event=other_event,
+        )
+        client.force_login(user)
+        url = (
+            reverse("schedule")
+            + f"?event={other_event.pk}&date={secret_talk.start_time.date().isoformat()}"
+        )
+        response = client.get(url)
+        assert response.status_code == HTTPStatus.OK
+        # The user is not a member of other_event, so its talk must not appear.
+        assert "Secret Keynote" not in response.content.decode()
 
     def test_css_grid_area_in_output(
         self,

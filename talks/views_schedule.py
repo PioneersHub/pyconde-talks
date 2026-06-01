@@ -76,7 +76,11 @@ def _get_schedule_dates(user: CustomUser, event_id: int | None = None) -> list[d
     # Apply the event/access filter on the Talk queryset before collapsing to dates, otherwise
     # `accessible_to` is no longer available on the post-`values_list` queryset type.
     talks_qs = Talk.objects.exclude(start_time__year=FAR_FUTURE.year)
-    talks_qs = talks_qs.filter(event_id=event_id) if event_id else talks_qs.accessible_to(user)
+    # Always restrict to talks the user may see, then optionally narrow to a single event. Filtering
+    # by event_id alone would let a user read another event's schedule via the event query param.
+    talks_qs = talks_qs.accessible_to(user)
+    if event_id:
+        talks_qs = talks_qs.filter(event_id=event_id)
     date_qs = (
         talks_qs.annotate(date=TruncDate("start_time"))
         .values_list("date", flat=True)
@@ -104,7 +108,11 @@ def _build_schedule_data(
         .defer("description", "abstract")
         .order_by("start_time", "room__name")
     )
-    talks_qs = talks_qs.filter(event_id=event_id) if event_id else talks_qs.accessible_to(user)
+    # Always restrict to talks the user may see, then optionally narrow to a single event. Filtering
+    # by event_id alone would let a user read another event's schedule via the event query param.
+    talks_qs = talks_qs.accessible_to(user)
+    if event_id:
+        talks_qs = talks_qs.filter(event_id=event_id)
     talks = list(talks_qs)
 
     # Unique rooms ordered by name
