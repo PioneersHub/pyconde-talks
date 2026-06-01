@@ -12,6 +12,7 @@ from model_bakery import baker
 from events.models import Event
 from talks.models import (
     EMPTY_TRACK_NAME,
+    LIGHTNING_TRACK_NAME,
     Room,
     Speaker,
     Streaming,
@@ -184,7 +185,49 @@ class TestTalkComprehensive:
             presentation_type=Talk.PresentationType.LIGHTNING,
             track="",
         )
-        assert talk.track == "Lightning Talks"
+        assert talk.track == LIGHTNING_TRACK_NAME
+
+    def test_default_duration_returns_type_default_without_db(self) -> None:
+        """Return the configured default duration for the presentation type, no save needed."""
+        talk = Talk(presentation_type=Talk.PresentationType.KEYNOTE)
+        assert talk.default_duration() == timedelta(minutes=45)
+
+    def test_default_duration_unknown_type_is_zero(self) -> None:
+        """Return a zero duration for presentation types without a configured default."""
+        talk = Talk(presentation_type=Talk.PresentationType.OPEN)
+        assert talk.default_duration() == timedelta()
+
+    def test_default_track_lightning(self) -> None:
+        """Return the lightning track name for lightning talks."""
+        talk = Talk(presentation_type=Talk.PresentationType.LIGHTNING)
+        assert talk.default_track() == LIGHTNING_TRACK_NAME
+
+    def test_default_track_other(self) -> None:
+        """Return the empty-track fallback for non-lightning talks."""
+        talk = Talk(presentation_type=Talk.PresentationType.TALK)
+        assert talk.default_track() == EMPTY_TRACK_NAME
+
+    def test_apply_derived_defaults_fills_blank_fields(self) -> None:
+        """Populate duration and track in place without persisting the instance."""
+        talk = Talk(
+            presentation_type=Talk.PresentationType.KEYNOTE,
+            duration=timedelta(),
+            track="",
+        )
+        talk.apply_derived_defaults()
+        assert talk.duration == timedelta(minutes=45)
+        assert talk.track == EMPTY_TRACK_NAME
+
+    def test_apply_derived_defaults_keeps_existing_values(self) -> None:
+        """Leave duration and track untouched when already set."""
+        talk = Talk(
+            presentation_type=Talk.PresentationType.KEYNOTE,
+            duration=timedelta(minutes=10),
+            track="PyData",
+        )
+        talk.apply_derived_defaults()
+        assert talk.duration == timedelta(minutes=10)
+        assert talk.track == "PyData"
 
     def test_save_sets_default_track(self) -> None:
         """Assign the EMPTY_TRACK_NAME fallback when no track is specified."""
