@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 
 # Constants
 EMPTY_TRACK_NAME = "No track"
+LIGHTNING_TRACK_NAME = "Lightning Talks"
 FAR_FUTURE = datetime(2050, 1, 1, 0, 0, 0, tzinfo=UTC)
 MAX_PRETALX_ID_LENGTH = 50
 MAX_PRONOUNS_LENGTH = 50
@@ -416,23 +417,32 @@ class Talk(models.Model):
         return f"{self.title} by {self.speaker_names}"
 
     def save(self, *args: Any, **kwargs: Any) -> None:
-        """
-        Save the talk instance.
+        """Save the talk, filling in derived field defaults first."""
+        self.apply_derived_defaults()
+        super().save(*args, **kwargs)
 
-        Set the duration based on the presentation type if not already set.
+    def apply_derived_defaults(self) -> None:
+        """
+        Populate fields that are derived from other data before persisting.
+
+        Kept separate from ``save()`` so the defaulting rules can be unit tested without a database
+        round-trip and reused by importers that build talks in bulk.
         """
         if not self.duration:
-            self.duration = self.DEFAULT_DURATIONS.get(self.presentation_type, timedelta())
-
+            self.duration = self.default_duration()
         if not self.track:
-            if self.presentation_type == self.PresentationType.LIGHTNING:
-                self.track = "Lightning Talks"
-            else:
-                self.track = EMPTY_TRACK_NAME
-
+            self.track = self.default_track()
         self.video_link = self._enrich_video_link()
 
-        super().save(*args, **kwargs)
+    def default_duration(self) -> timedelta:
+        """Return the default duration for this talk's presentation type."""
+        return self.DEFAULT_DURATIONS.get(self.presentation_type, timedelta())
+
+    def default_track(self) -> str:
+        """Return the default track name for this talk's presentation type."""
+        if self.presentation_type == self.PresentationType.LIGHTNING:
+            return LIGHTNING_TRACK_NAME
+        return EMPTY_TRACK_NAME
 
     def clean(self) -> None:
         """Validate that this talk does not overlap with another in the same room."""
@@ -746,6 +756,7 @@ __all__ = [
     "COMMENT_MAX_LENGTH",
     "EMPTY_TRACK_NAME",
     "FAR_FUTURE",
+    "LIGHTNING_TRACK_NAME",
     "MAX_PRETALX_ID_LENGTH",
     "MAX_PRONOUNS_LENGTH",
     "MAX_RATING_SCORE",
