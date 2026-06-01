@@ -9,6 +9,7 @@ from .views import (
     talk_redirect_view,
     upcoming_talks,
 )
+from .views_chair import chair_grid_view, toggle_session_chair
 from .views_qa import (
     QuestionCreateView,
     QuestionListView,
@@ -28,6 +29,7 @@ from .views_schedule import schedule_view
 urlpatterns = [
     path("", TalkListView.as_view(), name="talk_list"),
     path("schedule/", schedule_view, name="schedule"),
+    path("chairs/", chair_grid_view, name="chair_grid"),
     path("<int:pk>/", TalkDetailView.as_view(), name="talk_detail"),
     path("dashboard-stats/", dashboard_stats, name="dashboard_stats"),
     path("upcoming-talks/", upcoming_talks, name="upcoming_talks"),
@@ -37,6 +39,8 @@ urlpatterns = [
     path("<int:talk_id>/rating-stats/", get_talk_rating_stats, name="talk_rating_stats"),
     # Save/Bookmark URLs
     path("<int:talk_id>/save/", toggle_save_talk, name="toggle_save_talk"),
+    # Session-chair URLs
+    path("<int:talk_id>/chair/", toggle_session_chair, name="toggle_session_chair"),
     path("<str:talk_id>/", talk_redirect_view, name="talk_redirect"),
     # Q&A URLs
     path("<int:talk_id>/questions/", QuestionListView.as_view(), name="talk_questions"),

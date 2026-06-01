@@ -1,0 +1,84 @@
+{% load svg_tags %}
+{# Moderator-only chair grid table. Swapped in place on every assign/remove via HTMX. #}
+<div id="chair-grid-table">
+  {% if has_grid %}
+    <div class="overflow-x-auto pb-4">
+      <table class="min-w-full border-collapse text-sm">
+        <thead>
+          <tr>
+            <th class="sticky left-0 z-10 bg-gray-100 border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-subtle uppercase tracking-wider">
+              Time
+            </th>
+            {% for room in rooms %}
+              <th class="bg-gray-100 border border-gray-300 px-3 py-2 text-center text-xs font-semibold text-subtle uppercase tracking-wider">
+                {{ room.name }}
+              </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <th class="sticky left-0 z-10 bg-gray-50 border border-gray-200 px-3 py-2 text-left font-medium text-muted whitespace-nowrap">
+                {{ row.start_time|date:"H:i" }}
+              </th>
+              {% for talk in row.cells %}
+                {% if talk %}
+                  <td class="chair-cell border border-gray-200 px-3 py-2 align-top {% if talk.session_chair_id == current_user_id %}chair-mine{% endif %}"
+                      data-block="{{ talk.block_id }}">
+                    <a href="{% url 'talk_detail' talk.pk %}"
+                       class="block hover:underline font-medium text-heading leading-tight line-clamp-2"
+                       title="{{ talk.title }}">{{ talk.title }}</a>
+                    <div class="mt-1 text-xs">
+                      {% if talk.session_chair_id == current_user_id %}
+                        <span class="inline-flex items-center gap-1">
+                          <span class="inline-flex items-center gap-1 text-brand-blue">
+                            {% svg 'check-circle' "h-3 w-3" %}
+                            {{ talk.chair_display_name }}
+                          </span>
+                          <button hx-post="{% url 'toggle_session_chair' talk.pk %}"
+                                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                  hx-vals='{"event": "{{ selected_event }}"}'
+                                  hx-target="#chair-grid-table"
+                                  hx-swap="outerHTML"
+                                  class="text-subtle hover:text-red-600"
+                                  title="Remove yourself from this block">{% svg 'x-mark' "h-3 w-3" %}</button>
+                        </span>
+                      {% elif talk.session_chair_id %}
+                        <span class="inline-flex items-center gap-1 text-muted">
+                          {% svg 'check-circle' "h-3 w-3" %}
+                          {{ talk.chair_display_name }}
+                        </span>
+                      {% else %}
+                        <button hx-post="{% url 'toggle_session_chair' talk.pk %}"
+                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                hx-vals='{"event": "{{ selected_event }}"}'
+                                hx-target="#chair-grid-table"
+                                hx-swap="outerHTML"
+                                class="inline-flex items-center gap-1 text-subtle hover:text-brand-blue"
+                                title="Chair this block">
+                          <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-current text-xs leading-none font-bold">+</span>
+                          Chair
+                        </button>
+                      {% endif %}
+                    </div>
+                  </td>
+                {% else %}
+                  <td class="border border-gray-200 px-3 py-2 align-top">
+                    <span class="text-subtle">-</span>
+                  </td>
+                {% endif %}
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="bg-surface p-6 rounded text-center text-subtle">
+      No sessions scheduled
+      {% if selected_date %}for {{ selected_date|date:"l, F j, Y" }}{% endif %}
+      .
+    </div>
+  {% endif %}
+</div>

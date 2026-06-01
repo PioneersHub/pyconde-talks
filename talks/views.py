@@ -75,6 +75,9 @@ class TalkDetailView(DetailView[Talk]):
             context["average_rating"] = None
         context["show_rating_summary"] = show_summary
 
+        # Only moderators see the assigned session chair on the detail page.
+        context["user_can_moderate"] = is_moderator(self.request.user)
+
         # Get user's existing rating if authenticated
         if self.request.user.is_authenticated:
             context["user_rating"] = Rating.objects.filter(
