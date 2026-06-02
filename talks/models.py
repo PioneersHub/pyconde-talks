@@ -26,6 +26,7 @@ from utils.url import add_query_param
 if TYPE_CHECKING:
     from django_stubs_ext.db.models.manager import RelatedManager
 
+    from events.models import Event
     from users.models import CustomUser
 
 
@@ -43,10 +44,33 @@ MAX_TRACK_NAME_LENGTH = 100
 class Room(models.Model):
     """Represents a conference room where talks take place."""
 
+    # Rooms are event-scoped: the same physical room reused across events is a separate
+    # Room row per event. on_delete=PROTECT so an event with rooms can't be deleted out
+    # from under its talks/streamings; you reassign or remove rooms explicitly first.
+    # Nullable for now so the additive migration + backfill can run in two safe phases;
+    # a later migration tightens this to required.
+    event = models.ForeignKey(
+        "events.Event",
+        on_delete=models.PROTECT,
+        related_name="rooms",
+        null=True,
+        blank=True,
+        help_text=_("Event this room belongs to"),
+    )
+
     name = models.CharField(
         max_length=MAX_ROOM_NAME_LENGTH,
         unique=True,
         help_text=_("Name of the room"),
+    )
+
+    # Stable Pretalx room id (the integer ``slot.room.id``). Null for manually created or
+    # legacy rooms; the importer stamps it lazily on the next sync. This is the match key
+    # that lets a room renamed on Pretalx be renamed in place instead of duplicated.
+    pretalx_id = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text=_("Stable Pretalx room id (slot.room.id); null for manual/legacy rooms"),
     )
 
     description = models.TextField(
@@ -79,6 +103,30 @@ class Room(models.Model):
     def __str__(self) -> str:
         """Return the room name."""
         return self.name
+
+    @classmethod
+    def resolve_for_event(
+        cls,
+        *,
+        event: Event | None,
+        pretalx_id: int | None,
+        name: str,
+    ) -> Room | None:
+        """
+        Find the local Room for a Pretalx room within an event, without writing.
+
+        Match order: ``(event, pretalx_id)`` first (the stable key that survives a
+        rename), then ``(event, name)`` for legacy rows that predate id-keying. Returns
+        ``None`` on a miss. This is the single matcher shared by the importer and the
+        apply step so both behave identically; it never creates or mutates a row.
+        """
+        if pretalx_id is not None:
+            match = cls.objects.filter(event=event, pretalx_id=pretalx_id).first()
+            if match is not None:
+                return match
+        if name:
+            return cls.objects.filter(event=event, name=name).first()
+        return None
 
     def is_streaming_live(self) -> bool:
         """Check if there's currently a live streaming for this room."""

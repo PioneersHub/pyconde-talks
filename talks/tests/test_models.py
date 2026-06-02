@@ -22,6 +22,45 @@ from users.models import CustomUser
 
 
 @pytest.mark.django_db
+class TestRoomResolveForEvent:
+    """Room.resolve_for_event matches by (event, pretalx_id) then (event, name), read-only."""
+
+    def test_matches_by_pretalx_id(self) -> None:
+        """The stable id wins even when the stored name differs from the query name."""
+        event = Event.objects.create(slug="e", name="E", year=2099)
+        room = Room.objects.create(event=event, pretalx_id=4993, name="Old Name")
+        found = Room.resolve_for_event(event=event, pretalx_id=4993, name="New Name")
+        assert found == room
+
+    def test_falls_back_to_name_when_no_id(self) -> None:
+        """A legacy row with no pretalx_id is still found by (event, name)."""
+        event = Event.objects.create(slug="e", name="E", year=2099)
+        room = Room.objects.create(event=event, name="Main Hall")
+        found = Room.resolve_for_event(event=event, pretalx_id=None, name="Main Hall")
+        assert found == room
+
+    def test_id_miss_falls_back_to_name(self) -> None:
+        """When the id doesn't match any row, fall back to the name lookup."""
+        event = Event.objects.create(slug="e", name="E", year=2099)
+        room = Room.objects.create(event=event, name="Main Hall")
+        found = Room.resolve_for_event(event=event, pretalx_id=777, name="Main Hall")
+        assert found == room
+
+    def test_scoped_to_event(self) -> None:
+        """A room in another event is never returned."""
+        event_a = Event.objects.create(slug="a", name="A", year=2099)
+        event_b = Event.objects.create(slug="b", name="B", year=2099)
+        Room.objects.create(event=event_a, pretalx_id=1, name="Hall A")
+        assert Room.resolve_for_event(event=event_b, pretalx_id=1, name="Hall A") is None
+
+    def test_returns_none_on_miss(self) -> None:
+        """No id match and no name match yields None, with no row created."""
+        event = Event.objects.create(slug="e", name="E", year=2099)
+        assert Room.resolve_for_event(event=event, pretalx_id=9, name="Nope") is None
+        assert Room.objects.count() == 0
+
+
+@pytest.mark.django_db
 class TestTalkModel:
     """Test cases for specific Talk model methods."""
 
