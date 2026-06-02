@@ -4,8 +4,6 @@ Custom account adapter for django-allauth (e-mail validation).
 The Discord social-login adapter lives in ``users.adapters_social``.
 """
 
-import threading
-import time
 from http import HTTPStatus
 from json.decoder import JSONDecodeError
 from typing import TYPE_CHECKING, Any, cast
@@ -17,6 +15,7 @@ from allauth.account.adapter import (
 )
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db import DatabaseError, OperationalError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -35,64 +34,68 @@ logger = structlog.get_logger(__name__)
 
 # Safety margin (seconds) subtracted from the token's expires_in so we refresh before expiry.
 _TOKEN_EXPIRY_MARGIN = 30
+# Default TTL when the token endpoint omits ``expires_in`` (5 min, matching most OIDC defaults).
+_TOKEN_DEFAULT_TTL = 300
+# Versioned cache key so a future change to the stored payload format does not collide with stale
+# values that may still be in Redis from the previous deploy.
+OAUTH_BEARER_CACHE_KEY = "users.adapters.oauth_bearer:v1"
 
 
-class _OAuthTokenCache:
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=10),
+    retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError)),
+    reraise=True,
+)
+def _fetch_oauth_token(client_id: str, client_secret: str, token_url: str) -> tuple[str, int]:
     """
-    Cache for OAuth2 client-credentials access tokens.
+    Exchange client credentials for an access token, returning ``(token, ttl_seconds)``.
 
-    Fetches a new token when the cached one is missing or about to expire.
-    All three settings must be non-empty for OAuth2 to be active.
+    The TTL is ``expires_in`` minus a safety margin so callers refresh before real expiry.
     """
-
-    def __init__(self) -> None:
-        self._lock = threading.Lock()
-        self._token: str | None = None
-        self._expires_at: float = 0.0
-
-    def get_token(self) -> str | None:
-        """Return a valid Bearer token, or ``None`` if OAuth2 is not configured."""
-        client_id = getattr(settings, "EMAIL_VALIDATION_API_OAUTH2_CLIENT_ID", "")
-        client_secret = getattr(settings, "EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET", "")
-        token_url = getattr(settings, "EMAIL_VALIDATION_API_OAUTH2_TOKEN_URL", "")
-
-        if not (client_id and client_secret and token_url):
-            return None
-
-        with self._lock:
-            if self._token and time.monotonic() < self._expires_at:
-                return self._token
-
-            self._token, self._expires_at = self._fetch_token(client_id, client_secret, token_url)
-            return self._token
-
-    @staticmethod
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=10),
-        retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError)),
-        reraise=True,
+    response = httpx.post(
+        token_url,
+        data={
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret,
+        },
+        timeout=getattr(settings, "EMAIL_VALIDATION_API_TIMEOUT", 10),
     )
-    def _fetch_token(client_id: str, client_secret: str, token_url: str) -> tuple[str, float]:
-        """Exchange client credentials for an access token."""
-        response = httpx.post(
-            token_url,
-            data={
-                "grant_type": "client_credentials",
-                "client_id": client_id,
-                "client_secret": client_secret,
-            },
-            timeout=getattr(settings, "EMAIL_VALIDATION_API_TIMEOUT", 10),
-        )
-        response.raise_for_status()
-        data = response.json()
-        access_token: str = data["access_token"]
-        expires_in: int = data.get("expires_in", 300)
-        expires_at = time.monotonic() + max(expires_in - _TOKEN_EXPIRY_MARGIN, 0)
-        return access_token, expires_at
+    response.raise_for_status()
+    data = response.json()
+    access_token: str = data["access_token"]
+    expires_in: int = data.get("expires_in", _TOKEN_DEFAULT_TTL)
+    ttl = max(expires_in - _TOKEN_EXPIRY_MARGIN, 0)
+    return access_token, ttl
 
 
-_oauth_token_cache = _OAuthTokenCache()
+def _get_oauth_token() -> str | None:
+    """
+    Return a valid Bearer token, or ``None`` if OAuth2 is not configured.
+
+    The token is stored in Django's cache (``django.core.cache``), so all worker
+    processes share it - with Redis/memcached as the prod backend, one fetch per
+    cluster-wide expiry instead of one per worker. The ``timeout`` parameter on
+    ``cache.set`` handles eviction; no manual expiry tracking needed here.
+    """
+    client_id = getattr(settings, "EMAIL_VALIDATION_API_OAUTH2_CLIENT_ID", "")
+    client_secret = getattr(settings, "EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET", "")
+    token_url = getattr(settings, "EMAIL_VALIDATION_API_OAUTH2_TOKEN_URL", "")
+
+    if not (client_id and client_secret and token_url):
+        return None
+
+    cached: str | None = cache.get(OAUTH_BEARER_CACHE_KEY)
+    if cached:
+        return cached
+
+    # Two workers can race to fetch on cold start; both will receive valid tokens from the IdP
+    # and the second cache.set just overwrites with an equivalent value. Acceptable.
+    token, ttl = _fetch_oauth_token(client_id, client_secret, token_url)
+    if ttl > 0:
+        cache.set(OAUTH_BEARER_CACHE_KEY, token, timeout=ttl)
+    return token
 
 
 class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
@@ -269,7 +272,7 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
             return {"valid": False}
 
         headers: dict[str, str] = {}
-        token = _oauth_token_cache.get_token()
+        token = _get_oauth_token()
         if token:
             headers["Authorization"] = f"Bearer {token}"
 

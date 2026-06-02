@@ -347,6 +347,32 @@ def test_oauth2_token_cached_across_calls(
 
 
 @pytest.mark.django_db
+def test_oauth2_token_shared_across_adapter_instances(
+    oauth2_settings: dict[str, str],
+    respx_mock: respx.MockRouter,
+) -> None:
+    """A fresh adapter instance reuses the cached token instead of re-fetching."""
+    token_url = oauth2_settings["token_url"]
+    api_url = oauth2_settings["api_url"]
+
+    respx_mock.post(token_url).mock(
+        return_value=httpx.Response(200, json={"access_token": "shared-tok", "expires_in": 300}),
+    )
+    respx_mock.post(api_url).mock(
+        return_value=httpx.Response(200, json={"valid": True}),
+    )
+
+    # Two separate adapter instances share state via Django's cache backend.
+    # In prod with a shared backend (Redis/memcached) this extends across workers;
+    # in tests locmem is per-process but verifies the lookup doesn't depend on adapter state.
+    assert AccountAdapter().is_email_authorized("a@example.com") is True
+    assert AccountAdapter().is_email_authorized("b@example.com") is True
+
+    token_calls = [c for c in respx_mock.calls if str(c.request.url) == token_url]
+    assert len(token_calls) == 1, "Token should be cached across adapter instances"
+
+
+@pytest.mark.django_db
 def test_oauth2_token_fetch_failure_propagates(
     adapter: AccountAdapter,
     oauth2_settings: dict[str, str],

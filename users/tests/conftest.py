@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING, Any
 import httpx
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 
-from users.adapters import _oauth_token_cache
+from users.adapters import OAUTH_BEARER_CACHE_KEY
 
 
 if TYPE_CHECKING:
@@ -17,8 +18,7 @@ if TYPE_CHECKING:
 @pytest.fixture(autouse=True)
 def _reset_oauth_token_cache() -> None:
     """Clear the OAuth2 token cache between tests to prevent leakage."""
-    _oauth_token_cache._token = None
-    _oauth_token_cache._expires_at = 0.0
+    cache.delete(OAUTH_BEARER_CACHE_KEY)
 
 
 @pytest.fixture()
