@@ -62,6 +62,15 @@ USE_TZ = env.bool("USE_TZ", default=True)
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
 DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
+# Keep DB connections open between requests for the configured number of seconds so that
+# Postgres avoids the TCP + TLS + auth handshake on every request. Set to 0 in tests / dev
+# if you want strict per-request connection handling.
+# https://docs.djangoproject.com/en/dev/ref/settings/#conn-max-age
+DATABASES["default"]["CONN_MAX_AGE"] = env.int("DJANGO_CONN_MAX_AGE", default=60)
+# Detect connections dropped by the DB or a proxy (idle timeout, restart) and reopen them
+# transparently. Requires Django 4.1+.
+# https://docs.djangoproject.com/en/dev/ref/settings/#conn-health-checks
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = env.bool("DJANGO_CONN_HEALTH_CHECKS", default=True)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/dev/ref/settings/#default-auto-field
