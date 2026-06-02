@@ -350,6 +350,16 @@ class TestGetOrCreateRoom:
         legacy.refresh_from_db()
         assert legacy.pretalx_id == 4993
 
+    def test_id_match_takes_precedence_over_name(self) -> None:
+        """An id match wins over a name match, so a name-fallback stamp can't collide."""
+        event = Event.objects.create(slug="e", name="E", year=2099)
+        by_id = Room.objects.create(event=event, name="Other", pretalx_id=4993)
+        # A different room shares the incoming name but the id points elsewhere.
+        Room.objects.create(event=event, name="Legacy", pretalx_id=None)
+        result = get_or_create_room("Other", _ctx(event_obj=event), pretalx_id=4993)
+        assert result is not None
+        assert result.pk == by_id.pk
+
     def test_detect_only_does_not_rename_or_stamp(self) -> None:
         """Detect-only resolves the room but never renames or stamps it."""
         event = Event.objects.create(slug="e", name="E", year=2099)

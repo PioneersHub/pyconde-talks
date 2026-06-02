@@ -257,6 +257,8 @@ def _resolve_room(
         if existing.name != room_name:
             existing.name = room_name
             update_fields.append("name")
+        # Collision-free: we only reach a name match (existing.pretalx_id is None) after
+        # resolve_for_event's (event, pretalx_id) lookup missed, so no other room holds it.
         if pretalx_id is not None and existing.pretalx_id is None:
             existing.pretalx_id = pretalx_id
             update_fields.append("pretalx_id")

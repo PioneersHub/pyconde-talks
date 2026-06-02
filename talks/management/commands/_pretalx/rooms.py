@@ -87,9 +87,11 @@ def _reconcile_existing_room(
     Bring an existing room in line with Pretalx: rename in place and/or stamp the id.
 
     Write-path only (callers must guard on ``not (dry_run or detect_only)``). Renaming
-    keeps the same row so streamings/talks/config stay attached. The id is stamped only
-    when the row has none yet, so a name collision between two distinct Pretalx rooms
-    never overwrites an existing id (it just isn't stamped, and is logged below).
+    keeps the same row so streamings/talks/config stay attached.
+
+    Stamping the id is collision-free without an extra check: we only reach the stamp
+    branch when ``resolve_for_event`` matched by name, which only happens after its
+    ``(event, pretalx_id)`` lookup missed - i.e. no other room in this event holds the id.
     """
     update_fields: list[str] = []
     if room.name != name:
