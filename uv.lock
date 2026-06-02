@@ -1575,6 +1575,7 @@ dependencies = [
     { name = "pillow" },
     { name = "pilmoji" },
     { name = "pytanis" },
+    { name = "sentry-sdk", extra = ["django"] },
     { name = "structlog" },
     { name = "tenacity" },
 ]
@@ -1630,6 +1631,7 @@ requires-dist = [
     { name = "pillow", specifier = ">=12.2.0" },
     { name = "pilmoji", specifier = ">=2.0.5" },
     { name = "pytanis", git = "https://github.com/jbsilva/pytanis" },
+    { name = "sentry-sdk", extras = ["django"], specifier = ">=2.61.1" },
     { name = "structlog", specifier = ">=25.5.0" },
     { name = "tenacity", specifier = ">=9.1.4" },
 ]
@@ -2022,6 +2024,24 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ba/de/bbdd93fe456d4011500784657c5e4a31e3f4fcbb276255d4db1213aed78c/sarif_om-1.0.4.tar.gz", hash = "sha256:cd5f416b3083e00d402a92e449a7ff67af46f11241073eea0461802a3b5aef98", size = 28847, upload-time = "2019-10-05T20:11:23.338Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/82/7c/1d3d0467565aa8b3e77ab8712042a09dd1158056826f45783f3d2b34adf1/sarif_om-1.0.4-py3-none-any.whl", hash = "sha256:539ef47a662329b1c8502388ad92457425e95dc0aaaf995fe46f4984c4771911", size = 30193, upload-time = "2019-10-05T20:11:21.577Z" },
+]
+
+[[package]]
+name = "sentry-sdk"
+version = "2.61.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "certifi" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/63/3b/4bc6b348bbd331daa14d4babe9f2b99bc854f4da41560eefb9488d78481d/sentry_sdk-2.61.1.tar.gz", hash = "sha256:9c6adccb3feefa9ba032c8d295ca477575c2f11896046a2b0ad686c47c4af555", size = 459429, upload-time = "2026-06-01T07:24:18.875Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/df/54/c9218db183846e08efaf68534889ef42e499dde432778881104a42f7071b/sentry_sdk-2.61.1-py3-none-any.whl", hash = "sha256:fa36eaf4b8ad708f718500d4bdcc1532637526a22beb874d88cbc0a46458b5ae", size = 483735, upload-time = "2026-06-01T07:24:17.027Z" },
+]
+
+[package.optional-dependencies]
+django = [
+    { name = "django" },
 ]
 
 [[package]]

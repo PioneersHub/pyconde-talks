@@ -1,11 +1,15 @@
 """Django settings for event_talks project."""
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import django_stubs_ext
 import environ
+import sentry_sdk
 import structlog
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration
 
 
 # Monkeypatch Django classes to support generic type parameters at runtime
@@ -638,3 +642,30 @@ TALK_CARD_FONT_NAME = env("TALK_CARD_FONT_NAME", default="Noto Sans")
 SHOW_UPCOMING_TALKS_LINKS = env.bool("SHOW_UPCOMING_TALKS_LINKS", default=False)
 PICKLE_PRETALX_TALKS = env.bool("PICKLE_PRETALX_TALKS", default=False)
 IMPORT_TALKS_WITHOUT_SPEAKERS = env.bool("IMPORT_TALKS_WITHOUT_SPEAKERS", default=True)
+
+
+# --------------------------------------------------------------------------------------------------
+# Sentry
+# Only initialized when SENTRY_DSN is set, so dev/test environments stay quiet.
+# https://docs.sentry.io/platforms/python/integrations/django/
+# --------------------------------------------------------------------------------------------------
+SENTRY_DSN = env("SENTRY_DSN", default="")
+SENTRY_ENVIRONMENT = env("SENTRY_ENVIRONMENT", default="production" if not DEBUG else "development")
+SENTRY_TRACES_SAMPLE_RATE = env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.0)
+SENTRY_SEND_DEFAULT_PII = env.bool("SENTRY_SEND_DEFAULT_PII", default=False)
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=SENTRY_ENVIRONMENT,
+        # Errors are always captured; raise this to enable performance tracing.
+        traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+        integrations=[
+            DjangoIntegration(),
+            # Capture warnings+ as breadcrumbs; errors+ are sent as events.
+            LoggingIntegration(level=None, event_level=logging.ERROR),
+        ],
+        # Never include email/user identifiers unless explicitly opted in - matches the
+        # existing LOG_EMAIL_HASH policy elsewhere in the project.
+        send_default_pii=SENTRY_SEND_DEFAULT_PII,
+    )
