@@ -288,7 +288,7 @@ def delete_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """Allow a user to delete their own question."""
     question = _get_accessible_question(request.user, question_id)
     if question.user != request.user and not is_moderator(request.user):
-        return HttpResponse(status=403)
+        raise PermissionDenied
     talk = question.talk
     question.delete()
     messages.success(request, _("Your question has been deleted."))
