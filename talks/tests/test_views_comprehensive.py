@@ -16,6 +16,7 @@ from model_bakery import baker
 from events.models import Event
 from talks.models import Rating, Room, Speaker, Talk
 from users.models import CustomUser
+from utils.test_perf import assert_no_n_plus_one
 
 
 if TYPE_CHECKING:
@@ -500,6 +501,28 @@ class TestUpcomingTalks:
         assert "My Talk" in content
         assert "Hidden Talk" not in content
 
+    def test_upcoming_talks_no_n_plus_one(self, client: Client, user: CustomUser) -> None:
+        """Eight upcoming talks must not trigger a query per row in the template."""
+        event = baker.make(Event, is_active=True)
+        user.events.add(event)
+        room = baker.make(Room)
+        future = timezone.now() + timedelta(hours=2)
+        for i in range(8):
+            baker.make(
+                Talk,
+                title=f"Future Talk {i}",
+                start_time=future + timedelta(minutes=30 * i),
+                duration=timedelta(minutes=30),
+                event=event,
+                room=room,
+                video_link="",
+            )
+
+        client.force_login(user)
+        with assert_no_n_plus_one():
+            response = client.get(reverse("upcoming_talks"))
+        assert response.status_code == HTTPStatus.OK
+
 
 @pytest.mark.django_db
 class TestTalkRedirectView:
@@ -641,6 +664,31 @@ class TestDashboardStatsRecorded:
         # One recorded out of two talks.
         content = response.content.decode()
         assert "1" in content
+
+    def test_dashboard_stats_no_n_plus_one(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """Dashboard stats must not fan out to one Streaming query per Talk."""
+        event = baker.make(Event, is_active=True)
+        user.events.add(event)
+        room = baker.make(Room)
+        now = timezone.now()
+        for i in range(10):
+            baker.make(
+                Talk,
+                event=event,
+                room=room,
+                start_time=now + timedelta(hours=i),
+                duration=timedelta(minutes=30),
+                video_link="",
+            )
+
+        client.force_login(user)
+        with assert_no_n_plus_one():
+            response = client.get(reverse("dashboard_stats"))
+        assert response.status_code == HTTPStatus.OK
 
 
 @pytest.mark.django_db

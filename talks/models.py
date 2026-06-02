@@ -624,8 +624,12 @@ class Talk(models.Model):
 
         Cached after first access. Callers should use prefetch_related("speakers") on the queryset
         to avoid N+1 queries in list views.
+
+        ``self.speakers.all()`` reuses the ``prefetch_related`` cache when present, but a
+        ``.values_list("name")`` chained on it would issue a fresh query that ignores the
+        cache, so iterate the prefetched objects directly.
         """
-        speakers_list: list[str] = list(self.speakers.all().values_list("name", flat=True))
+        speakers_list: list[str] = [s.name for s in self.speakers.all()]
 
         match speakers_list:
             case [single_name]:

@@ -13,6 +13,7 @@ from events.models import Event
 from talks.models import Room, SavedTalk, Talk
 from talks.views_schedule import _build_grid_slices
 from users.models import CustomUser
+from utils.test_perf import assert_no_n_plus_one
 
 
 # ---------------------------------------------------------------------------
@@ -390,6 +391,30 @@ class TestScheduleView:
         """Garbage ``?event=`` values should be ignored rather than crashing."""
         client.force_login(user)
         response = client.get(reverse("schedule"), {"event": "not-a-number"})
+        assert response.status_code == HTTPStatus.OK
+
+    def test_schedule_no_n_plus_one(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        rooms: list[Room],
+    ) -> None:
+        """Rendering a day with many talks must not fan out to per-row queries."""
+        now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)
+        # Two rooms x five talks each = 10 schedule items, plenty to expose an N+1.
+        for room in rooms:
+            for i in range(5):
+                baker.make(
+                    Talk,
+                    room=room,
+                    start_time=now + timedelta(minutes=30 * i),
+                    duration=timedelta(minutes=30),
+                    video_link="",
+                )
+
+        client.force_login(user)
+        with assert_no_n_plus_one():
+            response = client.get(reverse("schedule"))
         assert response.status_code == HTTPStatus.OK
 
     def test_event_param_cannot_bypass_user_event_scope(
