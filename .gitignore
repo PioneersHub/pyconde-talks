@@ -45,6 +45,9 @@ logs/*
 staticfiles/
 static/css/tailwind.min.css
 
+# Fonts downloaded at setup time (see scripts/dev-setup.sh)
+assets/fonts/
+
 # Test coverage
 .coverage
 lcov.info
