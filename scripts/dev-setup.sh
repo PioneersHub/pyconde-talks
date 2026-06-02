@@ -460,8 +460,19 @@ start_services() {
     # Start Mailpit if not skipped
     if [[ "$SKIP_STEPS" != *"mailpit"* ]]; then
         log "Starting Mailpit..."
-        "$VENV_MAILPIT" &
+        # Mailpit's default SMTP port (1025) collides with apps like Proton Mail Bridge, which
+        # holds 127.0.0.1:1025 (IPv4) and never speaks plaintext SMTP, so Django's login-code
+        # emails hang until they time out. Bind a dedicated IPv4 SMTP port and point Django at
+        # it. Override MAILPIT_SMTP_PORT / MAILPIT_UI_PORT in the environment if these are taken.
+        MAILPIT_SMTP_PORT="${MAILPIT_SMTP_PORT:-1026}"
+        MAILPIT_UI_PORT="${MAILPIT_UI_PORT:-8025}"
+        "$VENV_MAILPIT" --smtp "127.0.0.1:${MAILPIT_SMTP_PORT}" --listen "0.0.0.0:${MAILPIT_UI_PORT}" &
         MAILPIT_PID=$!
+
+        # Point Django at this Mailpit. OS env wins over django-vars.env, so the committed
+        # config (where EMAIL_PORT=1025 is correct for production) is left untouched.
+        export EMAIL_HOST="${EMAIL_HOST:-127.0.0.1}"
+        export EMAIL_PORT="${EMAIL_PORT:-$MAILPIT_SMTP_PORT}"
 
         # Clean up mailpit when the script exits
         trap 'kill $MAILPIT_PID 2>/dev/null' EXIT
