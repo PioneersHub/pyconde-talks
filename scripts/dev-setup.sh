@@ -288,6 +288,22 @@ initialize_django() {
         log "Creating test users..."
         "$VENV_PYTHON" manage.py createuser --email=user1@example.com || warn "User1 creation failed"
         "$VENV_PYTHON" manage.py createuser --email=user2@example.com || warn "User2 creation failed"
+
+        log "Creating staff moderator user (mod@example.com)..."
+        run_django_shell <<'PYTHON' || warn "Staff moderator creation failed"
+from users.models import CustomUser
+
+email = 'mod@example.com'
+if not CustomUser.objects.filter(email=email).exists():
+    CustomUser.objects.create_user(email=email, is_staff=True, is_active=True)
+    print(f'Created staff moderator: {email}')
+else:
+    user = CustomUser.objects.get(email=email)
+    if not user.is_staff:
+        user.is_staff = True
+        user.save(update_fields=['is_staff'])
+    print(f'Staff moderator already exists: {email}')
+PYTHON
     fi
 
     # Download Noto font
@@ -426,7 +442,7 @@ initialize_django() {
             if not events:
                 raise SystemExit('No active events available to assign test users')
 
-            for email in ('user1@example.com', 'user2@example.com'):
+            for email in ('user1@example.com', 'user2@example.com', 'mod@example.com'):
                 user = CustomUser.objects.filter(email=email).first()
                 if user is None:
                     print(f'Skipping missing user {email}')
