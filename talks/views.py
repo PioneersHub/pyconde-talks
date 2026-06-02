@@ -21,7 +21,7 @@ from django.views.generic import DetailView, ListView
 from events.models import Event
 from events.session import resolve_default_event
 
-from .models import Rating, Room, SavedTalk, Talk
+from .models import Rating, Room, SavedTalk, Talk, prefetch_streamings
 from .utils import get_talk_by_id_or_pretalx, is_htmx_request
 from .views_qa import is_moderator
 
@@ -298,6 +298,12 @@ class TalkListView(ListView[Talk]):
         )
         context["is_htmx_request"] = is_htmx_request(self.request)
 
+        # Cache streamings for the rows actually rendered to dodge per-row queries
+        # from ``talk.get_video_link`` / ``talk.get_transcription_url`` in the template.
+        page_obj = context.get("page_obj")
+        rendered_talks = list(page_obj.object_list if page_obj else context.get("talks", []))
+        prefetch_streamings(rendered_talks)
+
         return context
 
     def _resolve_selected_event(self) -> Event | None:
@@ -324,11 +330,14 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
     event_ids = list(events.values_list("id", flat=True))
 
     # Fetch only the fields needed for get_video_link() - scoped to user events
-    talks_for_video = (
+    talks_for_video = list(
         Talk.objects.filter(event_id__in=event_ids)
         .select_related("room")
-        .only("id", "video_link", "start_time", "duration", "room", "room__id", "event")
+        .only("id", "video_link", "start_time", "duration", "room", "room__id", "event"),
     )
+    # Batch-prefetch streamings to avoid an N+1 in the get_video_link loop below
+    # (each unrecorded talk would otherwise re-query Streaming).
+    prefetch_streamings(talks_for_video)
     recorded_by_event: dict[int | None, int] = {}
     for talk in talks_for_video:
         if talk.get_video_link():
@@ -389,10 +398,15 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
         .filter(start_time__gt=current_time)
         .accessible_to(user)
     )
-    talks = talks_qs.annotate(
-        average_rating=Avg("ratings__score"),
-        rating_count=Count("ratings"),
-    ).order_by("start_time")[:8]
+    talks = list(
+        talks_qs.annotate(
+            average_rating=Avg("ratings__score"),
+            rating_count=Count("ratings"),
+        ).order_by("start_time")[:8],
+    )
+    # Avoid an N+1 when the template calls get_transcription_url / get_video_link
+    # (each falls back to ``get_streaming`` for talks without a direct field).
+    prefetch_streamings(talks)
     saved_talk_ids: set[int] = set()
     if request.user.is_authenticated:
         saved_talk_ids = SavedTalk.talk_ids_for(cast("CustomUser", request.user))

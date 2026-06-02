@@ -8,7 +8,7 @@ metadata, scheduling information, and video links.
 from datetime import UTC, datetime, timedelta
 from enum import IntEnum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self, cast
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -503,25 +503,35 @@ class Talk(models.Model):
             return add_query_param(self.video_link, "enablejsapi", "1")
         return self.video_link
 
+    # Allow missing the first minute of the talk
+    STREAMING_START_MARGIN: ClassVar[timedelta] = timedelta(minutes=1)
+
     def get_streaming(self) -> Streaming | None:
         """
         Return the streaming associated with this talk.
 
-        Returns the streaming object if it exists, otherwise returns None.
+        Result is cached per-instance so repeated calls (admin display, video link, transcription,
+        video start time) on the same Talk hit the DB only once.
+        For list views, populate the cache in bulk with ``prefetch_streamings`` to avoid an N+1
+        across many talks.
         """
+        if "_cached_streaming" in self.__dict__:
+            return cast("Streaming | None", self.__dict__["_cached_streaming"])
+
         if not self.room or not self.start_time:
+            self.__dict__["_cached_streaming"] = None
             return None
 
-        # Allow missing the first minute of the talk
-        margin = timedelta(minutes=1)
         # At least half of the talk must be covered by the streaming
         min_duration = self.duration / 2
 
-        return Streaming.objects.filter(
+        result = Streaming.objects.filter(
             room=self.room,
-            start_time__lte=self.start_time + margin,
+            start_time__lte=self.start_time + self.STREAMING_START_MARGIN,
             end_time__gte=self.start_time + min_duration,
         ).first()
+        self.__dict__["_cached_streaming"] = result
+        return result
 
     def get_video_start_time(self) -> int:
         """
@@ -728,6 +738,52 @@ class Talk(models.Model):
         """
         stats = self.ratings.aggregate(average=Avg("score"), total=Count("id"))
         return RatingStats(average=stats["average"], total=stats["total"])
+
+
+def _match_streaming(talk: Talk, candidates: list[Streaming]) -> Streaming | None:
+    """Return the first streaming in ``candidates`` that covers ``talk``'s slot."""
+    if not talk.start_time:
+        return None
+    window_start = talk.start_time + Talk.STREAMING_START_MARGIN
+    min_end = talk.start_time + (talk.duration / 2)
+    for s in candidates:
+        if s.start_time <= window_start and s.end_time >= min_end:
+            return s
+    return None
+
+
+def prefetch_streamings(talks: list[Talk]) -> None:
+    """
+    Batch-load streamings for the given talks and cache them per-instance.
+
+    ``Talk.get_streaming`` queries ``Streaming`` once per call; in list views this turns into an N+1
+    (each ``get_video_link`` / ``get_transcription_url`` / ``has_active_streaming`` call on every
+    row reaches the database). This helper does a single ``IN`` query for every room involved,
+    matches each talk to its covering streaming in Python, and stores the result on the talk so
+    subsequent calls to ``get_streaming`` are free.
+
+    Safe to call with an empty list; idempotent.
+    """
+    if not talks:
+        return
+
+    room_ids = {t.room_id for t in talks if t.room_id is not None}  # type: ignore[attr-defined]
+    streamings_by_room: dict[int, list[Streaming]] = {}
+    if room_ids:
+        for s in Streaming.objects.filter(room_id__in=room_ids).only(
+            "id",
+            "room_id",
+            "start_time",
+            "end_time",
+            "video_link",
+            "transcription_url",
+        ):
+            streamings_by_room.setdefault(s.room_id, []).append(s)  # type: ignore[attr-defined]
+
+    for t in talks:
+        rid: int | None = t.room_id  # type: ignore[attr-defined]
+        candidates = streamings_by_room.get(rid, []) if rid is not None else []
+        t.__dict__["_cached_streaming"] = _match_streaming(t, candidates)
 
 
 # Rating + SavedTalk models live in talks.models_rating. Import them here so that importing

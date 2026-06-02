@@ -9,12 +9,14 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from django.core.exceptions import ValidationError
+from django.db import connection
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from model_bakery import baker
 
 from events.models import Event
-from talks.models import Room, Talk
+from talks.models import Room, Streaming, Talk, prefetch_streamings
 from talks.types import VideoProvider
 from users.models import CustomUser
 
@@ -234,3 +236,111 @@ class TestAccessibleTo:
         user = baker.make(CustomUser, email="newcomer@example.com")
 
         assert list(Talk.objects.accessible_to(user)) == [orphan]
+
+
+@pytest.mark.django_db
+class TestPrefetchStreamings:
+    """Tests for the ``prefetch_streamings`` helper that batch-loads streamings."""
+
+    def _make_talks(self, count: int, room: Room) -> list[Talk]:
+        now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)
+        return [
+            baker.make(
+                Talk,
+                room=room,
+                start_time=now + timedelta(minutes=30 * i),
+                duration=timedelta(minutes=30),
+                video_link="",
+            )
+            for i in range(count)
+        ]
+
+    def test_empty_list_is_noop(self) -> None:
+        """Passing an empty list never touches the database."""
+        with CaptureQueriesContext(connection) as ctx:
+            prefetch_streamings([])
+        assert len(ctx.captured_queries) == 0
+
+    def test_matches_streaming_in_window(self) -> None:
+        """A streaming covering the talk slot is cached on the talk."""
+        room = baker.make(Room, name="Hall")
+        now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)
+        talk = baker.make(
+            Talk,
+            room=room,
+            start_time=now,
+            duration=timedelta(minutes=30),
+            video_link="",
+        )
+        streaming = baker.make(
+            Streaming,
+            room=room,
+            start_time=now - timedelta(minutes=5),
+            end_time=now + timedelta(minutes=60),
+        )
+
+        # Re-fetch so no per-instance cache lingers from baker creation.
+        talk = Talk.objects.get(pk=talk.pk)
+        prefetch_streamings([talk])
+
+        with CaptureQueriesContext(connection) as ctx:
+            assert talk.get_streaming() == streaming
+        assert len(ctx.captured_queries) == 0
+
+    def test_no_match_caches_none(self) -> None:
+        """Talks with no covering streaming get ``None`` cached, still skipping queries."""
+        room = baker.make(Room, name="Hall")
+        now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)
+        talk = baker.make(
+            Talk,
+            room=room,
+            start_time=now,
+            duration=timedelta(minutes=30),
+            video_link="",
+        )
+        # Streaming that ends before the talk starts - must not match.
+        baker.make(
+            Streaming,
+            room=room,
+            start_time=now - timedelta(hours=2),
+            end_time=now - timedelta(hours=1),
+        )
+
+        talk = Talk.objects.get(pk=talk.pk)
+        prefetch_streamings([talk])
+
+        with CaptureQueriesContext(connection) as ctx:
+            assert talk.get_streaming() is None
+        assert len(ctx.captured_queries) == 0
+
+    def test_avoids_n_plus_one(self) -> None:
+        """A batch prefetch issues one streaming query regardless of talk count."""
+        room = baker.make(Room, name="Hall")
+        talks = self._make_talks(5, room)
+
+        # Re-fetch all talks to drop any cached attributes from baker.
+        talks = list(Talk.objects.filter(pk__in=[t.pk for t in talks]).select_related("room"))
+
+        with CaptureQueriesContext(connection) as ctx:
+            prefetch_streamings(talks)
+            for t in talks:
+                t.get_video_link()  # would normally trigger one streaming query per talk
+        # One streaming SELECT, nothing else.
+        assert len(ctx.captured_queries) == 1
+
+    def test_room_without_streamings_still_caches_none(self) -> None:
+        """Talks in rooms without any streaming are cached as ``None`` (no later query)."""
+        room = baker.make(Room, name="Quiet Room")
+        now = timezone.now()
+        talk = baker.make(
+            Talk,
+            room=room,
+            start_time=now,
+            duration=timedelta(minutes=30),
+            video_link="",
+        )
+        talk = Talk.objects.get(pk=talk.pk)
+        prefetch_streamings([talk])
+        with CaptureQueriesContext(connection) as ctx:
+            assert talk.get_streaming() is None
+        assert len(ctx.captured_queries) == 0

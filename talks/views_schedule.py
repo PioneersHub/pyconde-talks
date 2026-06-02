@@ -10,7 +10,7 @@ from django.views.decorators.http import require_safe
 
 from events.session import resolve_default_event
 
-from .models import FAR_FUTURE, Room, SavedTalk, Talk
+from .models import FAR_FUTURE, Room, SavedTalk, Talk, prefetch_streamings
 
 
 if TYPE_CHECKING:
@@ -110,6 +110,9 @@ def _build_schedule_data(
     if event_id:
         talks_qs = talks_qs.filter(event_id=event_id)
     talks = list(talks_qs)
+    # Cache streamings so per-talk get_video_link / get_transcription_url / has_active_streaming
+    # in the template do not fan out to one Streaming query per row.
+    prefetch_streamings(talks)
 
     # Unique rooms ordered by name
     room_ids_seen: set[int] = set()
