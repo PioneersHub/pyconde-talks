@@ -80,6 +80,11 @@ always sets it, and `generate_fake_talks` uses a synthetic `fake-event` when no 
 given rather than producing event-less rooms. `PROTECT` blocks deleting an event that still has
 rooms.
 
+`Talk.event` is also **required**, and a talk's room must belong to the talk's own event:
+`Talk.clean()` rejects a cross-event room, and the admin scopes the room dropdown to the talk's
+event on the change form. The importer and `generate_fake_talks` always pair a talk and its room
+within one event by construction.
+
 ### Migrating an existing database
 
 The change ships as four migrations that must run in order (the column is nullable only during
@@ -91,8 +96,10 @@ the backfill window):
    migration loudly rather than guessing - rooms are expected to be per-event).
 3. `0026_room_event_scoped_constraints` - drops the global unique on `name` and adds the
    per-event `(event, name)` and partial `(event, pretalx_id)` constraints.
-4. `0027_room_event_required` - tightens `event` to NOT NULL once the backfill has populated
+4. `0027_room_event_required` - tightens `Room.event` to NOT NULL once the backfill has populated
    every row.
+5. `0028_backfill_talk_event` - assigns each event-less talk its room's event (or the newest
+   event when it has no room), then `0029_talk_event_required` tightens `Talk.event` to NOT NULL.
 
 `pretalx_id` for existing rooms is **not** backfilled by a migration (there is nothing local to
 map from); it is stamped lazily on the next real sync via the `(event, name)` fallback. On a
