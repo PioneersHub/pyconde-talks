@@ -305,11 +305,11 @@ class ProcessingMixin(LoggingMixin):
         talk and speakers are already in sync with Pretalx, and ``"updated"``
         otherwise.
 
-        Image regeneration is triggered when the talk data or speaker set changed,
-        or when a still-attached speaker's name/avatar changed earlier in this run.
-        ``--skip-images`` disables regen entirely. The return status reflects the
-        data diff only - a speaker-driven re-render does not promote ``"unchanged"``
-        to ``"updated"``.
+        Image regeneration is triggered when *any* of these is true (and
+        ``--skip-images`` is not set): the talk data or speaker set changed,
+        ``--force-images`` was passed, or a still-attached speaker's name/avatar
+        changed earlier in this run. The return status reflects the data diff
+        only - force-regen does not promote ``"unchanged"`` to ``"updated"``.
         """
         if ctx.no_update:
             ctx.log(
@@ -346,12 +346,12 @@ class ProcessingMixin(LoggingMixin):
         Decide whether *talk*'s social-card image needs to be (re)built.
 
         ``--skip-images`` always wins. Otherwise regenerate when the talk data
-        changed or any of the talk's attached speakers had a name/avatar change
-        captured in :attr:`_speakers_with_visual_change`.
+        changed, ``--force-images`` is set, or any of the talk's attached speakers
+        had a name/avatar change captured in :attr:`_speakers_with_visual_change`.
         """
         if ctx.skip_images:
             return False
-        if data_changed:
+        if data_changed or ctx.force_images:
             return True
         if self._speakers_with_visual_change:
             talk_speaker_ids = set(talk.speakers.values_list("pretalx_id", flat=True))

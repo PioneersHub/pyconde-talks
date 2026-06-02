@@ -91,6 +91,12 @@ class Command(ProcessingMixin, FetchMixin, BaseCommand):
             help="Skip generating/updating talk social images",
         )
         parser.add_argument(
+            "--force-images",
+            action="store_true",
+            help="Regenerate talk social images for every existing talk, even when nothing changed."
+            " Useful after a social-card template update. Ignored when --skip-images is set.",
+        )
+        parser.add_argument(
             "--no-avatars",
             action="store_true",
             help="Skip downloading and pasting speaker avatars on social cards",

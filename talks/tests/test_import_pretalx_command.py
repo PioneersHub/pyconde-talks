@@ -902,3 +902,70 @@ class TestProcessSingleSubmission:
         command._process_single_submission(mock_submission, ctx)
 
         command._image_generator.generate.assert_called_once_with(existing_talk, ctx)
+
+    @patch("talks.management.commands._pretalx.mixins.update_talk")
+    def test_force_images_regenerates_unchanged_talk(
+        self,
+        mock_update_talk: Mock,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """--force-images regenerates the image even when nothing changed."""
+        mock_update_talk.return_value = False
+        mock_submission.state = State.confirmed
+
+        room = Room.objects.create(name="Main Hall")
+        Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
+
+        pretalx_url = "https://pretalx.com/pyconde2099"
+        existing_talk = baker.make(
+            Talk,
+            title="Old Title",
+            room=room,
+            pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
+        )
+        command._image_generator = Mock()
+
+        ctx = _ctx(
+            log_fn=command._log,
+            skip_images=False,
+            force_images=True,
+            pretalx_event_url=pretalx_url,
+        )
+
+        result = command._process_single_submission(mock_submission, ctx)
+
+        # Status still reflects the data diff: nothing changed.
+        assert result == "unchanged"
+        command._image_generator.generate.assert_called_once_with(existing_talk, ctx)
+
+    @patch("talks.management.commands._pretalx.mixins.update_talk")
+    def test_skip_images_overrides_force_images(
+        self,
+        mock_update_talk: Mock,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """--skip-images wins over --force-images when both are set."""
+        mock_update_talk.return_value = False
+        mock_submission.state = State.confirmed
+        Room.objects.create(name="Main Hall")
+        Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
+
+        pretalx_url = "https://pretalx.com/pyconde2099"
+        baker.make(
+            Talk,
+            pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
+        )
+        command._image_generator = Mock()
+
+        ctx = _ctx(
+            log_fn=command._log,
+            skip_images=True,
+            force_images=True,
+            pretalx_event_url=pretalx_url,
+        )
+
+        command._process_single_submission(mock_submission, ctx)
+
+        command._image_generator.generate.assert_not_called()
