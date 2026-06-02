@@ -16,7 +16,7 @@ from allauth.account.adapter import (
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.db import DatabaseError, OperationalError
+from django.db import DatabaseError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from events.models import Event
@@ -153,7 +153,7 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
             user = UserModel.objects.get(email=email)
         except UserModel.DoesNotExist:
             pass
-        except DatabaseError, OperationalError:  # pragma: no cover
+        except DatabaseError:  # pragma: no cover
             logger.exception("Database error looking up user", email=email_hash)
             return False
 
@@ -201,7 +201,7 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
                 return True
         except UserModel.DoesNotExist:
             pass
-        except DatabaseError, OperationalError:  # pragma: no cover
+        except DatabaseError:  # pragma: no cover
             logger.exception("Database error checking privileged status", email=email_hash)
         return False
 
