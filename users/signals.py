@@ -5,7 +5,6 @@ This module listens to Django's auth signals and emits structured JSON logs to a
 configured via the "auth" logger.
 """
 
-import hashlib
 from typing import Any
 
 import structlog
@@ -17,6 +16,8 @@ from django.contrib.auth.signals import (
 )
 from django.dispatch import receiver
 
+from utils.email_utils import hash_email
+
 
 logger = structlog.get_logger("auth")
 
@@ -26,7 +27,7 @@ def _hash_or_plain(value: str | None) -> str | None:
     if not value:
         return value
     if getattr(settings, "LOG_EMAIL_HASH", True):
-        return hashlib.sha256(value.encode("utf-8")).hexdigest()
+        return hash_email(value)
     return value
 
 
