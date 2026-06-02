@@ -58,9 +58,10 @@ class Room(models.Model):
         help_text=_("Event this room belongs to"),
     )
 
+    # Unique per event (see Meta.constraints), not globally: the same room name can exist
+    # under different events.
     name = models.CharField(
         max_length=MAX_ROOM_NAME_LENGTH,
-        unique=True,
         help_text=_("Name of the room"),
     )
 
@@ -98,7 +99,22 @@ class Room(models.Model):
 
         verbose_name = _("Room")
         verbose_name_plural = _("Rooms")
-        ordering: ClassVar[list[str]] = ["name"]
+        # Group by event then name so duplicate names across events don't interleave.
+        ordering: ClassVar[list[str]] = ["event", "name"]
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            # Room names are unique within an event, not globally.
+            models.UniqueConstraint(
+                fields=["event", "name"],
+                name="uniq_room_event_name",
+            ),
+            # At most one room per Pretalx id per event. Partial so legacy/manual rooms
+            # (pretalx_id IS NULL) don't collide with each other.
+            models.UniqueConstraint(
+                fields=["event", "pretalx_id"],
+                condition=Q(pretalx_id__isnull=False),
+                name="uniq_room_event_pretalx_id",
+            ),
+        ]
 
     def __str__(self) -> str:
         """Return the room name."""

@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from django.core.exceptions import ValidationError
-from django.db import connection
+from django.db import IntegrityError, connection, transaction
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -58,6 +58,55 @@ class TestRoomResolveForEvent:
         event = Event.objects.create(slug="e", name="E", year=2099)
         assert Room.resolve_for_event(event=event, pretalx_id=9, name="Nope") is None
         assert Room.objects.count() == 0
+
+
+@pytest.mark.django_db
+class TestRoomEventScopedConstraints:
+    """Room names/pretalx_ids are unique per event, not globally."""
+
+    def test_same_name_allowed_in_different_events(self) -> None:
+        """The same room name can exist under two different events."""
+        e1 = Event.objects.create(slug="e1", name="E1", year=2025)
+        e2 = Event.objects.create(slug="e2", name="E2", year=2026)
+        Room.objects.create(event=e1, name="Main Hall")
+        Room.objects.create(event=e2, name="Main Hall")
+        events = set(Room.objects.filter(name="Main Hall").values_list("event_id", flat=True))
+        assert events == {e1.id, e2.id}
+
+    def test_duplicate_name_within_event_rejected(self) -> None:
+        """Two rooms with the same name in one event violate the unique constraint."""
+        event = Event.objects.create(slug="e", name="E", year=2025)
+        Room.objects.create(event=event, name="Main Hall")
+        with pytest.raises(IntegrityError), transaction.atomic():
+            Room.objects.create(event=event, name="Main Hall")
+
+    def test_duplicate_pretalx_id_within_event_rejected(self) -> None:
+        """Two rooms sharing a non-null pretalx_id in one event are rejected."""
+        event = Event.objects.create(slug="e", name="E", year=2025)
+        Room.objects.create(event=event, name="A", pretalx_id=10)
+        with pytest.raises(IntegrityError), transaction.atomic():
+            Room.objects.create(event=event, name="B", pretalx_id=10)
+
+    def test_multiple_null_pretalx_id_allowed_in_event(self) -> None:
+        """The partial constraint lets several legacy rooms keep a NULL pretalx_id."""
+        event = Event.objects.create(slug="e", name="E", year=2025)
+        Room.objects.create(event=event, name="A", pretalx_id=None)
+        Room.objects.create(event=event, name="B", pretalx_id=None)
+        null_id_names = set(
+            Room.objects.filter(event=event, pretalx_id__isnull=True).values_list(
+                "name", flat=True
+            ),
+        )
+        assert null_id_names == {"A", "B"}
+
+    def test_same_pretalx_id_allowed_across_events(self) -> None:
+        """A Pretalx id is only unique within its event."""
+        e1 = Event.objects.create(slug="e1", name="E1", year=2025)
+        e2 = Event.objects.create(slug="e2", name="E2", year=2026)
+        Room.objects.create(event=e1, name="A", pretalx_id=10)
+        Room.objects.create(event=e2, name="A", pretalx_id=10)
+        events = set(Room.objects.filter(pretalx_id=10).values_list("event_id", flat=True))
+        assert events == {e1.id, e2.id}
 
 
 @pytest.mark.django_db
