@@ -1,0 +1,9 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls %}
+{% block object-tools-items %}
+  <li>
+    <a href="{% url 'admin:talks_pendingpretalxchange_check_now' %}"
+       class="historylink">{% translate "Check Pretalx now" %}</a>
+  </li>
+  {{ block.super }}
+{% endblock object-tools-items %}

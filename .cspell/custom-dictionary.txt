@@ -126,6 +126,7 @@ openpyxl
 organiser
 partialdef
 passwordless
+pendingpretalxchange
 pgdata
 phont
 pilmoji
