@@ -154,13 +154,11 @@ class TalkListView(ListView[Talk]):
         event_id = self.request.GET.get("event", "")
         if event_id == "all":
             return queryset
-        if event_id:
-            # Ignore garbage values (e.g. ``?event=abc``) so they fall through to the
-            # default-event branch instead of raising ``ValueError`` from ``filter``.
-            if event_id.isdigit():
-                queryset = queryset.filter(event_id=event_id)
-            return queryset
-        # No explicit selection: default to the resolved current event
+        if event_id.isdigit():
+            return queryset.filter(event_id=event_id)
+        # No usable selection: empty, or garbage like ``?event=abc``. Fall through to the
+        # resolved current event. The ``isdigit`` guard also avoids ``ValueError`` from
+        # ``filter(event_id=...)`` on non-numeric input.
         default_event = resolve_default_event(self.request)
         if default_event:
             queryset = queryset.filter(event=default_event)
@@ -307,13 +305,13 @@ class TalkListView(ListView[Talk]):
     def _resolve_selected_event(self) -> Event | None:
         """Return the currently filtered event, or the default event."""
         event_param = self.request.GET.get("event", "")
-        if event_param and event_param != "all":
-            if not event_param.isdigit():
-                return None
+        if event_param == "all":
+            return None
+        if event_param.isdigit():
             return Event.objects.filter(pk=event_param, is_active=True).first()
-        if not event_param:
-            return resolve_default_event(self.request)
-        return None
+        # Empty or garbage: mirror ``_apply_event_filter`` and fall back to the default
+        # event so the selected-event indicator matches the talks actually shown.
+        return resolve_default_event(self.request)
 
 
 @require_safe

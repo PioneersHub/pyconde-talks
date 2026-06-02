@@ -104,6 +104,26 @@ class TestTalkListEventFiltering:
         response = client.get(reverse("talk_list"), {"event": "not-a-number"})
         assert response.status_code == HTTPStatus.OK
 
+    def test_non_digit_event_param_falls_back_to_default(
+        self,
+        client: Client,
+        superuser: CustomUser,
+        event_a: Event,
+        event_b: Event,
+        settings: pytest.fixture,  # type: ignore[type-arg,valid-type]
+    ) -> None:
+        """A garbage ``?event=`` value falls back to the default event, not 'all events'."""
+        settings.DEFAULT_EVENT = event_a.slug
+        default_talk = baker.make(Talk, title="Default Event Talk", event=event_a)
+        other_talk = baker.make(Talk, title="Other Event Talk", event=event_b)
+        client.force_login(superuser)
+        response = client.get(reverse("talk_list"), {"event": "not-a-number"})
+        content = response.content.decode()
+        assert response.status_code == HTTPStatus.OK
+        assert default_talk.title in content
+        # Garbage must behave like "no selection" (default event), not unfiltered.
+        assert other_talk.title not in content
+
 
 @pytest.mark.django_db
 class TestTalkDetailEventFiltering:
