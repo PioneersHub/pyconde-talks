@@ -15,12 +15,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_PROJECT_ENVIRONMENT=/venv \
     PATH="/venv/bin:$PATH"
 
-# Install build dependencies
+# Install build dependencies. libpq is no longer needed: psycopg[binary] ships the
+# Postgres client library inside its wheel, so neither libpq-dev (build) nor libpq5
+# (runtime, removed below) needs to be installed by apt.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gcc \
     git \
-    libpq-dev \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -80,10 +81,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     MPLCONFIGDIR=/tmp/matplotlib
 
-# Install runtime dependencies only and create non-root user
+# Install runtime dependencies only and create non-root user.
+# (libpq5 dropped: psycopg[binary] ships its own libpq inside the wheel.)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    libpq5 \
     vim \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd -r django \

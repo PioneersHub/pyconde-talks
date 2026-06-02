@@ -62,15 +62,29 @@ USE_TZ = env.bool("USE_TZ", default=True)
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
 DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
-# Keep DB connections open between requests for the configured number of seconds so that
-# Postgres avoids the TCP + TLS + auth handshake on every request. Set to 0 in tests / dev
-# if you want strict per-request connection handling.
-# https://docs.djangoproject.com/en/dev/ref/settings/#conn-max-age
-DATABASES["default"]["CONN_MAX_AGE"] = env.int("DJANGO_CONN_MAX_AGE", default=60)
 # Detect connections dropped by the DB or a proxy (idle timeout, restart) and reopen them
 # transparently. Requires Django 4.1+.
 # https://docs.djangoproject.com/en/dev/ref/settings/#conn-health-checks
 DATABASES["default"]["CONN_HEALTH_CHECKS"] = env.bool("DJANGO_CONN_HEALTH_CHECKS", default=True)
+
+# Connection management. Two mutually exclusive strategies:
+#   1. ``DJANGO_DB_POOL=True`` (Postgres + psycopg3 only) - use Django's native connection pool
+#      so a per-worker pool of warm connections is reused across requests. Recommended for
+#      prod: zero per-request handshake cost, and pool size is bounded so a burst of requests
+#      can't exhaust the DB's connection cap.
+#   2. ``DJANGO_DB_POOL=False`` (default) - use ``CONN_MAX_AGE`` to keep a single connection
+#      open for up to N seconds per worker. Works on any backend including SQLite.
+# https://docs.djangoproject.com/en/dev/ref/settings/#std-setting-DATABASE-OPTIONS-postgresql
+_USE_DB_POOL = (
+    env.bool("DJANGO_DB_POOL", default=False)
+    and DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql"
+)
+if _USE_DB_POOL:
+    DATABASES["default"].setdefault("OPTIONS", {})
+    DATABASES["default"]["OPTIONS"]["pool"] = True
+else:
+    # https://docs.djangoproject.com/en/dev/ref/settings/#conn-max-age
+    DATABASES["default"]["CONN_MAX_AGE"] = env.int("DJANGO_CONN_MAX_AGE", default=60)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/dev/ref/settings/#default-auto-field
