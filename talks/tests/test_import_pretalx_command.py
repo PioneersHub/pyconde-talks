@@ -779,7 +779,8 @@ class TestProcessSingleSubmission:
         """Test that existing talks are updated and images are regenerated."""
         mock_submission.state = State.confirmed
 
-        room = Room.objects.create(name="Main Hall", event=baker.make(Event))
+        event = baker.make(Event)
+        room = Room.objects.create(name="Main Hall", event=event)
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
@@ -787,6 +788,7 @@ class TestProcessSingleSubmission:
             Talk,
             title="Old Title",
             room=room,
+            event=event,
             pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
         )
 
@@ -794,6 +796,7 @@ class TestProcessSingleSubmission:
             log_fn=command._log,
             skip_images=True,
             pretalx_event_url=pretalx_url,
+            event_obj=event,
         )
 
         result = command._process_single_submission(mock_submission, ctx)
@@ -816,7 +819,8 @@ class TestProcessSingleSubmission:
         """Test that image generation runs on update when skip_images is False."""
         mock_submission.state = State.confirmed
 
-        room = Room.objects.create(name="Main Hall", event=baker.make(Event))
+        event = baker.make(Event)
+        room = Room.objects.create(name="Main Hall", event=event)
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
@@ -824,6 +828,7 @@ class TestProcessSingleSubmission:
             Talk,
             title="Old Title",
             room=room,
+            event=event,
             pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
         )
 
@@ -833,6 +838,7 @@ class TestProcessSingleSubmission:
             log_fn=command._log,
             skip_images=False,
             pretalx_event_url=pretalx_url,
+            event_obj=event,
         )
 
         result = command._process_single_submission(mock_submission, ctx)
@@ -850,7 +856,8 @@ class TestProcessSingleSubmission:
         """Test that image generation is skipped on update when skip_images is True."""
         mock_submission.state = State.confirmed
 
-        room = Room.objects.create(name="Main Hall", event=baker.make(Event))
+        event = baker.make(Event)
+        room = Room.objects.create(name="Main Hall", event=event)
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
@@ -858,6 +865,7 @@ class TestProcessSingleSubmission:
             Talk,
             title="Old Title",
             room=room,
+            event=event,
             pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
         )
 
@@ -867,6 +875,7 @@ class TestProcessSingleSubmission:
             log_fn=command._log,
             skip_images=True,
             pretalx_event_url=pretalx_url,
+            event_obj=event,
         )
 
         result = command._process_single_submission(mock_submission, ctx)
@@ -885,7 +894,8 @@ class TestProcessSingleSubmission:
         mock_update_talk.return_value = False
         mock_submission.state = State.confirmed
 
-        room = Room.objects.create(name="Main Hall", event=baker.make(Event))
+        event = baker.make(Event)
+        room = Room.objects.create(name="Main Hall", event=event)
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
@@ -893,6 +903,7 @@ class TestProcessSingleSubmission:
             Talk,
             title="Old Title",
             room=room,
+            event=event,
             pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
         )
 
@@ -902,6 +913,7 @@ class TestProcessSingleSubmission:
             log_fn=command._log,
             skip_images=False,
             pretalx_event_url=pretalx_url,
+            event_obj=event,
         )
 
         result = command._process_single_submission(mock_submission, ctx)
@@ -919,12 +931,14 @@ class TestProcessSingleSubmission:
         """An avatar/name change on a still-attached speaker triggers image regen."""
         mock_update_talk.return_value = False
         mock_submission.state = State.confirmed
-        Room.objects.create(name="Main Hall", event=baker.make(Event))
+        event = baker.make(Event)
+        Room.objects.create(name="Main Hall", event=event)
         speaker = Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
         existing_talk = baker.make(
             Talk,
+            event=event,
             pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
         )
         existing_talk.speakers.add(speaker)
@@ -932,7 +946,12 @@ class TestProcessSingleSubmission:
         # Simulate what _process_submissions populates.
         command._speakers_with_visual_change = frozenset({"SPK001"})
 
-        ctx = _ctx(log_fn=command._log, skip_images=False, pretalx_event_url=pretalx_url)
+        ctx = _ctx(
+            log_fn=command._log,
+            skip_images=False,
+            pretalx_event_url=pretalx_url,
+            event_obj=event,
+        )
 
         command._process_single_submission(mock_submission, ctx)
 
@@ -949,7 +968,8 @@ class TestProcessSingleSubmission:
         mock_update_talk.return_value = False
         mock_submission.state = State.confirmed
 
-        room = Room.objects.create(name="Main Hall", event=baker.make(Event))
+        event = baker.make(Event)
+        room = Room.objects.create(name="Main Hall", event=event)
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
@@ -957,6 +977,7 @@ class TestProcessSingleSubmission:
             Talk,
             title="Old Title",
             room=room,
+            event=event,
             pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
         )
         command._image_generator = Mock()
@@ -966,6 +987,7 @@ class TestProcessSingleSubmission:
             skip_images=False,
             force_images=True,
             pretalx_event_url=pretalx_url,
+            event_obj=event,
         )
 
         result = command._process_single_submission(mock_submission, ctx)
@@ -984,12 +1006,14 @@ class TestProcessSingleSubmission:
         """--skip-images wins over --force-images when both are set."""
         mock_update_talk.return_value = False
         mock_submission.state = State.confirmed
-        Room.objects.create(name="Main Hall", event=baker.make(Event))
+        event = baker.make(Event)
+        Room.objects.create(name="Main Hall", event=event)
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
         baker.make(
             Talk,
+            event=event,
             pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
         )
         command._image_generator = Mock()
@@ -999,6 +1023,7 @@ class TestProcessSingleSubmission:
             skip_images=True,
             force_images=True,
             pretalx_event_url=pretalx_url,
+            event_obj=event,
         )
 
         command._process_single_submission(mock_submission, ctx)
@@ -1015,12 +1040,14 @@ class TestProcessSingleSubmission:
         """A template touched after the existing image triggers image regen."""
         mock_update_talk.return_value = False
         mock_submission.state = State.confirmed
-        Room.objects.create(name="Main Hall", event=baker.make(Event))
+        event = baker.make(Event)
+        Room.objects.create(name="Main Hall", event=event)
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
         baker.make(
             Talk,
+            event=event,
             pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
         )
         command._image_generator = Mock()
@@ -1028,7 +1055,12 @@ class TestProcessSingleSubmission:
         # Pretend the template was touched at epoch 1.0.
         command._template_mtime = 1.0
 
-        ctx = _ctx(log_fn=command._log, skip_images=False, pretalx_event_url=pretalx_url)
+        ctx = _ctx(
+            log_fn=command._log,
+            skip_images=False,
+            pretalx_event_url=pretalx_url,
+            event_obj=event,
+        )
 
         command._process_single_submission(mock_submission, ctx)
 

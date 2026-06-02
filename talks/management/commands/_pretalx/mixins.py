@@ -340,7 +340,13 @@ class ProcessingMixin(LoggingMixin):
         ``"skipped"`` for stats tracking.
         """
         data = SubmissionData(submission, ctx.pretalx_event_url)
-        existing_talk = Talk.objects.filter(pretalx_link=data.pretalx_link).first()
+        # Scope the match to the event being imported: pretalx_link already embeds the event
+        # slug so a cross-event collision is implausible, but matching within ctx.event_obj
+        # keeps a stray duplicate link from one event ever resolving against another's talk.
+        existing_talk = Talk.objects.filter(
+            event=ctx.event_obj,
+            pretalx_link=data.pretalx_link,
+        ).first()
 
         # Delete cancelled talks
         if submission.state not in (State.confirmed, State.accepted):
