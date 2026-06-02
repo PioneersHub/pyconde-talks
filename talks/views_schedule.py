@@ -73,10 +73,12 @@ def _slice_name(dt: datetime) -> str:
 
 def _get_schedule_dates(user: CustomUser, event_id: int | None = None) -> list[date]:
     """Return available schedule dates, filtered by user event access and optional event."""
-    # Apply the event/access filter on the Talk queryset before collapsing to dates, otherwise
-    # `accessible_to` is no longer available on the post-`values_list` queryset type.
-    talks_qs = Talk.objects.exclude(start_time__year=FAR_FUTURE.year)
-    talks_qs = talks_qs.filter(event_id=event_id) if event_id else talks_qs.accessible_to(user)
+    # Always scope to the user's accessible events first, then optionally narrow to one event.
+    # Skipping `accessible_to` when ``event_id`` is set would let a user request any event's
+    # schedule by passing ``?event=<id>`` in the URL.
+    talks_qs = Talk.objects.exclude(start_time__year=FAR_FUTURE.year).accessible_to(user)
+    if event_id:
+        talks_qs = talks_qs.filter(event_id=event_id)
     date_qs = (
         talks_qs.annotate(date=TruncDate("start_time"))
         .values_list("date", flat=True)
@@ -102,9 +104,11 @@ def _build_schedule_data(
         .select_related("room")
         .prefetch_related("speakers")
         .defer("description", "abstract")
+        .accessible_to(user)
         .order_by("start_time", "room__name")
     )
-    talks_qs = talks_qs.filter(event_id=event_id) if event_id else talks_qs.accessible_to(user)
+    if event_id:
+        talks_qs = talks_qs.filter(event_id=event_id)
     talks = list(talks_qs)
 
     # Unique rooms ordered by name

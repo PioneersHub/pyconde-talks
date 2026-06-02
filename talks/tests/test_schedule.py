@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from model_bakery import baker
 
+from events.models import Event
 from talks.models import Room, SavedTalk, Talk
 from talks.views_schedule import _build_grid_slices
 from users.models import CustomUser
@@ -390,6 +391,44 @@ class TestScheduleView:
         client.force_login(user)
         response = client.get(reverse("schedule"), {"event": "not-a-number"})
         assert response.status_code == HTTPStatus.OK
+
+    def test_event_param_cannot_bypass_user_event_scope(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        rooms: list[Room],
+    ) -> None:
+        """Passing ``?event=<id>`` for an event the user has no access to must not leak talks."""
+        accessible_event = baker.make(Event, slug="accessible", is_active=True)
+        forbidden_event = baker.make(Event, slug="forbidden", is_active=True)
+        user.events.add(accessible_event)
+
+        now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)
+        baker.make(
+            Talk,
+            title="OurTalk",
+            event=accessible_event,
+            room=rooms[0],
+            start_time=now,
+            duration=timedelta(minutes=30),
+        )
+        baker.make(
+            Talk,
+            title="SecretTalk",
+            event=forbidden_event,
+            room=rooms[1],
+            start_time=now,
+            duration=timedelta(minutes=30),
+        )
+
+        client.force_login(user)
+        response = client.get(
+            reverse("schedule"),
+            {"event": str(forbidden_event.pk)},
+        )
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode()
+        assert "SecretTalk" not in content
 
     def test_overlapping_talks_side_by_side(
         self,
