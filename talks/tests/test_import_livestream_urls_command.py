@@ -9,6 +9,7 @@ import httpx
 import pandas as pd
 import pytest
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from model_bakery import baker
 
 from events.models import Event
@@ -222,6 +223,29 @@ class TestHandleCommand:
         )
         output = stdout.getvalue()
         assert "Deleted" in output
+
+    def test_unknown_event_slug_aborts_without_deleting(
+        self,
+        sample_dataframe: pd.DataFrame,
+    ) -> None:
+        """A configured-but-unknown --event-slug aborts instead of wiping all streamings."""
+        room = baker.make(Room, name="Titanium")
+        baker.make(
+            Streaming,
+            room=room,
+            start_time=sample_dataframe["Start Time"].iloc[0],
+            end_time=sample_dataframe["End Time"].iloc[0],
+            video_link="https://old.link",
+        )
+        with pytest.raises(CommandError, match="not found"):
+            call_command(
+                "import_livestream_urls",
+                "--event-slug=does-not-exist",
+                "--livestreams-sheet-id=x",
+                "--livestreams-worksheet-name=y",
+            )
+        # The destructive delete must not have run.
+        assert Streaming.objects.count() == 1
 
     @patch.object(Command, "fetch_spreadsheet_data")
     def test_command_failure_raises(self, mock_fetch: MagicMock) -> None:

@@ -7,7 +7,7 @@ import httpx
 import pandas as pd
 import structlog
 from django.conf import settings
-from django.core.management.base import BaseCommand, CommandParser
+from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import transaction
 
 from events.models import Event
@@ -171,14 +171,19 @@ class Command(BaseCommand):
         worksheet_name = options["livestreams_worksheet_name"]
         dry_run = options.get("dry_run", False)
 
+        # No slug -> intentional global (unscoped) import. A slug that doesn't resolve is an
+        # operator error (e.g. a typo): abort rather than silently widening the destructive
+        # delete from one event to every event's streamings.
         event_slug = (options.get("event_slug") or "").strip()
-        event = Event.objects.filter(slug=event_slug).first() if event_slug else None
-        if event_slug and event is None:
-            self.stdout.write(
-                self.style.WARNING(
-                    f"Event '{event_slug}' not found; falling back to unscoped (global) import.",
-                ),
-            )
+        event = None
+        if event_slug:
+            event = Event.objects.filter(slug=event_slug).first()
+            if event is None:
+                msg = (
+                    f"Event '{event_slug}' not found. Pass an existing --event-slug, "
+                    "or omit it (and unset DEFAULT_EVENT) for an unscoped global import."
+                )
+                raise CommandError(msg)
 
         try:
             if dry_run:
