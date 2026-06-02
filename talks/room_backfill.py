@@ -41,8 +41,14 @@ def backfill_room_events(
     cross_event: list[tuple[Any, str, list[int]]] = []
 
     for room in room_model.objects.filter(event__isnull=True):
+        # .order_by() clears Talk.Meta.ordering (start_time). Without it, the default
+        # ordering column is injected into the SELECT for DISTINCT, so Postgres dedupes on
+        # (event, start_time) pairs and returns one row per talk: the same event id repeated,
+        # which the cross-event check below then misreads as a multi-event room. SQLite
+        # happened to collapse it, hiding the bug in dev.
         event_ids = list(
             talk_model.objects.filter(room=room, event__isnull=False)
+            .order_by()
             .values_list("event", flat=True)
             .distinct(),
         )

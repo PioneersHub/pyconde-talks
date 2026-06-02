@@ -42,6 +42,9 @@ class _FakeQuery:
     def __init__(self, ids: list[int]) -> None:
         self._ids = ids
 
+    def order_by(self, *_args: Any) -> _FakeQuery:
+        return self
+
     def values_list(self, *_args: Any, flat: bool = False) -> _FakeQuery:
         return self
 
@@ -136,3 +139,25 @@ class TestBackfillRoomEvents:
         backfill_room_events(room_model=Room, event_model=Event, talk_model=Talk)
         room.refresh_from_db()
         assert room.event == event
+
+    @pytest.mark.django_db
+    def test_real_models_distinct_collapses_many_talks_one_event(self) -> None:
+        """
+        Many talks in one room/event must collapse to a single distinct event.
+
+        Regression: Talk.Meta.ordering (start_time) used to be injected into the DISTINCT
+        SELECT, so the event query returned one row per talk (the same event repeated). On
+        Postgres that made a normal single-event room look like a cross-event room and the
+        backfill raised. This drives the real ORM query (the fakes can't catch it).
+        """
+        event = Event.objects.create(slug="e", name="E", year=2026)
+        room = Room.objects.create(name="Hall", event=event)
+        baker.make(Talk, room=room, event=event, _quantity=3)
+
+        ids = list(
+            Talk.objects.filter(room=room, event__isnull=False)
+            .order_by()
+            .values_list("event", flat=True)
+            .distinct(),
+        )
+        assert ids == [event.pk]
