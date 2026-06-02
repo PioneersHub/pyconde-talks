@@ -19,9 +19,6 @@ cffi
 charliermarsh
 Cleese
 collectstatic
-upsert
-upserted
-upserts
 configfile
 conftest
 createsuperuser
@@ -29,8 +26,8 @@ createuser
 csrf
 DARKGREEN
 Darmstadium
-debugpy
 dataclass
+debugpy
 dedented
 Defence
 devcontainers
@@ -60,7 +57,6 @@ formmethod
 fullchain
 fullscreen
 gcwv
-greppable
 Genderqueer
 getbbox
 getbuffer
@@ -69,6 +65,7 @@ getpixel
 ggpht
 googlevideo
 gpgconf
+greppable
 healthcheck
 HSTS
 htmlcov
@@ -107,6 +104,7 @@ MPLCONFIGDIR
 msys
 mtime
 mtimes
+multicriteria
 mypy
 nbytes
 newrelic
@@ -152,17 +150,17 @@ pytestmark
 PYTHONDONTWRITEBYTECODE
 PYTHONUNBUFFERED
 pyupgrade
+Qube
 queryset
 querysets
-Qube
 RAQM
 redef
 regen
 regularuser
-reupserts
 respx
 Reswap
 Retarget
+reupserts
 rgba
 runserver
 ryanluker
@@ -172,6 +170,7 @@ Satoshi
 scannerwork
 sched
 sdist
+shelldre
 signups
 slido
 socialaccount
@@ -184,7 +183,6 @@ stringformat
 striptags
 structlog
 stylesheet
-shelldre
 sunos
 supersample
 supersampled
@@ -198,6 +196,9 @@ tlsv
 trixie
 truncatewords
 tspan
+upsert
+upserted
+upserts
 venv
 videoteam
 vimeocdn
