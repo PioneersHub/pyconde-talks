@@ -1,6 +1,6 @@
 """Views for the Pretalx-style CSS Grid schedule."""
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from django.db.models.functions import TruncDate
@@ -10,6 +10,7 @@ from django.views.decorators.http import require_safe
 
 from events.session import resolve_default_event
 
+from .grid_utils import build_grid_slices, build_time_labels, grid_line_name
 from .models import FAR_FUTURE, Room, SavedTalk, Talk
 
 
@@ -27,48 +28,6 @@ def _parse_schedule_date(date_str: str | None) -> date | None:
         return datetime.strptime(date_str, "%Y-%m-%d").date()  # noqa: DTZ007
     except ValueError:
         return None
-
-
-def _build_grid_slices(
-    talks: list[Talk],
-) -> tuple[list[datetime], str]:
-    """
-    Compute CSS Grid named row lines from talk start/end boundaries.
-
-    Returns ``(sorted_boundaries, css_grid_template_rows)`` where each boundary becomes a named grid
-    line like ``[t-0930]``. The height between two consecutive boundaries is proportional to the
-    time gap (2 px per minute, minimum 20 px).
-    """
-    boundaries: set[datetime] = set()
-    for t in talks:
-        boundaries.add(t.start_time)
-        boundaries.add(t.start_time + t.duration)
-
-    sorted_bounds = sorted(boundaries)
-    if len(sorted_bounds) < 2:  # noqa: PLR2004
-        return sorted_bounds, ""
-
-    px_per_min = 2
-    min_px = 20
-
-    parts: list[str] = []
-    for i, bound in enumerate(sorted_bounds):
-        local = timezone.localtime(bound)
-        name = f"t-{local.strftime('%H%M')}"
-        if i < len(sorted_bounds) - 1:
-            gap_minutes = (sorted_bounds[i + 1] - bound) / timedelta(minutes=1)
-            height = max(int(gap_minutes * px_per_min), min_px)
-            parts.append(f"[{name}] minmax({height}px, auto)")
-        else:
-            parts.append(f"[{name}]")
-
-    return sorted_bounds, " ".join(parts)
-
-
-def _slice_name(dt: datetime) -> str:
-    """Return the CSS grid line name for a datetime, e.g. ``t-0930``."""
-    local = timezone.localtime(dt)
-    return f"t-{local.strftime('%H%M')}"
 
 
 def _get_schedule_dates(user: CustomUser, event_id: int | None = None) -> list[date]:
@@ -128,15 +87,15 @@ def _build_schedule_data(
     room_col: dict[int, int] = {r.id: idx + 2 for idx, r in enumerate(rooms)}  # type: ignore[attr-defined]
 
     # CSS Grid slices
-    sorted_bounds, grid_template_rows = _build_grid_slices(talks)
+    sorted_bounds, grid_template_rows = build_grid_slices(talks)
 
     # Build schedule items with grid-area CSS
     schedule_items: list[dict[str, Any]] = []
     for t in talks:
         if not t.room:
             continue
-        row_start = _slice_name(t.start_time)
-        row_end = _slice_name(t.start_time + t.duration)
+        row_start = grid_line_name(t.start_time)
+        row_end = grid_line_name(t.start_time + t.duration)
         rid = t.room_id  # type: ignore[attr-defined]
         col = room_col.get(rid, 2) if rid is not None else 2
         duration_min = int(t.duration.total_seconds() // 60)
@@ -148,17 +107,7 @@ def _build_schedule_data(
             },
         )
 
-    # Time labels for the first column
-    time_labels: list[dict[str, str]] = []
-    seen_labels: set[str] = set()
-    for bound in sorted_bounds[:-1]:  # skip the last boundary (end-only)
-        name = _slice_name(bound)
-        if name not in seen_labels:
-            seen_labels.add(name)
-            local = timezone.localtime(bound)
-            time_labels.append({"name": name, "display": local.strftime("%H:%M")})
-
-    return talks, rooms, schedule_items, grid_template_rows, time_labels
+    return talks, rooms, schedule_items, grid_template_rows, build_time_labels(sorted_bounds)
 
 
 def _talk_matches_filters(
