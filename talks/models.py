@@ -476,6 +476,14 @@ class Talk(models.Model):
         related_name="talks",
         help_text=_("Event this talk belongs to"),
     )
+    session_chair = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="chaired_talks",
+        null=True,
+        blank=True,
+        help_text=_("User who volunteered to chair this session"),
+    )
     hide = models.BooleanField(
         default=False,
         help_text=_("Hide this talk from the public"),
@@ -544,6 +552,19 @@ class Talk(models.Model):
         if self.presentation_type == self.PresentationType.LIGHTNING:
             return LIGHTNING_TRACK_NAME
         return EMPTY_TRACK_NAME
+
+    @property
+    def chair_display_name(self) -> str:
+        """
+        Return the session chair's name, or an empty string when unassigned.
+
+        Prefer the chosen display name, then the full name, and fall back to the plain email. Only
+        moderators ever see this value, so the email is shown verbatim rather than obfuscated.
+        """
+        chair = self.session_chair
+        if not chair:
+            return ""
+        return str(chair.display_name.strip() or chair.get_full_name().strip() or chair.email)
 
     def clean(self) -> None:
         """Validate room/event coherence and that the talk doesn't overlap in its room."""
