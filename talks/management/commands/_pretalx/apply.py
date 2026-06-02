@@ -24,6 +24,7 @@ from talks.models import (
 
 
 if TYPE_CHECKING:
+    from events.models import Event
     from users.models import CustomUser
 
 
@@ -81,7 +82,11 @@ def apply_change(
 def _apply_create(change: PendingPretalxChange) -> Talk:
     """Materialize a new ``Talk`` (and its speakers + room) from *change.pretalx_payload*."""
     payload: dict[str, Any] = change.pretalx_payload or {}
-    room = _resolve_room(payload.get("room", ""))
+    room = _resolve_room(
+        payload.get("room", ""),
+        event=change.event,
+        pretalx_id=payload.get("room_pretalx_id"),
+    )
     talk = Talk.objects.create(
         presentation_type=payload.get("presentation_type", Talk.PresentationType.TALK),
         title=payload.get("title", ""),
@@ -145,8 +150,8 @@ def _apply_field_diffs(
 ) -> list[str]:
     """Write each diff's ``new`` value onto *talk* and return the list of touched fields."""
     updated: list[str] = []
-    for field, change in field_diffs.items():
-        new_value = change.get("new")
+    for field, diff in field_diffs.items():
+        new_value = diff.get("new")
         if field in _DIRECT_TALK_FIELDS:
             setattr(talk, field, new_value if new_value is not None else "")
             updated.append(field)
@@ -157,7 +162,13 @@ def _apply_field_diffs(
             talk.duration = _parse_duration(new_value)
             updated.append(field)
         elif field == "room":
-            talk.room = _resolve_room(new_value or "")
+            # Resolve within the talk's event, by stable id when the diff carries one
+            # (old rows won't), so a rename updates the existing row in place.
+            talk.room = _resolve_room(
+                new_value or "",
+                event=talk.event,
+                pretalx_id=diff.get("new_pretalx_id"),
+            )
             updated.append(field)
         # ``event`` diffs are deliberately ignored: the pending row already has a
         # FK to the event, and re-pointing a Talk at a different Event mid-conference
@@ -219,15 +230,46 @@ def _attach_speakers(talk: Talk, speakers: list[dict[str, Any]]) -> None:
 # ------------------------------------------------------------------
 
 
-def _resolve_room(room_name: str) -> Room | None:
-    """Get-or-create a :class:`~talks.models.Room` by name; empty input returns ``None``."""
+def _resolve_room(
+    room_name: str,
+    *,
+    event: Event | None,
+    pretalx_id: int | None = None,
+) -> Room | None:
+    """
+    Resolve (and if needed create) the event-scoped room for an apply step.
+
+    Matches ``(event, pretalx_id)`` then ``(event, name)`` via ``Room.resolve_for_event``.
+    On an id match with a changed name the row is renamed IN PLACE (so its streamings and
+    Talk FKs stay attached); a legacy row matched by name gets its ``pretalx_id`` stamped.
+    Creates a new room only on a miss. Empty *room_name* returns ``None``.
+
+    Backward-compatible: pending rows recorded before id-keying pass ``pretalx_id=None``
+    and resolve purely by ``(event, name)`` - identical to the old name-only behavior,
+    now correctly scoped to the event.
+    """
     if not room_name:
         return None
-    room, _ = Room.objects.get_or_create(
+
+    existing = Room.resolve_for_event(event=event, pretalx_id=pretalx_id, name=room_name)
+    if existing is not None:
+        update_fields: list[str] = []
+        if existing.name != room_name:
+            existing.name = room_name
+            update_fields.append("name")
+        if pretalx_id is not None and existing.pretalx_id is None:
+            existing.pretalx_id = pretalx_id
+            update_fields.append("pretalx_id")
+        if update_fields:
+            existing.save(update_fields=update_fields)
+        return existing
+
+    return Room.objects.create(
+        event=event,
+        pretalx_id=pretalx_id,
         name=room_name,
-        defaults={"description": f"Room imported from Pretalx: {room_name}"},
+        description=f"Room imported from Pretalx: {room_name}",
     )
-    return room
 
 
 def _parse_datetime(value: Any) -> datetime.datetime:

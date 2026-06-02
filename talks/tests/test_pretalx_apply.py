@@ -100,15 +100,16 @@ class TestApplyUpdate:
         assert talk.description == "Manual description (not from Pretalx)"
 
     def test_room_diff_resolves_existing_room(self) -> None:
-        """A room-name diff looks up or creates the matching Room."""
+        """An old-shape room-name diff (no pretalx id) resolves the room within the event."""
         event = _make_event()
-        new_room = Room.objects.create(name="Auditorium")
+        new_room = Room.objects.create(name="Auditorium", event=event)
         talk = baker.make(Talk, event=event, room=None)
         change = PendingPretalxChange.objects.create(
             event=event,
             pretalx_code="UPD002",
             talk=talk,
             kind=PendingPretalxChange.Kind.UPDATE,
+            # No new_pretalx_id key: a pending row recorded before id-keying.
             field_diffs={"room": {"old": None, "new": "Auditorium"}},
             speaker_diffs={"added": [], "removed": []},
             pretalx_payload={"speakers": []},
@@ -118,6 +119,36 @@ class TestApplyUpdate:
 
         talk.refresh_from_db()
         assert talk.room == new_room
+
+    def test_room_rename_applied_in_place_by_id(self) -> None:
+        """A room diff carrying a pretalx id renames the existing room in place."""
+        event = _make_event()
+        room = Room.objects.create(event=event, name="Old Hall", pretalx_id=4993)
+        talk = baker.make(Talk, event=event, room=room)
+        change = PendingPretalxChange.objects.create(
+            event=event,
+            pretalx_code="UPD003",
+            talk=talk,
+            kind=PendingPretalxChange.Kind.UPDATE,
+            field_diffs={
+                "room": {
+                    "old": "Old Hall",
+                    "new": "New Hall",
+                    "old_pretalx_id": 4993,
+                    "new_pretalx_id": 4993,
+                },
+            },
+            speaker_diffs={"added": [], "removed": []},
+            pretalx_payload={"speakers": []},
+        )
+
+        apply_change(change)
+
+        room.refresh_from_db()
+        assert room.name == "New Hall"  # same row renamed, not duplicated
+        talk.refresh_from_db()
+        assert talk.room_id == room.pk
+        assert Room.objects.filter(event=event).count() == 1
 
     def test_speaker_added_via_pending_change(self) -> None:
         """Added speakers come from the payload snapshot when not already in the DB."""
