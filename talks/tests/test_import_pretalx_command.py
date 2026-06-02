@@ -1084,6 +1084,43 @@ class TestDetectOnlyMode:
         assert "title" in change.field_diffs
         assert change.field_diffs["title"]["new"] == "Test Talk Title"
 
+    def test_detect_does_not_create_rooms(
+        self,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """Detect-only must not touch the Room table while building the field diff."""
+        event = Event.objects.create(slug="evt", name="Evt", year=2099)
+        mock_submission.state = State.confirmed
+        pretalx_url = "https://pretalx.com/evt"
+        # Existing talk has no room; the submission references "Main Hall", which is not
+        # yet in the DB. Resolving it for the diff must not write a Room row.
+        baker.make(
+            Talk,
+            title="Old Title",
+            room=None,
+            pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
+            event=event,
+        )
+        assert Room.objects.count() == 0
+
+        ctx = _ctx(
+            log_fn=command._log,
+            detect_only=True,
+            skip_images=True,
+            pretalx_event_url=pretalx_url,
+            event_obj=event,
+        )
+
+        result = command._process_single_submission(mock_submission, ctx)
+
+        assert result == "detected"
+        assert Room.objects.count() == 0
+        # The room change is still recorded in the diff for the reviewer.
+        change = PendingPretalxChange.objects.get()
+        assert "room" in change.field_diffs
+        assert change.field_diffs["room"]["new"] == "Main Hall"
+
     def test_detect_no_changes_yields_unchanged(
         self,
         command: Command,

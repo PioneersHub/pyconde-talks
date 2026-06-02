@@ -29,8 +29,9 @@ def get_or_create_room(
     """
     Return the :class:`~talks.models.Room` for *room_name*, creating it if needed.
 
-    Returns ``None`` when *room_name* is empty.  In ``--dry-run`` mode an
-    unsaved instance is returned so callers can still reference a room.
+    Returns ``None`` when *room_name* is empty.  In ``--dry-run`` and ``--detect-only``
+    modes an unsaved instance is returned so callers (the diff builder) can still
+    reference a room without writing it: both modes must leave the Room table untouched.
     """
     if not room_name:
         return None
@@ -43,9 +44,12 @@ def get_or_create_room(
         )
         return existing
 
-    if ctx.dry_run:
+    # Neither dry-run nor detect-only may write to the Room table. Detect-only resolves
+    # rooms only to build the field diff, so an unsaved instance is enough; a brand-new
+    # room correctly compares as "changed" (model equality is PK-based).
+    if ctx.dry_run or ctx.detect_only:
         ctx.log(
-            f"Would create room: {room_name} (dry run)",
+            f"Would create room: {room_name} ({'dry run' if ctx.dry_run else 'detect-only'})",
             VerbosityLevel.DETAILED,
             "SUCCESS",
         )
