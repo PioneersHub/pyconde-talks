@@ -75,13 +75,15 @@ the change is applied. A **pure rename** (the room a talk already sits in was re
 other change) is detected explicitly so it still shows up for review instead of silently
 applying only on a direct sync.
 
-`Room.event` is intentionally **nullable**: the app supports event-less talks, and a manually
-created room may have no event yet. The importer always sets it; the backfill (below) populates
-existing rows. `PROTECT` blocks deleting an event that still has rooms.
+`Room.event` is **required** (NOT NULL): every room belongs to exactly one event. The importer
+always sets it, and `generate_fake_talks` uses a synthetic `fake-event` when no `--event-slug` is
+given rather than producing event-less rooms. `PROTECT` blocks deleting an event that still has
+rooms.
 
 ### Migrating an existing database
 
-The change ships as four migrations that must run in order:
+The change ships as four migrations that must run in order (the column is nullable only during
+the backfill window):
 
 1. `0024_room_event_pretalx_id` - additive, adds nullable `event` + `pretalx_id` (zero-downtime).
 2. `0025_backfill_room_event` - assigns each existing room its event from its talks (a room with
@@ -89,10 +91,13 @@ The change ships as four migrations that must run in order:
    migration loudly rather than guessing - rooms are expected to be per-event).
 3. `0026_room_event_scoped_constraints` - drops the global unique on `name` and adds the
    per-event `(event, name)` and partial `(event, pretalx_id)` constraints.
+4. `0027_room_event_required` - tightens `event` to NOT NULL once the backfill has populated
+   every row.
 
 `pretalx_id` for existing rooms is **not** backfilled by a migration (there is nothing local to
 map from); it is stamped lazily on the next real sync via the `(event, name)` fallback. On a
-production database, snapshot the DB before applying migration `0025`.
+production database, snapshot the DB before applying migration `0025`, and verify no
+`Room.event IS NULL` rows remain before `0027` runs.
 
 ## Image (social card) regeneration
 
