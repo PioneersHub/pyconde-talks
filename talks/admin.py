@@ -73,19 +73,34 @@ class RoomAdmin(admin.ModelAdmin[Room]):
     """
 
     list_display = (
+        "event",
         "name",
+        "pretalx_id",
         "capacity",
         "talk_count",
         "streaming_count",
         "has_slido_link",
     )
+    # Rooms are event-scoped and duplicate names can exist across events, so filtering
+    # and ordering by event is how admins tell them apart.
+    list_filter = ("event",)
+    list_select_related = ("event",)
     search_fields = ("name", "description")
+    # pretalx_id is managed by the importer (it is the rename match key); show it but
+    # don't let it be edited by hand, which would break matching.
+    readonly_fields: ClassVar[list[str]] = ["pretalx_id"]
 
     fieldsets: ClassVar[list[Any]] = [
         (
             None,
             {
-                "fields": ("name", "description", "capacity"),
+                "fields": ("event", "name", "description", "capacity"),
+            },
+        ),
+        (
+            _("Pretalx"),
+            {
+                "fields": ("pretalx_id",),
             },
         ),
         (
@@ -139,14 +154,22 @@ class StreamingAdmin(admin.ModelAdmin[Streaming]):
 
     list_display = (
         "room",
+        "room_event",
         "start_time",
         "end_time",
         "formatted_video_link",
         "formatted_transcription_url",
     )
-    list_filter = ("room", "start_time", "end_time")
+    # Room names can repeat across events, so expose the event to disambiguate.
+    list_filter = ("room__event", "room", "start_time", "end_time")
+    list_select_related = ("room", "room__event")
     search_fields = ("room__name", "video_link")
     autocomplete_fields: ClassVar[list[str]] = ["room"]
+
+    @admin.display(description=_("Event"), ordering="room__event")
+    def room_event(self, obj: Streaming) -> str:
+        """Show the room's event so same-named rooms across events are distinguishable."""
+        return str(obj.room.event) if obj.room.event else "-"
 
     fieldsets: ClassVar[list[Any]] = [
         (

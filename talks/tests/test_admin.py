@@ -9,6 +9,7 @@ from django.test import RequestFactory
 from django.utils import timezone
 from model_bakery import baker
 
+from events.models import Event
 from talks.admin import (
     RoomAdmin,
     SpeakerAdmin,
@@ -185,6 +186,31 @@ class TestStreamingAdmin:
             end_time=timezone.now() + timedelta(hours=1),
         )
         assert admin.formatted_transcription_url(streaming) == "-"
+
+    def test_room_event_display(self) -> None:
+        """The room_event column shows the room's event to disambiguate same-named rooms."""
+        admin = StreamingAdmin(Streaming, site)
+        event = Event.objects.create(slug="ev", name="My Event", year=2099)
+        room = Room.objects.create(name="Hall", event=event)
+        streaming = baker.make(
+            Streaming,
+            room=room,
+            start_time=timezone.now(),
+            end_time=timezone.now() + timedelta(hours=1),
+        )
+        assert admin.room_event(streaming) == str(event)
+
+    def test_room_event_display_none(self) -> None:
+        """A room without an event renders a dash."""
+        admin = StreamingAdmin(Streaming, site)
+        room = Room.objects.create(name="Hall")
+        streaming = baker.make(
+            Streaming,
+            room=room,
+            start_time=timezone.now(),
+            end_time=timezone.now() + timedelta(hours=1),
+        )
+        assert admin.room_event(streaming) == "-"
 
 
 # ---------------------------------------------------------------------------
