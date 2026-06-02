@@ -181,9 +181,9 @@ class TestCheckPretalxNow:
         rf: RequestFactory,
         admin_user: CustomUser,
     ) -> None:
-        """Hitting the view runs ``import_pretalx_talks --detect-only`` for DEFAULT_EVENT."""
+        """A POST runs ``import_pretalx_talks --detect-only`` for DEFAULT_EVENT."""
         url = reverse("admin:talks_pendingpretalxchange_check_now")
-        request = rf.get(url)
+        request = rf.post(url)
         request.user = admin_user
         _attach_messages(request)
 
@@ -199,6 +199,27 @@ class TestCheckPretalxNow:
         assert "--detect-only" in args
         assert kwargs == {"verbosity": 1}
 
+    @patch("talks.admin_pretalx.call_command")
+    def test_view_rejects_get(
+        self,
+        mock_call: Mock,
+        rf: RequestFactory,
+        admin_user: CustomUser,
+    ) -> None:
+        """A GET must not trigger the importer (state-changing action is POST-only)."""
+        url = reverse("admin:talks_pendingpretalxchange_check_now")
+        request = rf.get(url)
+        request.user = admin_user
+        _attach_messages(request)
+
+        with patch("talks.admin_pretalx.settings", DEFAULT_EVENT="evt"):
+            response = PendingPretalxChangeAdmin(PendingPretalxChange, site).check_pretalx_now(
+                request
+            )
+
+        assert response.status_code == 405
+        mock_call.assert_not_called()
+
     def test_view_errors_when_default_event_missing(
         self,
         rf: RequestFactory,
@@ -206,7 +227,7 @@ class TestCheckPretalxNow:
     ) -> None:
         """No DEFAULT_EVENT means the view refuses and reports an error message."""
         url = reverse("admin:talks_pendingpretalxchange_check_now")
-        request = rf.get(url)
+        request = rf.post(url)
         request.user = admin_user
         _attach_messages(request)
 

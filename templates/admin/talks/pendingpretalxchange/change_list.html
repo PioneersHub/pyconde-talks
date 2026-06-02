@@ -2,8 +2,18 @@
 {% load i18n admin_urls %}
 {% block object-tools-items %}
   <li>
-    <a href="{% url 'admin:talks_pendingpretalxchange_check_now' %}"
-       class="historylink">{% translate "Check Pretalx now" %}</a>
+    {# POST form (not a link): the action mutates state, so it must be CSRF-protected. #}
+    <form method="post"
+          action="{% url 'admin:talks_pendingpretalxchange_check_now' %}"
+          style="display: inline">
+      {% csrf_token %}
+      <button type="submit"
+              class="historylink"
+              style="border: 0;
+                     background: none;
+                     padding: 0;
+                     cursor: pointer">{% translate "Check Pretalx now" %}</button>
+    </form>
   </li>
   {{ block.super }}
 {% endblock object-tools-items %}

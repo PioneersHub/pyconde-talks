@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, cast
 from django.conf import settings
 from django.contrib import admin, messages
 from django.core.management import CommandError, call_command
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseNotAllowed, HttpResponseRedirect
 from django.urls import URLPattern, path, reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -199,11 +199,19 @@ class PendingPretalxChangeAdmin(admin.ModelAdmin[PendingPretalxChange]):
         """
         Run the detect-only importer for the default event and return to the list.
 
+        POST-only: this mutates state (writes PendingPretalxChange rows, makes
+        outbound API calls), so it must not be reachable via GET. ``admin_view``
+        already wraps it in ``csrf_protect``, so requiring POST means the CSRF
+        token is enforced and the action can't be triggered by a forged link.
+
         Synchronous on purpose: the importer is API-bound (tens of seconds for a
         500-talk event) but small enough to block one admin request. Surfacing
         progress would need a task queue; that's deferred to keep the deploy
         footprint flat.
         """
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST"])
+
         event_slug = getattr(settings, "DEFAULT_EVENT", "")
         redirect_to = reverse("admin:talks_pendingpretalxchange_changelist")
         if not event_slug:
