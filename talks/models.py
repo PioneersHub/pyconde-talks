@@ -8,7 +8,7 @@ metadata, scheduling information, and video links.
 from datetime import UTC, datetime, timedelta
 from enum import IntEnum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, ClassVar, Self, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -261,6 +261,19 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
             return self
         return self.filter(Q(event__isnull=True) | Q(event__in=user.events.all()))
 
+    def with_streamings(self) -> list[Talk]:
+        """
+        Evaluate the queryset and batch-load the ``streaming`` cache on every row.
+
+        Returns a list (not a queryset): like Django's own ``prefetch_related`` chain, this is a
+        terminal operation - further filtering would invalidate the cache.  Use it in views where
+        you would otherwise call ``list(qs)`` and then iterate each talk's ``get_video_link`` /
+        ``get_transcription_url`` / ``streaming``.
+        """
+        talks = list(self)
+        prefetch_streamings(talks)
+        return talks
+
 
 class Talk(models.Model):
     """Represents a conference talk."""
@@ -506,32 +519,29 @@ class Talk(models.Model):
     # Allow missing the first minute of the talk
     STREAMING_START_MARGIN: ClassVar[timedelta] = timedelta(minutes=1)
 
-    def get_streaming(self) -> Streaming | None:
+    @cached_property
+    def streaming(self) -> Streaming | None:
         """
-        Return the streaming associated with this talk.
+        Return the streaming covering this talk's slot, or ``None``.
 
-        Result is cached per-instance so repeated calls (admin display, video link, transcription,
-        video start time) on the same Talk hit the DB only once.
-        For list views, populate the cache in bulk with ``prefetch_streamings`` to avoid an N+1
-        across many talks.
+        ``cached_property`` caches the result on the instance, so callers (the admin display,
+        ``get_video_link``, ``get_transcription_url``, ``get_video_start_time``) all share one query
+        per Talk. For list views, ``TalkQuerySet.with_streamings`` pre-populates the cache in a
+        single batch query to avoid N+1.
         """
-        if "_cached_streaming" in self.__dict__:
-            return cast("Streaming | None", self.__dict__["_cached_streaming"])
-
         if not self.room or not self.start_time:
-            self.__dict__["_cached_streaming"] = None
             return None
-
         # At least half of the talk must be covered by the streaming
         min_duration = self.duration / 2
-
-        result = Streaming.objects.filter(
+        return Streaming.objects.filter(
             room=self.room,
             start_time__lte=self.start_time + self.STREAMING_START_MARGIN,
             end_time__gte=self.start_time + min_duration,
         ).first()
-        self.__dict__["_cached_streaming"] = result
-        return result
+
+    def get_streaming(self) -> Streaming | None:
+        """Compatibility alias for ``self.streaming``; prefer the property in new code."""
+        return self.streaming
 
     def get_video_start_time(self) -> int:
         """
@@ -545,7 +555,7 @@ class Talk(models.Model):
             return self.video_start_time
 
         # Calculate seconds between streaming start and talk start
-        if streaming := self.get_streaming():
+        if streaming := self.streaming:
             return int((self.start_time - streaming.start_time).total_seconds())
         return 0
 
@@ -569,7 +579,7 @@ class Talk(models.Model):
         if self.video_link:
             return self.video_link
 
-        streaming = self.get_streaming()
+        streaming = self.streaming
         if streaming:
             return streaming.video_link
 
@@ -678,7 +688,7 @@ class Talk(models.Model):
         True: the video is in a live streaming.
         False: the talk was not streamed or the video is a recording.
         """
-        streaming = self.get_streaming()
+        streaming = self.streaming
         return bool(streaming and streaming.is_active())
 
     def get_image_url(self) -> str:
@@ -723,7 +733,7 @@ class Talk(models.Model):
         if self.transcription_url:
             return self.transcription_url
 
-        streaming = self.get_streaming()
+        streaming = self.streaming
         if streaming and streaming.transcription_url:
             return streaming.transcription_url
 
@@ -756,11 +766,14 @@ def prefetch_streamings(talks: list[Talk]) -> None:
     """
     Batch-load streamings for the given talks and cache them per-instance.
 
-    ``Talk.get_streaming`` queries ``Streaming`` once per call; in list views this turns into an N+1
-    (each ``get_video_link`` / ``get_transcription_url`` / ``has_active_streaming`` call on every
-    row reaches the database). This helper does a single ``IN`` query for every room involved,
-    matches each talk to its covering streaming in Python, and stores the result on the talk so
-    subsequent calls to ``get_streaming`` are free.
+    Each access to ``Talk.streaming`` triggers a query unless the value is already cached on the
+    instance; in list views this would be an N+1 (one query per row from ``get_video_link`` /
+    ``get_transcription_url`` / ``has_active_streaming``).  This helper runs a single ``IN`` query
+    for every room involved, matches each talk to its covering streaming in Python, and writes the
+    result into the ``streaming`` ``cached_property`` slot so subsequent access is free.
+
+    Prefer ``TalkQuerySet.with_streamings`` in views; this lower-level function is used when you
+    already have a list of talks (e.g. after pagination).
 
     Safe to call with an empty list; idempotent.
     """
@@ -783,7 +796,10 @@ def prefetch_streamings(talks: list[Talk]) -> None:
     for t in talks:
         rid: int | None = t.room_id  # type: ignore[attr-defined]
         candidates = streamings_by_room.get(rid, []) if rid is not None else []
-        t.__dict__["_cached_streaming"] = _match_streaming(t, candidates)
+        # ``cached_property`` stores its value in the instance dict under the attribute
+        # name, so writing here pre-populates the cache; later reads of ``t.streaming``
+        # short-circuit without calling the property's loader.
+        t.streaming = _match_streaming(t, candidates)
 
 
 # Rating + SavedTalk models live in talks.models_rating. Import them here so that importing

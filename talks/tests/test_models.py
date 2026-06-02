@@ -284,8 +284,33 @@ class TestPrefetchStreamings:
         prefetch_streamings([talk])
 
         with CaptureQueriesContext(connection) as ctx:
+            assert talk.streaming == streaming
+            # Compatibility alias hits the same cache.
             assert talk.get_streaming() == streaming
         assert len(ctx.captured_queries) == 0
+
+    def test_queryset_with_streamings_helper(self) -> None:
+        """``Talk.objects.with_streamings()`` evaluates and prefetches in one call."""
+        room = baker.make(Room, name="Hall")
+        now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)
+        for i in range(3):
+            baker.make(
+                Talk,
+                room=room,
+                start_time=now + timedelta(minutes=30 * i),
+                duration=timedelta(minutes=30),
+                video_link="",
+            )
+
+        with CaptureQueriesContext(connection) as ctx:
+            talks = Talk.objects.select_related("room").with_streamings()
+            for t in talks:
+                t.get_video_link()
+
+        # One SELECT for talks, one for streamings - never per-row.
+        max_expected_queries = 2
+        assert len(ctx.captured_queries) <= max_expected_queries
+        assert isinstance(talks, list)
 
     def test_no_match_caches_none(self) -> None:
         """Talks with no covering streaming get ``None`` cached, still skipping queries."""
