@@ -2,8 +2,11 @@
 {# Moderator-only chair grid. Swapped in place on every assign/remove via HTMX. #}
 <div id="chair-grid-table">
   {% if chair_error %}
-    <div class="mb-3 rounded bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700"
-         role="alert">{{ chair_error }}</div>
+    <div class="sticky top-0 z-30 mb-3 rounded-lg bg-red-100 border-2 border-red-400 px-4 py-3 text-sm font-medium text-red-800 shadow-md"
+         role="alert">
+      {% svg 'exclamation-triangle' "h-5 w-5 inline mr-1 -mt-0.5" %}
+      {{ chair_error }}
+    </div>
   {% endif %}
   {% if has_grid %}
     <div class="overflow-x-auto pb-4">
