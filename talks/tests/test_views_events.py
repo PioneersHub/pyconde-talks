@@ -92,6 +92,18 @@ class TestTalkListEventFiltering:
         assert talk_a.title in content
         assert talk_b.title in content
 
+    def test_non_digit_event_param_is_ignored(
+        self,
+        client: Client,
+        user_event_a: CustomUser,
+        event_a: Event,
+    ) -> None:
+        """Garbage ``?event=`` values must not raise ValueError from the filter."""
+        baker.make(Talk, title="Talk A", event=event_a)
+        client.force_login(user_event_a)
+        response = client.get(reverse("talk_list"), {"event": "not-a-number"})
+        assert response.status_code == HTTPStatus.OK
+
 
 @pytest.mark.django_db
 class TestTalkDetailEventFiltering:

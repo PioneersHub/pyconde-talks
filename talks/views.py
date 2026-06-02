@@ -161,12 +161,15 @@ class TalkListView(ListView[Talk]):
         if event_id == "all":
             return queryset
         if event_id:
-            queryset = queryset.filter(event_id=event_id)
-        else:
-            # No explicit selection: default to the resolved current event
-            default_event = resolve_default_event(self.request)
-            if default_event:
-                queryset = queryset.filter(event=default_event)
+            # Ignore garbage values (e.g. ``?event=abc``) so they fall through to the
+            # default-event branch instead of raising ``ValueError`` from ``filter``.
+            if event_id.isdigit():
+                queryset = queryset.filter(event_id=event_id)
+            return queryset
+        # No explicit selection: default to the resolved current event
+        default_event = resolve_default_event(self.request)
+        if default_event:
+            queryset = queryset.filter(event=default_event)
         return queryset
 
     def _apply_list_filters(self, queryset: QuerySet[Talk]) -> QuerySet[Talk]:
@@ -310,7 +313,9 @@ class TalkListView(ListView[Talk]):
         """Return the currently filtered event, or the default event."""
         event_param = self.request.GET.get("event", "")
         if event_param and event_param != "all":
-            return Event.objects.filter(pk=event_param).first()
+            if not event_param.isdigit():
+                return None
+            return Event.objects.filter(pk=event_param, is_active=True).first()
         if not event_param:
             return resolve_default_event(self.request)
         return None
