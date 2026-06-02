@@ -5,7 +5,11 @@ Core browsing: list, detail, dashboard, upcoming, and ID-or-pretalx redirect. Ra
 live in ``talks.views_rating`` and the bookmark toggle in ``talks.views_saved``.
 """
 
-from datetime import timedelta
+from datetime import (
+    date as date_type,
+    datetime,
+    timedelta,
+)
 from typing import TYPE_CHECKING, Any, cast
 
 from django.db.models import Count, Q
@@ -30,6 +34,14 @@ if TYPE_CHECKING:
     from django.db.models.query import QuerySet
 
     from users.models import CustomUser
+
+
+def _parse_date(value: str) -> date_type | None:
+    """Parse a YYYY-MM-DD string, returning None on any malformed input."""
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()  # noqa: DTZ007
+    except ValueError, TypeError:
+        return None
 
 
 def _can_see_rating_summary(user: Any, event: Event | None) -> bool:
@@ -183,7 +195,11 @@ class TalkListView(ListView[Talk]):
             active["room_id"] = room_id
 
         date_value = self.request.GET.get("date")
-        if date_value and queryset.filter(start_time__date=date_value).exists():
+        if (
+            date_value
+            and _parse_date(date_value)
+            and queryset.filter(start_time__date=date_value).exists()
+        ):
             active["start_time__date"] = date_value
 
         track = self.request.GET.get("track")
@@ -422,8 +438,7 @@ def talk_redirect_view(request: HttpRequest, talk_id: str) -> HttpResponse:
     talk = get_talk_by_id_or_pretalx(talk_id, user=cast("CustomUser", request.user))
     if talk:
         return redirect("talk_detail", pk=talk.pk)
-    msg = f"No talk found with ID or Pretalx ID: {talk_id}"
-    raise Http404(msg)
+    raise Http404
 
 
 def _apply_status_filter(queryset: TalkQuerySet, status: str) -> TalkQuerySet:

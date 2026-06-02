@@ -232,6 +232,20 @@ class TestTalkListView:
         assert response.status_code == HTTPStatus.OK
         assert "Today Talk" in response.content.decode()
 
+    def test_filter_by_invalid_date(
+        self,
+        client: Client,
+        user: CustomUser,
+        event: Event,
+    ) -> None:
+        """A malformed ?date= value is ignored instead of reaching the ORM (no 500)."""
+        baker.make(Talk, title="Some Talk", start_time=timezone.now(), event=event)
+        client.force_login(user)
+        response = client.get(reverse("talk_list") + "?date=not-a-date")
+        assert response.status_code == HTTPStatus.OK
+        # The bad filter is dropped, so the talk is still listed.
+        assert "Some Talk" in response.content.decode()
+
     def test_filter_by_track(self, client: Client, user: CustomUser, event: Event) -> None:
         """Show only talks in the selected track."""
         baker.make(Talk, event=event, title="PyData Talk", track="PyData")
