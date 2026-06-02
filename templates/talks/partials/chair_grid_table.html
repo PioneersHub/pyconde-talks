@@ -45,7 +45,7 @@
         {# ── Chair cards ──────────────────────────── #}
         {% for item in chair_items %}
           {% with talk=item.talk %}
-            <div class="chair-cell relative m-1 rounded-lg text-sm overflow-hidden {% if talk.session_chair_id == current_user_id %}chair-mine bg-blue-50{% elif talk.session_chair_id %}bg-green-50 border-l-4 border-green-400{% else %}bg-gray-50 border-l-4 border-gray-300{% endif %}"
+            <div class="chair-cell relative m-1 rounded-lg text-sm overflow-hidden {% if talk.session_chair_id == current_user_id %}chair-mine bg-blue-50{% elif talk.session_chair_id %}bg-green-50 border-l-4 border-green-400 dark:bg-green-900/40 dark:border-green-600{% else %}bg-gray-50 border-l-4 border-gray-300 dark:bg-gray-800 dark:border-gray-600{% endif %}"
                  style="grid-area: {{ item.grid_area }};
                         z-index: 1"
                  data-block="{{ talk.block_id }}">
