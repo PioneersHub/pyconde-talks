@@ -168,6 +168,19 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-cross-origin-opener-policy
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-hsts-seconds
+# Enable HSTS in production to force HTTPS. Set to 0 in dev to disable.
+SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31_536_000)  # 1 year
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-hsts-include-subdomains
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-hsts-preload
+# Default off: preload-list submission is a near-irreversible commitment, so opt in
+# explicitly per environment (see docker/.env) rather than defaulting it on.
+SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=False)
+# https://docs.djangoproject.com/en/dev/ref/settings/#session-cookie-samesite
+SESSION_COOKIE_SAMESITE = "Lax"
+# https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-samesite
+CSRF_COOKIE_SAMESITE = "Lax"
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#data-upload-max-number-fields
 # Increase the limit to allow managing all users at once
