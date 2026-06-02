@@ -310,9 +310,12 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
     def get_queryset(self, request: HttpRequest) -> QuerySet[CustomUser]:
         """Optimize query by prefetching relations used in the changelist."""
         queryset = super().get_queryset(request)
+        # ``events`` is hit per-row by the ``event_names`` column - without the prefetch
+        # the changelist runs one query per user.
         return queryset.prefetch_related(
             "emailaddress_set",
             "groups",
+            "events",
             Prefetch(
                 "tickets",
                 queryset=Ticket.objects.select_related("event").order_by("ticket_id"),
@@ -332,8 +335,12 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
 
     @admin.display(description=_("Events"))
     def event_names(self, obj: CustomUser) -> str:
-        """Display the events the user has access to."""
-        names = list(obj.events.values_list("name", flat=True))
+        """
+        Display the events the user has access to.
+
+        Reads from the prefetched ``events`` cache to keep the changelist O(1) per row.
+        """
+        names = sorted(e.name for e in obj.events.all())
         return ", ".join(names) if names else "-"
 
     @admin.display(boolean=True, description=_("Email Verified"))

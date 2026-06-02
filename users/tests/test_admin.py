@@ -461,3 +461,31 @@ class TestCustomUserAdminViews:
 
         assert response.status_code == HTTPStatus.OK
         assert "TEST-42" in response.content.decode()
+
+    def test_changelist_does_not_n_plus_one_on_events(
+        self,
+        client: Client,
+        superuser: CustomUser,
+    ) -> None:
+        """``events`` column must read from the prefetch cache, not query per row."""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        client.force_login(superuser)
+        event_a = baker.make(Event, name="Event A", slug="evt-a")
+        event_b = baker.make(Event, name="Event B", slug="evt-b")
+        for i in range(5):
+            u = baker.make(CustomUser, email=f"changelist-{i}@example.com")
+            u.events.add(event_a, event_b)
+
+        url = reverse("admin:users_customuser_changelist")
+        with CaptureQueriesContext(connection) as ctx:
+            response = client.get(url)
+        assert response.status_code == HTTPStatus.OK
+        # An N+1 on five users would mean five row-level queries against events_event
+        # in addition to the prefetch and the branding context processor's lookups.
+        # The threshold catches the regression while staying tolerant of small,
+        # constant-cost helpers running on the admin page.
+        n_users = 5
+        event_queries = [q for q in ctx.captured_queries if '"events_event"' in q["sql"]]
+        assert len(event_queries) < n_users, event_queries
