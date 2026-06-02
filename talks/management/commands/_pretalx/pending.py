@@ -63,14 +63,51 @@ def serialize_field_diffs(
 
     Output shape: ``{field_name: {"old": <value>, "new": <value>}}``. ``room`` and
     ``event`` are flattened to their string representation (slug or name) so the
-    payload is safe to serialize.
+    payload is safe to serialize. The ``room`` diff also carries ``old_pretalx_id`` /
+    ``new_pretalx_id`` so apply can resolve and rename the room by its stable id.
+
+    Read-only: ``_diff_talk_fields`` runs in detect mode, so room resolution never
+    writes and the talk instance is never mutated.
     """
     fresh = _diff_talk_fields(talk, data, ctx)
     diffs: dict[str, dict[str, Any]] = {}
     for field, new_value in fresh.items():
         old_value = getattr(talk, field)
-        diffs[field] = {"old": _jsonify(old_value), "new": _jsonify(new_value)}
+        entry: dict[str, Any] = {"old": _jsonify(old_value), "new": _jsonify(new_value)}
+        if field == "room":
+            entry["old_pretalx_id"] = getattr(old_value, "pretalx_id", None)
+            entry["new_pretalx_id"] = data.pretalx_room_id
+        diffs[field] = entry
+
+    # A pure rename (Pretalx renamed the room the talk already sits in) leaves the talk's
+    # room FK unchanged, so it never shows up in ``fresh``. Surface it explicitly so it is
+    # reviewable in detect-only deployments instead of only applying on a direct sync.
+    if "room" not in diffs:
+        rename = _room_rename_diff(talk, data)
+        if rename is not None:
+            diffs["room"] = rename
     return diffs
+
+
+def _room_rename_diff(talk: Talk, data: SubmissionData) -> dict[str, Any] | None:
+    """
+    Return a ``room`` diff when *talk*'s current room was renamed on Pretalx.
+
+    A rename is detected when the talk's room carries the same stable Pretalx id as the
+    incoming submission but a different name. Read-only; no DB access beyond the already
+    loaded ``talk.room``.
+    """
+    current = talk.room
+    if current is None or not data.room or data.pretalx_room_id is None:
+        return None
+    if current.pretalx_id == data.pretalx_room_id and current.name != data.room:
+        return {
+            "old": current.name,
+            "new": data.room,
+            "old_pretalx_id": current.pretalx_id,
+            "new_pretalx_id": data.pretalx_room_id,
+        }
+    return None
 
 
 def build_submission_payload(
@@ -92,6 +129,7 @@ def build_submission_payload(
         "start_time": data.start_time.isoformat() if data.start_time else None,
         "duration_seconds": int(data.duration.total_seconds()) if data.duration else None,
         "room": data.room,
+        "room_pretalx_id": data.pretalx_room_id,
         "track": data.track,
         "submission_type": data.submission_type,
         "presentation_type": map_presentation_type(data.submission_type, data.code, ctx),

@@ -1187,6 +1187,57 @@ class TestDetectOnlyMode:
         assert result == "unchanged"
         assert PendingPretalxChange.objects.count() == 0
 
+    def test_detect_pure_room_rename_is_recorded(
+        self,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """A room renamed on Pretalx (same id, new name) is recorded without writing."""
+        event = Event.objects.create(slug="evt", name="Evt", year=2099)
+        mock_submission.state = State.confirmed
+        pretalx_url = "https://pretalx.com/evt"
+        # The submission references room id 4993, now renamed to "New Hall".
+        mock_submission.slots[0].room_id = 4993
+        mock_submission.slots[0].room.name = {"en": "New Hall"}
+        # The local room carries that id but the OLD name; every other field matches.
+        room = Room.objects.create(event=event, name="Old Hall", pretalx_id=4993)
+        speaker1 = Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
+        speaker2 = Speaker.objects.create(name="Eric Idle", pretalx_id="SPK002")
+        talk = Talk.objects.create(
+            presentation_type="Talk",
+            title=mock_submission.title,
+            abstract=mock_submission.abstract,
+            description=mock_submission.description,
+            start_time=mock_submission.slots[0].start,
+            duration=timedelta(minutes=mock_submission.duration),
+            room=room,
+            track="Data Science",
+            pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
+            event=event,
+        )
+        talk.speakers.add(speaker1, speaker2)
+
+        ctx = _ctx(
+            log_fn=command._log,
+            detect_only=True,
+            skip_images=True,
+            pretalx_event_url=pretalx_url,
+            event_obj=event,
+        )
+
+        result = command._process_single_submission(mock_submission, ctx)
+
+        assert result == "detected"
+        # Detect-only never renames the room.
+        room.refresh_from_db()
+        assert room.name == "Old Hall"
+        change = PendingPretalxChange.objects.get()
+        assert change.kind == PendingPretalxChange.Kind.UPDATE
+        room_diff = change.field_diffs["room"]
+        assert room_diff["old"] == "Old Hall"
+        assert room_diff["new"] == "New Hall"
+        assert room_diff["new_pretalx_id"] == 4993
+
     def test_detect_cancelled_writes_delete_pending(
         self,
         command: Command,
