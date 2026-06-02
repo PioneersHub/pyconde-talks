@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Avg, Count, ExpressionWrapper, F, Q
+from django.db.models import Avg, Count, F, Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -331,6 +331,16 @@ class Talk(models.Model):
         default=timedelta(),
         help_text=_("Duration of the talk"),
     )
+    # Derived as ``start_time + duration`` by the database (Django 5+ GeneratedField).
+    # Stored (``db_persist=True``) so it is indexable and reusable in queries without
+    # an ``ExpressionWrapper`` annotation. Updates automatically when start_time or
+    # duration change - never set this column directly.
+    end_time = models.GeneratedField(
+        expression=F("start_time") + F("duration"),
+        output_field=models.DateTimeField(),
+        db_persist=True,
+        help_text=_("Computed talk end time (start_time + duration). Managed by the database."),
+    )
     room = models.ForeignKey(
         Room,
         on_delete=models.SET_NULL,
@@ -422,6 +432,9 @@ class Talk(models.Model):
             models.Index(fields=["hide", "start_time"]),
             models.Index(fields=["presentation_type", "start_time"]),
             models.Index(fields=["event", "start_time"]),
+            # Speeds up the "current"/"completed" status filter and Streaming overlap checks.
+            models.Index(fields=["end_time"]),
+            models.Index(fields=["room", "end_time"]),
         ]
 
     def __str__(self) -> str:
@@ -483,15 +496,10 @@ class Talk(models.Model):
             return False
 
         end_time = start_time + duration
-        qs = (
-            cls.objects.filter(room=room, start_time__lt=end_time)
-            .annotate(
-                computed_end=ExpressionWrapper(
-                    F("start_time") + F("duration"),
-                    output_field=models.DateTimeField(),
-                ),
-            )
-            .filter(computed_end__gt=start_time)
+        qs = cls.objects.filter(
+            room=room,
+            start_time__lt=end_time,
+            end_time__gt=start_time,
         )
         if exclude_pk is not None:
             qs = qs.exclude(pk=exclude_pk)

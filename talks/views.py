@@ -8,7 +8,7 @@ live in ``talks.views_rating`` and the bookmark toggle in ``talks.views_saved``.
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, cast
 
-from django.db.models import Avg, Count, F, Q
+from django.db.models import Avg, Count, Q
 from django.db.models.functions import TruncDate
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
@@ -444,20 +444,14 @@ def _apply_status_filter(queryset: QuerySet[Talk], status: str) -> QuerySet[Talk
     margin = timedelta(minutes=5)
 
     if status == "current":
-        queryset = queryset.annotate(
-            _end_time=F("start_time") + F("duration"),
-        ).filter(
+        return queryset.filter(
             start_time__lte=now + margin,
-            _end_time__gte=now - margin,
+            end_time__gte=now - margin,
         )
-    elif status == "upcoming":
-        queryset = queryset.filter(start_time__gt=now + margin)
-    elif status == "completed":
-        queryset = queryset.annotate(
-            _end_time=F("start_time") + F("duration"),
-        ).filter(
-            _end_time__lt=now - margin,
-        )
+    if status == "upcoming":
+        return queryset.filter(start_time__gt=now + margin)
+    if status == "completed":
+        return queryset.filter(end_time__lt=now - margin)
 
     return queryset
 
