@@ -182,7 +182,8 @@ class TestTalkListView:
         baker.make(Talk, title="Talk In Room", room=room)
         baker.make(Talk, title="Talk No Room", room=None)
         client.force_login(user)
-        url = reverse("talk_list") + f"?room={room.pk}"
+        # event=all isolates the room filter from default-event resolution.
+        url = reverse("talk_list") + f"?room={room.pk}&event=all"
         response = client.get(url)
         assert response.status_code == HTTPStatus.OK
         content = response.content.decode()

@@ -757,12 +757,19 @@ class Command(BaseCommand):
             for category, cli_key in _ROOM_CLI_KEYS.items()
         }
 
-    def _resolve_event(self, options: dict[str, Any]) -> Event | None:
-        """Resolve or create the ``Event`` from CLI options."""
+    def _resolve_event(self, options: dict[str, Any]) -> Event:
+        """
+        Resolve or create the ``Event`` for the generated data.
+
+        Rooms are event-scoped (required), so fake data always belongs to an event. When
+        no --event-slug is given we fall back to a synthetic event rather than producing
+        event-less rooms/talks.
+        """
         event_slug = str(options.get("event_slug", "")).strip()
         event_name = str(options.get("event_name", "")).strip()
         if not event_slug:
-            return None
+            event_slug = "fake-event"
+            event_name = event_name or "Fake Event"
         event_obj, created = Event.objects.get_or_create(
             slug=event_slug,
             defaults={"name": event_name or event_slug, "year": timezone.now().year},

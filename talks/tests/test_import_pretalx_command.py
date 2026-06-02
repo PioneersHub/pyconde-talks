@@ -370,22 +370,24 @@ class TestBatchCreateRooms:
 
     def test_creates_new_rooms(self, mock_submission: Mock) -> None:
         """Test that new rooms are created via bulk_create."""
+        event = Event.objects.create(slug="evt", name="Evt", year=2099)
         mock_submission.state = State.confirmed
         submissions = [mock_submission]
-        ctx = _ctx()
+        ctx = _ctx(event_obj=event)
 
         batch_create_rooms(submissions, ctx)
 
-        assert Room.objects.filter(name="Main Hall").exists()
+        assert Room.objects.filter(name="Main Hall", event=event).exists()
 
     def test_skips_existing_rooms(self, mock_submission: Mock) -> None:
         """Test that existing rooms are not recreated."""
-        # Create existing room
-        Room.objects.create(name="Main Hall", description="Original description")
+        # Create existing room in the same event
+        event = Event.objects.create(slug="evt", name="Evt", year=2099)
+        Room.objects.create(name="Main Hall", event=event, description="Original description")
 
         mock_submission.state = State.confirmed
         submissions = [mock_submission]
-        ctx = _ctx(pretalx_event_url="https://pretalx.com/pyconde2099")
+        ctx = _ctx(event_obj=event, pretalx_event_url="https://pretalx.com/pyconde2099")
 
         batch_create_rooms(submissions, ctx)
 
@@ -432,7 +434,7 @@ class TestBatchCreateRooms:
         submission2.speakers = mock_submission.speakers
 
         submissions = [mock_submission, submission2]
-        ctx = _ctx()
+        ctx = _ctx(event_obj=Event.objects.create(slug="evt", name="Evt", year=2099))
 
         batch_create_rooms(submissions, ctx)
 
@@ -727,7 +729,7 @@ class TestProcessSingleSubmission:
         mock_submission.state = State.confirmed
 
         # Create required room and speakers
-        room = Room.objects.create(name="Main Hall")
+        room = Room.objects.create(name="Main Hall", event=baker.make(Event))
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         # Mock create_talk to return a Talk
@@ -752,7 +754,7 @@ class TestProcessSingleSubmission:
     ) -> None:
         """Test that dry_run mode does not actually create talks but returns 'created'."""
         mock_submission.state = State.confirmed
-        Room.objects.create(name="Main Hall")
+        Room.objects.create(name="Main Hall", event=baker.make(Event))
 
         ctx = _ctx(
             log_fn=command._log,
@@ -777,7 +779,7 @@ class TestProcessSingleSubmission:
         """Test that existing talks are updated and images are regenerated."""
         mock_submission.state = State.confirmed
 
-        room = Room.objects.create(name="Main Hall")
+        room = Room.objects.create(name="Main Hall", event=baker.make(Event))
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
@@ -814,7 +816,7 @@ class TestProcessSingleSubmission:
         """Test that image generation runs on update when skip_images is False."""
         mock_submission.state = State.confirmed
 
-        room = Room.objects.create(name="Main Hall")
+        room = Room.objects.create(name="Main Hall", event=baker.make(Event))
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
@@ -848,7 +850,7 @@ class TestProcessSingleSubmission:
         """Test that image generation is skipped on update when skip_images is True."""
         mock_submission.state = State.confirmed
 
-        room = Room.objects.create(name="Main Hall")
+        room = Room.objects.create(name="Main Hall", event=baker.make(Event))
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
@@ -883,7 +885,7 @@ class TestProcessSingleSubmission:
         mock_update_talk.return_value = False
         mock_submission.state = State.confirmed
 
-        room = Room.objects.create(name="Main Hall")
+        room = Room.objects.create(name="Main Hall", event=baker.make(Event))
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
@@ -917,7 +919,7 @@ class TestProcessSingleSubmission:
         """An avatar/name change on a still-attached speaker triggers image regen."""
         mock_update_talk.return_value = False
         mock_submission.state = State.confirmed
-        Room.objects.create(name="Main Hall")
+        Room.objects.create(name="Main Hall", event=baker.make(Event))
         speaker = Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
@@ -947,7 +949,7 @@ class TestProcessSingleSubmission:
         mock_update_talk.return_value = False
         mock_submission.state = State.confirmed
 
-        room = Room.objects.create(name="Main Hall")
+        room = Room.objects.create(name="Main Hall", event=baker.make(Event))
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
@@ -982,7 +984,7 @@ class TestProcessSingleSubmission:
         """--skip-images wins over --force-images when both are set."""
         mock_update_talk.return_value = False
         mock_submission.state = State.confirmed
-        Room.objects.create(name="Main Hall")
+        Room.objects.create(name="Main Hall", event=baker.make(Event))
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"
@@ -1013,7 +1015,7 @@ class TestProcessSingleSubmission:
         """A template touched after the existing image triggers image regen."""
         mock_update_talk.return_value = False
         mock_submission.state = State.confirmed
-        Room.objects.create(name="Main Hall")
+        Room.objects.create(name="Main Hall", event=baker.make(Event))
         Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
 
         pretalx_url = "https://pretalx.com/pyconde2099"

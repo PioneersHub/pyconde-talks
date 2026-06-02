@@ -169,7 +169,7 @@ class StreamingAdmin(admin.ModelAdmin[Streaming]):
     @admin.display(description=_("Event"), ordering="room__event")
     def room_event(self, obj: Streaming) -> str:
         """Show the room's event so same-named rooms across events are distinguishable."""
-        return str(obj.room.event) if obj.room.event else "-"
+        return str(obj.room.event)
 
     fieldsets: ClassVar[list[Any]] = [
         (

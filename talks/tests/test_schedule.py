@@ -20,22 +20,30 @@ from utils.test_perf import assert_no_n_plus_one
 # Fixtures
 # ---------------------------------------------------------------------------
 @pytest.fixture()
-def user() -> CustomUser:
-    """Create a regular user for testing."""
-    return baker.make(CustomUser, email="schedule@example.com")
+def event() -> Event:
+    """Return the single event all schedule fixtures share (rooms are event-scoped)."""
+    return Event.objects.create(slug="sched", name="Sched", year=2099)
 
 
 @pytest.fixture()
-def rooms() -> list[Room]:
-    """Create two rooms."""
+def user(event: Event) -> CustomUser:
+    """Create a regular user with access to the schedule event."""
+    user = baker.make(CustomUser, email="schedule@example.com")
+    user.events.add(event)
+    return user
+
+
+@pytest.fixture()
+def rooms(event: Event) -> list[Room]:
+    """Create two rooms in the shared event."""
     return [
-        baker.make(Room, name="Room A"),
-        baker.make(Room, name="Room B"),
+        baker.make(Room, name="Room A", event=event),
+        baker.make(Room, name="Room B", event=event),
     ]
 
 
 @pytest.fixture()
-def today_talks(rooms: list[Room]) -> list[Talk]:
+def today_talks(rooms: list[Room], event: Event) -> list[Talk]:
     """Create talks for today spread across two rooms and two time slots."""
     now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)
     return [
@@ -43,6 +51,7 @@ def today_talks(rooms: list[Room]) -> list[Talk]:
             Talk,
             title="Talk 1",
             room=rooms[0],
+            event=event,
             start_time=now,
             duration=timedelta(minutes=30),
         ),
@@ -50,6 +59,7 @@ def today_talks(rooms: list[Room]) -> list[Talk]:
             Talk,
             title="Talk 2",
             room=rooms[1],
+            event=event,
             start_time=now,
             duration=timedelta(minutes=30),
         ),
@@ -57,6 +67,7 @@ def today_talks(rooms: list[Room]) -> list[Talk]:
             Talk,
             title="Talk 3",
             room=rooms[0],
+            event=event,
             start_time=now + timedelta(hours=1),
             duration=timedelta(minutes=45),
         ),
@@ -145,6 +156,7 @@ class TestScheduleView:
         client: pytest.fixture,  # type: ignore[type-arg,valid-type]
         user: CustomUser,
         rooms: list[Room],
+        event: Event,
     ) -> None:
         """
         The schedule defaults to today using the local timezone, not UTC.
@@ -160,6 +172,7 @@ class TestScheduleView:
         baker.make(
             Talk,
             title="Late Night Talk",
+            event=event,
             room=rooms[0],
             start_time=datetime(2026, 4, 16, 8, 0, tzinfo=UTC),
             duration=timedelta(minutes=30),
@@ -168,6 +181,7 @@ class TestScheduleView:
         baker.make(
             Talk,
             title="Yesterday Talk",
+            event=event,
             room=rooms[0],
             start_time=datetime(2026, 4, 15, 10, 0, tzinfo=UTC),
             duration=timedelta(minutes=30),
@@ -291,12 +305,14 @@ class TestScheduleView:
         client: pytest.fixture,  # type: ignore[type-arg,valid-type]
         user: CustomUser,
         rooms: list[Room],
+        event: Event,
     ) -> None:
         """Only talks in the selected track appear on the schedule."""
         now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)
         baker.make(
             Talk,
             title="Pythonic Talk",
+            event=event,
             room=rooms[0],
             track="PyData",
             start_time=now,
@@ -305,6 +321,7 @@ class TestScheduleView:
         baker.make(
             Talk,
             title="Different Track Talk",
+            event=event,
             room=rooms[0],
             track="Devops",
             start_time=now + timedelta(minutes=45),
@@ -321,12 +338,14 @@ class TestScheduleView:
         client: pytest.fixture,  # type: ignore[type-arg,valid-type]
         user: CustomUser,
         rooms: list[Room],
+        event: Event,
     ) -> None:
         """Only talks of the selected presentation type appear."""
         now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)
         baker.make(
             Talk,
             title="Tutorial Item",
+            event=event,
             room=rooms[0],
             presentation_type=Talk.PresentationType.TUTORIAL,
             start_time=now,
@@ -335,6 +354,7 @@ class TestScheduleView:
         baker.make(
             Talk,
             title="Keynote Item",
+            event=event,
             room=rooms[0],
             presentation_type=Talk.PresentationType.KEYNOTE,
             start_time=now + timedelta(minutes=45),
@@ -354,12 +374,14 @@ class TestScheduleView:
         client: pytest.fixture,  # type: ignore[type-arg,valid-type]
         user: CustomUser,
         rooms: list[Room],
+        event: Event,
     ) -> None:
         """Talks without a room should not produce schedule grid items."""
         now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)
         baker.make(
             Talk,
             title="RoomedTalk",
+            event=event,
             room=rooms[0],
             start_time=now,
             duration=timedelta(minutes=30),
@@ -369,6 +391,7 @@ class TestScheduleView:
         baker.make(
             Talk,
             title="NoRoomTalk",
+            event=event,
             room=None,
             start_time=now,
             duration=timedelta(minutes=30),
@@ -460,12 +483,14 @@ class TestScheduleView:
         client: pytest.fixture,  # type: ignore[type-arg,valid-type]
         user: CustomUser,
         rooms: list[Room],
+        event: Event,
     ) -> None:
         """Overlapping talks in different rooms get distinct grid columns."""
         now = timezone.now().replace(hour=9, minute=20, second=0, microsecond=0)
         baker.make(
             Talk,
             title="Overlap A",
+            event=event,
             room=rooms[0],
             start_time=now,
             duration=timedelta(minutes=40),
@@ -473,6 +498,7 @@ class TestScheduleView:
         baker.make(
             Talk,
             title="Overlap B",
+            event=event,
             room=rooms[1],
             start_time=now + timedelta(minutes=10),
             duration=timedelta(minutes=30),

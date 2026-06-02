@@ -200,18 +200,6 @@ class TestStreamingAdmin:
         )
         assert admin.room_event(streaming) == str(event)
 
-    def test_room_event_display_none(self) -> None:
-        """A room without an event renders a dash."""
-        admin = StreamingAdmin(Streaming, site)
-        room = Room.objects.create(name="Hall")
-        streaming = baker.make(
-            Streaming,
-            room=room,
-            start_time=timezone.now(),
-            end_time=timezone.now() + timedelta(hours=1),
-        )
-        assert admin.room_event(streaming) == "-"
-
 
 # ---------------------------------------------------------------------------
 # SpeakerAdmin

@@ -47,14 +47,12 @@ class Room(models.Model):
     # Rooms are event-scoped: the same physical room reused across events is a separate
     # Room row per event. on_delete=PROTECT so an event with rooms can't be deleted out
     # from under its talks/streamings; you reassign or remove rooms explicitly first.
-    # Nullable for now so the additive migration + backfill can run in two safe phases;
-    # a later migration tightens this to required.
+    # Required: every room belongs to an event (migrations 0024 add it nullable, 0025
+    # backfill existing rows, 0027 tighten to NOT NULL).
     event = models.ForeignKey(
         "events.Event",
         on_delete=models.PROTECT,
         related_name="rooms",
-        null=True,
-        blank=True,
         help_text=_("Event this room belongs to"),
     )
 

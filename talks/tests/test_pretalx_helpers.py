@@ -298,16 +298,18 @@ class TestGetOrCreateRoom:
 
     def test_returns_existing(self) -> None:
         """Existing rooms are reused rather than duplicated."""
-        existing = Room.objects.create(name="Main Hall")
-        result = get_or_create_room("Main Hall", _ctx())
+        event = Event.objects.create(slug="e", name="E", year=2099)
+        existing = Room.objects.create(name="Main Hall", event=event)
+        result = get_or_create_room("Main Hall", _ctx(event_obj=event))
         assert result == existing
         assert Room.objects.count() == 1
 
     def test_creates_new(self) -> None:
-        """Unknown names are persisted as new Rooms."""
-        result = get_or_create_room("New Room", _ctx())
+        """Unknown names are persisted as new Rooms scoped to the event."""
+        event = Event.objects.create(slug="e", name="E", year=2099)
+        result = get_or_create_room("New Room", _ctx(event_obj=event))
         assert result is not None
-        assert Room.objects.filter(name="New Room").exists()
+        assert Room.objects.filter(name="New Room", event=event).exists()
 
     def test_dry_run_returns_unsaved(self) -> None:
         """Dry-run returns an unsaved Room so callers can still reference it."""
@@ -520,7 +522,7 @@ class TestCreateAndUpdateTalk:
         """update_talk overwrites fields and moves the Talk to the new context event."""
         old_event = Event.objects.create(slug="old", name="O", year=2098)
         new_event = Event.objects.create(slug="new", name="N", year=2099)
-        room = Room.objects.create(name="OldRoom")
+        room = Room.objects.create(name="OldRoom", event=old_event)
         talk = baker.make(
             Talk,
             title="Old",
@@ -543,7 +545,7 @@ class TestCreateAndUpdateTalk:
     def test_update_talk_returns_false_when_already_in_sync(self) -> None:
         """A re-run of the import on a Talk that matches Pretalx is a no-op."""
         event = Event.objects.create(slug="sync", name="Sync", year=2099)
-        Room.objects.get_or_create(name="Main Hall")
+        Room.objects.get_or_create(name="Main Hall", event=event)
         pretalx_url = "https://pretalx.com/sync"
         sub = _mock_submission(code="UNCHANGED")
         data = SubmissionData(sub, pretalx_url)

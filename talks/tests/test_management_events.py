@@ -58,8 +58,8 @@ class TestGenerateFakeTalksEvent:
         assert Event.objects.filter(slug="existing-event").count() == 1
         assert Talk.objects.filter(event=existing).count() == 1
 
-    def test_no_event_flag_no_event_linked(self) -> None:
-        """When --event-slug is empty, talks are created without an event."""
+    def test_empty_event_slug_uses_fallback_event(self) -> None:
+        """With an empty --event-slug, a synthetic event is used (rooms need one)."""
         out = StringIO()
         call_command(
             "generate_fake_talks",
@@ -68,7 +68,9 @@ class TestGenerateFakeTalksEvent:
             event_slug="",
             stdout=out,
         )
-        assert Talk.objects.filter(event__isnull=True).count() == 1
+        # Rooms are event-scoped, so the generator never produces event-less talks.
+        assert Talk.objects.filter(event__isnull=True).count() == 0
+        assert Talk.objects.filter(event__isnull=False).count() == 1
 
 
 # ---------------------------------------------------------------------------
