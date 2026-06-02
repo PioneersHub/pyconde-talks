@@ -660,6 +660,20 @@ PRETALX_API_TOKEN = env("PRETALX_API_TOKEN", default="")
 # Default event slug shown pre-selected on the login page
 DEFAULT_EVENT = env("DEFAULT_EVENT", default="")
 
+# Recipients for the ``--detect-only`` digest. Three cases:
+# - unset / empty list -> fall back to ``ADMINS``;
+# - explicit list of addresses -> use exactly those;
+# - sentinel value ``["-"]`` -> disable the digest entirely (handy in CI).
+PRETALX_DIGEST_RECIPIENTS: list[str] | None = (
+    env.list(
+        "PRETALX_DIGEST_RECIPIENTS",
+        default=[],
+    )
+    or None
+)
+if PRETALX_DIGEST_RECIPIENTS == ["-"]:
+    PRETALX_DIGEST_RECIPIENTS = []
+
 # --------------------------------------------------------------------------------------------------
 # Livestreams
 # --------------------------------------------------------------------------------------------------
