@@ -1,5 +1,5 @@
 {% load svg_tags %}
-{# Moderator-only chair grid table. Swapped in place on every assign/remove via HTMX. #}
+{# Moderator-only chair grid. Swapped in place on every assign/remove via HTMX. #}
 <div id="chair-grid-table">
   {% if chair_error %}
     <div class="mb-3 rounded bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700"
@@ -7,107 +7,105 @@
   {% endif %}
   {% if has_grid %}
     <div class="overflow-x-auto pb-4">
-      <table class="min-w-full border-collapse text-sm">
-        <thead>
-          <tr>
-            <th class="sticky left-0 z-10 bg-gray-100 border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-subtle uppercase tracking-wider">
-              Time
-            </th>
-            {% for room in rooms %}
-              <th class="bg-gray-100 border border-gray-300 px-3 py-2 text-center text-xs font-semibold text-subtle uppercase tracking-wider">
-                {{ room.name }}
-              </th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in rows %}
-            <tr>
-              <th class="sticky left-0 z-10 bg-gray-50 border border-gray-200 px-3 py-2 text-left font-medium text-muted whitespace-nowrap">
-                {{ row.start_time|date:"H:i" }}
-              </th>
-              {% for talk in row.cells %}
-                {% if talk %}
-                  <td class="chair-cell border border-gray-200 px-3 py-2 align-top {% if talk.session_chair_id == current_user_id %}chair-mine{% endif %}"
-                      data-block="{{ talk.block_id }}">
-                    <a href="{% url 'talk_detail' talk.pk %}"
-                       class="block hover:underline font-medium text-heading leading-tight line-clamp-2"
-                       title="{{ talk.title }}">{{ talk.title }}</a>
-                    <div class="mt-1 text-xs">
-                      {% if talk.session_chair_id == current_user_id %}
-                        {# My block: show my name + step-down button. #}
-                        <span class="inline-flex items-center gap-1">
-                          <span class="inline-flex items-center gap-1 text-brand-blue">
-                            {% svg 'check-circle' "h-3 w-3" %}
-                            {{ talk.chair_display_name }}
-                          </span>
-                          <button hx-post="{% url 'toggle_session_chair' talk.pk %}"
-                                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                                  hx-vals='{"event": "{{ selected_event }}"}'
-                                  hx-target="#chair-grid-table"
-                                  hx-swap="outerHTML"
-                                  class="text-subtle hover:text-red-600"
-                                  title="Step down from this block">{% svg 'x-mark' "h-3 w-3" %}</button>
-                        </span>
-                      {% elif is_admin %}
-                        {# Admin view: dropdown to assign/reassign/clear any block. #}
-                        {% if talk.session_chair_id %}
-                          <span class="inline-flex items-center gap-1 text-muted mb-1">
-                            {% svg 'check-circle' "h-3 w-3" %}
-                            {{ talk.chair_display_name }}
-                          </span>
-                        {% endif %}
-                        <form hx-post="{% url 'toggle_session_chair' talk.pk %}"
+      <div class="schedule-grid"
+           style="display:grid;
+                  grid-template-columns: 64px repeat({{ rooms|length }}, minmax(160px, 1fr));
+                  grid-template-rows: auto {{ grid_template_rows }};
+                  min-width: min-content;
+                  gap: 0">
+        {# ── Room headers (row 1) ──────────── #}
+        <div class="sticky top-0 z-20 bg-gray-100 border-b border-gray-300 px-2 py-2"
+             style="grid-column: 1;
+                    grid-row: 1"></div>
+        {% for room in rooms %}
+          <div class="sticky top-0 z-20 bg-gray-100 border-b border-gray-300 px-3 py-2 text-center text-xs font-semibold text-subtle uppercase tracking-wider"
+               style="grid-column: {{ forloop.counter|add:1 }};
+                      grid-row: 1">{{ room.name }}</div>
+        {% endfor %}
+        {# ── Time labels (first column) ──────────── #}
+        {% for label in time_labels %}
+          <div class="sticky left-0 z-10 bg-gray-50 border-t border-gray-200 px-2 pt-1 text-xs font-medium text-muted whitespace-nowrap text-center"
+               style="grid-row: {{ label.name }};
+                      grid-column: 1">{{ label.display }}</div>
+          <div class="border-t border-gray-200 dark:border-gray-700 pointer-events-none"
+               style="grid-row: {{ label.name }};
+                      grid-column: 2 / -1;
+                      z-index: 0"></div>
+        {% endfor %}
+        {# ── Chair cards ──────────────────────────── #}
+        {% for item in chair_items %}
+          {% with talk=item.talk %}
+            <div class="chair-cell relative m-1 rounded-lg text-sm overflow-hidden {% if talk.session_chair_id == current_user_id %}chair-mine bg-blue-50{% elif talk.session_chair_id %}bg-green-50 border-l-4 border-green-400{% else %}bg-gray-50 border-l-4 border-gray-300{% endif %}"
+                 style="grid-area: {{ item.grid_area }};
+                        z-index: 1"
+                 data-block="{{ talk.block_id }}">
+              <div class="p-3 h-full">
+                <a href="{% url 'talk_detail' talk.pk %}"
+                   class="block hover:underline font-semibold text-heading leading-tight mb-1 line-clamp-2"
+                   title="{{ talk.title }}">{{ talk.title }}</a>
+                <div class="flex flex-wrap gap-1 mt-1 mb-1">
+                  {% if item.duration_min %}<span class="badge badge-gray text-[10px]">{{ item.duration_min }}min</span>{% endif %}
+                </div>
+                <div class="text-xs">
+                  {% if is_admin %}
+                    {# Admin view: dropdown always shown so they can reassign or clear any block. #}
+                    <select name="chair_user_id"
+                            hx-post="{% url 'toggle_session_chair' talk.pk %}"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                            hx-vals='{"event": "{{ selected_event }}"}'
+                            hx-target="#chair-grid-table"
+                            hx-swap="outerHTML"
+                            hx-trigger="change"
+                            class="mt-1 w-full rounded border border-gray-300 py-0.5 pl-1 pr-6 text-xs">
+                      <option value="">-- none --</option>
+                      {% for chair in available_chairs %}
+                        <option value="{{ chair.pk }}"
+                                {% if chair.pk == talk.session_chair_id %}selected{% endif %}>
+                          {{ chair.display_name|default:chair.email }}
+                          {% if chair.pk == current_user_id %}(me){% endif %}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  {% elif talk.session_chair_id == current_user_id %}
+                    {# My block (non-admin): show my name + step-down button. #}
+                    <span class="inline-flex items-center gap-1">
+                      <span class="inline-flex items-center gap-1 text-brand-blue">
+                        {% svg 'check-circle' "h-3 w-3" %}
+                        {{ talk.chair_display_name }}
+                      </span>
+                      <button hx-post="{% url 'toggle_session_chair' talk.pk %}"
                               hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                              hx-vals='{"event": "{{ selected_event }}"}'
                               hx-target="#chair-grid-table"
                               hx-swap="outerHTML"
-                              class="mt-1 flex w-full items-center gap-1">
-                          <input type="hidden" name="event" value="{{ selected_event }}">
-                          <select name="chair_user_id"
-                                  class="min-w-0 flex-1 rounded border border-gray-300 px-1 py-0.5 text-xs">
-                            <option value="">-- none --</option>
-                            {% for chair in available_chairs %}
-                              <option value="{{ chair.pk }}"
-                                      {% if chair.pk == talk.session_chair_id %}selected{% endif %}>
-                                {{ chair.display_name|default:chair.email }}
-                              </option>
-                            {% endfor %}
-                          </select>
-                          <button type="submit"
-                                  class="text-subtle hover:text-brand-blue"
-                                  title="Assign chair">{% svg 'check-circle' "h-3 w-3" %}</button>
-                        </form>
-                      {% elif talk.session_chair_id %}
-                        {# Someone else's block, non-admin: read-only. #}
-                        <span class="inline-flex items-center gap-1 text-muted">
-                          {% svg 'check-circle' "h-3 w-3" %}
-                          {{ talk.chair_display_name }}
-                        </span>
-                      {% else %}
-                        {# Unassigned, non-admin moderator: claim for self. #}
-                        <button hx-post="{% url 'toggle_session_chair' talk.pk %}"
-                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                                hx-vals='{"event": "{{ selected_event }}"}'
-                                hx-target="#chair-grid-table"
-                                hx-swap="outerHTML"
-                                class="inline-flex items-center gap-1 text-subtle hover:text-brand-blue"
-                                title="Chair this block">
-                          <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-current text-xs leading-none font-bold">+</span>
-                          Chair
-                        </button>
-                      {% endif %}
-                    </div>
-                  </td>
-                {% else %}
-                  <td class="border border-gray-200 px-3 py-2 align-top">
-                    <span class="text-subtle">-</span>
-                  </td>
-                {% endif %}
-              {% endfor %}
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+                              class="text-subtle hover:text-red-600"
+                              title="Step down from this block">{% svg 'x-mark' "h-3 w-3" %}</button>
+                    </span>
+                  {% elif talk.session_chair_id %}
+                    {# Someone else's block, non-admin: read-only. #}
+                    <span class="inline-flex items-center gap-1 text-muted">
+                      {% svg 'check-circle' "h-3 w-3" %}
+                      {{ talk.chair_display_name }}
+                    </span>
+                  {% else %}
+                    {# Unassigned, non-admin moderator: claim for self. #}
+                    <button hx-post="{% url 'toggle_session_chair' talk.pk %}"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                            hx-vals='{"event": "{{ selected_event }}"}'
+                            hx-target="#chair-grid-table"
+                            hx-swap="outerHTML"
+                            class="inline-flex items-center gap-1 text-subtle hover:text-brand-blue"
+                            title="Chair this block">
+                      <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-current text-xs leading-none font-bold">+</span>
+                      Chair
+                    </button>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endwith %}
+        {% endfor %}
+      </div>
     </div>
   {% else %}
     <div class="bg-surface p-6 rounded text-center text-subtle">

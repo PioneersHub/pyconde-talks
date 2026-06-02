@@ -21,6 +21,7 @@ from django.views.decorators.http import require_POST, require_safe
 
 from events.session import resolve_default_event
 
+from .grid_utils import build_grid_slices, build_time_labels, grid_line_name
 from .models import FAR_FUTURE, Room, Talk
 from .utils import is_htmx_request
 from .views_qa import is_moderator
@@ -88,14 +89,15 @@ def _find_chair_conflicts(target_user: CustomUser, block: list[Talk]) -> list[Ta
 
 def _get_available_chairs(user: CustomUser, event_id: int | None) -> list[CustomUser]:
     """
-    Return staff/superuser users eligible to be assigned as session chairs.
+    Return users eligible to chair sessions for the given event scope.
 
-    Scoped to users in the selected event (or all visible events for a cross-event grid).
+    Superusers are always included (they have implicit access to all events).
+    Regular staff must be members of the specific event - or, when no event is
+    selected, members of any event visible to the requesting admin.
     """
     UserModel = cast("type[CustomUser]", get_user_model())  # noqa: N806  # NOSONAR(S117)
     qs = UserModel.objects.filter(Q(is_staff=True) | Q(is_superuser=True))
     if event_id:
-        # Superusers have implicit access to all events even without M2M rows.
         qs = qs.filter(Q(is_superuser=True) | Q(events__id=event_id))
     else:
         accessible = user.visible_events()  # type: ignore[attr-defined]
@@ -331,12 +333,12 @@ def _build_chair_grid(
     selected_date: date,
     user: CustomUser,
     event_id: int | None,
-) -> tuple[list[Room], list[dict[str, Any]]]:
+) -> tuple[list[Room], list[dict[str, Any]], str, list[dict[str, str]]]:
     """
-    Build the chair grid for a day.
+    Build chair grid data using the same CSS Grid layout as the schedule view.
 
-    Returns ``(rooms, rows)`` where each row groups the talks that share a start time, with one
-    cell per room (or ``None`` when that room has no talk in that slot).
+    Returns ``(rooms, chair_items, grid_template_rows, time_labels)``.  Each chair item
+    carries the talk, its CSS ``grid_area``, and the block id used for hover highlighting.
     """
     talks_qs = (
         Talk.objects.filter(start_time__date=selected_date)
@@ -349,31 +351,39 @@ def _build_chair_grid(
         talks_qs = talks_qs.filter(event_id=event_id)
     talks = list(talks_qs)
 
-    # Unique rooms ordered by name, preserving only rooms that host a talk this day.
-    rooms_by_id: dict[int, Room] = {}
-    for talk in talks:
-        if talk.room and talk.room_id not in rooms_by_id:
-            rooms_by_id[talk.room_id] = talk.room
-    rooms = sorted(rooms_by_id.values(), key=lambda r: r.name)
+    # Unique rooms ordered by name.
+    room_ids_seen: set[int] = set()
+    rooms_list: list[Room] = []
+    for t in talks:
+        if t.room and t.room_id not in room_ids_seen:
+            room_ids_seen.add(t.room_id)  # type: ignore[arg-type]
+            rooms_list.append(t.room)
+    rooms = sorted(rooms_list, key=lambda r: r.name)
+    room_col: dict[int, int] = {r.id: idx + 2 for idx, r in enumerate(rooms)}  # type: ignore[attr-defined]
 
-    # Tag each talk with the id of the contiguous block it belongs to, so the UI can highlight a
-    # whole block together (the same grouping used when assigning a chair).
+    # Tag each talk with its contiguous block id for hover highlighting.
     _assign_block_ids(talks)
 
-    # Group talks by start time, then place each into its room column.
-    rows: list[dict[str, Any]] = []
-    talks_by_start: dict[datetime, dict[int, Talk]] = {}
-    for talk in talks:
-        if not talk.room:
+    # CSS Grid row template from talk time boundaries (shared with schedule view).
+    sorted_bounds, grid_template_rows = build_grid_slices(talks)
+
+    # One grid item per talk, positioned by CSS grid-area.
+    chair_items: list[dict[str, Any]] = []
+    for t in talks:
+        if not t.room or not t.room_id:
             continue
-        talks_by_start.setdefault(talk.start_time, {})[talk.room_id] = talk
+        col = room_col.get(t.room_id, 2)  # type: ignore[arg-type]
+        row_start = grid_line_name(t.start_time)
+        row_end = grid_line_name(t.start_time + t.duration)
+        chair_items.append(
+            {
+                "talk": t,
+                "grid_area": f"{row_start} / {col} / {row_end}",
+                "duration_min": int(t.duration.total_seconds() // 60),
+            }
+        )
 
-    for start_time in sorted(talks_by_start):
-        room_talks = talks_by_start[start_time]
-        cells = [room_talks.get(room.id) for room in rooms]
-        rows.append({"start_time": start_time, "cells": cells})
-
-    return rooms, rows
+    return rooms, chair_items, grid_template_rows, build_time_labels(sorted_bounds)
 
 
 def _grid_context(
@@ -384,24 +394,40 @@ def _grid_context(
     """Build the template context shared by the full grid page and the HTMX table fragment."""
     available_dates = _chair_dates(user, selected_event_id)
     rooms: list[Room] = []
-    rows: list[dict[str, Any]] = []
+    chair_items: list[dict[str, Any]] = []
+    grid_template_rows = ""
+    time_labels: list[dict[str, str]] = []
     if selected_date:
-        rooms, rows = _build_chair_grid(selected_date, user, selected_event_id)
+        rooms, chair_items, grid_template_rows, time_labels = _build_chair_grid(
+            selected_date,
+            user,
+            selected_event_id,
+        )
 
     years = {d.year for d in available_dates}
     admin = is_admin(user)
+    if admin:
+        all_chairs = _get_available_chairs(user, selected_event_id)
+        # Current user first so self-assignment is always one click, then alphabetical.
+        me = next((c for c in all_chairs if c.pk == user.pk), None)
+        others = [c for c in all_chairs if c.pk != user.pk]
+        available_chairs: list[CustomUser] = ([me] if me else []) + others
+    else:
+        available_chairs = []
     return {
         "available_dates": available_dates,
         "selected_date": selected_date,
         "has_multiple_years": len(years) > 1,
         "rooms": rooms,
-        "rows": rows,
-        "has_grid": bool(rows),
+        "chair_items": chair_items,
+        "grid_template_rows": grid_template_rows,
+        "time_labels": time_labels,
+        "has_grid": bool(chair_items),
         "events": user.visible_events(),
         "selected_event": str(selected_event_id) if selected_event_id else "",
         "current_user_id": user.pk,
         "is_admin": admin,
-        "available_chairs": _get_available_chairs(user, selected_event_id) if admin else [],
+        "available_chairs": available_chairs,
         "chair_error": None,
     }
 
