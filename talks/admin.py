@@ -21,7 +21,9 @@ if TYPE_CHECKING:
     from django_stubs_ext import StrOrPromise
 
 
-# Keep Q&A and rating admin modules imported so Django's autodiscovery registers them.
+# Keep Q&A, rating, and Pretalx admin modules imported so Django's autodiscovery
+# registers them.
+import talks.admin_pretalx as _admin_pretalx  # noqa: F401
 import talks.admin_qa as _admin_qa  # noqa: F401
 import talks.admin_rating as _admin_rating  # noqa: F401
 

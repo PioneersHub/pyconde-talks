@@ -830,6 +830,10 @@ def prefetch_streamings(talks: list[Talk]) -> None:
 # Rating + SavedTalk models live in talks.models_rating. Import them here so that importing
 # talks.models always registers every Talk-related model with Django - migrations, admin
 # autodiscovery, and model_bakery all rely on that side effect.
+from talks.models_pretalx import (  # noqa: E402
+    MAX_PRETALX_CODE_LENGTH,
+    PendingPretalxChange,
+)
 from talks.models_rating import (  # noqa: E402
     COMMENT_MAX_LENGTH,
     MAX_RATING_SCORE,
@@ -843,6 +847,7 @@ __all__ = [
     "COMMENT_MAX_LENGTH",
     "EMPTY_TRACK_NAME",
     "FAR_FUTURE",
+    "MAX_PRETALX_CODE_LENGTH",
     "MAX_PRETALX_ID_LENGTH",
     "MAX_PRONOUNS_LENGTH",
     "MAX_RATING_SCORE",
@@ -851,6 +856,7 @@ __all__ = [
     "MAX_TALK_TITLE_LENGTH",
     "MAX_TRACK_NAME_LENGTH",
     "MIN_RATING_SCORE",
+    "PendingPretalxChange",
     "Rating",
     "RatingStats",
     "Room",
