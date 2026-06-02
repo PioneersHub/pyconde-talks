@@ -251,23 +251,15 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """
     question = _get_accessible_question(request.user, question_id)
 
-    # Check if user has already voted
-    existing_vote = QuestionVote.objects.filter(
+    # Atomic toggle: rely on the (question, user) unique constraint so two concurrent
+    # clicks can't both insert a vote (which previously caused an IntegrityError 500).
+    vote, created = QuestionVote.objects.get_or_create(
         question=question,
         user=request.user,
-    ).first()
-
-    if existing_vote:
-        # Remove vote if it exists
-        existing_vote.delete()
-        question.user_voted = False
-    else:
-        # Create new vote
-        QuestionVote.objects.create(
-            question=question,
-            user=request.user,
-        )
-        question.user_voted = True
+    )
+    if not created:
+        vote.delete()
+    question.user_voted = created
 
     # Return HTML for HTMX to replace the question list with sorted questions
     if is_htmx_request(request):
