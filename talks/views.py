@@ -329,10 +329,10 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
     user = cast("CustomUser", request.user)
     current_date = timezone.now().date()
 
-    # Determine which events the user may see
-    events = user.visible_events()
-
-    event_ids = list(events.values_list("id", flat=True))
+    # Determine which events the user may see. Materialize once so we iterate the
+    # same in-memory list later instead of re-querying for the row data.
+    events = list(user.visible_events())
+    event_ids = [event.id for event in events]  # type: ignore[attr-defined]
 
     # Fetch only the fields needed for get_video_link() - scoped to user events
     talks_for_video = list(
