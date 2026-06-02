@@ -30,6 +30,8 @@ services:
         - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
         - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
         - DJANGO_STATIC_ROOT=${DJANGO_STATIC_ROOT}
+        # Must match the runtime backend in .env so the build bakes a matching manifest.
+        - DJANGO_STATICFILES_STORAGE=${DJANGO_STATICFILES_STORAGE}
     container_name: ${CONTAINER_PREFIX}-django
     image: ${IMAGE_NAME:-talks-django}:${IMAGE_TAG:-latest}
     restart: unless-stopped

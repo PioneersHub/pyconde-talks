@@ -43,14 +43,25 @@ ADD --chmod=0555 \
 # Copy project
 COPY . /app/
 
-# Install project and collect static files into STATIC_ROOT
+# Install project and collect static files into STATIC_ROOT.
+#
+# The staticfiles storage backend MUST match runtime (see docker/.env). With
+# ManifestStaticFilesStorage, collectstatic content-hashes every asset and writes the
+# staticfiles.json manifest the app reads to resolve {% static %} tags. If the build used
+# the plain storage instead, the running app would 500 with "Missing staticfiles manifest
+# entry". The default here mirrors prod; override via the build arg for a manifest-less build.
+#
+# Tailwind must build into the SOURCE static dir BEFORE collectstatic so the generated CSS
+# is itself collected, hashed, and recorded in the manifest (base.html loads it via
+# {% static 'css/tailwind.min.css' %}).
 ENV DJANGO_STATIC_ROOT=/staticfiles
+ARG DJANGO_STATICFILES_STORAGE=django.contrib.staticfiles.storage.ManifestStaticFilesStorage
+ENV DJANGO_STATICFILES_STORAGE=${DJANGO_STATICFILES_STORAGE}
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-default-groups --group prod && \
-    python manage.py collectstatic --noinput && \
-    # Generate minified CSS with Tailwind
-    mkdir -p "${DJANGO_STATIC_ROOT}/css" && \
-    /usr/local/bin/tailwindcss -i /app/assets/css/input.css -o "${DJANGO_STATIC_ROOT}/css/tailwind.min.css" --minify
+    mkdir -p /app/static/css && \
+    /usr/local/bin/tailwindcss -i /app/assets/css/input.css -o /app/static/css/tailwind.min.css --minify && \
+    python manage.py collectstatic --noinput
 
 # Stage 2: extract static files
 #
