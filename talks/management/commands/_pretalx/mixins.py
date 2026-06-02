@@ -44,13 +44,14 @@ type _StatKey = Literal[
     "total",
     "created",
     "updated",
+    "unchanged",
     "deleted",
     "skipped",
     "failed",
 ]
 
 #: Result status returned by per-submission handlers.
-type _ResultStatus = Literal["created", "updated", "deleted", "skipped"]
+type _ResultStatus = Literal["created", "updated", "unchanged", "deleted", "skipped"]
 
 
 # ------------------------------------------------------------------
@@ -225,8 +226,9 @@ class ProcessingMixin(LoggingMixin):
 
         ctx.log(
             f"Import complete: {stats['created']} created, {stats['updated']} updated, "
-            f"{stats['deleted']} deleted, {stats['skipped']} skipped, "
-            f"{stats['failed']} failed, {stats['total']} total",
+            f"{stats['unchanged']} unchanged, {stats['deleted']} deleted, "
+            f"{stats['skipped']} skipped, {stats['failed']} failed, "
+            f"{stats['total']} total",
             VerbosityLevel.NORMAL,
             "SUCCESS",
         )
@@ -285,7 +287,14 @@ class ProcessingMixin(LoggingMixin):
         speakers: list[SubmissionSpeaker],
         ctx: ImportContext,
     ) -> _ResultStatus:
-        """Update *existing_talk* with fresh data, or skip when ``--no-update`` is set."""
+        """
+        Sync *existing_talk* with fresh data.
+
+        Returns ``"skipped"`` when ``--no-update`` is set, ``"unchanged"`` when the
+        talk and speakers are already in sync with Pretalx, and ``"updated"``
+        otherwise. Image regeneration is skipped when nothing changed, so re-running
+        the import is cheap.
+        """
         if ctx.no_update:
             ctx.log(
                 f"Skipping update for existing talk: {data.title}",
@@ -293,15 +302,17 @@ class ProcessingMixin(LoggingMixin):
                 "WARNING",
             )
             return "skipped"
-        ctx.log(
-            f"Updating existing talk: {data.title}",
-            VerbosityLevel.DETAILED,
-            "WARNING",
-        )
-        if not ctx.dry_run:
-            update_talk(existing_talk, data, speakers, ctx)
-            if not ctx.skip_images:
-                self._image_generator.generate(existing_talk, ctx)
+
+        changed = update_talk(existing_talk, data, speakers, ctx)
+        if not changed:
+            ctx.log(
+                f"No changes for existing talk: {data.title}",
+                VerbosityLevel.DETAILED,
+            )
+            return "unchanged"
+
+        if not ctx.dry_run and not ctx.skip_images:
+            self._image_generator.generate(existing_talk, ctx)
         return "updated"
 
     def _handle_new(
@@ -334,6 +345,7 @@ def _new_stats(total: int) -> dict[_StatKey, int]:
         "total": total,
         "created": 0,
         "updated": 0,
+        "unchanged": 0,
         "deleted": 0,
         "skipped": 0,
         "failed": 0,

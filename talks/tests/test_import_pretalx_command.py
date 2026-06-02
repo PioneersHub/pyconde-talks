@@ -804,3 +804,38 @@ class TestProcessSingleSubmission:
 
         assert result == "updated"
         command._image_generator.generate.assert_not_called()
+
+    @patch("talks.management.commands._pretalx.mixins.update_talk")
+    def test_unchanged_talk_does_not_regenerate_image(
+        self,
+        mock_update_talk: Mock,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """When update_talk reports no changes, the result is 'unchanged' and no image is built."""
+        mock_update_talk.return_value = False
+        mock_submission.state = State.confirmed
+
+        room = Room.objects.create(name="Main Hall")
+        Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
+
+        pretalx_url = "https://pretalx.com/pyconde2099"
+        baker.make(
+            Talk,
+            title="Old Title",
+            room=room,
+            pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
+        )
+
+        command._image_generator = Mock()
+
+        ctx = _ctx(
+            log_fn=command._log,
+            skip_images=False,
+            pretalx_event_url=pretalx_url,
+        )
+
+        result = command._process_single_submission(mock_submission, ctx)
+
+        assert result == "unchanged"
+        command._image_generator.generate.assert_not_called()

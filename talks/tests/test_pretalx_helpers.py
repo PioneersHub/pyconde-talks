@@ -472,13 +472,49 @@ class TestCreateAndUpdateTalk:
         data = self._data(code="AA2", title="New Title", room="NewRoom", duration=60)
         ctx = _ctx(event_obj=new_event, pretalx_event_url="https://pretalx.com/new")
 
-        update_talk(talk, data, [], ctx)
+        changed = update_talk(talk, data, [], ctx)
 
+        assert changed is True
         talk.refresh_from_db()
         assert talk.title == "New Title"
         assert talk.event == new_event
         assert talk.room is not None
         assert talk.room.name == "NewRoom"
+
+    def test_update_talk_returns_false_when_already_in_sync(self) -> None:
+        """A re-run of the import on a Talk that matches Pretalx is a no-op."""
+        event = Event.objects.create(slug="sync", name="Sync", year=2099)
+        Room.objects.get_or_create(name="Main Hall")
+        pretalx_url = "https://pretalx.com/sync"
+        sub = _mock_submission(code="UNCHANGED")
+        data = SubmissionData(sub, pretalx_url)
+
+        # Create the Talk through the same code path so all defaults line up.
+        ctx = _ctx(event_obj=event, pretalx_event_url=pretalx_url)
+        talk = create_talk(data, ctx)
+        pre_updated_at = talk.updated_at
+
+        changed = update_talk(talk, data, [], ctx)
+
+        assert changed is False
+        talk.refresh_from_db()
+        # ``updated_at`` only bumps when ``save()`` is actually called.
+        assert talk.updated_at == pre_updated_at
+
+    def test_update_talk_returns_true_when_speakers_change(self) -> None:
+        """A speaker swap counts as a change even if every Talk field already matches."""
+        event = Event.objects.create(slug="spk", name="Spk", year=2099)
+        pretalx_url = "https://pretalx.com/spk"
+        sub = _mock_submission(code="AA3")
+        data = SubmissionData(sub, pretalx_url)
+        ctx = _ctx(event_obj=event, pretalx_event_url=pretalx_url)
+        talk = create_talk(data, ctx)
+
+        new_speaker = _mock_submission_speaker(code="NEW", name="New Person")
+        changed = update_talk(talk, data, [new_speaker], ctx)
+
+        assert changed is True
+        assert "NEW" in set(talk.speakers.values_list("pretalx_id", flat=True))
 
     def test_add_speakers_to_talk_creates_and_links(self) -> None:
         """Speakers listed on the submission are added to the Talk's m2m set."""
