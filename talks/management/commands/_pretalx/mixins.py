@@ -15,6 +15,7 @@ from pytanis.pretalx.models import State
 
 from talks.management.commands._pretalx.avatars import prefetch_avatars_for_submissions
 from talks.management.commands._pretalx.client import fetch_talks_with_retry
+from talks.management.commands._pretalx.digest import maybe_send_digest
 from talks.management.commands._pretalx.images import (
     image_is_older_than,
     latest_template_mtime,
@@ -184,6 +185,11 @@ class ProcessingMixin(LoggingMixin):
     """
 
     _image_generator: TalkImageGenerator
+    #: Pending rows created or refreshed during this run; used for the email digest.
+    #: Populated by the detect-only handlers in :meth:`_detect_update` / ``_handle_new`` /
+    #: ``_handle_cancelled`` so the digest reflects *this* run's diffs, not the full
+    #: outstanding queue. Initialized fresh in :meth:`_process_submissions`.
+    _detected_changes: list[PendingPretalxChange] = []  # noqa: RUF012
     #: ``pretalx_id`` set of speakers whose name/avatar changed during this import run.
     #: Populated by :meth:`_process_submissions` from
     #: :func:`~_pretalx.speakers.batch_create_or_update_speakers` and consulted by
@@ -203,6 +209,8 @@ class ProcessingMixin(LoggingMixin):
     ) -> None:
         """Import every submission: validate, create/update/delete talks, generate images."""
         stats = _new_stats(len(submissions))
+        # Fresh per-run buffer so a re-run doesn't email last run's diffs.
+        self._detected_changes = []
 
         self._log_mode_banners(ctx)
         self._prefetch_avatars(submissions, ctx)
@@ -226,6 +234,13 @@ class ProcessingMixin(LoggingMixin):
             VerbosityLevel.NORMAL,
             "SUCCESS",
         )
+
+        if ctx.detect_only and maybe_send_digest(self._detected_changes, ctx):
+            ctx.log(
+                f"Sent Pretalx digest for {len(self._detected_changes)} change(s)",
+                VerbosityLevel.NORMAL,
+                "SUCCESS",
+            )
 
     @staticmethod
     def _log_mode_banners(ctx: ImportContext) -> None:
@@ -354,7 +369,7 @@ class ProcessingMixin(LoggingMixin):
             return "skipped"
 
         if ctx.detect_only:
-            record_pending_change(
+            change, _ = record_pending_change(
                 event=ctx.event_obj,
                 pretalx_code=data.code,
                 kind=PendingPretalxChange.Kind.DELETE,
@@ -363,6 +378,7 @@ class ProcessingMixin(LoggingMixin):
                 speaker_diffs={"added": [], "removed": []},
                 pretalx_payload={"pretalx_link": data.pretalx_link, "title": data.title},
             )
+            self._detected_changes.append(change)
             ctx.log(
                 f"DETECT: would delete talk {data.title}",
                 VerbosityLevel.DETAILED,
@@ -450,7 +466,7 @@ class ProcessingMixin(LoggingMixin):
             )
             return "unchanged"
 
-        record_pending_change(
+        change, _ = record_pending_change(
             event=ctx.event_obj,
             pretalx_code=data.code,
             kind=PendingPretalxChange.Kind.UPDATE,
@@ -459,6 +475,7 @@ class ProcessingMixin(LoggingMixin):
             speaker_diffs=speaker_diffs,
             pretalx_payload=build_submission_payload(data, speakers, ctx),
         )
+        self._detected_changes.append(change)
         ctx.log(
             f"DETECT: pending UPDATE for talk {data.title}",
             VerbosityLevel.DETAILED,
@@ -517,7 +534,7 @@ class ProcessingMixin(LoggingMixin):
         instead, so an admin can decide whether to import it.
         """
         if ctx.detect_only:
-            record_pending_change(
+            change, _ = record_pending_change(
                 event=ctx.event_obj,
                 pretalx_code=data.code,
                 kind=PendingPretalxChange.Kind.CREATE,
@@ -526,6 +543,7 @@ class ProcessingMixin(LoggingMixin):
                 speaker_diffs=diff_speakers(None, speakers),
                 pretalx_payload=build_submission_payload(data, speakers, ctx),
             )
+            self._detected_changes.append(change)
             ctx.log(
                 f"DETECT: pending CREATE for new talk {data.title}",
                 VerbosityLevel.DETAILED,
