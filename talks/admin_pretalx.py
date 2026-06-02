@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, cast
 
 from django.conf import settings
 from django.contrib import admin, messages
+from django.core.exceptions import PermissionDenied
 from django.core.management import CommandError, call_command
 from django.http import HttpResponseNotAllowed, HttpResponseRedirect
 from django.urls import URLPattern, path, reverse
@@ -208,7 +209,13 @@ class PendingPretalxChangeAdmin(admin.ModelAdmin[PendingPretalxChange]):
         500-talk event) but small enough to block one admin request. Surfacing
         progress would need a task queue; that's deferred to keep the deploy
         footprint flat.
+
+        ``admin_view`` only enforces ``is_staff``; this also requires the model's
+        change permission so a staff user with no rights on this model cannot
+        trigger an outbound import.
         """
+        if not self.has_change_permission(request):
+            raise PermissionDenied
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
 

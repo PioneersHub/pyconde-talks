@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 from django.contrib.admin.sites import AdminSite
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.core.exceptions import PermissionDenied
 from django.test import RequestFactory
 from django.urls import reverse
 from model_bakery import baker
@@ -198,6 +199,31 @@ class TestCheckPretalxNow:
         assert args[0] == "import_pretalx_talks"
         assert "--detect-only" in args
         assert kwargs == {"verbosity": 1}
+
+    @patch("talks.admin_pretalx.call_command")
+    def test_view_denies_staff_without_change_permission(
+        self,
+        mock_call: Mock,
+        rf: RequestFactory,
+    ) -> None:
+        """A staff user lacking the model's change permission cannot trigger the import."""
+        staff = CustomUser.objects.create_user(
+            email="staff@staff.com",
+            password="staff123!",
+            is_staff=True,
+        )
+        url = reverse("admin:talks_pendingpretalxchange_check_now")
+        request = rf.post(url)
+        request.user = staff
+        _attach_messages(request)
+
+        with (
+            patch("talks.admin_pretalx.settings", DEFAULT_EVENT="evt"),
+            pytest.raises(PermissionDenied),
+        ):
+            PendingPretalxChangeAdmin(PendingPretalxChange, site).check_pretalx_now(request)
+
+        mock_call.assert_not_called()
 
     @patch("talks.admin_pretalx.call_command")
     def test_view_rejects_get(
