@@ -9,6 +9,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.urls import reverse
 from model_bakery import baker
 
+from events.models import Event
 from talks.models import Talk
 from talks.models_qa import Question, QuestionVote
 from talks.views_qa import is_moderator
@@ -20,21 +21,31 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture()
-def user() -> CustomUser:
-    """Return a regular test user for Q&A view tests."""
-    return baker.make(CustomUser, email="qauser@example.com")
+def event() -> Event:
+    """Return the event the test talk and users share (talks are event-scoped)."""
+    return Event.objects.create(slug="qa", name="QA", year=2099)
 
 
 @pytest.fixture()
-def staff_user() -> CustomUser:
-    """Return a staff user who can moderate questions."""
-    return baker.make(CustomUser, email="qastaff@example.com", is_staff=True)
+def user(event: Event) -> CustomUser:
+    """Return a regular test user with access to the test event."""
+    user = baker.make(CustomUser, email="qauser@example.com")
+    user.events.add(event)
+    return user
 
 
 @pytest.fixture()
-def talk() -> Talk:
-    """Return a talk for attaching questions."""
-    return baker.make(Talk, title="QA Talk")
+def staff_user(event: Event) -> CustomUser:
+    """Return a staff user (moderator) with access to the test event."""
+    user = baker.make(CustomUser, email="qastaff@example.com", is_staff=True)
+    user.events.add(event)
+    return user
+
+
+@pytest.fixture()
+def talk(event: Event) -> Talk:
+    """Return a talk in the test event for attaching questions."""
+    return baker.make(Talk, title="QA Talk", event=event)
 
 
 @pytest.fixture()
@@ -206,9 +217,14 @@ class TestModerationNonHtmx:
 class TestQuestionRedirectView:
     """Tests for question_redirect_view."""
 
-    def test_redirect_by_pretalx_id(self, client: Client, user: CustomUser) -> None:
+    def test_redirect_by_pretalx_id(
+        self,
+        client: Client,
+        user: CustomUser,
+        event: Event,
+    ) -> None:
         """Redirect to the Q&A page when a talk matches the pretalx slug."""
-        talk = baker.make(Talk, pretalx_link="https://pretalx.com/event/talk/DEMO2")
+        talk = baker.make(Talk, pretalx_link="https://pretalx.com/event/talk/DEMO2", event=event)
         client.force_login(user)
         url = reverse("question_redirect", args=["DEMO2"])
         response = client.get(url)

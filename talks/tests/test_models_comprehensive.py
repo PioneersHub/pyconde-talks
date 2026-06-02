@@ -601,8 +601,10 @@ class TestTalkImageUploadPath:
         assert _talk_image_upload_path(talk, "card.png") == "talk_images/pyconde-2099/card.png"
 
     def test_falls_back_to_root_when_no_event(self) -> None:
-        """Talks without an event upload into the shared ``talk_images/`` root."""
-        talk = baker.make(Talk, event=None)
+        """A talk with no event (e.g. unsaved, mid-creation) uploads into the root."""
+        # Talk.event is required in the DB, so use an unsaved instance to exercise the
+        # defensive no-event branch of the upload path.
+        talk = baker.prepare(Talk, event=None)
         assert _talk_image_upload_path(talk, "card.png") == "talk_images/card.png"
 
 

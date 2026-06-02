@@ -65,16 +65,17 @@ class TestTalkListEventFiltering:
         assert talk_a.title in content
         assert talk_b.title not in content
 
-    def test_user_sees_talks_without_event(
+    def test_all_events_shows_accessible_talks(
         self,
         client: Client,
         user_event_a: CustomUser,
+        event_a: Event,
     ) -> None:
-        """User sees talks that have no event assigned when selecting 'All Events'."""
-        orphan_talk = baker.make(Talk, title="Orphan Talk", event=None)
+        """Selecting 'All Events' shows the user's accessible talks."""
+        talk = baker.make(Talk, title="Event A Talk", event=event_a)
         client.force_login(user_event_a)
         response = client.get(reverse("talk_list"), {"event": "all"})
-        assert orphan_talk.title in response.content.decode()
+        assert talk.title in response.content.decode()
 
     def test_superuser_sees_all_events(
         self,

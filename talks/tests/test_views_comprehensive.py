@@ -26,27 +26,37 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture()
-def user() -> CustomUser:
-    """Create a regular user for testing."""
-    return baker.make(CustomUser, email="viewer@example.com")
+def event() -> Event:
+    """Return a shared event most view tests put their talks in (talks are event-scoped)."""
+    return Event.objects.create(slug="view", name="View", year=2099)
+
+
+@pytest.fixture()
+def user(event: Event) -> CustomUser:
+    """Create a regular user with access to the shared event."""
+    user = baker.make(CustomUser, email="viewer@example.com")
+    user.events.add(event)
+    return user
 
 
 @pytest.mark.django_db
 class TestTalkDetailView:
     """Tests for TalkDetailView."""
 
-    def test_authenticated_user_can_view_detail(self, client: Client, user: CustomUser) -> None:
+    def test_authenticated_user_can_view_detail(
+        self, client: Client, user: CustomUser, event: Event
+    ) -> None:
         """Allow authenticated users to view a talk's detail page."""
-        talk = baker.make(Talk, title="Detail Talk")
+        talk = baker.make(Talk, event=event, title="Detail Talk")
         client.force_login(user)
         url = reverse("talk_detail", args=[talk.pk])
         response = client.get(url)
         assert response.status_code == HTTPStatus.OK
         assert "Detail Talk" in response.content.decode()
 
-    def test_unauthenticated_user_redirected(self, client: Client) -> None:
+    def test_unauthenticated_user_redirected(self, client: Client, event: Event) -> None:
         """Redirect unauthenticated users to the login page."""
-        talk = baker.make(Talk)
+        talk = baker.make(Talk, event=event)
         url = reverse("talk_detail", args=[talk.pk])
         response = client.get(url)
         assert response.status_code == HTTPStatus.FOUND
@@ -63,11 +73,13 @@ class TestTalkDetailView:
         self,
         client: Client,
         user: CustomUser,
+        event: Event,
     ) -> None:
         """Render the Vimeo Player API script when the talk has a Vimeo video link."""
         past = timezone.now() - timedelta(hours=2)
         talk = baker.make(
             Talk,
+            event=event,
             video_link="https://vimeo.com/123456789",
             video_start_time=120,
             start_time=past,
@@ -87,11 +99,13 @@ class TestTalkDetailView:
         self,
         client: Client,
         user: CustomUser,
+        event: Event,
     ) -> None:
         """Skip the jump-to-time button when the talk has no video_start_time."""
         past = timezone.now() - timedelta(hours=2)
         talk = baker.make(
             Talk,
+            event=event,
             video_link="https://vimeo.com/123456789",
             video_start_time=None,
             start_time=past,
@@ -111,11 +125,13 @@ class TestTalkDetailView:
         self,
         client: Client,
         user: CustomUser,
+        event: Event,
     ) -> None:
         """Render the YouTube IFrame API script when the talk has a YouTube video link."""
         past = timezone.now() - timedelta(hours=2)
         talk = baker.make(
             Talk,
+            event=event,
             video_link="https://youtube.com/embed/abc123",
             video_start_time=60,
             start_time=past,
@@ -155,11 +171,13 @@ class TestTalkDetailView:
         self,
         client: Client,
         user: CustomUser,
+        event: Event,
     ) -> None:
         """Treat youtu.be links as YouTube so the IFrame API is loaded."""
         past = timezone.now() - timedelta(hours=2)
         talk = baker.make(
             Talk,
+            event=event,
             video_link="https://youtu.be/abc123",
             video_start_time=60,
             start_time=past,
@@ -176,11 +194,11 @@ class TestTalkDetailView:
 class TestTalkListView:
     """Verify TalkListView filtering by room, date, track, type, and HTMX fragments."""
 
-    def test_filter_by_room(self, client: Client, user: CustomUser) -> None:
+    def test_filter_by_room(self, client: Client, user: CustomUser, event: Event) -> None:
         """Show only talks assigned to the selected room."""
         room = baker.make(Room, name="Room 1")
-        baker.make(Talk, title="Talk In Room", room=room)
-        baker.make(Talk, title="Talk No Room", room=None)
+        baker.make(Talk, event=event, title="Talk In Room", room=room)
+        baker.make(Talk, event=event, title="Talk No Room", room=None)
         client.force_login(user)
         # event=all isolates the room filter from default-event resolution.
         url = reverse("talk_list") + f"?room={room.pk}&event=all"
@@ -190,29 +208,34 @@ class TestTalkListView:
         assert "Talk In Room" in content
         assert "Talk No Room" not in content
 
-    def test_filter_by_room_ignores_non_numeric(self, client: Client, user: CustomUser) -> None:
+    def test_filter_by_room_ignores_non_numeric(
+        self,
+        client: Client,
+        user: CustomUser,
+        event: Event,
+    ) -> None:
         """A non-numeric ?room= must not raise ValueError and is simply ignored."""
-        baker.make(Talk, title="Some Talk", room=None, event=None)
+        baker.make(Talk, title="Some Talk", room=None, event=event)
         client.force_login(user)
         response = client.get(reverse("talk_list") + "?room=not-a-number")
         assert response.status_code == HTTPStatus.OK
         assert "Some Talk" in response.content.decode()
 
-    def test_filter_by_date(self, client: Client, user: CustomUser) -> None:
+    def test_filter_by_date(self, client: Client, user: CustomUser, event: Event) -> None:
         """Show only talks scheduled on the selected date."""
         now = timezone.now()
         local_date = timezone.localdate(now)
-        baker.make(Talk, title="Today Talk", start_time=now, event=None)
+        baker.make(Talk, title="Today Talk", start_time=now, event=event)
         client.force_login(user)
         url = reverse("talk_list") + f"?date={local_date}"
         response = client.get(url)
         assert response.status_code == HTTPStatus.OK
         assert "Today Talk" in response.content.decode()
 
-    def test_filter_by_track(self, client: Client, user: CustomUser) -> None:
+    def test_filter_by_track(self, client: Client, user: CustomUser, event: Event) -> None:
         """Show only talks in the selected track."""
-        baker.make(Talk, title="PyData Talk", track="PyData")
-        baker.make(Talk, title="Other Talk", track="Other")
+        baker.make(Talk, event=event, title="PyData Talk", track="PyData")
+        baker.make(Talk, event=event, title="Other Talk", track="Other")
         client.force_login(user)
         url = reverse("talk_list") + "?track=PyData"
         response = client.get(url)
@@ -221,10 +244,16 @@ class TestTalkListView:
         assert "PyData Talk" in content
         assert "Other Talk" not in content
 
-    def test_filter_by_presentation_type(self, client: Client, user: CustomUser) -> None:
+    def test_filter_by_presentation_type(
+        self, client: Client, user: CustomUser, event: Event
+    ) -> None:
         """Show only talks matching the selected presentation type."""
-        baker.make(Talk, title="A Tutorial", presentation_type=Talk.PresentationType.TUTORIAL)
-        baker.make(Talk, title="A Keynote", presentation_type=Talk.PresentationType.KEYNOTE)
+        baker.make(
+            Talk, event=event, title="A Tutorial", presentation_type=Talk.PresentationType.TUTORIAL
+        )
+        baker.make(
+            Talk, event=event, title="A Keynote", presentation_type=Talk.PresentationType.KEYNOTE
+        )
         client.force_login(user)
         url = reverse("talk_list") + "?presentation_type=Tutorial"
         response = client.get(url)
@@ -242,9 +271,11 @@ class TestTalkListView:
         content = response.content.decode()
         assert "<html>" not in content.lower()
 
-    def test_context_has_filter_options(self, client: Client, user: CustomUser) -> None:
+    def test_context_has_filter_options(
+        self, client: Client, user: CustomUser, event: Event
+    ) -> None:
         """Include rooms, dates, tracks, and types in the template context."""
-        baker.make(Talk, presentation_type=Talk.PresentationType.TALK)
+        baker.make(Talk, event=event, presentation_type=Talk.PresentationType.TALK)
         client.force_login(user)
         url = reverse("talk_list")
         response = client.get(url)
@@ -254,17 +285,17 @@ class TestTalkListView:
         assert "tracks" in context
         assert "presentation_types" in context
 
-    def test_search_in_scopes(self, client: Client, user: CustomUser) -> None:
+    def test_search_in_scopes(self, client: Client, user: CustomUser, event: Event) -> None:
         """Test the search_in parameter for scoped search."""
-        baker.make(Talk, title="Find Me Talk")
+        baker.make(Talk, event=event, title="Find Me Talk")
         client.force_login(user)
         url = reverse("talk_list") + "?q=Find&search_in=title"
         response = client.get(url)
         assert response.status_code == HTTPStatus.OK
 
-    def test_search_in_author_scope(self, client: Client, user: CustomUser) -> None:
+    def test_search_in_author_scope(self, client: Client, user: CustomUser, event: Event) -> None:
         """Scope search to the author field when search_in=author is specified."""
-        talk = baker.make(Talk, title="Speaker Test")
+        talk = baker.make(Talk, event=event, title="Speaker Test")
         speaker = baker.make(Speaker, name="SpecialSpeakerName")
         talk.speakers.add(speaker)
         client.force_login(user)
@@ -277,6 +308,7 @@ class TestTalkListView:
         self,
         client: Client,
         user: CustomUser,
+        event: Event,
     ) -> None:
         """
         Switching events via HTMX should OOB-swap all filter dropdowns.
@@ -360,6 +392,7 @@ class TestTalkListView:
         self,
         client: Client,
         user: CustomUser,
+        event: Event,
     ) -> None:
         """Selecting "All Events" should show filter options from all events."""
         event_a = baker.make(Event, is_active=True)
@@ -485,7 +518,7 @@ class TestDashboardStats:
         # Should show 2 (my_event), not 7 (total)
         assert "2" in content
 
-    def test_dashboard_stats_superuser_sees_all(self, client: Client) -> None:
+    def test_dashboard_stats_superuser_sees_all(self, client: Client, event: Event) -> None:
         """Superusers should see stats from all active events."""
         superuser = baker.make(CustomUser, is_superuser=True, email="admin@example.com")
         event_a = baker.make(Event, is_active=True)
@@ -499,7 +532,7 @@ class TestDashboardStats:
         content = response.content.decode()
         assert "7" in content
 
-    def test_dashboard_stats_cache_varies_by_user(self, client: Client) -> None:
+    def test_dashboard_stats_cache_varies_by_user(self, client: Client, event: Event) -> None:
         """Different users must get different cached responses."""
         event_a = baker.make(Event, name="Alpha Conf", is_active=True)
         event_b = baker.make(Event, name="Beta Conf", is_active=True)
@@ -587,22 +620,23 @@ class TestUpcomingTalks:
 class TestTalkRedirectView:
     """Tests for talk_redirect_view."""
 
-    def test_redirect_by_pk(self, client: Client, user: CustomUser) -> None:
+    def test_redirect_by_pk(self, client: Client, user: CustomUser, event: Event) -> None:
         # Note: numeric talk IDs match <int:pk>/ (TalkDetailView) first,
         # so talk_redirect_view only handles non-numeric (pretalx) IDs.
         # We test with a pretalx-style ID that resolves via pk fallback.
         """Redirect to the talk detail page when found by pretalx ID."""
-        talk = baker.make(Talk, pretalx_link="https://pretalx.com/event/talk/DEMO1")
+        talk = baker.make(Talk, event=event, pretalx_link="https://pretalx.com/event/talk/DEMO1")
         client.force_login(user)
         url = reverse("talk_redirect", args=["DEMO1"])
         response = client.get(url)
         assert response.status_code == HTTPStatus.FOUND
         assert str(talk.pk) in response.headers["Location"]
 
-    def test_redirect_by_pretalx_id(self, client: Client, user: CustomUser) -> None:
+    def test_redirect_by_pretalx_id(self, client: Client, user: CustomUser, event: Event) -> None:
         """Redirect when the talk is found by its pretalx link slug."""
         baker.make(
             Talk,
+            event=event,
             pretalx_link="https://pretalx.com/event/talk/TEST1",
         )
         client.force_login(user)
@@ -661,13 +695,12 @@ class TestStatusFilter:
         self,
         client: Client,
         user: CustomUser,
+        event: Event,
         status: str,
         visible: str,
         hidden: tuple[str, ...],
     ) -> None:
         """Each status keyword shows only talks in that bucket."""
-        event = baker.make(Event, is_active=True)
-        user.events.add(event)
         self._make_talks(event)
         client.force_login(user)
         response = client.get(reverse("talk_list"), {"status": status})
@@ -676,10 +709,13 @@ class TestStatusFilter:
         for title in hidden:
             assert title not in content
 
-    def test_unknown_status_shows_all(self, client: Client, user: CustomUser) -> None:
+    def test_unknown_status_shows_all(
+        self,
+        client: Client,
+        user: CustomUser,
+        event: Event,
+    ) -> None:
         """An unrecognized status string leaves the queryset unfiltered."""
-        event = baker.make(Event, is_active=True)
-        user.events.add(event)
         self._make_talks(event)
         client.force_login(user)
         response = client.get(reverse("talk_list"), {"status": "weird"})
@@ -754,9 +790,11 @@ class TestDashboardStatsRecorded:
 class TestRateTalkHTMX:
     """HTMX paths through rate_talk return fragments, not redirects."""
 
-    def test_htmx_rating_returns_widget(self, client: Client, user: CustomUser) -> None:
+    def test_htmx_rating_returns_widget(
+        self, client: Client, user: CustomUser, event: Event
+    ) -> None:
         """A successful HTMX rating returns both the widget and the OOB title stars."""
-        talk = baker.make(Talk, title="HTMX Talk")
+        talk = baker.make(Talk, event=event, title="HTMX Talk")
         client.force_login(user)
         response = client.post(
             reverse("rate_talk", args=[talk.pk]),
@@ -769,9 +807,11 @@ class TestRateTalkHTMX:
         assert "rating-widget" in content
         assert "hx-swap-oob" in content
 
-    def test_htmx_invalid_score_returns_422(self, client: Client, user: CustomUser) -> None:
+    def test_htmx_invalid_score_returns_422(
+        self, client: Client, user: CustomUser, event: Event
+    ) -> None:
         """Non-numeric scores on the HTMX path come back as a plain 422."""
-        talk = baker.make(Talk)
+        talk = baker.make(Talk, event=event)
         client.force_login(user)
         response = client.post(
             reverse("rate_talk", args=[talk.pk]),
@@ -784,9 +824,10 @@ class TestRateTalkHTMX:
         self,
         client: Client,
         user: CustomUser,
+        event: Event,
     ) -> None:
         """HTMX score=6 triggers the range branch of the validator."""
-        talk = baker.make(Talk)
+        talk = baker.make(Talk, event=event)
         client.force_login(user)
         response = client.post(
             reverse("rate_talk", args=[talk.pk]),
@@ -799,9 +840,10 @@ class TestRateTalkHTMX:
         self,
         client: Client,
         user: CustomUser,
+        event: Event,
     ) -> None:
         """Saving a comment via HTMX stores the stripped comment without replaying defaults."""
-        talk = baker.make(Talk)
+        talk = baker.make(Talk, event=event)
         client.force_login(user)
         # First, star-only click (no comment change).
         client.post(
@@ -825,10 +867,11 @@ class TestRateTalkHTMX:
         self,
         client: Client,
         user: CustomUser,
+        event: Event,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """A DB-level integrity violation during save becomes a 500 for HTMX clients."""
-        talk = baker.make(Talk)
+        talk = baker.make(Talk, event=event)
 
         def boom(**_kwargs: object) -> None:
             msg = "unique constraint"

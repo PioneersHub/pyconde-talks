@@ -300,9 +300,9 @@ class Speaker(models.Model):
 
 def _talk_image_upload_path(instance: Talk, filename: str) -> str:
     """Return the upload path for a talk image, using the event's assets sub-directory."""
-    subdir = ""
-    if instance.event:
-        subdir = instance.event.slug
+    # Guard on event_id (no query, no RelatedObjectDoesNotExist): Talk.event is required,
+    # so its accessor raises when unset - which can happen for an unsaved talk mid-creation.
+    subdir = instance.event.slug if instance.event_id else ""
     if subdir:
         return f"talk_images/{subdir}/{filename}"
     return f"talk_images/{filename}"
@@ -315,13 +315,13 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
         """
         Return talks the given user is allowed to see.
 
-        Superusers see every talk. Any other user only sees talks whose event they have access to,
-        plus talks with no event set at all (useful for seed or demo data that is intentionally
-        unattached to a specific conference).
+        Superusers see every talk. Any other user only sees talks whose event they have access
+        to. Every talk belongs to an event (``Talk.event`` is required), so there is no
+        event-less escape hatch.
         """
         if user.is_superuser:
             return self
-        return self.filter(Q(event__isnull=True) | Q(event__in=user.events.all()))
+        return self.filter(event__in=user.events.all())
 
     def with_streamings(self) -> list[Talk]:
         """
@@ -467,12 +467,12 @@ class Talk(models.Model):
         null=True,
         help_text=_("Start time in seconds"),
     )
+    # Required: every talk belongs to an event (migration 0028 backfills existing rows,
+    # 0029 tightens to NOT NULL). on_delete=CASCADE: deleting an event removes its talks.
     event = models.ForeignKey(
         "events.Event",
         on_delete=models.CASCADE,
         related_name="talks",
-        null=True,
-        blank=True,
         help_text=_("Event this talk belongs to"),
     )
     hide = models.BooleanField(

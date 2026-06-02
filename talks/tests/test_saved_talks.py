@@ -12,6 +12,7 @@ from django.urls import reverse
 from django.utils import timezone
 from model_bakery import baker
 
+from events.models import Event
 from talks.models import SavedTalk, Talk
 from talks.templatetags.saved_tags import is_in
 from users.models import CustomUser
@@ -25,21 +26,31 @@ if TYPE_CHECKING:
 # Fixtures
 # ---------------------------------------------------------------------------
 @pytest.fixture()
-def user() -> CustomUser:
-    """Create a regular user for testing."""
-    return baker.make(CustomUser, email="saver@example.com")
+def event() -> Event:
+    """Return the event the test talks and users share (talks are event-scoped)."""
+    return Event.objects.create(slug="saved", name="Saved", year=2099)
 
 
 @pytest.fixture()
-def other_user() -> CustomUser:
-    """Create another user for testing."""
-    return baker.make(CustomUser, email="other@example.com")
+def user(event: Event) -> CustomUser:
+    """Create a regular user with access to the test event."""
+    user = baker.make(CustomUser, email="saver@example.com")
+    user.events.add(event)
+    return user
 
 
 @pytest.fixture()
-def talk() -> Talk:
-    """Create a talk for testing."""
-    return baker.make(Talk, title="Saved Test Talk", start_time=timezone.now())
+def other_user(event: Event) -> CustomUser:
+    """Create another user with access to the test event."""
+    user = baker.make(CustomUser, email="other@example.com")
+    user.events.add(event)
+    return user
+
+
+@pytest.fixture()
+def talk(event: Event) -> Talk:
+    """Create a talk in the test event."""
+    return baker.make(Talk, title="Saved Test Talk", event=event, start_time=timezone.now())
 
 
 # ---------------------------------------------------------------------------
@@ -196,11 +207,12 @@ class TestSavedTalkFilter:
         self,
         client: Client,
         user: CustomUser,
+        event: Event,
     ) -> None:
         """Filtering by saved=1 shows only the user's saved talks."""
         client.force_login(user)
-        talk1 = baker.make(Talk, title="Saved Talk", start_time=timezone.now())
-        baker.make(Talk, title="Unsaved Talk", start_time=timezone.now())
+        talk1 = baker.make(Talk, title="Saved Talk", event=event, start_time=timezone.now())
+        baker.make(Talk, title="Unsaved Talk", event=event, start_time=timezone.now())
         SavedTalk.objects.create(user=user, talk=talk1)
 
         url = reverse("talk_list") + "?saved=1"
@@ -214,11 +226,12 @@ class TestSavedTalkFilter:
         self,
         client: Client,
         user: CustomUser,
+        event: Event,
     ) -> None:
         """Without saved filter, all talks are shown."""
         client.force_login(user)
-        baker.make(Talk, title="Talk A", start_time=timezone.now())
-        baker.make(Talk, title="Talk B", start_time=timezone.now())
+        baker.make(Talk, title="Talk A", event=event, start_time=timezone.now())
+        baker.make(Talk, title="Talk B", event=event, start_time=timezone.now())
 
         url = reverse("talk_list")
         response = client.get(url)

@@ -128,7 +128,12 @@ class TestTalkModel:
     def test_enrich_video_link(self, initial_link: str, expected_link: str) -> None:
         """Test the _enrich_video_link method ensures correct query parameters for YouTube."""
         start_time = datetime.now(tz=UTC) + timedelta(days=1)
-        talk = baker.prepare(Talk, video_link=initial_link, start_time=start_time)
+        talk = baker.prepare(
+            Talk,
+            event=baker.make(Event),
+            video_link=initial_link,
+            start_time=start_time,
+        )
 
         with override_settings(SHOW_UPCOMING_TALKS_LINKS=True):
             talk.save()
@@ -147,7 +152,7 @@ class TestTalkModel:
     )
     def test_video_provider(self, video_link: str, expected_provider: str) -> None:
         """Return the canonical provider name regardless of YouTube URL format."""
-        talk = baker.prepare(Talk, video_link=video_link)
+        talk = baker.prepare(Talk, event=baker.make(Event), video_link=video_link)
         talk.save()
 
         with override_settings(SHOW_UPCOMING_TALKS_LINKS=True):
@@ -169,7 +174,7 @@ class TestTalkModel:
         expected_validation_error: bool,
     ) -> None:
         """Reject video links from unknown providers; accept known providers and empty strings."""
-        talk = baker.prepare(Talk, video_link=video_link)
+        talk = baker.prepare(Talk, event=baker.make(Event), video_link=video_link)
         if expected_validation_error:
             with pytest.raises(ValidationError, match=r"URL must be from a valid video provider\."):
                 talk.full_clean()
@@ -280,9 +285,16 @@ class TestTalkRoomConflict:
 
     def test_clean_passes_for_self_update(self) -> None:
         """Updating a saved talk should not conflict with itself."""
-        room = baker.make(Room)
+        event = baker.make(Event)
+        room = baker.make(Room, event=event)
         now = timezone.now()
-        talk = baker.make(Talk, room=room, start_time=now, duration=timedelta(minutes=30))
+        talk = baker.make(
+            Talk,
+            event=event,
+            room=room,
+            start_time=now,
+            duration=timedelta(minutes=30),
+        )
         talk.clean()  # Should not raise
 
     def test_clean_rejects_room_from_different_event(self) -> None:
@@ -324,34 +336,31 @@ class TestAccessibleTo:
         event_b = baker.make(Event, slug="b")
         talk_a = baker.make(Talk, event=event_a)
         talk_b = baker.make(Talk, event=event_b)
-        orphan = baker.make(Talk, event=None)
 
         su = baker.make(CustomUser, email="root@example.com", is_superuser=True)
 
-        assert set(Talk.objects.accessible_to(su)) == {talk_a, talk_b, orphan}
+        assert set(Talk.objects.accessible_to(su)) == {talk_a, talk_b}
 
-    def test_regular_user_sees_only_their_events_and_orphans(self) -> None:
-        """A regular user sees talks for their events plus talks with no event."""
+    def test_regular_user_sees_only_their_events(self) -> None:
+        """A regular user sees only talks for the events they have access to."""
         event_a = baker.make(Event, slug="a")
         event_b = baker.make(Event, slug="b")
         talk_a = baker.make(Talk, event=event_a)
         baker.make(Talk, event=event_b)  # not accessible
-        orphan = baker.make(Talk, event=None)
 
         user = baker.make(CustomUser, email="u@example.com")
         user.events.add(event_a)
 
-        assert set(Talk.objects.accessible_to(user)) == {talk_a, orphan}
+        assert set(Talk.objects.accessible_to(user)) == {talk_a}
 
-    def test_user_without_any_events_still_sees_orphans(self) -> None:
-        """A user with no event memberships only sees talks that have no event set."""
+    def test_user_without_any_events_sees_nothing(self) -> None:
+        """A user with no event memberships sees no talks (every talk belongs to an event)."""
         event_a = baker.make(Event, slug="a")
         baker.make(Talk, event=event_a)  # not accessible
-        orphan = baker.make(Talk, event=None)
 
         user = baker.make(CustomUser, email="newcomer@example.com")
 
-        assert list(Talk.objects.accessible_to(user)) == [orphan]
+        assert list(Talk.objects.accessible_to(user)) == []
 
 
 @pytest.mark.django_db

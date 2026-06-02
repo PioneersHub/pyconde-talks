@@ -7,6 +7,7 @@ import pytest
 from django.urls import reverse
 from model_bakery import baker
 
+from events.models import Event
 from talks.models import Talk
 from talks.models_qa import Question, QuestionVote
 from users.models import CustomUser
@@ -18,21 +19,31 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture()
-def user() -> CustomUser:
-    """Create a regular user for testing."""
-    return baker.make(CustomUser, email="user@example.com")
+def event() -> Event:
+    """Return the event the test talk and users share (talks are event-scoped)."""
+    return Event.objects.create(slug="qa", name="QA", year=2099)
 
 
 @pytest.fixture()
-def staff_user() -> CustomUser:
-    """Create a staff user for testing."""
-    return baker.make(CustomUser, email="staff@example.com", is_staff=True)
+def user(event: Event) -> CustomUser:
+    """Create a regular user with access to the test event."""
+    user = baker.make(CustomUser, email="user@example.com")
+    user.events.add(event)
+    return user
 
 
 @pytest.fixture()
-def talk() -> Talk:
-    """Create a talk for testing."""
-    return baker.make(Talk, title="Test Talk")
+def staff_user(event: Event) -> CustomUser:
+    """Create a staff user with access to the test event."""
+    user = baker.make(CustomUser, email="staff@example.com", is_staff=True)
+    user.events.add(event)
+    return user
+
+
+@pytest.fixture()
+def talk(event: Event) -> Talk:
+    """Create a talk in the test event."""
+    return baker.make(Talk, title="Test Talk", event=event)
 
 
 @pytest.fixture()
@@ -337,9 +348,11 @@ class TestQuestionDelete:
         self,
         client: Client,
         question: Question,
+        event: Event,
     ) -> None:
-        """Non-owners cannot delete questions."""
+        """A non-owner who can see the talk still can't delete someone else's question."""
         other_user: CustomUser = baker.make(CustomUser, email="other@example.com")
+        other_user.events.add(event)
         client.force_login(other_user)
         url = reverse("question_delete", args=[question.pk])
         response = client.post(url)

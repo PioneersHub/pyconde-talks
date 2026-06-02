@@ -149,9 +149,10 @@ class TestImportPretalxTalksEvent:
         assert talk.event == event
 
     def test_update_talk_sets_event(self, import_command: ImportCommand) -> None:
-        """update_talk links an existing talk to the event if not already linked."""
+        """update_talk moves an existing talk to the context event when it differs."""
         event = Event.objects.create(name="Ev", slug="ev-update", year=2025)
-        talk = baker.make(Talk, title="Existing Talk", event=None)
+        other_event = Event.objects.create(name="Old", slug="ev-old", year=2024)
+        talk = baker.make(Talk, title="Existing Talk", event=other_event)
 
         data = _make_submission_data_mock(title="Updated Talk", code="UPD001")
 
