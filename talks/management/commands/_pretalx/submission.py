@@ -45,6 +45,7 @@ class SubmissionData:
         self.image_url = getattr(submission, "image", "") or ""
 
         self.room = self._extract_room(submission)
+        self.pretalx_room_id = self._extract_room_id(submission)
         self.track = self._extract_track(submission)
         self.start_time = self._extract_start_time(submission)
         self.duration = self._extract_duration(submission)
@@ -63,6 +64,26 @@ class SubmissionData:
         except AttributeError, IndexError, KeyError, TypeError:
             return ""
         return str(name)[:MAX_ROOM_NAME_LENGTH] if name else ""
+
+    @staticmethod
+    def _extract_room_id(submission: Submission) -> int | None:
+        """
+        Return the stable Pretalx room id for the first slot, or ``None``.
+
+        Pretalx exposes the id in two places that are populated inconsistently:
+        ``slot.room_id`` and the nested ``slot.room.id``. Try the flat one first,
+        then the nested one; tolerate any level being missing or ``None``. This id is
+        the match key that lets a renamed room be renamed in place instead of cloned.
+        """
+        try:
+            slot = submission.slots[0]  # type: ignore[index]
+        except AttributeError, IndexError, TypeError:
+            return None
+        room_id = getattr(slot, "room_id", None)
+        if isinstance(room_id, int):
+            return room_id
+        nested_id = getattr(getattr(slot, "room", None), "id", None)
+        return nested_id if isinstance(nested_id, int) else None
 
     @staticmethod
     def _extract_track(submission: Submission) -> str:

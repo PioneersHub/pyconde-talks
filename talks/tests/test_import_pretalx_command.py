@@ -228,6 +228,28 @@ class TestSubmissionData:
 
         assert data.title == ""
 
+    def test_pretalx_room_id_from_room_id_field(self, mock_submission: Mock) -> None:
+        """The flat slot.room_id is used as the stable room id when present."""
+        mock_submission.slots[0].room_id = 4993
+        data = SubmissionData(mock_submission, "pyconde2099")
+
+        assert data.pretalx_room_id == 4993
+
+    def test_pretalx_room_id_falls_back_to_nested(self, mock_submission: Mock) -> None:
+        """When slot.room_id is absent, fall back to the nested slot.room.id."""
+        mock_submission.slots[0].room_id = None
+        mock_submission.slots[0].room.id = 4993
+        data = SubmissionData(mock_submission, "pyconde2099")
+
+        assert data.pretalx_room_id == 4993
+
+    def test_pretalx_room_id_none_when_no_slot(self, mock_submission: Mock) -> None:
+        """No slots means no room id."""
+        mock_submission.slots = []
+        data = SubmissionData(mock_submission, "pyconde2099")
+
+        assert data.pretalx_room_id is None
+
 
 # ---------------------- _is_valid_submission Tests ----------------------
 
