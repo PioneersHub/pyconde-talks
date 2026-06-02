@@ -12,11 +12,14 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
+from django.db import IntegrityError
 from model_bakery import baker
 from pytanis.pretalx.models import State
 
 from events.models import Event
+from talks.management.commands._pretalx import pending as pending_mod
 from talks.management.commands._pretalx.context import ImportContext
+from talks.management.commands._pretalx.pending import record_pending_change
 from talks.management.commands._pretalx.rooms import batch_create_rooms
 from talks.management.commands._pretalx.speakers import (
     batch_create_or_update_speakers,
@@ -1216,3 +1219,69 @@ class TestDetectOnlyMode:
         command._process_single_submission(mock_submission, ctx)
 
         assert PendingPretalxChange.objects.count() == 1
+
+
+@pytest.mark.django_db
+class TestRecordPendingChangeRace:
+    """``record_pending_change`` survives a concurrent insert of the same open row."""
+
+    def test_recovers_from_concurrent_insert(self) -> None:
+        """An IntegrityError on create falls back to updating the row the other run made."""
+        event = Event.objects.create(slug="evt", name="Evt", year=2099)
+        # The row a concurrent detect run committed between our lookup and our insert.
+        concurrent = PendingPretalxChange.objects.create(
+            event=event,
+            pretalx_code="ABC123",
+            kind=PendingPretalxChange.Kind.CREATE,
+            field_diffs={},
+            speaker_diffs={"added": [], "removed": []},
+            pretalx_payload={"title": "stale"},
+        )
+
+        # First lookup misses (we haven't seen the row yet); create hits the partial
+        # unique constraint; the recovery lookup finds the concurrent row.
+        with (
+            patch.object(pending_mod, "_find_open_change", side_effect=[None, concurrent]),
+            patch.object(
+                PendingPretalxChange.objects,
+                "create",
+                side_effect=IntegrityError("duplicate open row"),
+            ),
+        ):
+            change, created = record_pending_change(
+                event=event,
+                pretalx_code="ABC123",
+                kind=PendingPretalxChange.Kind.UPDATE,
+                talk=None,
+                field_diffs={"title": {"old": "stale", "new": "fresh"}},
+                speaker_diffs={"added": [], "removed": []},
+                pretalx_payload={"title": "fresh"},
+            )
+
+        assert created is False
+        assert change.pk == concurrent.pk
+        concurrent.refresh_from_db()
+        assert concurrent.kind == PendingPretalxChange.Kind.UPDATE
+        assert concurrent.field_diffs == {"title": {"old": "stale", "new": "fresh"}}
+
+    def test_propagates_when_no_conflicting_row(self) -> None:
+        """A genuine IntegrityError with no open row to recover propagates."""
+        event = Event.objects.create(slug="evt2", name="Evt2", year=2099)
+        with (
+            patch.object(pending_mod, "_find_open_change", side_effect=[None, None]),
+            patch.object(
+                PendingPretalxChange.objects,
+                "create",
+                side_effect=IntegrityError("boom"),
+            ),
+            pytest.raises(IntegrityError),
+        ):
+            record_pending_change(
+                event=event,
+                pretalx_code="ZZZ",
+                kind=PendingPretalxChange.Kind.CREATE,
+                talk=None,
+                field_diffs={},
+                speaker_diffs={"added": [], "removed": []},
+                pretalx_payload={},
+            )

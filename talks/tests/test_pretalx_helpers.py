@@ -316,6 +316,13 @@ class TestGetOrCreateRoom:
         assert result.pk is None
         assert not Room.objects.filter(name="Dry Room").exists()
 
+    def test_detect_only_returns_unsaved(self) -> None:
+        """Detect-only must not write a Room: building a diff stays read-only."""
+        result = get_or_create_room("Detect Room", _ctx(detect_only=True))
+        assert result is not None
+        assert result.pk is None
+        assert not Room.objects.filter(name="Detect Room").exists()
+
 
 # ---------------------------------------------------------------------------
 # speakers.py single/internal helpers

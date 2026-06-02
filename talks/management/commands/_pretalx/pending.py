@@ -10,6 +10,8 @@ UI on their own schedule.
 import datetime
 from typing import TYPE_CHECKING, Any
 
+from django.db import IntegrityError, transaction
+
 from talks.management.commands._pretalx.talks import (
     _diff_talk_fields,
     map_presentation_type,
@@ -112,6 +114,27 @@ def build_submission_payload(
 # ------------------------------------------------------------------
 
 
+def _find_open_change(event: Any, pretalx_code: str) -> PendingPretalxChange | None:
+    """Return the single open (neither applied nor dismissed) row for the submission."""
+    return PendingPretalxChange.objects.filter(
+        event=event,
+        pretalx_code=pretalx_code,
+        applied_at__isnull=True,
+        dismissed_at__isnull=True,
+    ).first()
+
+
+def _apply_updates(
+    existing: PendingPretalxChange,
+    values: dict[str, Any],
+) -> PendingPretalxChange:
+    """Refresh an existing open row in place with the latest diff/payload."""
+    for field, value in values.items():
+        setattr(existing, field, value)
+    existing.save(update_fields=[*values, "last_detected_at"])
+    return existing
+
+
 def record_pending_change(  # noqa: PLR0913
     *,
     event: Any,
@@ -129,40 +152,38 @@ def record_pending_change(  # noqa: PLR0913
     When an open row already exists the existing record is updated in place;
     once it has been applied or dismissed a fresh row is created so the audit
     trail of past decisions is preserved.
-    """
-    existing = PendingPretalxChange.objects.filter(
-        event=event,
-        pretalx_code=pretalx_code,
-        applied_at__isnull=True,
-        dismissed_at__isnull=True,
-    ).first()
-    if existing is not None:
-        existing.kind = kind
-        existing.talk = talk
-        existing.field_diffs = field_diffs
-        existing.speaker_diffs = speaker_diffs
-        existing.pretalx_payload = pretalx_payload
-        existing.save(
-            update_fields=[
-                "kind",
-                "talk",
-                "field_diffs",
-                "speaker_diffs",
-                "pretalx_payload",
-                "last_detected_at",
-            ],
-        )
-        return existing, False
 
-    change = PendingPretalxChange.objects.create(
-        event=event,
-        pretalx_code=pretalx_code,
-        kind=kind,
-        talk=talk,
-        field_diffs=field_diffs,
-        speaker_diffs=speaker_diffs,
-        pretalx_payload=pretalx_payload,
-    )
+    The create is wrapped in a savepoint and guarded against the partial unique
+    constraint: if a concurrent detect run (e.g. cron racing the admin "Check
+    Pretalx now" button) inserts the open row between our lookup and insert, the
+    ``IntegrityError`` is caught, the savepoint keeps the surrounding request
+    transaction usable, and we fall back to updating the row the other run created.
+    """
+    values: dict[str, Any] = {
+        "kind": kind,
+        "talk": talk,
+        "field_diffs": field_diffs,
+        "speaker_diffs": speaker_diffs,
+        "pretalx_payload": pretalx_payload,
+    }
+
+    existing = _find_open_change(event, pretalx_code)
+    if existing is not None:
+        return _apply_updates(existing, values), False
+
+    try:
+        with transaction.atomic():
+            change = PendingPretalxChange.objects.create(
+                event=event,
+                pretalx_code=pretalx_code,
+                **values,
+            )
+    except IntegrityError:
+        # Lost the race: another run created the open row first. Update it instead.
+        existing = _find_open_change(event, pretalx_code)
+        if existing is None:
+            raise
+        return _apply_updates(existing, values), False
     return change, True
 
 
