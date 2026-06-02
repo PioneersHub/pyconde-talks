@@ -166,6 +166,13 @@ class ProcessingMixin(LoggingMixin):
     """
 
     _image_generator: TalkImageGenerator
+    #: ``pretalx_id`` set of speakers whose name/avatar changed during this import run.
+    #: Populated by :meth:`_process_submissions` from
+    #: :func:`~_pretalx.speakers.batch_create_or_update_speakers` and consulted by
+    #: :meth:`_handle_existing` to decide when an "unchanged" talk still needs a fresh
+    #: social card. Defaults to ``frozenset()`` so direct ``_handle_existing`` callers
+    #: (notably the unit tests) do not need to populate it.
+    _speakers_with_visual_change: frozenset[str] = frozenset()
 
     def _process_submissions(
         self,
@@ -201,7 +208,11 @@ class ProcessingMixin(LoggingMixin):
 
         if not ctx.dry_run:
             batch_create_rooms(submissions, ctx)
-            batch_create_or_update_speakers(submissions, ctx)
+            self._speakers_with_visual_change = frozenset(
+                batch_create_or_update_speakers(submissions, ctx),
+            )
+        else:
+            self._speakers_with_visual_change = frozenset()
 
         for idx, submission in enumerate(submissions):
             ctx.log(
@@ -292,8 +303,13 @@ class ProcessingMixin(LoggingMixin):
 
         Returns ``"skipped"`` when ``--no-update`` is set, ``"unchanged"`` when the
         talk and speakers are already in sync with Pretalx, and ``"updated"``
-        otherwise. Image regeneration is skipped when nothing changed, so re-running
-        the import is cheap.
+        otherwise.
+
+        Image regeneration is triggered when the talk data or speaker set changed,
+        or when a still-attached speaker's name/avatar changed earlier in this run.
+        ``--skip-images`` disables regen entirely. The return status reflects the
+        data diff only - a speaker-driven re-render does not promote ``"unchanged"``
+        to ``"updated"``.
         """
         if ctx.no_update:
             ctx.log(
@@ -309,11 +325,43 @@ class ProcessingMixin(LoggingMixin):
                 f"No changes for existing talk: {data.title}",
                 VerbosityLevel.DETAILED,
             )
-            return "unchanged"
 
-        if not ctx.dry_run and not ctx.skip_images:
+        if not ctx.dry_run and self._needs_image_regen(
+            existing_talk,
+            ctx,
+            data_changed=changed,
+        ):
             self._image_generator.generate(existing_talk, ctx)
-        return "updated"
+
+        return "updated" if changed else "unchanged"
+
+    def _needs_image_regen(
+        self,
+        talk: Talk,
+        ctx: ImportContext,
+        *,
+        data_changed: bool,
+    ) -> bool:
+        """
+        Decide whether *talk*'s social-card image needs to be (re)built.
+
+        ``--skip-images`` always wins. Otherwise regenerate when the talk data
+        changed or any of the talk's attached speakers had a name/avatar change
+        captured in :attr:`_speakers_with_visual_change`.
+        """
+        if ctx.skip_images:
+            return False
+        if data_changed:
+            return True
+        if self._speakers_with_visual_change:
+            talk_speaker_ids = set(talk.speakers.values_list("pretalx_id", flat=True))
+            if talk_speaker_ids & self._speakers_with_visual_change:
+                ctx.log(
+                    f"Speaker name/avatar changed - regenerating image for: {talk.title}",
+                    VerbosityLevel.DETAILED,
+                )
+                return True
+        return False
 
     def _handle_new(
         self,

@@ -137,7 +137,7 @@ _SPEAKER_UPDATE_FIELDS: tuple[str, ...] = ("name", "biography", "avatar")
 def batch_create_or_update_speakers(
     submissions: Sequence[Submission],
     ctx: ImportContext,
-) -> None:
+) -> set[str]:
     """
     Upsert all speakers from confirmed/accepted *submissions* in a single statement.
 
@@ -146,10 +146,15 @@ def batch_create_or_update_speakers(
     one round-trip whether the speaker is new or already present. With
     ``--no-update`` the call falls back to ``ignore_conflicts=True`` so existing
     rows are left untouched.
+
+    Returns the set of ``pretalx_id`` values whose visual fields (name or avatar)
+    changed as part of this upsert. Callers use this set to decide which talks'
+    social-card images need regenerating. With ``--no-update`` the returned set is
+    empty (no existing rows are touched).
     """
     speakers_data = collect_speakers_from_submissions(submissions)
     if not speakers_data:
-        return
+        return set()
 
     rows = [_build_speaker(data) for data in speakers_data.values()]
 
@@ -160,7 +165,11 @@ def batch_create_or_update_speakers(
             VerbosityLevel.DETAILED,
             "SUCCESS",
         )
-        return
+        return set()
+
+    # Snapshot the existing visual fields BEFORE the upsert so we can spot avatar/name
+    # changes. Done in one query keyed on the same pretalx_ids we're about to upsert.
+    visual_changes = _detect_visual_changes(speakers_data)
 
     Speaker.objects.bulk_create(
         rows,
@@ -173,6 +182,31 @@ def batch_create_or_update_speakers(
         VerbosityLevel.DETAILED,
         "SUCCESS",
     )
+    if visual_changes:
+        ctx.log(
+            f"{len(visual_changes)} speaker(s) had name/avatar changes "
+            "(affected talks will be re-rendered)",
+            VerbosityLevel.DETAILED,
+            "SUCCESS",
+        )
+    return visual_changes
+
+
+def _detect_visual_changes(
+    speakers_data: dict[str, SubmissionSpeaker],
+) -> set[str]:
+    """Return the set of ``pretalx_id`` values whose stored name/avatar differs from Pretalx."""
+    existing = Speaker.objects.filter(pretalx_id__in=speakers_data.keys()).values_list(
+        "pretalx_id",
+        "name",
+        "avatar",
+    )
+    changed: set[str] = set()
+    for pretalx_id, current_name, current_avatar in existing:
+        new = speakers_data[pretalx_id]
+        if current_name != new.name or current_avatar != (new.avatar_url or ""):
+            changed.add(pretalx_id)
+    return changed
 
 
 # ------------------------------------------------------------------

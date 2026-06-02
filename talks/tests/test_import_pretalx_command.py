@@ -495,6 +495,40 @@ class TestBatchCreateOrUpdateSpeakers:
         # SPK001 should only be created once
         assert Speaker.objects.filter(pretalx_id="SPK001").count() == 1
 
+    def test_returns_changed_visual_ids_for_avatar_change(
+        self,
+        mock_submission: Mock,
+    ) -> None:
+        """Speakers whose avatar URL changed are reported back so talk images can re-render."""
+        Speaker.objects.create(
+            name="John Cleese",
+            biography="Speaker bio",
+            avatar="https://example.com/old-avatar.jpg",
+            pretalx_id="SPK001",
+        )
+        # SPK002 is brand new - new speakers are not "visually changed".
+        mock_submission.state = State.confirmed
+        mock_submission.speakers[0].avatar_url = "https://example.com/NEW-avatar.jpg"
+
+        changed = batch_create_or_update_speakers([mock_submission], _ctx())
+
+        assert changed == {"SPK001"}
+
+    def test_returns_empty_set_with_no_update(self, mock_submission: Mock) -> None:
+        """With --no-update existing rows are untouched, so nothing visual changed."""
+        Speaker.objects.create(
+            name="Old",
+            biography="",
+            avatar="https://example.com/old.jpg",
+            pretalx_id="SPK001",
+        )
+        mock_submission.state = State.confirmed
+        mock_submission.speakers[0].avatar_url = "https://example.com/new.jpg"
+
+        changed = batch_create_or_update_speakers([mock_submission], _ctx(no_update=True))
+
+        assert changed == set()
+
 
 # ---------------------- collect_speakers_from_submissions Tests ----------------------
 
@@ -839,3 +873,32 @@ class TestProcessSingleSubmission:
 
         assert result == "unchanged"
         command._image_generator.generate.assert_not_called()
+
+    @patch("talks.management.commands._pretalx.mixins.update_talk")
+    def test_regenerates_when_attached_speaker_visually_changed(
+        self,
+        mock_update_talk: Mock,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """An avatar/name change on a still-attached speaker triggers image regen."""
+        mock_update_talk.return_value = False
+        mock_submission.state = State.confirmed
+        Room.objects.create(name="Main Hall")
+        speaker = Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
+
+        pretalx_url = "https://pretalx.com/pyconde2099"
+        existing_talk = baker.make(
+            Talk,
+            pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
+        )
+        existing_talk.speakers.add(speaker)
+        command._image_generator = Mock()
+        # Simulate what _process_submissions populates.
+        command._speakers_with_visual_change = frozenset({"SPK001"})
+
+        ctx = _ctx(log_fn=command._log, skip_images=False, pretalx_event_url=pretalx_url)
+
+        command._process_single_submission(mock_submission, ctx)
+
+        command._image_generator.generate.assert_called_once_with(existing_talk, ctx)
