@@ -354,6 +354,30 @@ STATICFILES_FINDERS = [
 
 
 # --------------------------------------------------------------------------------------------------
+# STORAGES (Django 4.2+ unified config; replaces DEFAULT_FILE_STORAGE / STATICFILES_STORAGE)
+# https://docs.djangoproject.com/en/dev/ref/settings/#storages
+# --------------------------------------------------------------------------------------------------
+# Both backends are env-overridable so prod can opt into
+# ``ManifestStaticFilesStorage`` for content-hashed asset URLs (safe far-future caching
+# at the nginx layer) without changing code. Tests and dev keep the simple
+# ``StaticFilesStorage`` so ``{% static %}`` works without ``collectstatic``.
+STORAGES = {
+    "default": {
+        "BACKEND": env(
+            "DJANGO_DEFAULT_FILE_STORAGE",
+            default="django.core.files.storage.FileSystemStorage",
+        ),
+    },
+    "staticfiles": {
+        "BACKEND": env(
+            "DJANGO_STATICFILES_STORAGE",
+            default="django.contrib.staticfiles.storage.StaticFilesStorage",
+        ),
+    },
+}
+
+
+# --------------------------------------------------------------------------------------------------
 # MEDIA
 # --------------------------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-root
