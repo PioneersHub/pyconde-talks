@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Avg, Count, F, Q
+from django.db.models import Avg, Count, Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -407,15 +407,12 @@ class Talk(models.Model):
         default=timedelta(),
         help_text=_("Duration of the talk"),
     )
-    # Derived as ``start_time + duration`` by the database (Django 5+ GeneratedField).
-    # Stored (``db_persist=True``) so it is indexable and reusable in queries without
-    # an ``ExpressionWrapper`` annotation. Updates automatically when start_time or
-    # duration change - never set this column directly.
-    end_time = models.GeneratedField(
-        expression=F("start_time") + F("duration"),
-        output_field=models.DateTimeField(),
-        db_persist=True,
-        help_text=_("Computed talk end time (start_time + duration). Managed by the database."),
+    # Derived as ``start_time + duration``. Set by apply_derived_defaults() before every
+    # save so it stays in sync. Stored as a regular column so it is indexable.
+    end_time = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_("Computed talk end time (start_time + duration). Never set directly."),
     )
     room = models.ForeignKey(
         Room,
@@ -541,6 +538,7 @@ class Talk(models.Model):
             self.duration = self.default_duration()
         if not self.track:
             self.track = self.default_track()
+        self.end_time = self.start_time + self.duration
         self.video_link = self._enrich_video_link()
 
     def default_duration(self) -> timedelta:
