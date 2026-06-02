@@ -397,8 +397,9 @@ class Command(BaseCommand):
     def _create_rooms(
         self,
         rooms_by_category: dict[str, list[str]],
+        event: Event | None,
     ) -> dict[str, list[Room]]:
-        """Create ``Room`` objects grouped by category (plenary, talks, tutorials)."""
+        """Create event-scoped ``Room`` objects grouped by category (plenary, talks, tutorials)."""
         result: dict[str, list[Room]] = {}
         for category, names in rooms_by_category.items():
             cfg = _ROOM_CONFIGS[category]
@@ -406,6 +407,7 @@ class Command(BaseCommand):
             for name in names:
                 room, created = Room.objects.get_or_create(
                     name=name,
+                    event=event,
                     defaults={
                         "description": cfg.description,
                         "capacity": random.randint(cfg.min_capacity, cfg.max_capacity),
@@ -679,15 +681,17 @@ class Command(BaseCommand):
 
         base_time = self._parse_base_time(str(options["date"]))
 
+        # Resolve the event first so rooms can be created scoped to it (rooms are
+        # event-scoped). ``event_obj`` may be None when no --event-slug is given.
+        event_obj = self._resolve_event(options)
+
         self.stdout.write("Setting up conference rooms...")
-        rooms = self._create_rooms(self._parse_room_names(options))
+        rooms = self._create_rooms(self._parse_room_names(options), event_obj)
 
         self._create_streaming_sessions(rooms, base_time, days=int(options["days"]))
         streaming_by_room = self._preload_streaming_by_room()
 
         tracks = [s.strip() for s in str(options["tracks"]).split(",") if s.strip()] or TRACKS
-
-        event_obj = self._resolve_event(options)
 
         self.stdout.write("Generating pool of speakers...")
         speakers_pool = self._create_speakers_pool(fake=fake, talk_count=talk_count)

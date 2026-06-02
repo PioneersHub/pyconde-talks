@@ -358,28 +358,33 @@ class TestCreateRooms:
     """Verify _create_rooms creates Room objects grouped by category."""
 
     def test_creates_rooms(self, command: Command) -> None:
-        """Create plenary, talk, and tutorial rooms from the given name lists."""
+        """Create plenary, talk, and tutorial rooms scoped to the event."""
+        event = Event.objects.create(slug="e", name="E", year=2099)
         rooms = command._create_rooms(
             {
                 "plenary": ["Spec"],
                 "talks": ["Talk1", "Talk2"],
                 "tutorials": ["Tut1"],
             },
+            event,
         )
         assert len(rooms["plenary"]) == 1
         assert len(rooms["talks"]) == 2
         assert len(rooms["tutorials"]) == 1
         assert Room.objects.count() == 4
+        assert Room.objects.filter(event=event).count() == 4
 
     def test_skips_existing(self, command: Command) -> None:
-        """Reuse an existing Room instead of creating a duplicate."""
-        baker.make(Room, name="Spec")
+        """Reuse an existing Room in the same event instead of creating a duplicate."""
+        event = Event.objects.create(slug="e", name="E", year=2099)
+        baker.make(Room, name="Spec", event=event)
         rooms = command._create_rooms(
             {
                 "plenary": ["Spec"],
                 "talks": [],
                 "tutorials": [],
             },
+            event,
         )
         assert len(rooms["plenary"]) == 1
         assert Room.objects.filter(name="Spec").count() == 1
