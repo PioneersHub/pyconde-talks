@@ -115,60 +115,6 @@ def _parse_chair_date(date_str: str | None) -> date | None:
         return None
 
 
-def _talk_block(talk: Talk, user: CustomUser) -> list[Talk]:
-    """
-    Return the contiguous block of talks the given talk belongs to.
-
-    A block is the run of talks in the same room and event whose neighbors are no more than
-    ``BLOCK_GAP_TOLERANCE`` apart, so a moderator chairs a whole stretch of back-to-back sessions
-    (for example a series of lightning talks) in one click.
-    """
-    if not talk.room or not talk.start_time:
-        return [talk]
-
-    day_talks = list(
-        Talk.objects.filter(
-            room=talk.room,
-            event_id=talk.event_id,
-            start_time__date=talk.start_time.date(),
-        )
-        .exclude(start_time__year=FAR_FUTURE.year)
-        .accessible_to(user)
-        .order_by("start_time"),
-    )
-
-    try:
-        index = next(i for i, t in enumerate(day_talks) if t.pk == talk.pk)
-    except StopIteration:
-        return [talk]
-
-    # Expand left while the previous talk ends within tolerance of the current one's start.
-    start = index
-    while start > 0:
-        prev = day_talks[start - 1]
-        prev_end = prev.start_time + prev.duration
-        if day_talks[start].start_time - prev_end > BLOCK_GAP_TOLERANCE:
-            break
-        start -= 1
-
-    # Expand right while the next talk starts within tolerance of the current one's end.
-    end = index
-    while end < len(day_talks) - 1:
-        cur_end = day_talks[end].start_time + day_talks[end].duration
-        if day_talks[end + 1].start_time - cur_end > BLOCK_GAP_TOLERANCE:
-            break
-        end += 1
-
-    return day_talks[start : end + 1]
-
-
-def _assign_block(block: list[Talk], chair: CustomUser | None) -> None:
-    """Set every talk in the block to the given chair (or None to clear), unconditionally."""
-    for block_talk in block:
-        block_talk.session_chair = chair
-        block_talk.save(update_fields=["session_chair", "updated_at"])
-
-
 _MAX_CONFLICT_TITLES = 3
 
 
@@ -181,43 +127,43 @@ def _conflict_message(label: str, conflicts: list[Talk]) -> str:
     return f"{label} already chairs a session at the same time: {', '.join(parts)}{suffix}"
 
 
-def _admin_assign(block: list[Talk], raw_id: str) -> str | None:
+def _admin_assign(talk: Talk, raw_id: str) -> str | None:
     """
-    Execute the admin assignment path: assign a specific user or clear the block.
+    Execute the admin assignment path: assign a specific user or clear the talk.
 
     Returns an error string when the assignment is blocked by a time conflict, or None on success.
     """
     if not (raw_id and raw_id.isdigit()):
-        _assign_block(block, None)
+        talk.session_chair = None
+        talk.save(update_fields=["session_chair", "updated_at"])
         return None
     UserModel = cast("type[CustomUser]", get_user_model())  # noqa: N806  # NOSONAR(S117)
     target = get_object_or_404(UserModel, pk=int(raw_id))
     if not is_moderator(target):
         raise PermissionDenied
-    conflicts = _find_chair_conflicts(target, block)
+    conflicts = _find_chair_conflicts(target, [talk])
     if conflicts:
         return _conflict_message(_user_label(target), conflicts)
-    _assign_block(block, target)
+    talk.session_chair = target
+    talk.save(update_fields=["session_chair", "updated_at"])
     return None
 
 
-def _mod_toggle(user: CustomUser, talk: Talk, block: list[Talk]) -> str | None:
+def _mod_toggle(user: CustomUser, talk: Talk) -> str | None:
     """
-    Execute the moderator self-toggle: claim a free block or release own block.
+    Execute the moderator self-toggle: claim or release a single talk.
 
     Returns an error string when claiming is blocked by a time conflict, or None on success.
     """
     if talk.session_chair_id not in (None, user.pk):
-        return None  # Someone else chairs this block; silently do nothing.
+        return None  # Someone else chairs this talk; silently do nothing.
     new_chair: CustomUser | None = None if talk.session_chair_id == user.pk else user
     if new_chair is not None:
-        conflicts = _find_chair_conflicts(new_chair, block)
+        conflicts = _find_chair_conflicts(new_chair, [talk])
         if conflicts:
             return _conflict_message("You", conflicts)
-    for block_talk in block:
-        if block_talk.session_chair_id in (None, user.pk):
-            block_talk.session_chair = new_chair
-            block_talk.save(update_fields=["session_chair", "updated_at"])
+    talk.session_chair = new_chair
+    talk.save(update_fields=["session_chair", "updated_at"])
     return None
 
 
@@ -241,24 +187,23 @@ def _chair_redirect(request: HttpRequest, talk: Talk, chair_error: str | None) -
 @require_POST
 def toggle_session_chair(request: HttpRequest, talk_id: int) -> HttpResponse:
     """
-    Claim or release the session chair for a talk's whole block.
+    Claim or release the session chair for a single talk.
 
-    Moderators may claim a free block (for themselves) or release a block they already chair.
-    Admins (superusers) may assign any moderator to any block, or clear any block.
+    Moderators may claim an unassigned talk or release one they already chair.
+    Admins (superusers) may assign any moderator to any talk, or clear it.
     The same person cannot chair two overlapping sessions.
     """
     user = cast("CustomUser", request.user)
     _require_moderator(user)
 
     talk = get_object_or_404(Talk.objects.accessible_to(user), pk=talk_id)
-    block = _talk_block(talk, user)
 
     if "chair_user_id" in request.POST:
         if not is_admin(user):
             raise PermissionDenied
-        chair_error = _admin_assign(block, request.POST.get("chair_user_id", ""))
+        chair_error = _admin_assign(talk, request.POST.get("chair_user_id", ""))
     else:
-        chair_error = _mod_toggle(user, talk, block)
+        chair_error = _mod_toggle(user, talk)
 
     if is_htmx_request(request):
         selected_event = request.POST.get("event", "")

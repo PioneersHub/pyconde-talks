@@ -157,14 +157,14 @@ class TestToggleSessionChair:
         talk.refresh_from_db()
         assert talk.session_chair_id == moderator.pk
 
-    def test_claim_assigns_whole_block(
+    def test_claim_assigns_only_clicked_talk(
         self,
         client: Client,
         moderator: CustomUser,
         room: Room,
         event: Event,
     ) -> None:
-        """Claiming one talk chairs the whole back-to-back block."""
+        """Claiming one talk does not affect adjacent talks in the same room."""
         start = _morning()
         first = baker.make(
             Talk,
@@ -182,32 +182,21 @@ class TestToggleSessionChair:
             start_time=start + timedelta(minutes=30),
             duration=timedelta(minutes=30),
         )
-        # A talk much later in the same room is a separate block.
-        far = baker.make(
-            Talk,
-            title="Later",
-            room=room,
-            event=event,
-            start_time=start + timedelta(hours=3),
-            duration=timedelta(minutes=30),
-        )
         client.force_login(moderator)
         client.post(reverse("toggle_session_chair", args=[first.pk]))
         first.refresh_from_db()
         second.refresh_from_db()
-        far.refresh_from_db()
         assert first.session_chair_id == moderator.pk
-        assert second.session_chair_id == moderator.pk
-        assert far.session_chair_id is None
+        assert second.session_chair_id is None
 
-    def test_release_clears_whole_block(
+    def test_release_clears_only_clicked_talk(
         self,
         client: Client,
         moderator: CustomUser,
         room: Room,
         event: Event,
     ) -> None:
-        """Stepping down clears the whole block the moderator chaired."""
+        """Stepping down clears only the clicked talk, not the entire block."""
         start = _morning()
         first = baker.make(
             Talk,
@@ -231,7 +220,7 @@ class TestToggleSessionChair:
         client.post(reverse("toggle_session_chair", args=[second.pk]))
         first.refresh_from_db()
         second.refresh_from_db()
-        assert first.session_chair_id is None
+        assert first.session_chair_id == moderator.pk
         assert second.session_chair_id is None
 
     def test_cannot_override_another_chair(

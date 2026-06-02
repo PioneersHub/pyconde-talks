@@ -51,7 +51,7 @@
                 </div>
                 <div class="text-xs">
                   {% if is_admin %}
-                    {# Admin view: dropdown always shown so they can reassign or clear any block. #}
+                    {# Admin view: dropdown always shown so they can reassign or clear. #}
                     <select name="chair_user_id"
                             hx-post="{% url 'toggle_session_chair' talk.pk %}"
                             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -70,7 +70,7 @@
                       {% endfor %}
                     </select>
                   {% elif talk.session_chair_id == current_user_id %}
-                    {# My block (non-admin): show my name + step-down button. #}
+                    {# My talk (non-admin): show my name + step-down button. #}
                     <span class="inline-flex items-center gap-1">
                       <span class="inline-flex items-center gap-1 text-brand-blue">
                         {% svg 'check-circle' "h-3 w-3" %}
@@ -82,10 +82,10 @@
                               hx-target="#chair-grid-table"
                               hx-swap="outerHTML"
                               class="text-subtle hover:text-red-600"
-                              title="Step down from this block">{% svg 'x-mark' "h-3 w-3" %}</button>
+                              title="Step down">{% svg 'x-mark' "h-3 w-3" %}</button>
                     </span>
                   {% elif talk.session_chair_id %}
-                    {# Someone else's block, non-admin: read-only. #}
+                    {# Someone else's talk, non-admin: read-only. #}
                     <span class="inline-flex items-center gap-1 text-muted">
                       {% svg 'check-circle' "h-3 w-3" %}
                       {{ talk.chair_display_name }}
@@ -98,7 +98,7 @@
                             hx-target="#chair-grid-table"
                             hx-swap="outerHTML"
                             class="inline-flex items-center gap-1 text-subtle hover:text-brand-blue"
-                            title="Chair this block">
+                            title="Chair this talk">
                       <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-current text-xs leading-none font-bold">+</span>
                       Chair
                     </button>
