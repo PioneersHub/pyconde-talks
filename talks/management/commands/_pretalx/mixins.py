@@ -15,6 +15,10 @@ from pytanis.pretalx.models import State
 
 from talks.management.commands._pretalx.avatars import prefetch_avatars_for_submissions
 from talks.management.commands._pretalx.client import fetch_talks_with_retry
+from talks.management.commands._pretalx.images import (
+    image_is_older_than,
+    latest_template_mtime,
+)
 from talks.management.commands._pretalx.rooms import batch_create_rooms
 from talks.management.commands._pretalx.speakers import batch_create_or_update_speakers
 from talks.management.commands._pretalx.submission import SubmissionData
@@ -173,6 +177,10 @@ class ProcessingMixin(LoggingMixin):
     #: social card. Defaults to ``frozenset()`` so direct ``_handle_existing`` callers
     #: (notably the unit tests) do not need to populate it.
     _speakers_with_visual_change: frozenset[str] = frozenset()
+    #: Latest mtime (epoch seconds) across the event's social-card template PNGs.
+    #: ``None`` means "no templates / nothing to compare against". Set per
+    #: :meth:`_process_submissions` call.
+    _template_mtime: float | None = None
 
     def _process_submissions(
         self,
@@ -213,6 +221,10 @@ class ProcessingMixin(LoggingMixin):
             )
         else:
             self._speakers_with_visual_change = frozenset()
+
+        # Cache the template mtime once so each talk can compare against it without
+        # restating the filesystem repeatedly.
+        self._template_mtime = latest_template_mtime(ctx)
 
         for idx, submission in enumerate(submissions):
             ctx.log(
@@ -307,9 +319,10 @@ class ProcessingMixin(LoggingMixin):
 
         Image regeneration is triggered when *any* of these is true (and
         ``--skip-images`` is not set): the talk data or speaker set changed,
-        ``--force-images`` was passed, or a still-attached speaker's name/avatar
-        changed earlier in this run. The return status reflects the data diff
-        only - force-regen does not promote ``"unchanged"`` to ``"updated"``.
+        ``--force-images`` was passed, a still-attached speaker's name/avatar
+        changed earlier in this run, or a social-card template is newer than the
+        current image. The return status reflects the data diff only -
+        force-regen does not promote ``"unchanged"`` to ``"updated"``.
         """
         if ctx.no_update:
             ctx.log(
@@ -346,8 +359,9 @@ class ProcessingMixin(LoggingMixin):
         Decide whether *talk*'s social-card image needs to be (re)built.
 
         ``--skip-images`` always wins. Otherwise regenerate when the talk data
-        changed, ``--force-images`` is set, or any of the talk's attached speakers
-        had a name/avatar change captured in :attr:`_speakers_with_visual_change`.
+        changed, ``--force-images`` is set, any of the talk's speakers had a
+        name/avatar change in this run, or the current image is older than the
+        latest social-card template PNG for this event.
         """
         if ctx.skip_images:
             return False
@@ -361,6 +375,15 @@ class ProcessingMixin(LoggingMixin):
                     VerbosityLevel.DETAILED,
                 )
                 return True
+        if self._template_mtime is not None and image_is_older_than(
+            talk,
+            self._template_mtime,
+        ):
+            ctx.log(
+                f"Template is newer than image - regenerating image for: {talk.title}",
+                VerbosityLevel.DETAILED,
+            )
+            return True
         return False
 
     def _handle_new(

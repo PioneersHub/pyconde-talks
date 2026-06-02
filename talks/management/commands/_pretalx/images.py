@@ -117,6 +117,49 @@ _CARD_COLORS: dict[str, _CardColors] = {
 _DEFAULT_CARD_COLORS: _CardColors = {"title": _WHITE, "speaker": _WHITE, "code": _WHITE}
 
 
+# ------------------------------------------------------------------
+# Template / image freshness helpers
+# ------------------------------------------------------------------
+
+
+def _template_dir_for_event_slug(event_slug: str) -> Path:
+    """Return the directory holding social-card template PNGs for *event_slug*."""
+    return Path(settings.MEDIA_ROOT) / "social_card_templates" / event_slug
+
+
+def latest_template_mtime(ctx: ImportContext) -> float | None:
+    """
+    Return the most recent mtime across the event's social-card templates.
+
+    ``None`` means there is nothing to compare against - either no event is bound
+    to the context yet or the template directory has no PNGs. Used by the importer
+    to decide when previously-generated talk images are stale.
+    """
+    if ctx.event_obj is None:
+        return None
+    template_dir = _template_dir_for_event_slug(ctx.event_obj.slug)
+    if not template_dir.is_dir():
+        return None
+    mtimes = [p.stat().st_mtime for p in template_dir.glob("*.png")]
+    return max(mtimes) if mtimes else None
+
+
+def image_is_older_than(talk: Talk, threshold_mtime: float) -> bool:
+    """
+    Return ``True`` if *talk*'s saved image is missing or older than *threshold_mtime*.
+
+    Treats a missing or unreadable file as stale (caller will regenerate).
+    """
+    if not talk.image:
+        return True
+    try:
+        return Path(talk.image.path).stat().st_mtime < threshold_mtime
+    except OSError, ValueError, NotImplementedError:
+        # OSError: missing file. ValueError/NotImplementedError: storages that do not
+        # expose a filesystem ``path`` (e.g. S3). Treat both as "regenerate it."
+        return True
+
+
 class TalkImageGenerator:
     """
     Generate social-card images for talks.
@@ -139,9 +182,7 @@ class TalkImageGenerator:
         """Generate a social card for *talk*, save it, and return the :class:`Image`."""
         image_format = self._resolve_image_format(ctx)
 
-        template_dir = (
-            settings.MEDIA_ROOT / "social_card_templates" / (talk.event.slug if talk.event else "")
-        )
+        template_dir = _template_dir_for_event_slug(talk.event.slug if talk.event else "")
         templates = list(template_dir.glob("*.png"))
         if not templates:
             msg = f"No template PNGs found in {template_dir}"

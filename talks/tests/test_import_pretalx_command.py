@@ -969,3 +969,32 @@ class TestProcessSingleSubmission:
         command._process_single_submission(mock_submission, ctx)
 
         command._image_generator.generate.assert_not_called()
+
+    @patch("talks.management.commands._pretalx.mixins.update_talk")
+    def test_regenerates_when_template_newer_than_image(
+        self,
+        mock_update_talk: Mock,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """A template touched after the existing image triggers image regen."""
+        mock_update_talk.return_value = False
+        mock_submission.state = State.confirmed
+        Room.objects.create(name="Main Hall")
+        Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
+
+        pretalx_url = "https://pretalx.com/pyconde2099"
+        baker.make(
+            Talk,
+            pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
+        )
+        command._image_generator = Mock()
+        # Talk has no saved image (falsy) -> image_is_older_than returns True for any threshold.
+        # Pretend the template was touched at epoch 1.0.
+        command._template_mtime = 1.0
+
+        ctx = _ctx(log_fn=command._log, skip_images=False, pretalx_event_url=pretalx_url)
+
+        command._process_single_submission(mock_submission, ctx)
+
+        command._image_generator.generate.assert_called_once()
