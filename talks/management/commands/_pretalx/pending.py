@@ -1,0 +1,191 @@
+"""
+Detect-only support for the Pretalx importer.
+
+Helpers that turn the per-submission diff into ``PendingPretalxChange`` rows
+without touching the live ``Talk``/``Speaker`` graph. Used by the importer when
+``--detect-only`` is set so admins can review and apply changes from the admin
+UI on their own schedule.
+"""
+
+import datetime
+from typing import TYPE_CHECKING, Any
+
+from talks.management.commands._pretalx.talks import (
+    _diff_talk_fields,
+    map_presentation_type,
+)
+from talks.models import PendingPretalxChange, Talk
+
+
+if TYPE_CHECKING:
+    from pytanis.pretalx.models import SubmissionSpeaker
+
+    from talks.management.commands._pretalx.context import ImportContext
+    from talks.management.commands._pretalx.submission import SubmissionData
+
+
+# ------------------------------------------------------------------
+# Diff helpers
+# ------------------------------------------------------------------
+
+
+def diff_speakers(
+    talk: Talk | None,
+    submission_speakers: list[SubmissionSpeaker],
+) -> dict[str, list[dict[str, str]]]:
+    """
+    Return the symmetric difference between *talk*'s speakers and *submission_speakers*.
+
+    Read-only: never touches the database. Output shape is
+    ``{"added": [{"code", "name"}, ...], "removed": [{"code", "name"}, ...]}``,
+    with empty lists when nothing changed. *talk* may be ``None`` for the CREATE
+    case (every speaker counts as "added").
+    """
+    current: dict[str, str] = {}
+    if talk is not None and talk.pk is not None:
+        current = dict(talk.speakers.values_list("pretalx_id", "name"))
+    new: dict[str, str] = {sp.code: sp.name for sp in submission_speakers}
+
+    added = [{"code": code, "name": name} for code, name in new.items() if code not in current]
+    removed = [{"code": code, "name": name} for code, name in current.items() if code not in new]
+    return {"added": added, "removed": removed}
+
+
+def serialize_field_diffs(
+    talk: Talk,
+    data: SubmissionData,
+    ctx: ImportContext,
+) -> dict[str, dict[str, Any]]:
+    """
+    Convert the dict returned by :func:`_diff_talk_fields` into JSON-friendly diffs.
+
+    Output shape: ``{field_name: {"old": <value>, "new": <value>}}``. ``room`` and
+    ``event`` are flattened to their string representation (slug or name) so the
+    payload is safe to serialize.
+    """
+    fresh = _diff_talk_fields(talk, data, ctx)
+    diffs: dict[str, dict[str, Any]] = {}
+    for field, new_value in fresh.items():
+        old_value = getattr(talk, field)
+        diffs[field] = {"old": _jsonify(old_value), "new": _jsonify(new_value)}
+    return diffs
+
+
+def build_submission_payload(
+    data: SubmissionData,
+    submission_speakers: list[SubmissionSpeaker],
+    ctx: ImportContext,
+) -> dict[str, Any]:
+    """
+    Return the JSON-serializable snapshot of *data*, used as the apply payload.
+
+    The snapshot is self-contained: applying the pending change later does not
+    require re-fetching Pretalx. The shape mirrors what
+    :func:`~_pretalx.talks.create_talk` / ``update_talk`` consume.
+    """
+    return {
+        "title": data.title,
+        "abstract": data.abstract,
+        "description": data.description,
+        "start_time": data.start_time.isoformat() if data.start_time else None,
+        "duration_seconds": int(data.duration.total_seconds()) if data.duration else None,
+        "room": data.room,
+        "track": data.track,
+        "submission_type": data.submission_type,
+        "presentation_type": map_presentation_type(data.submission_type, data.code, ctx),
+        "image_url": data.image_url,
+        "pretalx_link": data.pretalx_link,
+        "speakers": [
+            {
+                "code": sp.code,
+                "name": sp.name,
+                "biography": getattr(sp, "biography", "") or "",
+                "avatar_url": getattr(sp, "avatar_url", "") or "",
+            }
+            for sp in submission_speakers
+        ],
+    }
+
+
+# ------------------------------------------------------------------
+# Upsert helpers
+# ------------------------------------------------------------------
+
+
+def record_pending_change(  # noqa: PLR0913
+    *,
+    event: Any,
+    pretalx_code: str,
+    kind: str,
+    talk: Talk | None,
+    field_diffs: dict[str, dict[str, Any]],
+    speaker_diffs: dict[str, list[dict[str, str]]],
+    pretalx_payload: dict[str, Any],
+) -> tuple[PendingPretalxChange, bool]:
+    """
+    Upsert an open ``PendingPretalxChange`` row for ``(event, pretalx_code)``.
+
+    Returns ``(change, created)`` mirroring Django's ``get_or_create`` shape.
+    When an open row already exists the existing record is updated in place;
+    once it has been applied or dismissed a fresh row is created so the audit
+    trail of past decisions is preserved.
+    """
+    existing = PendingPretalxChange.objects.filter(
+        event=event,
+        pretalx_code=pretalx_code,
+        applied_at__isnull=True,
+        dismissed_at__isnull=True,
+    ).first()
+    if existing is not None:
+        existing.kind = kind
+        existing.talk = talk
+        existing.field_diffs = field_diffs
+        existing.speaker_diffs = speaker_diffs
+        existing.pretalx_payload = pretalx_payload
+        existing.save(
+            update_fields=[
+                "kind",
+                "talk",
+                "field_diffs",
+                "speaker_diffs",
+                "pretalx_payload",
+                "last_detected_at",
+            ],
+        )
+        return existing, False
+
+    change = PendingPretalxChange.objects.create(
+        event=event,
+        pretalx_code=pretalx_code,
+        kind=kind,
+        talk=talk,
+        field_diffs=field_diffs,
+        speaker_diffs=speaker_diffs,
+        pretalx_payload=pretalx_payload,
+    )
+    return change, True
+
+
+# ------------------------------------------------------------------
+# Private helpers
+# ------------------------------------------------------------------
+
+
+def _jsonify(value: Any) -> Any:
+    """
+    Coerce a model-field value into something JSONField can store.
+
+    Datetimes get ``.isoformat()``; timedeltas become integer seconds; FK
+    instances render as their string repr (``Room.__str__`` is the room name,
+    ``Event.__str__`` is the slug). Anything else passes through.
+    """
+    if value is None:
+        return None
+    if isinstance(value, datetime.datetime | datetime.date | datetime.time):
+        return value.isoformat()
+    if isinstance(value, datetime.timedelta):
+        return int(value.total_seconds())
+    # Django model instances are not JSON-friendly; render to string.
+    if hasattr(value, "_meta") and hasattr(value, "pk"):
+        return str(value)
+    return value

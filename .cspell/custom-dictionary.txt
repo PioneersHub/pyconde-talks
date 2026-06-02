@@ -155,6 +155,7 @@ RAQM
 redef
 regen
 regularuser
+reupserts
 respx
 Reswap
 Retarget
@@ -187,6 +188,7 @@ tailwindcss
 tamasfe
 templatetags
 textwrap
+timedeltas
 timesince
 tlsv
 trixie

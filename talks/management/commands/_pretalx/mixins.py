@@ -19,6 +19,12 @@ from talks.management.commands._pretalx.images import (
     image_is_older_than,
     latest_template_mtime,
 )
+from talks.management.commands._pretalx.pending import (
+    build_submission_payload,
+    diff_speakers,
+    record_pending_change,
+    serialize_field_diffs,
+)
 from talks.management.commands._pretalx.rooms import batch_create_rooms
 from talks.management.commands._pretalx.speakers import batch_create_or_update_speakers
 from talks.management.commands._pretalx.submission import SubmissionData
@@ -29,7 +35,7 @@ from talks.management.commands._pretalx.talks import (
 )
 from talks.management.commands._pretalx.types import VerbosityLevel
 from talks.management.commands._pretalx.validation import is_valid_submission
-from talks.models import Talk
+from talks.models import PendingPretalxChange, Talk
 
 
 if TYPE_CHECKING:
@@ -49,13 +55,21 @@ type _StatKey = Literal[
     "created",
     "updated",
     "unchanged",
+    "detected",
     "deleted",
     "skipped",
     "failed",
 ]
 
 #: Result status returned by per-submission handlers.
-type _ResultStatus = Literal["created", "updated", "unchanged", "deleted", "skipped"]
+type _ResultStatus = Literal[
+    "created",
+    "updated",
+    "unchanged",
+    "detected",
+    "deleted",
+    "skipped",
+]
 
 
 # ------------------------------------------------------------------
@@ -190,9 +204,41 @@ class ProcessingMixin(LoggingMixin):
         """Import every submission: validate, create/update/delete talks, generate images."""
         stats = _new_stats(len(submissions))
 
+        self._log_mode_banners(ctx)
+        self._prefetch_avatars(submissions, ctx)
+        self._run_bulk_upserts(submissions, ctx)
+        # Cache the template mtime once so each talk can compare against it without
+        # restating the filesystem repeatedly.
+        self._template_mtime = latest_template_mtime(ctx)
+
+        for idx, submission in enumerate(submissions):
+            ctx.log(
+                f"Processing {idx + 1}/{stats['total']}: {submission.title}",
+                VerbosityLevel.DETAILED,
+            )
+            self._process_one_with_stats(submission, ctx, stats)
+
+        ctx.log(
+            f"Import complete: {stats['created']} created, {stats['updated']} updated, "
+            f"{stats['unchanged']} unchanged, {stats['detected']} detected, "
+            f"{stats['deleted']} deleted, {stats['skipped']} skipped, "
+            f"{stats['failed']} failed, {stats['total']} total",
+            VerbosityLevel.NORMAL,
+            "SUCCESS",
+        )
+
+    @staticmethod
+    def _log_mode_banners(ctx: ImportContext) -> None:
+        """Emit the warning banners for ``--dry-run`` / ``--detect-only`` / ``--no-update``."""
         if ctx.dry_run:
             ctx.log(
                 "DRY RUN: No changes will be saved to the database",
+                VerbosityLevel.NORMAL,
+                "WARNING",
+            )
+        if ctx.detect_only:
+            ctx.log(
+                "DETECT-ONLY: changes will be recorded as PendingPretalxChange rows only",
                 VerbosityLevel.NORMAL,
                 "WARNING",
             )
@@ -203,58 +249,65 @@ class ProcessingMixin(LoggingMixin):
                 "WARNING",
             )
 
-        # Best-effort avatar prefetch
-        if not ctx.no_avatars:
-            try:
-                prefetch_avatars_for_submissions(submissions, ctx)
-            except Exception as exc:
-                ctx.log(
-                    f"Avatar prefetch failed (continuing without cache): {exc!s}",
-                    VerbosityLevel.DETAILED,
-                    "WARNING",
-                )
-
-        if not ctx.dry_run:
-            batch_create_rooms(submissions, ctx)
-            self._speakers_with_visual_change = frozenset(
-                batch_create_or_update_speakers(submissions, ctx),
-            )
-        else:
-            self._speakers_with_visual_change = frozenset()
-
-        # Cache the template mtime once so each talk can compare against it without
-        # restating the filesystem repeatedly.
-        self._template_mtime = latest_template_mtime(ctx)
-
-        for idx, submission in enumerate(submissions):
+    @staticmethod
+    def _prefetch_avatars(
+        submissions: Sequence[Submission],
+        ctx: ImportContext,
+    ) -> None:
+        """Best-effort avatar warm-up; failures here must not abort the import."""
+        if ctx.no_avatars:
+            return
+        try:
+            prefetch_avatars_for_submissions(submissions, ctx)
+        except Exception as exc:
             ctx.log(
-                f"Processing {idx + 1}/{stats['total']}: {submission.title}",
+                f"Avatar prefetch failed (continuing without cache): {exc!s}",
                 VerbosityLevel.DETAILED,
+                "WARNING",
             )
-            try:
-                if not is_valid_submission(submission, ctx):
-                    stats["skipped"] += 1
-                    continue
-                result = self._process_single_submission(submission, ctx)
-                stats[result] += 1
-            except Exception as exc:
-                stats["failed"] += 1
-                ctx.log(
-                    f"Error processing submission {submission.code}: {exc!s}",
-                    VerbosityLevel.NORMAL,
-                    "ERROR",
-                )
-                if ctx.verbosity.value >= VerbosityLevel.DEBUG.value:
-                    self.stderr.write(traceback.format_exc())
 
-        ctx.log(
-            f"Import complete: {stats['created']} created, {stats['updated']} updated, "
-            f"{stats['unchanged']} unchanged, {stats['deleted']} deleted, "
-            f"{stats['skipped']} skipped, {stats['failed']} failed, "
-            f"{stats['total']} total",
-            VerbosityLevel.NORMAL,
-            "SUCCESS",
+    def _run_bulk_upserts(
+        self,
+        submissions: Sequence[Submission],
+        ctx: ImportContext,
+    ) -> None:
+        """
+        Pre-create rooms and upsert speakers in bulk.
+
+        Skipped under ``--dry-run`` and ``--detect-only``: both modes must leave the
+        Speaker/Room tables untouched. Also records which speakers had a visual change
+        so the per-talk loop can decide on image regeneration.
+        """
+        if ctx.dry_run or ctx.detect_only:
+            self._speakers_with_visual_change = frozenset()
+            return
+        batch_create_rooms(submissions, ctx)
+        self._speakers_with_visual_change = frozenset(
+            batch_create_or_update_speakers(submissions, ctx),
         )
+
+    def _process_one_with_stats(
+        self,
+        submission: Submission,
+        ctx: ImportContext,
+        stats: dict[_StatKey, int],
+    ) -> None:
+        """Run a single submission through the pipeline and update *stats* in place."""
+        try:
+            if not is_valid_submission(submission, ctx):
+                stats["skipped"] += 1
+                return
+            result = self._process_single_submission(submission, ctx)
+            stats[result] += 1
+        except Exception as exc:
+            stats["failed"] += 1
+            ctx.log(
+                f"Error processing submission {submission.code}: {exc!s}",
+                VerbosityLevel.NORMAL,
+                "ERROR",
+            )
+            if ctx.verbosity.value >= VerbosityLevel.DEBUG.value:
+                self.stderr.write(traceback.format_exc())
 
     # ------------------------------------------------------------------
     # Single submission processing
@@ -291,9 +344,32 @@ class ProcessingMixin(LoggingMixin):
         data: SubmissionData,
         ctx: ImportContext,
     ) -> _ResultStatus:
-        """Delete *existing_talk* when its submission is no longer confirmed/accepted."""
+        """
+        Delete *existing_talk* when its submission is no longer confirmed/accepted.
+
+        In ``--detect-only`` mode the delete is recorded as a pending change
+        instead, so an admin can confirm it before the row disappears.
+        """
         if not existing_talk:
             return "skipped"
+
+        if ctx.detect_only:
+            record_pending_change(
+                event=ctx.event_obj,
+                pretalx_code=data.code,
+                kind=PendingPretalxChange.Kind.DELETE,
+                talk=existing_talk,
+                field_diffs={},
+                speaker_diffs={"added": [], "removed": []},
+                pretalx_payload={"pretalx_link": data.pretalx_link, "title": data.title},
+            )
+            ctx.log(
+                f"DETECT: would delete talk {data.title}",
+                VerbosityLevel.DETAILED,
+                "WARNING",
+            )
+            return "detected"
+
         ctx.log(
             f"Talk {data.title} is no longer confirmed/accepted. Deleting",
             VerbosityLevel.NORMAL,
@@ -332,6 +408,9 @@ class ProcessingMixin(LoggingMixin):
             )
             return "skipped"
 
+        if ctx.detect_only:
+            return self._detect_update(existing_talk, data, speakers, ctx)
+
         changed = update_talk(existing_talk, data, speakers, ctx)
         if not changed:
             ctx.log(
@@ -347,6 +426,45 @@ class ProcessingMixin(LoggingMixin):
             self._image_generator.generate(existing_talk, ctx)
 
         return "updated" if changed else "unchanged"
+
+    def _detect_update(
+        self,
+        existing_talk: Talk,
+        data: SubmissionData,
+        speakers: list[SubmissionSpeaker],
+        ctx: ImportContext,
+    ) -> _ResultStatus:
+        """
+        Record a would-be UPDATE on *existing_talk* as a pending change.
+
+        Computes the field and speaker diffs read-only, drops a
+        ``PendingPretalxChange`` row when anything actually changed, and reports
+        ``"unchanged"`` otherwise. Never touches the Talk.
+        """
+        field_diffs = serialize_field_diffs(existing_talk, data, ctx)
+        speaker_diffs = diff_speakers(existing_talk, speakers)
+        if not field_diffs and not speaker_diffs["added"] and not speaker_diffs["removed"]:
+            ctx.log(
+                f"No changes for existing talk: {data.title}",
+                VerbosityLevel.DETAILED,
+            )
+            return "unchanged"
+
+        record_pending_change(
+            event=ctx.event_obj,
+            pretalx_code=data.code,
+            kind=PendingPretalxChange.Kind.UPDATE,
+            talk=existing_talk,
+            field_diffs=field_diffs,
+            speaker_diffs=speaker_diffs,
+            pretalx_payload=build_submission_payload(data, speakers, ctx),
+        )
+        ctx.log(
+            f"DETECT: pending UPDATE for talk {data.title}",
+            VerbosityLevel.DETAILED,
+            "WARNING",
+        )
+        return "detected"
 
     def _needs_image_regen(
         self,
@@ -392,7 +510,29 @@ class ProcessingMixin(LoggingMixin):
         speakers: list[SubmissionSpeaker],
         ctx: ImportContext,
     ) -> _ResultStatus:
-        """Create a new :class:`~talks.models.Talk` and attach speakers + image."""
+        """
+        Create a new :class:`~talks.models.Talk` and attach speakers + image.
+
+        In ``--detect-only`` mode the would-be CREATE lands in a pending row
+        instead, so an admin can decide whether to import it.
+        """
+        if ctx.detect_only:
+            record_pending_change(
+                event=ctx.event_obj,
+                pretalx_code=data.code,
+                kind=PendingPretalxChange.Kind.CREATE,
+                talk=None,
+                field_diffs={},
+                speaker_diffs=diff_speakers(None, speakers),
+                pretalx_payload=build_submission_payload(data, speakers, ctx),
+            )
+            ctx.log(
+                f"DETECT: pending CREATE for new talk {data.title}",
+                VerbosityLevel.DETAILED,
+                "WARNING",
+            )
+            return "detected"
+
         ctx.log(
             f"Creating new talk: {data.title}",
             VerbosityLevel.DETAILED,
@@ -417,6 +557,7 @@ def _new_stats(total: int) -> dict[_StatKey, int]:
         "created": 0,
         "updated": 0,
         "unchanged": 0,
+        "detected": 0,
         "deleted": 0,
         "skipped": 0,
         "failed": 0,

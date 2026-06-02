@@ -22,6 +22,7 @@ class ImportContext:
     verbosity: VerbosityLevel
     log_fn: LogFn
     dry_run: bool = False
+    detect_only: bool = False
     no_update: bool = False
     skip_images: bool = False
     force_images: bool = False
@@ -62,6 +63,7 @@ class ImportContext:
             verbosity=VerbosityLevel(options["verbosity"]),
             log_fn=log_fn,
             dry_run=options.get("dry_run", False),
+            detect_only=options.get("detect_only", False),
             no_update=options.get("no_update", False),
             skip_images=options.get("skip_images", False),
             force_images=options.get("force_images", False),

@@ -15,6 +15,7 @@ import pytest
 from model_bakery import baker
 from pytanis.pretalx.models import State
 
+from events.models import Event
 from talks.management.commands._pretalx.context import ImportContext
 from talks.management.commands._pretalx.rooms import batch_create_rooms
 from talks.management.commands._pretalx.speakers import (
@@ -30,7 +31,14 @@ from talks.management.commands._pretalx.talks import map_presentation_type
 from talks.management.commands._pretalx.types import LogFn, VerbosityLevel
 from talks.management.commands._pretalx.validation import is_valid_submission
 from talks.management.commands.import_pretalx_talks import Command
-from talks.models import FAR_FUTURE, MAX_TALK_TITLE_LENGTH, Room, Speaker, Talk
+from talks.models import (
+    FAR_FUTURE,
+    MAX_TALK_TITLE_LENGTH,
+    PendingPretalxChange,
+    Room,
+    Speaker,
+    Talk,
+)
 
 
 def _noop_log(
@@ -998,3 +1006,176 @@ class TestProcessSingleSubmission:
         command._process_single_submission(mock_submission, ctx)
 
         command._image_generator.generate.assert_called_once()
+
+
+# ---------------------- detect-only Tests ----------------------
+
+
+@pytest.mark.django_db
+class TestDetectOnlyMode:
+    """``--detect-only`` records changes as PendingPretalxChange rows without touching Talks."""
+
+    def test_detect_create_writes_pending_row(
+        self,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """A new submission produces a CREATE pending row and leaves the Talk table alone."""
+        event = Event.objects.create(slug="evt", name="Evt", year=2099)
+        mock_submission.state = State.confirmed
+        pretalx_url = "https://pretalx.com/evt"
+
+        ctx = _ctx(
+            log_fn=command._log,
+            detect_only=True,
+            skip_images=True,
+            pretalx_event_url=pretalx_url,
+            event_obj=event,
+        )
+
+        result = command._process_single_submission(mock_submission, ctx)
+
+        assert result == "detected"
+        assert Talk.objects.count() == 0
+        change = PendingPretalxChange.objects.get()
+        assert change.kind == PendingPretalxChange.Kind.CREATE
+        assert change.pretalx_code == mock_submission.code
+        assert change.talk is None
+        # Speakers should land in the diff so reviewers can see them.
+        assert {s["code"] for s in change.speaker_diffs["added"]} == {"SPK001", "SPK002"}
+
+    def test_detect_update_writes_pending_row_without_touching_talk(
+        self,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """A diff against an existing Talk produces an UPDATE pending row, no DB writes to Talk."""
+        event = Event.objects.create(slug="evt", name="Evt", year=2099)
+        mock_submission.state = State.confirmed
+        pretalx_url = "https://pretalx.com/evt"
+        existing_talk = baker.make(
+            Talk,
+            title="Old Title",
+            abstract="Old abstract",
+            pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
+            event=event,
+        )
+        original_updated_at = existing_talk.updated_at
+
+        ctx = _ctx(
+            log_fn=command._log,
+            detect_only=True,
+            skip_images=True,
+            pretalx_event_url=pretalx_url,
+            event_obj=event,
+        )
+
+        result = command._process_single_submission(mock_submission, ctx)
+
+        assert result == "detected"
+        existing_talk.refresh_from_db()
+        # Talk row untouched.
+        assert existing_talk.title == "Old Title"
+        assert existing_talk.updated_at == original_updated_at
+
+        change = PendingPretalxChange.objects.get()
+        assert change.kind == PendingPretalxChange.Kind.UPDATE
+        assert change.talk == existing_talk
+        assert "title" in change.field_diffs
+        assert change.field_diffs["title"]["new"] == "Test Talk Title"
+
+    def test_detect_no_changes_yields_unchanged(
+        self,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """When the local Talk already matches Pretalx, no pending row is written."""
+        event = Event.objects.create(slug="evt", name="Evt", year=2099)
+        mock_submission.state = State.confirmed
+        pretalx_url = "https://pretalx.com/evt"
+        room = Room.objects.create(name="Main Hall")
+        speaker1 = Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
+        speaker2 = Speaker.objects.create(name="Eric Idle", pretalx_id="SPK002")
+
+        # Build a Talk that matches the mock_submission exactly.
+        talk = Talk.objects.create(
+            presentation_type="Talk",
+            title=mock_submission.title,
+            abstract=mock_submission.abstract,
+            description=mock_submission.description,
+            start_time=mock_submission.slots[0].start,
+            duration=timedelta(minutes=mock_submission.duration),
+            room=room,
+            track="Data Science",
+            pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
+            event=event,
+        )
+        talk.speakers.add(speaker1, speaker2)
+
+        ctx = _ctx(
+            log_fn=command._log,
+            detect_only=True,
+            skip_images=True,
+            pretalx_event_url=pretalx_url,
+            event_obj=event,
+        )
+
+        result = command._process_single_submission(mock_submission, ctx)
+
+        assert result == "unchanged"
+        assert PendingPretalxChange.objects.count() == 0
+
+    def test_detect_cancelled_writes_delete_pending(
+        self,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """A submission whose state is no longer confirmed/accepted produces a DELETE row."""
+        event = Event.objects.create(slug="evt", name="Evt", year=2099)
+        mock_submission.state = State.rejected
+        pretalx_url = "https://pretalx.com/evt"
+        existing_talk = baker.make(
+            Talk,
+            title="Doomed Talk",
+            pretalx_link=f"{pretalx_url}/talk/{mock_submission.code}",
+            event=event,
+        )
+
+        ctx = _ctx(
+            log_fn=command._log,
+            detect_only=True,
+            skip_images=True,
+            pretalx_event_url=pretalx_url,
+            event_obj=event,
+        )
+
+        result = command._process_single_submission(mock_submission, ctx)
+
+        assert result == "detected"
+        assert Talk.objects.filter(pk=existing_talk.pk).exists()  # not deleted
+        change = PendingPretalxChange.objects.get()
+        assert change.kind == PendingPretalxChange.Kind.DELETE
+        assert change.talk == existing_talk
+
+    def test_detect_idempotent_reupserts_open_row(
+        self,
+        command: Command,
+        mock_submission: Mock,
+    ) -> None:
+        """Re-running detect for an unchanged-detection submission reuses the same row."""
+        event = Event.objects.create(slug="evt", name="Evt", year=2099)
+        mock_submission.state = State.confirmed
+        pretalx_url = "https://pretalx.com/evt"
+
+        ctx = _ctx(
+            log_fn=command._log,
+            detect_only=True,
+            skip_images=True,
+            pretalx_event_url=pretalx_url,
+            event_obj=event,
+        )
+
+        command._process_single_submission(mock_submission, ctx)
+        command._process_single_submission(mock_submission, ctx)
+
+        assert PendingPretalxChange.objects.count() == 1

@@ -80,6 +80,12 @@ class Command(ProcessingMixin, FetchMixin, BaseCommand):
             help="Simulate the import without saving to the database",
         )
         parser.add_argument(
+            "--detect-only",
+            action="store_true",
+            help="Detect changes against Pretalx and record them as PendingPretalxChange rows "
+            "for admin review, without mutating Talks/Speakers/Rooms.",
+        )
+        parser.add_argument(
             "--max-retries",
             type=int,
             default=3,
