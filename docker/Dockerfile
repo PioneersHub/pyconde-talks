@@ -118,7 +118,17 @@ COPY --from=builder --chown=root:root --chmod=0555 /app/templates /app/templates
 COPY --from=builder --chown=root:root --chmod=0555 /app/users /app/users/
 COPY --from=builder --chown=root:root --chmod=0555 /app/utils /app/utils/
 
-# Install font (ADD fetches over HTTPS and applies --chmod in one layer)
+# Staticfiles manifest only (NOT the assets, which nginx serves from its own synced copy).
+# Django still renders every template's {% static %} tag at request time; under
+# ManifestStaticFilesStorage that means reading staticfiles.json from STATIC_ROOT
+# (/staticfiles) to map each asset to its content-hashed name. Without this file the app
+# 500s with "Missing staticfiles manifest entry" on every page. The manifest references files
+# that live only on nginx, which is fine: url() needs the mapping, not the bytes.
+#
+# Mode 0555, not 0444: --chmod also applies to the auto-created /staticfiles directory, and a
+# directory needs the execute (traverse) bit or the non-root django user (UID 10000) can't open
+# the file inside it. The execute bit is harmless on the JSON file itself.
+COPY --from=builder --chown=root:root --chmod=0555 /staticfiles/staticfiles.json /staticfiles/staticfiles.json
 ADD --chmod=0444 \
     "https://github.com/notofonts/notofonts.github.io/raw/refs/heads/main/fonts/NotoSans/full/variable-ttf/NotoSans%5Bwdth,wght%5D.ttf" \
     /usr/share/fonts/truetype/noto/NotoSans.ttf
