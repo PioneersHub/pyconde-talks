@@ -10,6 +10,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
 from django.db import transaction
 
+from events.models import Event
 from talks.models import Room, Streaming
 
 
@@ -42,6 +43,13 @@ class Command(BaseCommand):
             help="Name of the worksheet in the Google Sheets",
         )
         parser.add_argument(
+            "--event-slug",
+            type=str,
+            default=getattr(settings, "DEFAULT_EVENT", ""),
+            help="Scope rooms and replaced streamings to this event (default: DEFAULT_EVENT). "
+            "Required when the same room name exists in more than one event.",
+        )
+        parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Perform a dry run without making database changes",
@@ -71,14 +79,30 @@ class Command(BaseCommand):
         else:
             return s_df
 
-    def get_room(self, room_name: str) -> Room | None:
-        """Get room by name or return None if not found."""
-        room_name = room_name.strip()
-        return Room.objects.filter(name=room_name).first()
+    def get_room(self, room_name: str, event: Event | None = None) -> Room | None:
+        """
+        Get a room by name, scoped to *event* when given.
 
-    def _import_streams(self, s_df: pd.DataFrame) -> None:
-        """Replace existing streams with the ones in the DataFrame."""
-        deleted_count = Streaming.objects.all().delete()[0]
+        Rooms are event-scoped, so the same name can exist in several events. With an
+        event, the lookup is unambiguous; without one it falls back to a global match
+        (first by ordering) for backward compatibility when no event is configured.
+        """
+        room_name = room_name.strip()
+        qs = Room.objects.filter(name=room_name)
+        if event is not None:
+            qs = qs.filter(event=event)
+        return qs.first()
+
+    def _import_streams(self, s_df: pd.DataFrame, event: Event | None = None) -> None:
+        """Replace existing streams with the ones in the DataFrame, scoped to *event*."""
+        # Only wipe the target event's streamings (or all of them when no event is set),
+        # so importing one event's sheet can't clear another event's livestreams.
+        existing = (
+            Streaming.objects.all()
+            if event is None
+            else Streaming.objects.filter(room__event=event)
+        )
+        deleted_count = existing.delete()[0]
         self.stdout.write(
             self.style.WARNING(f"Deleted {deleted_count} existing streaming sessions"),
         )
@@ -87,7 +111,7 @@ class Command(BaseCommand):
         skipped_count = 0
 
         for _, row in s_df.iterrows():
-            room = self.get_room(row[COL_ROOM])
+            room = self.get_room(row[COL_ROOM], event)
             if not room:
                 self.stdout.write(
                     self.style.WARNING(
@@ -117,13 +141,13 @@ class Command(BaseCommand):
             ),
         )
 
-    def _report_dry_run(self, s_df: pd.DataFrame) -> None:
+    def _report_dry_run(self, s_df: pd.DataFrame, event: Event | None = None) -> None:
         """Print what would be imported without touching the database."""
         valid_count = 0
         invalid_count = 0
 
         for _, row in s_df.iterrows():
-            room = self.get_room(row[COL_ROOM])
+            room = self.get_room(row[COL_ROOM], event)
             if room:
                 valid_count += 1
                 self.stdout.write(
@@ -147,6 +171,15 @@ class Command(BaseCommand):
         worksheet_name = options["livestreams_worksheet_name"]
         dry_run = options.get("dry_run", False)
 
+        event_slug = (options.get("event_slug") or "").strip()
+        event = Event.objects.filter(slug=event_slug).first() if event_slug else None
+        if event_slug and event is None:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Event '{event_slug}' not found; falling back to unscoped (global) import.",
+                ),
+            )
+
         try:
             if dry_run:
                 self.stdout.write(self.style.NOTICE("DRY RUN: No database changes will be made"))
@@ -155,9 +188,9 @@ class Command(BaseCommand):
             self.stdout.write(f"Found {len(s_df)} potential streaming sessions")
 
             if dry_run:
-                self._report_dry_run(s_df)
+                self._report_dry_run(s_df, event)
             else:
-                self._import_streams(s_df)
+                self._import_streams(s_df, event)
         except Exception as exc:
             self.stderr.write(self.style.ERROR(f"Command failed: {exc!s}"))
             logger.exception("Error importing streaming sessions")

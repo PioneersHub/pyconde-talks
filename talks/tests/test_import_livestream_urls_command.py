@@ -11,6 +11,7 @@ import pytest
 from django.core.management import call_command
 from model_bakery import baker
 
+from events.models import Event
 from talks.management.commands.import_livestream_urls import Command
 from talks.models import Room, Streaming
 
@@ -70,6 +71,14 @@ class TestGetRoom:
         """Return None when no room matches the given name."""
         result = command.get_room("FakeRoom")
         assert result is None
+
+    def test_scoped_to_event(self, command: Command) -> None:
+        """With an event, a same-named room is resolved within that event only."""
+        event_a = Event.objects.create(slug="a", name="A", year=2025)
+        event_b = Event.objects.create(slug="b", name="B", year=2026)
+        room_a = Room.objects.create(name="Titanium", event=event_a)
+        Room.objects.create(name="Titanium", event=event_b)
+        assert command.get_room("Titanium", event_a) == room_a
 
 
 # ---------------------------------------------------------------------------
