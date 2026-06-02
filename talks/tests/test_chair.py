@@ -587,6 +587,121 @@ class TestChairConflict:
 
 
 # ---------------------------------------------------------------------------
+# Tight room-transition warning tests
+# ---------------------------------------------------------------------------
+@pytest.mark.django_db
+class TestTightTransitionWarning:
+    """A warning (not error) is shown when the moderator must change rooms quickly."""
+
+    def test_tight_transition_shows_warning(
+        self,
+        client: Client,
+        moderator: CustomUser,
+        room: Room,
+        event: Event,
+    ) -> None:
+        """Chairing a talk right after one in a different room produces a yellow warning."""
+        other_room = baker.make(Room, name="Side Hall", event=event)
+        start = _morning()
+        baker.make(
+            Talk,
+            title="Earlier Session",
+            room=other_room,
+            event=event,
+            session_chair=moderator,
+            start_time=start,
+            duration=timedelta(minutes=30),
+        )
+        # Starts exactly when the other ends - 0-minute gap.
+        adjacent = baker.make(
+            Talk,
+            room=room,
+            event=event,
+            start_time=start + timedelta(minutes=30),
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(moderator)
+        response = client.post(
+            reverse("toggle_session_chair", args=[adjacent.pk]),
+            HTTP_HX_REQUEST="true",
+        )
+        assert response.status_code == HTTPStatus.OK
+        # The talk is assigned (it's a warning, not a blocking error).
+        adjacent.refresh_from_db()
+        assert adjacent.session_chair_id == moderator.pk
+        content = response.content.decode()
+        assert "minutes to change rooms" in content
+        assert "Earlier Session" in content
+
+    def test_no_warning_for_same_room(
+        self,
+        client: Client,
+        moderator: CustomUser,
+        room: Room,
+        event: Event,
+    ) -> None:
+        """Back-to-back talks in the same room do not trigger the warning."""
+        start = _morning()
+        baker.make(
+            Talk,
+            room=room,
+            event=event,
+            session_chair=moderator,
+            start_time=start,
+            duration=timedelta(minutes=30),
+        )
+        adjacent = baker.make(
+            Talk,
+            room=room,
+            event=event,
+            start_time=start + timedelta(minutes=30),
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(moderator)
+        response = client.post(
+            reverse("toggle_session_chair", args=[adjacent.pk]),
+            HTTP_HX_REQUEST="true",
+        )
+        adjacent.refresh_from_db()
+        assert adjacent.session_chair_id == moderator.pk
+        assert b"minutes to change rooms" not in response.content
+
+    def test_no_warning_for_large_gap(
+        self,
+        client: Client,
+        moderator: CustomUser,
+        room: Room,
+        event: Event,
+    ) -> None:
+        """A gap larger than 5 minutes between rooms does not trigger the warning."""
+        other_room = baker.make(Room, name="Side Hall", event=event)
+        start = _morning()
+        baker.make(
+            Talk,
+            room=other_room,
+            event=event,
+            session_chair=moderator,
+            start_time=start,
+            duration=timedelta(minutes=30),
+        )
+        later = baker.make(
+            Talk,
+            room=room,
+            event=event,
+            start_time=start + timedelta(minutes=36),
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(moderator)
+        response = client.post(
+            reverse("toggle_session_chair", args=[later.pk]),
+            HTTP_HX_REQUEST="true",
+        )
+        later.refresh_from_db()
+        assert later.session_chair_id == moderator.pk
+        assert b"minutes to change rooms" not in response.content
+
+
+# ---------------------------------------------------------------------------
 # Admin assignment tests
 # ---------------------------------------------------------------------------
 @pytest.mark.django_db

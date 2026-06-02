@@ -10,8 +10,8 @@ from django.utils import timezone
 from model_bakery import baker
 
 from events.models import Event
+from talks.grid_utils import build_grid_slices as _build_grid_slices
 from talks.models import Room, SavedTalk, Talk
-from talks.views_schedule import _build_grid_slices
 from users.models import CustomUser
 from utils.test_perf import assert_no_n_plus_one
 

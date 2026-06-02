@@ -9,6 +9,7 @@ chairing each session.
 from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
@@ -34,7 +35,7 @@ if TYPE_CHECKING:
 
 
 # Talks in the same room are treated as one block when the gap between them is at most this long.
-BLOCK_GAP_TOLERANCE = timedelta(minutes=5)
+BLOCK_GAP_TOLERANCE = timedelta(minutes=settings.CHAIR_ROOM_TRANSITION_MINUTES)
 
 
 def _require_moderator(user: CustomUser) -> None:
@@ -127,50 +128,111 @@ def _conflict_message(label: str, conflicts: list[Talk]) -> str:
     return f"{label} already chairs a session at the same time: {', '.join(parts)}{suffix}"
 
 
-def _admin_assign(talk: Talk, raw_id: str) -> str | None:
+def _find_tight_transitions(
+    target_user: CustomUser,
+    talk: Talk,
+) -> list[Talk]:
+    """
+    Find talks with tight room transitions relative to ``talk``.
+
+    Return talks chaired by target_user in a different room whose gap to ``talk`` is within
+    ``BLOCK_GAP_TOLERANCE`` (but not overlapping). These are not conflicts - the moderator can
+    chair both - but switching rooms in under 5 minutes is worth a heads-up.
+    """
+    if not talk.start_time or not talk.room:
+        return []
+    talk_start = talk.start_time
+    talk_end = talk_start + talk.duration
+    nearby = list(
+        Talk.objects.filter(session_chair=target_user, start_time__date=talk_start.date())
+        .exclude(pk=talk.pk)
+        .exclude(room=talk.room)
+        .exclude(start_time__year=FAR_FUTURE.year)
+        .select_related("room")
+    )
+    tight: list[Talk] = []
+    for other in nearby:
+        other_end = other.start_time + other.duration
+        # Gap = time between the end of one talk and the start of the next.
+        gap = max(talk_start - other_end, other.start_time - talk_end)
+        if timedelta(0) <= gap <= BLOCK_GAP_TOLERANCE:
+            tight.append(other)
+    return tight
+
+
+def _tight_transition_warning(
+    label: str,
+    target_user: CustomUser,
+    talk: Talk,
+) -> str | None:
+    """Build a warning string when the user has a tight room change, or None."""
+    tight = _find_tight_transitions(target_user, talk)
+    if not tight:
+        return None
+    parts = []
+    for t in tight[:_MAX_CONFLICT_TITLES]:
+        room = t.room.name if t.room else "?"
+        parts.append(f"{t.title} ({room})")
+    suffix = " and more" if len(tight) > _MAX_CONFLICT_TITLES else ""
+    minutes = settings.CHAIR_ROOM_TRANSITION_MINUTES
+    return f"{label} will have under {minutes} minutes to change rooms: {', '.join(parts)}{suffix}"
+
+
+def _admin_assign(talk: Talk, raw_id: str) -> tuple[str | None, str | None]:
     """
     Execute the admin assignment path: assign a specific user or clear the talk.
 
-    Returns an error string when the assignment is blocked by a time conflict, or None on success.
+    Returns ``(error, warning)`` - error is set when the assignment is blocked by a time conflict,
+    warning is set when the assignment succeeds but the user has a tight room change.
     """
     if not (raw_id and raw_id.isdigit()):
         talk.session_chair = None
         talk.save(update_fields=["session_chair", "updated_at"])
-        return None
+        return None, None
     UserModel = cast("type[CustomUser]", get_user_model())  # noqa: N806  # NOSONAR(S117)
     target = get_object_or_404(UserModel, pk=int(raw_id))
     if not is_moderator(target):
         raise PermissionDenied
     conflicts = _find_chair_conflicts(target, [talk])
     if conflicts:
-        return _conflict_message(_user_label(target), conflicts)
+        return _conflict_message(_user_label(target), conflicts), None
     talk.session_chair = target
     talk.save(update_fields=["session_chair", "updated_at"])
-    return None
+    warning = _tight_transition_warning(_user_label(target), target, talk)
+    return None, warning
 
 
-def _mod_toggle(user: CustomUser, talk: Talk) -> str | None:
+def _mod_toggle(user: CustomUser, talk: Talk) -> tuple[str | None, str | None]:
     """
     Execute the moderator self-toggle: claim or release a single talk.
 
-    Returns an error string when claiming is blocked by a time conflict, or None on success.
+    Returns ``(error, warning)`` - error is set when claiming is blocked, warning when a tight
+    room change is detected after a successful claim.
     """
     if talk.session_chair_id not in (None, user.pk):
-        return None  # Someone else chairs this talk; silently do nothing.
+        return None, None  # Someone else chairs this talk; silently do nothing.
     new_chair: CustomUser | None = None if talk.session_chair_id == user.pk else user
     if new_chair is not None:
         conflicts = _find_chair_conflicts(new_chair, [talk])
         if conflicts:
-            return _conflict_message("You", conflicts)
+            return _conflict_message("You", conflicts), None
     talk.session_chair = new_chair
     talk.save(update_fields=["session_chair", "updated_at"])
-    return None
+    warning = _tight_transition_warning("You", user, talk) if new_chair else None
+    return None, warning
 
 
-def _chair_redirect(request: HttpRequest, talk: Talk, chair_error: str | None) -> HttpResponse:
-    """Build the non-HTMX redirect response, attaching any error via the messages framework."""
+def _chair_redirect(
+    request: HttpRequest,
+    talk: Talk,
+    chair_error: str | None,
+    chair_warning: str | None,
+) -> HttpResponse:
+    """Build the non-HTMX redirect response, attaching any error/warning via messages."""
     if chair_error:
         messages.error(request, chair_error)
+    if chair_warning:
+        messages.warning(request, chair_warning)
     selected_date = talk.start_time.date() if talk.start_time else None
     selected_event = request.POST.get("event", "")
     url = reverse("chair_grid")
@@ -201,9 +263,9 @@ def toggle_session_chair(request: HttpRequest, talk_id: int) -> HttpResponse:
     if "chair_user_id" in request.POST:
         if not is_admin(user):
             raise PermissionDenied
-        chair_error = _admin_assign(talk, request.POST.get("chair_user_id", ""))
+        chair_error, chair_warning = _admin_assign(talk, request.POST.get("chair_user_id", ""))
     else:
-        chair_error = _mod_toggle(user, talk)
+        chair_error, chair_warning = _mod_toggle(user, talk)
 
     if is_htmx_request(request):
         selected_event = request.POST.get("event", "")
@@ -211,9 +273,10 @@ def toggle_session_chair(request: HttpRequest, talk_id: int) -> HttpResponse:
         selected_date = talk.start_time.date() if talk.start_time else None
         context = _grid_context(user, event_id, selected_date)
         context["chair_error"] = chair_error
+        context["chair_warning"] = chair_warning
         return render(request, "talks/partials/chair_grid_table.html", context)
 
-    return _chair_redirect(request, talk, chair_error)
+    return _chair_redirect(request, talk, chair_error, chair_warning)
 
 
 def _chair_dates(user: CustomUser, event_id: int | None) -> list[date]:
@@ -374,6 +437,7 @@ def _grid_context(
         "is_admin": admin,
         "available_chairs": available_chairs,
         "chair_error": None,
+        "chair_warning": None,
     }
 
 

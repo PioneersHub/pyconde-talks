@@ -724,6 +724,12 @@ IMPORT_TALKS_WITHOUT_SPEAKERS = env.bool("IMPORT_TALKS_WITHOUT_SPEAKERS", defaul
 # https://docs.sentry.io/platforms/python/integrations/django/
 # --------------------------------------------------------------------------------------------------
 SENTRY_DSN = env("SENTRY_DSN", default="")
+
+# --------------------------------------------------------------------------------------------------
+# SESSION CHAIRING
+# --------------------------------------------------------------------------------------------------
+# Minutes threshold for warning moderators about tight room transitions.
+CHAIR_ROOM_TRANSITION_MINUTES = env.int("CHAIR_ROOM_TRANSITION_MINUTES", default=5)
 SENTRY_ENVIRONMENT = env("SENTRY_ENVIRONMENT", default="production" if not DEBUG else "development")
 SENTRY_TRACES_SAMPLE_RATE = env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.0)
 SENTRY_SEND_DEFAULT_PII = env.bool("SENTRY_SEND_DEFAULT_PII", default=False)
