@@ -338,13 +338,13 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
 
     @admin.display(boolean=True, description=_("Email Verified"))
     def email_verified(self, obj: CustomUser) -> bool:
-        """Display email verification status with standard Django boolean icon."""
-        try:
-            email_address = obj.emailaddress_set.first()
-        except AttributeError, IndexError:  # pragma: no cover
-            return False
-        else:
-            return bool(email_address and email_address.verified)
+        """
+        Return True when the user has at least one verified email address.
+
+        The list view prefetches ``emailaddress_set``; walk the cache instead of
+        re-querying so the column does not add a query per row.
+        """
+        return any(ea.verified for ea in obj.emailaddress_set.all())
 
     @admin.display(description=_("Joined"), ordering="-date_joined")
     def date_joined_display(self, obj: CustomUser) -> str:

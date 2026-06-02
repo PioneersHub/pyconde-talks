@@ -153,6 +153,22 @@ class TestCustomUserAdminDisplayMethods:
         user = CustomUser.objects.prefetch_related("emailaddress_set").get(pk=user.pk)
         assert admin.email_verified(user) is False
 
+    def test_email_verified_picks_any_verified_address(self) -> None:
+        """Return True when any of the user's emails is verified, not just first()."""
+        admin = CustomUserAdmin(CustomUser, site)
+        user = baker.make(CustomUser, email="multi@example.com")
+        # An unverified address that may sort first in arbitrary first() order...
+        EmailAddress.objects.create(
+            user=user,
+            email="aaa-unverified@example.com",
+            verified=False,
+            primary=False,
+        )
+        # ...and a verified primary one.
+        EmailAddress.objects.create(user=user, email=user.email, verified=True, primary=True)
+        user = CustomUser.objects.prefetch_related("emailaddress_set").get(pk=user.pk)
+        assert admin.email_verified(user) is True
+
     def test_date_joined_display(self) -> None:
         """Format the date_joined field as a human-readable string."""
         admin = CustomUserAdmin(CustomUser, site)
