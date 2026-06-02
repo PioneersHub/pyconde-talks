@@ -27,8 +27,6 @@ from talks.management.commands._pretalx.events import (
 )
 from talks.management.commands._pretalx.rooms import get_or_create_room
 from talks.management.commands._pretalx.speakers import (
-    _partition_speakers,
-    _speaker_changed,
     batch_create_or_update_speakers,
     get_or_create_speaker,
     maybe_update_speaker,
@@ -412,14 +410,6 @@ class TestSpeakerHelpers:
         )
         assert not any("Updated speaker" in m for m, _ in entries)
 
-    def test_speaker_changed_detects_differences(self) -> None:
-        """_speaker_changed compares name/biography/avatar."""
-        existing = Speaker(name="A", biography="", avatar="", pretalx_id="X")
-        same = _mock_submission_speaker(code="X", name="A", biography="", avatar_url="")
-        different = _mock_submission_speaker(code="X", name="B", biography="", avatar_url="")
-        assert _speaker_changed(existing, same) is False
-        assert _speaker_changed(existing, different) is True
-
     def test_batch_create_or_update_speakers_empty_submissions(self) -> None:
         """No submissions means no DB work and no log output."""
         log_fn, entries = _capture_log()
@@ -427,27 +417,21 @@ class TestSpeakerHelpers:
         assert entries == []
         assert Speaker.objects.count() == 0
 
-    def test_batch_create_or_update_speakers_only_existing(self) -> None:
-        """When every speaker already matches, no create/update batch runs."""
-        Speaker.objects.create(name="Ada", biography="", avatar="", pretalx_id="SPK-1")
-        log_fn, entries = _capture_log()
-        batch_create_or_update_speakers([_mock_submission()], _ctx(log_fn=log_fn, no_update=True))
-        # Nothing new was created or updated, so no success log fired.
-        assert not any(s == "SUCCESS" for _, s in entries)
-        assert Speaker.objects.count() == 1
+    def test_batch_create_or_update_speakers_upserts_changes(self) -> None:
+        """Default (no --no-update) path overwrites existing speakers with submission data."""
+        Speaker.objects.create(name="Old", biography="old bio", avatar="", pretalx_id="SPK-1")
+        batch_create_or_update_speakers([_mock_submission()], _ctx())
+        refreshed = Speaker.objects.get(pretalx_id="SPK-1")
+        # The default mocked submission's first speaker overrides the existing row.
+        assert refreshed.name != "Old"
 
-    def test_partition_speakers_skips_updates_with_no_update(self) -> None:
-        """--no-update still creates new speakers but never queues updates."""
-        Speaker.objects.create(name="Existing", biography="", avatar="", pretalx_id="E1")
-        data: dict[str, Any] = {
-            "E1": _mock_submission_speaker(code="E1", name="Updated"),
-            "N1": _mock_submission_speaker(code="N1", name="New Spk"),
-        }
-        existing = {"E1": Speaker.objects.get(pretalx_id="E1")}
-
-        to_create, to_update = _partition_speakers(data, existing, no_update=True)
-        assert [s.pretalx_id for s in to_create] == ["N1"]
-        assert to_update == []
+    def test_batch_create_or_update_speakers_no_update_skips_changes(self) -> None:
+        """--no-update creates new speakers but leaves existing rows untouched."""
+        Speaker.objects.create(name="Keep", biography="keep bio", avatar="", pretalx_id="SPK-1")
+        batch_create_or_update_speakers([_mock_submission()], _ctx(no_update=True))
+        refreshed = Speaker.objects.get(pretalx_id="SPK-1")
+        assert refreshed.name == "Keep"
+        assert refreshed.biography == "keep bio"
 
 
 # ---------------------------------------------------------------------------

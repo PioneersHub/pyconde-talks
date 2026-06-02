@@ -129,54 +129,55 @@ def collect_speakers_from_submissions(
 # ------------------------------------------------------------------
 
 
+#: Speaker columns synced from Pretalx on every import. ``pretalx_id`` is the
+#: conflict key and stays out of the update set.
+_SPEAKER_UPDATE_FIELDS: tuple[str, ...] = ("name", "biography", "avatar")
+
+
 def batch_create_or_update_speakers(
     submissions: Sequence[Submission],
     ctx: ImportContext,
 ) -> None:
     """
-    Bulk-create new speakers and bulk-update changed ones.
+    Upsert all speakers from confirmed/accepted *submissions* in a single statement.
 
-    Processes all confirmed/accepted *submissions* in two DB round-trips
-    (one ``bulk_create`` + one ``bulk_update``).
+    Uses Django 4.1+ ``bulk_create(update_conflicts=True)`` so the database
+    performs an ``INSERT ... ON CONFLICT DO UPDATE`` keyed on ``pretalx_id`` -
+    one round-trip whether the speaker is new or already present. With
+    ``--no-update`` the call falls back to ``ignore_conflicts=True`` so existing
+    rows are left untouched.
     """
     speakers_data = collect_speakers_from_submissions(submissions)
     if not speakers_data:
         return
 
-    existing = {
-        s.pretalx_id: s for s in Speaker.objects.filter(pretalx_id__in=speakers_data.keys())
-    }
+    rows = [_build_speaker(data) for data in speakers_data.values()]
 
-    to_create, to_update = _partition_speakers(
-        speakers_data,
-        existing,
-        no_update=ctx.no_update,
+    if ctx.no_update:
+        Speaker.objects.bulk_create(rows, ignore_conflicts=True)
+        ctx.log(
+            f"Batch upserted up to {len(rows)} speakers (--no-update: existing left as-is)",
+            VerbosityLevel.DETAILED,
+            "SUCCESS",
+        )
+        return
+
+    Speaker.objects.bulk_create(
+        rows,
+        update_conflicts=True,
+        update_fields=list(_SPEAKER_UPDATE_FIELDS),
+        unique_fields=["pretalx_id"],
     )
-    _bulk_create_speakers(to_create, ctx)
-    _bulk_update_speakers(to_update, ctx)
+    ctx.log(
+        f"Batch upserted {len(rows)} speakers",
+        VerbosityLevel.DETAILED,
+        "SUCCESS",
+    )
 
 
 # ------------------------------------------------------------------
 # Internal helpers
 # ------------------------------------------------------------------
-
-
-def _partition_speakers(
-    speakers_data: dict[str, SubmissionSpeaker],
-    existing: dict[str, Speaker],
-    *,
-    no_update: bool,
-) -> tuple[list[Speaker], list[Speaker]]:
-    """Split speakers into *to_create* and *to_update* lists."""
-    to_create: list[Speaker] = []
-    to_update: list[Speaker] = []
-    for code, data in speakers_data.items():
-        if code not in existing:
-            to_create.append(_build_speaker(data))
-        elif not no_update and _speaker_changed(existing[code], data):
-            _apply_speaker_data(existing[code], data)
-            to_update.append(existing[code])
-    return to_create, to_update
 
 
 def _build_speaker(data: SubmissionSpeaker) -> Speaker:
@@ -186,50 +187,4 @@ def _build_speaker(data: SubmissionSpeaker) -> Speaker:
         biography=data.biography or "",
         avatar=data.avatar_url or "",
         pretalx_id=data.code,
-    )
-
-
-def _speaker_changed(existing: Speaker, data: SubmissionSpeaker) -> bool:
-    """Return ``True`` if the existing speaker differs from submission data."""
-    return (
-        existing.name != data.name
-        or existing.biography != (data.biography or "")
-        or existing.avatar != (data.avatar_url or "")
-    )
-
-
-def _apply_speaker_data(speaker: Speaker, data: SubmissionSpeaker) -> None:
-    """Copy submission data onto an existing speaker (without saving)."""
-    speaker.name = data.name
-    speaker.biography = data.biography or ""
-    speaker.avatar = data.avatar_url or ""
-
-
-def _bulk_create_speakers(
-    speakers: list[Speaker],
-    ctx: ImportContext,
-) -> None:
-    """Bulk-create speakers and log the result."""
-    if not speakers:
-        return
-    Speaker.objects.bulk_create(speakers, ignore_conflicts=True)
-    ctx.log(
-        f"Batch created {len(speakers)} speakers",
-        VerbosityLevel.DETAILED,
-        "SUCCESS",
-    )
-
-
-def _bulk_update_speakers(
-    speakers: list[Speaker],
-    ctx: ImportContext,
-) -> None:
-    """Bulk-update speakers and log the result."""
-    if not speakers:
-        return
-    Speaker.objects.bulk_update(speakers, ["name", "biography", "avatar"])
-    ctx.log(
-        f"Batch updated {len(speakers)} speakers",
-        VerbosityLevel.DETAILED,
-        "SUCCESS",
     )

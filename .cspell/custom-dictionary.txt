@@ -19,6 +19,9 @@ cffi
 charliermarsh
 Cleese
 collectstatic
+upsert
+upserted
+upserts
 configfile
 conftest
 createsuperuser
