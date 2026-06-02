@@ -1155,7 +1155,7 @@ class TestDetectOnlyMode:
         event = Event.objects.create(slug="evt", name="Evt", year=2099)
         mock_submission.state = State.confirmed
         pretalx_url = "https://pretalx.com/evt"
-        room = Room.objects.create(name="Main Hall")
+        room = Room.objects.create(name="Main Hall", event=event)
         speaker1 = Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
         speaker2 = Speaker.objects.create(name="Eric Idle", pretalx_id="SPK002")
 

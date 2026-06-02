@@ -25,37 +25,47 @@ if TYPE_CHECKING:
 def get_or_create_room(
     room_name: str,
     ctx: ImportContext,
+    *,
+    pretalx_id: int | None = None,
 ) -> Room | None:
     """
-    Return the :class:`~talks.models.Room` for *room_name*, creating it if needed.
+    Return the event-scoped :class:`~talks.models.Room` for *room_name*, creating it if needed.
 
-    Returns ``None`` when *room_name* is empty.  In ``--dry-run`` and ``--detect-only``
-    modes an unsaved instance is returned so callers (the diff builder) can still
-    reference a room without writing it: both modes must leave the Room table untouched.
+    Rooms are scoped to ``ctx.event_obj`` and matched by the stable ``(event, pretalx_id)``
+    first, then ``(event, name)``. A room renamed on Pretalx is renamed IN PLACE (same row,
+    so its streamings / slido_link / capacity and all Talk FKs stay attached) and a legacy
+    row's ``pretalx_id`` is stamped on first sight. Returns ``None`` when *room_name* is empty.
+
+    In ``--dry-run`` and ``--detect-only`` modes nothing is written: the matched row is
+    returned UNCHANGED (no rename/stamp - the rename is surfaced as a reviewable diff
+    instead) or, for a brand-new room, an unsaved instance is returned.
     """
     if not room_name:
         return None
 
-    existing = Room.objects.filter(name=room_name).first()
-    if existing:
-        ctx.log(
-            f"Using existing room: {room_name}",
-            VerbosityLevel.DETAILED,
-        )
+    existing = Room.resolve_for_event(
+        event=ctx.event_obj,
+        pretalx_id=pretalx_id,
+        name=room_name,
+    )
+    if existing is not None:
+        if not (ctx.dry_run or ctx.detect_only):
+            _reconcile_existing_room(existing, room_name, pretalx_id, ctx)
         return existing
 
-    # Neither dry-run nor detect-only may write to the Room table. Detect-only resolves
-    # rooms only to build the field diff, so an unsaved instance is enough; a brand-new
-    # room correctly compares as "changed" (model equality is PK-based).
+    # Not found. Neither dry-run nor detect-only may write to the Room table; return an
+    # unsaved stand-in so the diff builder can still reference the room.
     if ctx.dry_run or ctx.detect_only:
         ctx.log(
             f"Would create room: {room_name} ({'dry run' if ctx.dry_run else 'detect-only'})",
             VerbosityLevel.DETAILED,
             "SUCCESS",
         )
-        return Room(name=room_name, description="")
+        return Room(event=ctx.event_obj, pretalx_id=pretalx_id, name=room_name, description="")
 
     room = Room.objects.create(
+        event=ctx.event_obj,
+        pretalx_id=pretalx_id,
         name=room_name,
         description=f"Room imported from Pretalx: {room_name}",
     )
@@ -65,6 +75,43 @@ def get_or_create_room(
         "SUCCESS",
     )
     return room
+
+
+def _reconcile_existing_room(
+    room: Room,
+    name: str,
+    pretalx_id: int | None,
+    ctx: ImportContext,
+) -> None:
+    """
+    Bring an existing room in line with Pretalx: rename in place and/or stamp the id.
+
+    Write-path only (callers must guard on ``not (dry_run or detect_only)``). Renaming
+    keeps the same row so streamings/talks/config stay attached. The id is stamped only
+    when the row has none yet, so a name collision between two distinct Pretalx rooms
+    never overwrites an existing id (it just isn't stamped, and is logged below).
+    """
+    update_fields: list[str] = []
+    if room.name != name:
+        ctx.log(
+            f"Renaming room {room.name!r} -> {name!r} (matched by Pretalx id {pretalx_id})",
+            VerbosityLevel.DETAILED,
+            "SUCCESS",
+        )
+        room.name = name
+        update_fields.append("name")
+    if pretalx_id is not None and room.pretalx_id is None:
+        room.pretalx_id = pretalx_id
+        update_fields.append("pretalx_id")
+    elif pretalx_id is not None and room.pretalx_id != pretalx_id:
+        ctx.log(
+            f"Room {room.name!r} matched by name but its Pretalx id "
+            f"({room.pretalx_id}) differs from {pretalx_id}; leaving id unchanged",
+            VerbosityLevel.DETAILED,
+            "WARNING",
+        )
+    if update_fields:
+        room.save(update_fields=update_fields)
 
 
 # ------------------------------------------------------------------
@@ -77,34 +124,42 @@ def batch_create_rooms(
     ctx: ImportContext,
 ) -> None:
     """
-    Bulk-create all rooms referenced by confirmed/accepted *submissions*.
+    Bulk-create rooms referenced by confirmed/accepted *submissions*, scoped to the event.
 
-    Rooms that already exist in the database are silently skipped.
+    Rooms already present in ``ctx.event_obj`` (matched by name) are skipped. Names are
+    deduped within the batch (one row per name per event), keeping the first-seen Pretalx
+    id. Per-talk ``get_or_create_room`` later stamps ids and renames as needed; this is
+    just a fast pre-create so the per-talk path mostly hits existing rows.
     """
-    room_names: set[str] = set()
+    # name -> first-seen pretalx id for this event's confirmed/accepted submissions.
+    pairs: dict[str, int | None] = {}
     for submission in submissions:
         if submission.state not in (State.confirmed, State.accepted):
             continue
         data = SubmissionData(submission, ctx.pretalx_event_url)
         if data.room:
-            room_names.add(data.room)
+            pairs.setdefault(data.room, data.pretalx_room_id)
 
-    if not room_names:
+    if not pairs:
         return
 
-    existing_rooms = set(
-        Room.objects.filter(name__in=room_names).values_list("name", flat=True),
+    event = ctx.event_obj
+    existing_names = set(
+        Room.objects.filter(event=event, name__in=pairs).values_list("name", flat=True),
     )
-    rooms_to_create = room_names - existing_rooms
+    rooms_to_create = [
+        Room(
+            event=event,
+            pretalx_id=pretalx_id,
+            name=name,
+            description=f"Room imported from Pretalx: {name}",
+        )
+        for name, pretalx_id in pairs.items()
+        if name not in existing_names
+    ]
 
     if rooms_to_create:
-        Room.objects.bulk_create(
-            [
-                Room(name=name, description=f"Room imported from Pretalx: {name}")
-                for name in rooms_to_create
-            ],
-            ignore_conflicts=True,
-        )
+        Room.objects.bulk_create(rooms_to_create, ignore_conflicts=True)
         ctx.log(
             f"Batch created {len(rooms_to_create)} rooms",
             VerbosityLevel.DETAILED,

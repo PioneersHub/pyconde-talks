@@ -323,6 +323,48 @@ class TestGetOrCreateRoom:
         assert result.pk is None
         assert not Room.objects.filter(name="Detect Room").exists()
 
+    def test_creates_scoped_to_event_with_id(self) -> None:
+        """A brand-new room is created under the context event with its Pretalx id."""
+        event = Event.objects.create(slug="e", name="E", year=2099)
+        room = get_or_create_room("Hall", _ctx(event_obj=event), pretalx_id=4993)
+        assert room is not None
+        assert room.event == event
+        assert room.pretalx_id == 4993
+
+    def test_matches_by_id_renames_in_place(self) -> None:
+        """A room renamed on Pretalx keeps the same row; only its name changes."""
+        event = Event.objects.create(slug="e", name="E", year=2099)
+        original = Room.objects.create(event=event, name="Old Name", pretalx_id=4993)
+        result = get_or_create_room("New Name", _ctx(event_obj=event), pretalx_id=4993)
+        assert result is not None
+        assert result.pk == original.pk  # same row, not a duplicate
+        original.refresh_from_db()
+        assert original.name == "New Name"
+        assert Room.objects.filter(event=event).count() == 1
+
+    def test_lazy_stamps_pretalx_id_on_legacy_room(self) -> None:
+        """A legacy room matched by name gets its pretalx_id stamped on first sync."""
+        event = Event.objects.create(slug="e", name="E", year=2099)
+        legacy = Room.objects.create(event=event, name="Hall", pretalx_id=None)
+        get_or_create_room("Hall", _ctx(event_obj=event), pretalx_id=4993)
+        legacy.refresh_from_db()
+        assert legacy.pretalx_id == 4993
+
+    def test_detect_only_does_not_rename_or_stamp(self) -> None:
+        """Detect-only resolves the room but never renames or stamps it."""
+        event = Event.objects.create(slug="e", name="E", year=2099)
+        room = Room.objects.create(event=event, name="Old Name", pretalx_id=4993)
+        result = get_or_create_room(
+            "New Name",
+            _ctx(detect_only=True, event_obj=event),
+            pretalx_id=4993,
+        )
+        # Returned the existing row, but neither memory nor DB was mutated.
+        assert result is not None
+        assert result.pk == room.pk
+        room.refresh_from_db()
+        assert room.name == "Old Name"
+
 
 # ---------------------------------------------------------------------------
 # speakers.py single/internal helpers

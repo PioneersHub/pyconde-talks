@@ -98,7 +98,9 @@ def create_talk(
         data.code,
         ctx,
     )
-    room = get_or_create_room(data.room, ctx) if data.room else None
+    room = (
+        get_or_create_room(data.room, ctx, pretalx_id=data.pretalx_room_id) if data.room else None
+    )
 
     talk = Talk.objects.create(
         presentation_type=presentation_type,
@@ -140,7 +142,9 @@ def _diff_talk_fields(
         "abstract": data.abstract,
         "description": data.description,
         "start_time": data.start_time,
-        "room": get_or_create_room(data.room, ctx) if data.room else None,
+        "room": get_or_create_room(data.room, ctx, pretalx_id=data.pretalx_room_id)
+        if data.room
+        else None,
         "track": data.track,
         "presentation_type": map_presentation_type(data.submission_type, data.code, ctx),
     }
