@@ -129,6 +129,28 @@ class TestTalkDetailView:
         assert "seekTo" in content
 
     @override_settings(SHOW_UPCOMING_TALKS_LINKS=True)
+    def test_talk_detail_no_n_plus_one(self, client: Client, user: CustomUser) -> None:
+        """The detail page calls streaming-dependent methods many times; one query each tops."""
+        event = baker.make(Event, is_active=True)
+        user.events.add(event)
+        room = baker.make(Room)
+        talk = baker.make(
+            Talk,
+            event=event,
+            room=room,
+            start_time=timezone.now() - timedelta(hours=1),
+            duration=timedelta(minutes=30),
+            video_link="",
+        )
+        for i in range(3):
+            speaker = baker.make(Speaker, name=f"Speaker {i}")
+            talk.speakers.add(speaker)
+
+        client.force_login(user)
+        with assert_no_n_plus_one():
+            response = client.get(reverse("talk_detail", args=[talk.pk]))
+        assert response.status_code == HTTPStatus.OK
+
     def test_youtube_short_url_loads_youtube_player(
         self,
         client: Client,
@@ -386,6 +408,34 @@ class TestTalkListView:
         assert "Room A Today" not in content
         assert "Room B Tomorrow" not in content
         assert "No talks found" in content
+
+    def test_talk_list_no_n_plus_one(self, client: Client, user: CustomUser) -> None:
+        """
+        Rendering a busy talk_list page must not fan out to per-row queries.
+
+        Covers the speakers prefetch, the rating-stats annotation, and the
+        per-row ``get_video_link`` / ``get_transcription_url`` template calls.
+        """
+        event = baker.make(Event, is_active=True)
+        user.events.add(event)
+        room = baker.make(Room)
+        speaker = baker.make(Speaker, name="Some Speaker")
+        for i in range(8):
+            talk = baker.make(
+                Talk,
+                title=f"Listed Talk {i}",
+                event=event,
+                room=room,
+                start_time=timezone.now() + timedelta(hours=i),
+                duration=timedelta(minutes=30),
+                video_link="",
+            )
+            talk.speakers.add(speaker)
+
+        client.force_login(user)
+        with assert_no_n_plus_one():
+            response = client.get(reverse("talk_list"))
+        assert response.status_code == HTTPStatus.OK
 
 
 @pytest.mark.django_db

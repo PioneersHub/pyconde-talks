@@ -10,6 +10,7 @@ from model_bakery import baker
 from talks.models import Talk
 from talks.models_qa import Question, QuestionVote
 from users.models import CustomUser
+from utils.test_perf import assert_no_n_plus_one
 
 
 if TYPE_CHECKING:
@@ -110,6 +111,22 @@ class TestQuestionListView:
         response = client.get(url)
         content = response.content.decode()
         assert "status_filter=approved" in content
+
+    def test_question_list_no_n_plus_one(
+        self,
+        client: Client,
+        user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """Many questions must not trigger a per-row query for user or vote count."""
+        for i in range(8):
+            asker = baker.make(CustomUser, email=f"asker{i}@example.com")
+            baker.make(Question, talk=talk, user=asker, content=f"Q{i}")
+
+        client.force_login(user)
+        with assert_no_n_plus_one():
+            response = client.get(reverse("talk_questions", args=[talk.pk]))
+        assert response.status_code == HTTPStatus.OK
 
 
 @pytest.mark.django_db
