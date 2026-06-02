@@ -18,11 +18,9 @@ asks about how apps fit together, what an app owns, or about external integratio
 ## Non-obvious bits
 
 - **Pretalx access** goes through [pytanis](https://pypi.org/project/pytanis/), not the raw Pretalx
-  API.
-- **Pretalx detect-and-review** lives in `talks.management.commands._pretalx.pending` (diff
-  computation + upsert) and `_pretalx.apply` (turning a pending row back into a real change). The
-  `PendingPretalxChange` model is the queue; admin actions and the "Check Pretalx now" button feed
-  off it. See `docs/development.md` for the operator-facing workflow.
+  API. The full importer reference (modes, change detection, image regen triggers,
+  detect-and-review workflow, scheduling, module layout) lives in
+  [pretalx-sync.md](pretalx-sync.md).
 - **Tailwind CSS v4** uses the standalone binary, downloaded by `scripts/dev-setup.sh`.
 - **SVG icons** live in `svg/` and load via a template tag, not `<img src=>`.
 - **Logging** uses structlog with JSON output. Emails are hashed (see `utils/email_utils.py`) for

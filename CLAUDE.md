@@ -92,4 +92,5 @@ Load these only when relevant; they are not auto-imported.
 
 - Day-to-day commands, setup, CI: [docs/development.md](docs/development.md)
 - App layout and integrations: [docs/architecture.md](docs/architecture.md)
+- Pretalx importer (modes, detect-and-review, image regen): [docs/pretalx-sync.md](docs/pretalx-sync.md)
 - Env var reference: [django-vars.env](django-vars.env)
