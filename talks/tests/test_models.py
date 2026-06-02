@@ -285,6 +285,34 @@ class TestTalkRoomConflict:
         talk = baker.make(Talk, room=room, start_time=now, duration=timedelta(minutes=30))
         talk.clean()  # Should not raise
 
+    def test_clean_rejects_room_from_different_event(self) -> None:
+        """A room belonging to a different event than the talk is rejected."""
+        event_a = Event.objects.create(slug="a", name="A", year=2099)
+        event_b = Event.objects.create(slug="b", name="B", year=2099)
+        room_b = Room.objects.create(name="Hall", event=event_b)
+        talk = baker.make(
+            Talk,
+            event=event_a,
+            room=room_b,
+            start_time=timezone.now(),
+            duration=timedelta(minutes=30),
+        )
+        with pytest.raises(ValidationError, match="different event"):
+            talk.clean()
+
+    def test_clean_allows_room_from_same_event(self) -> None:
+        """A room in the talk's own event passes the coherence check."""
+        event = Event.objects.create(slug="e", name="E", year=2099)
+        room = Room.objects.create(name="Hall", event=event)
+        talk = baker.make(
+            Talk,
+            event=event,
+            room=room,
+            start_time=timezone.now(),
+            duration=timedelta(minutes=30),
+        )
+        talk.clean()  # Should not raise
+
 
 @pytest.mark.django_db
 class TestAccessibleTo:

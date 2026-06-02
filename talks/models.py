@@ -536,8 +536,16 @@ class Talk(models.Model):
         super().save(*args, **kwargs)
 
     def clean(self) -> None:
-        """Validate that this talk does not overlap with another in the same room."""
+        """Validate room/event coherence and that the talk doesn't overlap in its room."""
         super().clean()
+
+        # A talk's room must belong to the same event as the talk (rooms are event-scoped).
+        # Guarded on event_id so it stays correct while a talk is mid-edit without an event.
+        if self.room is not None and self.event_id and self.room.event_id != self.event_id:
+            raise ValidationError(
+                _("The selected room belongs to a different event than this talk."),
+            )
+
         if not self.room or not self.start_time or not self.duration:
             return
 
