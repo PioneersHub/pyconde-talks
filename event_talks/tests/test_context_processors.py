@@ -183,3 +183,24 @@ class TestBrandingEventResolution:
         request = self._make_authenticated_request(user)
         ctx = branding(request)
         assert ctx["brand_event_name"] == "Sole Event"
+
+    @override_settings(DEFAULT_EVENT="inactive-event")
+    def test_anonymous_request_skips_inactive_default_event(self) -> None:
+        """An inactive event matching DEFAULT_EVENT must not surface as branding."""
+        Event.objects.create(
+            name="Inactive",
+            slug="inactive-event",
+            year=2025,
+            is_active=False,
+        )
+        active = Event.objects.create(
+            name="Active",
+            slug="active-event",
+            year=2026,
+            is_active=True,
+        )
+
+        request = RequestFactory().get("/")
+        request.user = AnonymousUser()
+        ctx = branding(request)
+        assert ctx["brand_event_name"] == active.name

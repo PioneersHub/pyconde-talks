@@ -50,7 +50,9 @@ def _get_current_event(request: HttpRequest) -> Event | None:
                 return event
 
     if default_slug:
-        return Event.objects.filter(slug=default_slug).first()
+        event = Event.objects.filter(slug=default_slug, is_active=True).first()
+        if event:
+            return event
 
     return Event.objects.filter(is_active=True).first()
 
