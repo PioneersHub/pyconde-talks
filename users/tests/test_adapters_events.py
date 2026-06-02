@@ -63,6 +63,13 @@ class TestSetSelectedEvent:
 class TestEventAwareAuthorization:
     """Tests for is_email_authorized with event-aware logic."""
 
+    @pytest.fixture(autouse=True)
+    def _no_oauth(self, settings: SettingsWrapper) -> None:
+        """Disable OAuth2 client credentials so API validation never makes a real token call."""
+        settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_ID = ""
+        settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET = ""
+        settings.EMAIL_VALIDATION_API_OAUTH2_TOKEN_URL = ""
+
     def test_existing_user_linked_to_event_authorized(
         self,
         adapter: AccountAdapter,

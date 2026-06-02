@@ -241,6 +241,9 @@ def test_api_authorization_valid_false(
     api_url = "https://fake-api.example.com/validate"
     settings.EMAIL_VALIDATION_API_URL_FALLBACK = api_url
     settings.AUTHORIZED_EMAILS_WHITELIST = []
+    settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_ID = ""
+    settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET = ""
+    settings.EMAIL_VALIDATION_API_OAUTH2_TOKEN_URL = ""
 
     respx_mock.post(api_url).mock(
         return_value=httpx.Response(200, json={"valid": False}),

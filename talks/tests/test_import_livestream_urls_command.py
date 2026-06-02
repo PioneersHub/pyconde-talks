@@ -3,6 +3,7 @@
 
 from datetime import datetime
 from io import StringIO
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -148,6 +149,11 @@ class TestFetchSpreadsheetData:
 @pytest.mark.django_db
 class TestHandleCommand:
     """End-to-end tests for handle(), verifying import, dry-run, and clearing logic."""
+
+    @pytest.fixture(autouse=True)
+    def _no_default_event(self, settings: Any) -> None:
+        """Disable DEFAULT_EVENT so the command doesn't look for a non-existent event."""
+        settings.DEFAULT_EVENT = ""
 
     @patch.object(Command, "fetch_spreadsheet_data")
     def test_import_creates_streamings(

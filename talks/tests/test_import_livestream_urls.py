@@ -9,7 +9,6 @@ import os
 from io import StringIO
 
 import pytest
-from django.conf import settings
 from django.core.management import call_command
 
 
@@ -21,8 +20,9 @@ pytestmark = pytest.mark.skipif(
 
 
 @pytest.mark.django_db
-def test_import_livestream_urls() -> None:
+def test_import_livestream_urls(settings: object) -> None:
     """Run the command and check basic success criteria."""
+    settings.DEFAULT_EVENT = ""  # type: ignore[attr-defined]
     livestreams_sheet_id = getattr(settings, "LIVESTREAMS_SHEET_ID", None)
     livestreams_worksheet_name = getattr(settings, "LIVESTREAMS_WORKSHEET_NAME", None)
 

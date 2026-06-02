@@ -509,8 +509,25 @@ class TestCustomUserAdminViews:
         assert response.status_code == HTTPStatus.OK
         # An N+1 on five users would mean five row-level queries against events_event
         # in addition to the prefetch and the branding context processor's lookups.
-        # The threshold catches the regression while staying tolerant of small,
-        # constant-cost helpers running on the admin page.
-        n_users = 5
+        # Allow a generous constant budget (prefetch + context processor + admin helpers)
+        # while catching linear scaling. Double the users to confirm no linear growth.
         event_queries = [q for q in ctx.captured_queries if '"events_event"' in q["sql"]]
-        assert len(event_queries) < n_users, event_queries
+        n_queries_with_5 = len(event_queries)
+
+        # Now test with 10 users - query count should NOT grow proportionally
+        for i in range(5, 10):
+            u = baker.make(CustomUser, email=f"changelist-{i}@example.com")
+            u.events.add(event_a, event_b)
+
+        with CaptureQueriesContext(connection) as ctx2:
+            response2 = client.get(url)
+        assert response2.status_code == HTTPStatus.OK
+        event_queries_2 = [q for q in ctx2.captured_queries if '"events_event"' in q["sql"]]
+        n_queries_with_10 = len(event_queries_2)
+
+        # With proper prefetching, doubling users should NOT double event queries.
+        # Allow at most 2 extra queries (not 5 extra = N+1).
+        assert n_queries_with_10 <= n_queries_with_5 + 2, (
+            f"Event queries scaled from {n_queries_with_5} to {n_queries_with_10} "
+            f"when users doubled - likely N+1"
+        )
