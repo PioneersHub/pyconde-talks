@@ -101,3 +101,6 @@ class SavedTalkAdmin(admin.ModelAdmin[SavedTalk]):
     search_fields = ("user__email", "talk__title")
     raw_id_fields = ("user", "talk")
     readonly_fields = ("created_at",)
+    # Both columns dereference related rows; without this the changelist runs
+    # an extra SELECT per row.
+    list_select_related = ("user", "talk")

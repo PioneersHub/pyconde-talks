@@ -168,6 +168,9 @@ class QuestionVoteAdmin(admin.ModelAdmin[QuestionVote]):
     list_filter = ("created_at",)
     search_fields = ("question__content", "user__email")
     readonly_fields = ("created_at",)
+    # Both columns dereference related rows; without this the changelist runs
+    # an extra SELECT per row (one per ``question``, one per ``user``).
+    list_select_related = ("question", "user")
 
     @admin.display(description=_("Question"))
     def question_preview(self, obj: QuestionVote) -> str:

@@ -460,5 +460,8 @@ class TicketAdmin(admin.ModelAdmin[Ticket]):
     list_filter = ("event",)
     search_fields = ("ticket_id", "user__email")
     readonly_fields: ClassVar[list[str]] = ["created_at"]
+    # The ``user`` and ``event`` columns dereference related rows;
+    # without this the changelist runs an extra SELECT per row.
+    list_select_related = ("user", "event")
     autocomplete_fields: ClassVar[tuple[str, ...]] = ("user", "event")
     list_per_page = 25
