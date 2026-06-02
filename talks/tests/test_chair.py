@@ -51,6 +51,17 @@ def other_moderator(event: Event) -> CustomUser:
 
 
 @pytest.fixture()
+def admin_user(event: Event) -> CustomUser:
+    """Create a superuser with access to the chair event."""
+    user = CustomUser.objects.create_superuser(
+        email="admin@example.com",
+        password="chair-grid-2099!",
+    )
+    user.events.add(event)
+    return user
+
+
+@pytest.fixture()
 def regular_user(event: Event) -> CustomUser:
     """Create a non-moderator user with access to the chair event."""
     user = baker.make(CustomUser, email="user@example.com", is_staff=False)
@@ -450,3 +461,268 @@ class TestChairOnDetailPage:
         response = client.get(reverse("talk_detail", args=[detail_talk.pk]))
         assert response.status_code == HTTPStatus.OK
         assert b"Session chair" not in response.content
+
+
+# ---------------------------------------------------------------------------
+# Conflict detection tests
+# ---------------------------------------------------------------------------
+@pytest.mark.django_db
+class TestChairConflict:
+    """The same person cannot chair two sessions that overlap in time."""
+
+    def test_conflict_blocks_self_claim(
+        self,
+        client: Client,
+        moderator: CustomUser,
+        room: Room,
+        event: Event,
+    ) -> None:
+        """A moderator already chairing a session cannot claim another one at the same time."""
+        other_room = baker.make(Room, name="Side Hall", event=event)
+        start = _morning()
+        # Moderator already chairs a talk in the other room at 10:00.
+        baker.make(
+            Talk,
+            room=other_room,
+            event=event,
+            session_chair=moderator,
+            start_time=start,
+            duration=timedelta(minutes=30),
+        )
+        # Try to claim a parallel talk in the main room.
+        parallel = baker.make(
+            Talk,
+            room=room,
+            event=event,
+            start_time=start,
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(moderator)
+        client.post(reverse("toggle_session_chair", args=[parallel.pk]))
+        parallel.refresh_from_db()
+        assert parallel.session_chair_id is None
+
+    def test_htmx_conflict_returns_error_message(
+        self,
+        client: Client,
+        moderator: CustomUser,
+        room: Room,
+        event: Event,
+    ) -> None:
+        """An HTMX conflict response embeds the error message in the grid fragment."""
+        other_room = baker.make(Room, name="Side Hall", event=event)
+        start = _morning()
+        baker.make(
+            Talk,
+            title="Existing Session",
+            room=other_room,
+            event=event,
+            session_chair=moderator,
+            start_time=start,
+            duration=timedelta(minutes=30),
+        )
+        parallel = baker.make(
+            Talk,
+            room=room,
+            event=event,
+            start_time=start,
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(moderator)
+        response = client.post(
+            reverse("toggle_session_chair", args=[parallel.pk]),
+            HTTP_HX_REQUEST="true",
+        )
+        assert response.status_code == HTTPStatus.OK
+        assert b"already chairs" in response.content
+
+    def test_non_overlapping_same_day_is_allowed(
+        self,
+        client: Client,
+        moderator: CustomUser,
+        room: Room,
+        event: Event,
+    ) -> None:
+        """A moderator may chair two sessions on the same day as long as they do not overlap."""
+        other_room = baker.make(Room, name="Side Hall", event=event)
+        start = _morning()
+        baker.make(
+            Talk,
+            room=other_room,
+            event=event,
+            session_chair=moderator,
+            start_time=start,
+            duration=timedelta(minutes=30),
+        )
+        later = baker.make(
+            Talk,
+            room=room,
+            event=event,
+            start_time=start + timedelta(hours=2),
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(moderator)
+        client.post(reverse("toggle_session_chair", args=[later.pk]))
+        later.refresh_from_db()
+        assert later.session_chair_id == moderator.pk
+
+    def test_partial_overlap_is_a_conflict(
+        self,
+        client: Client,
+        moderator: CustomUser,
+        room: Room,
+        event: Event,
+    ) -> None:
+        """Even a partial time overlap blocks the claim (e.g. 10:00-11:00 vs 10:45-11:30)."""
+        other_room = baker.make(Room, name="Side Hall", event=event)
+        start = _morning()
+        baker.make(
+            Talk,
+            room=other_room,
+            event=event,
+            session_chair=moderator,
+            start_time=start,
+            duration=timedelta(minutes=60),
+        )
+        overlapping = baker.make(
+            Talk,
+            room=room,
+            event=event,
+            start_time=start + timedelta(minutes=45),
+            duration=timedelta(minutes=45),
+        )
+        client.force_login(moderator)
+        client.post(reverse("toggle_session_chair", args=[overlapping.pk]))
+        overlapping.refresh_from_db()
+        assert overlapping.session_chair_id is None
+
+
+# ---------------------------------------------------------------------------
+# Admin assignment tests
+# ---------------------------------------------------------------------------
+@pytest.mark.django_db
+class TestAdminAssignment:
+    """Admins (superusers) can assign any eligible moderator as chair."""
+
+    def test_admin_assigns_another_moderator(
+        self,
+        client: Client,
+        admin_user: CustomUser,
+        other_moderator: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """An admin can assign a different moderator to an unassigned block."""
+        client.force_login(admin_user)
+        client.post(
+            reverse("toggle_session_chair", args=[talk.pk]),
+            {"chair_user_id": str(other_moderator.pk)},
+        )
+        talk.refresh_from_db()
+        assert talk.session_chair_id == other_moderator.pk
+
+    def test_admin_clears_any_chair(
+        self,
+        client: Client,
+        admin_user: CustomUser,
+        other_moderator: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """An admin can remove a chair set by another moderator."""
+        talk.session_chair = other_moderator
+        talk.save(update_fields=["session_chair"])
+        client.force_login(admin_user)
+        client.post(
+            reverse("toggle_session_chair", args=[talk.pk]),
+            {"chair_user_id": ""},
+        )
+        talk.refresh_from_db()
+        assert talk.session_chair_id is None
+
+    def test_admin_can_reassign_block(
+        self,
+        client: Client,
+        admin_user: CustomUser,
+        moderator: CustomUser,
+        other_moderator: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """An admin can swap the chair of a block from one moderator to another."""
+        talk.session_chair = moderator
+        talk.save(update_fields=["session_chair"])
+        client.force_login(admin_user)
+        client.post(
+            reverse("toggle_session_chair", args=[talk.pk]),
+            {"chair_user_id": str(other_moderator.pk)},
+        )
+        talk.refresh_from_db()
+        assert talk.session_chair_id == other_moderator.pk
+
+    def test_non_admin_cannot_use_chair_user_id(
+        self,
+        client: Client,
+        moderator: CustomUser,
+        other_moderator: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """A regular staff moderator cannot assign another user via chair_user_id."""
+        client.force_login(moderator)
+        response = client.post(
+            reverse("toggle_session_chair", args=[talk.pk]),
+            {"chair_user_id": str(other_moderator.pk)},
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN
+
+    def test_admin_conflict_blocks_assignment(
+        self,
+        client: Client,
+        admin_user: CustomUser,
+        other_moderator: CustomUser,
+        event: Event,
+        talk: Talk,
+    ) -> None:
+        """Admin assignment is blocked when the target already chairs an overlapping talk."""
+        other_room = baker.make(Room, name="Side Hall", event=event)
+        baker.make(
+            Talk,
+            room=other_room,
+            event=event,
+            session_chair=other_moderator,
+            start_time=talk.start_time,
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(admin_user)
+        response = client.post(
+            reverse("toggle_session_chair", args=[talk.pk]),
+            {"chair_user_id": str(other_moderator.pk)},
+            HTTP_HX_REQUEST="true",
+        )
+        assert response.status_code == HTTPStatus.OK
+        assert b"already chairs" in response.content
+        talk.refresh_from_db()
+        assert talk.session_chair_id is None
+
+    def test_admin_sees_available_chairs_in_grid(
+        self,
+        client: Client,
+        admin_user: CustomUser,
+        moderator: CustomUser,
+    ) -> None:
+        """The grid context exposes available_chairs (and is_admin=True) for superusers."""
+        client.force_login(admin_user)
+        response = client.get(reverse("chair_grid"))
+        assert response.status_code == HTTPStatus.OK
+        assert response.context["is_admin"] is True
+        chairs = response.context["available_chairs"]
+        assert any(u.pk == moderator.pk for u in chairs)
+
+    def test_non_admin_has_no_available_chairs(
+        self,
+        client: Client,
+        moderator: CustomUser,
+    ) -> None:
+        """Regular moderators get is_admin=False and an empty available_chairs list."""
+        client.force_login(moderator)
+        response = client.get(reverse("chair_grid"))
+        assert response.status_code == HTTPStatus.OK
+        assert response.context["is_admin"] is False
+        assert response.context["available_chairs"] == []

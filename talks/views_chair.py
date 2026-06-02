@@ -9,7 +9,10 @@ chairing each session.
 from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
+from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -37,6 +40,67 @@ def _require_moderator(user: CustomUser) -> None:
     """Raise PermissionDenied unless the user is a moderator."""
     if not is_moderator(user):
         raise PermissionDenied
+
+
+def is_admin(user: CustomUser) -> bool:
+    """Return True for superusers, who may assign any moderator as chair (not just themselves)."""
+    return bool(getattr(user, "is_superuser", False))
+
+
+def _user_label(user: CustomUser) -> str:
+    """Return the most human-readable name for a user: display name, full name, or email."""
+    return str(user.display_name.strip() or user.get_full_name().strip() or user.email)  # type: ignore[attr-defined]
+
+
+def _talks_overlap(a: Talk, b: Talk) -> bool:
+    """Return True if talk a and talk b overlap in time (partial overlap counts)."""
+    if not a.start_time or not b.start_time:
+        return False
+    return a.start_time < b.start_time + b.duration and b.start_time < a.start_time + a.duration
+
+
+def _find_chair_conflicts(target_user: CustomUser, block: list[Talk]) -> list[Talk]:
+    """
+    Return talks already chaired by target_user that would overlap in time with the block.
+
+    Any overlap (even partial) is a conflict. Talks already in the block are excluded - they will
+    be reassigned and therefore cannot conflict with themselves.
+    """
+    dates = {t.start_time.date() for t in block if t.start_time}
+    if not dates:
+        return []
+    block_pks = {t.pk for t in block}
+    existing = list(
+        Talk.objects.filter(session_chair=target_user, start_time__date__in=dates)
+        .exclude(pk__in=block_pks)
+        .exclude(start_time__year=FAR_FUTURE.year)
+        .select_related("room")
+    )
+    seen: set[int] = set()
+    conflicts: list[Talk] = []
+    for block_talk in block:
+        for chaired in existing:
+            if chaired.pk not in seen and _talks_overlap(block_talk, chaired):
+                seen.add(chaired.pk)
+                conflicts.append(chaired)
+    return conflicts
+
+
+def _get_available_chairs(user: CustomUser, event_id: int | None) -> list[CustomUser]:
+    """
+    Return staff/superuser users eligible to be assigned as session chairs.
+
+    Scoped to users in the selected event (or all visible events for a cross-event grid).
+    """
+    UserModel = cast("type[CustomUser]", get_user_model())  # noqa: N806  # NOSONAR(S117)
+    qs = UserModel.objects.filter(Q(is_staff=True) | Q(is_superuser=True))
+    if event_id:
+        # Superusers have implicit access to all events even without M2M rows.
+        qs = qs.filter(Q(is_superuser=True) | Q(events__id=event_id))
+    else:
+        accessible = user.visible_events()  # type: ignore[attr-defined]
+        qs = qs.filter(Q(is_superuser=True) | Q(events__in=accessible))
+    return list(qs.order_by("display_name", "email").distinct())
 
 
 def _parse_chair_date(date_str: str | None) -> date | None:
@@ -96,36 +160,71 @@ def _talk_block(talk: Talk, user: CustomUser) -> list[Talk]:
     return day_talks[start : end + 1]
 
 
-@require_POST
-def toggle_session_chair(request: HttpRequest, talk_id: int) -> HttpResponse:
+def _assign_block(block: list[Talk], chair: CustomUser | None) -> None:
+    """Set every talk in the block to the given chair (or None to clear), unconditionally."""
+    for block_talk in block:
+        block_talk.session_chair = chair
+        block_talk.save(update_fields=["session_chair", "updated_at"])
+
+
+_MAX_CONFLICT_TITLES = 3
+
+
+def _conflict_message(label: str, conflicts: list[Talk]) -> str:
+    parts = []
+    for c in conflicts[:_MAX_CONFLICT_TITLES]:
+        room = c.room.name if c.room else "?"
+        parts.append(f"{c.title} ({room})")
+    suffix = " and more" if len(conflicts) > _MAX_CONFLICT_TITLES else ""
+    return f"{label} already chairs a session at the same time: {', '.join(parts)}{suffix}"
+
+
+def _admin_assign(block: list[Talk], raw_id: str) -> str | None:
     """
-    Claim (or release) the current moderator as chair for a talk's whole block.
+    Execute the admin assignment path: assign a specific user or clear the block.
 
-    A block can only have one chair at a time. A moderator may claim a free block or release a
-    block they already chair, but cannot take over a block someone else is chairing.
+    Returns an error string when the assignment is blocked by a time conflict, or None on success.
     """
-    user = cast("CustomUser", request.user)
-    _require_moderator(user)
+    if not (raw_id and raw_id.isdigit()):
+        _assign_block(block, None)
+        return None
+    UserModel = cast("type[CustomUser]", get_user_model())  # noqa: N806  # NOSONAR(S117)
+    target = get_object_or_404(UserModel, pk=int(raw_id))
+    if not is_moderator(target):
+        raise PermissionDenied
+    conflicts = _find_chair_conflicts(target, block)
+    if conflicts:
+        return _conflict_message(_user_label(target), conflicts)
+    _assign_block(block, target)
+    return None
 
-    talk = get_object_or_404(Talk.objects.accessible_to(user), pk=talk_id)
-    block = _talk_block(talk, user)
 
-    # Only the chair (or nobody) may change a block; never override another moderator.
-    if talk.session_chair_id in (None, user.pk):
-        new_chair = None if talk.session_chair_id == user.pk else user
-        for block_talk in block:
-            if block_talk.session_chair_id in (None, user.pk):
-                block_talk.session_chair = new_chair
-                block_talk.save(update_fields=["session_chair", "updated_at"])
+def _mod_toggle(user: CustomUser, talk: Talk, block: list[Talk]) -> str | None:
+    """
+    Execute the moderator self-toggle: claim a free block or release own block.
 
+    Returns an error string when claiming is blocked by a time conflict, or None on success.
+    """
+    if talk.session_chair_id not in (None, user.pk):
+        return None  # Someone else chairs this block; silently do nothing.
+    new_chair: CustomUser | None = None if talk.session_chair_id == user.pk else user
+    if new_chair is not None:
+        conflicts = _find_chair_conflicts(new_chair, block)
+        if conflicts:
+            return _conflict_message("You", conflicts)
+    for block_talk in block:
+        if block_talk.session_chair_id in (None, user.pk):
+            block_talk.session_chair = new_chair
+            block_talk.save(update_fields=["session_chair", "updated_at"])
+    return None
+
+
+def _chair_redirect(request: HttpRequest, talk: Talk, chair_error: str | None) -> HttpResponse:
+    """Build the non-HTMX redirect response, attaching any error via the messages framework."""
+    if chair_error:
+        messages.error(request, chair_error)
     selected_date = talk.start_time.date() if talk.start_time else None
     selected_event = request.POST.get("event", "")
-
-    if is_htmx_request(request):
-        event_id = int(selected_event) if selected_event.isdigit() else None
-        context = _grid_context(user, event_id, selected_date)
-        return render(request, "talks/partials/chair_grid_table.html", context)
-
     url = reverse("chair_grid")
     params = []
     if selected_date:
@@ -135,6 +234,39 @@ def toggle_session_chair(request: HttpRequest, talk_id: int) -> HttpResponse:
     if params:
         url = f"{url}?{'&'.join(params)}"
     return redirect(url)
+
+
+@require_POST
+def toggle_session_chair(request: HttpRequest, talk_id: int) -> HttpResponse:
+    """
+    Claim or release the session chair for a talk's whole block.
+
+    Moderators may claim a free block (for themselves) or release a block they already chair.
+    Admins (superusers) may assign any moderator to any block, or clear any block.
+    The same person cannot chair two overlapping sessions.
+    """
+    user = cast("CustomUser", request.user)
+    _require_moderator(user)
+
+    talk = get_object_or_404(Talk.objects.accessible_to(user), pk=talk_id)
+    block = _talk_block(talk, user)
+
+    if "chair_user_id" in request.POST:
+        if not is_admin(user):
+            raise PermissionDenied
+        chair_error = _admin_assign(block, request.POST.get("chair_user_id", ""))
+    else:
+        chair_error = _mod_toggle(user, talk, block)
+
+    if is_htmx_request(request):
+        selected_event = request.POST.get("event", "")
+        event_id = int(selected_event) if selected_event.isdigit() else None
+        selected_date = talk.start_time.date() if talk.start_time else None
+        context = _grid_context(user, event_id, selected_date)
+        context["chair_error"] = chair_error
+        return render(request, "talks/partials/chair_grid_table.html", context)
+
+    return _chair_redirect(request, talk, chair_error)
 
 
 def _chair_dates(user: CustomUser, event_id: int | None) -> list[date]:
@@ -257,6 +389,7 @@ def _grid_context(
         rooms, rows = _build_chair_grid(selected_date, user, selected_event_id)
 
     years = {d.year for d in available_dates}
+    admin = is_admin(user)
     return {
         "available_dates": available_dates,
         "selected_date": selected_date,
@@ -267,6 +400,9 @@ def _grid_context(
         "events": user.visible_events(),
         "selected_event": str(selected_event_id) if selected_event_id else "",
         "current_user_id": user.pk,
+        "is_admin": admin,
+        "available_chairs": _get_available_chairs(user, selected_event_id) if admin else [],
+        "chair_error": None,
     }
 
 

@@ -1,6 +1,10 @@
 {% load svg_tags %}
 {# Moderator-only chair grid table. Swapped in place on every assign/remove via HTMX. #}
 <div id="chair-grid-table">
+  {% if chair_error %}
+    <div class="mb-3 rounded bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700"
+         role="alert">{{ chair_error }}</div>
+  {% endif %}
   {% if has_grid %}
     <div class="overflow-x-auto pb-4">
       <table class="min-w-full border-collapse text-sm">
@@ -31,6 +35,7 @@
                        title="{{ talk.title }}">{{ talk.title }}</a>
                     <div class="mt-1 text-xs">
                       {% if talk.session_chair_id == current_user_id %}
+                        {# My block: show my name + step-down button. #}
                         <span class="inline-flex items-center gap-1">
                           <span class="inline-flex items-center gap-1 text-brand-blue">
                             {% svg 'check-circle' "h-3 w-3" %}
@@ -42,14 +47,44 @@
                                   hx-target="#chair-grid-table"
                                   hx-swap="outerHTML"
                                   class="text-subtle hover:text-red-600"
-                                  title="Remove yourself from this block">{% svg 'x-mark' "h-3 w-3" %}</button>
+                                  title="Step down from this block">{% svg 'x-mark' "h-3 w-3" %}</button>
                         </span>
+                      {% elif is_admin %}
+                        {# Admin view: dropdown to assign/reassign/clear any block. #}
+                        {% if talk.session_chair_id %}
+                          <span class="inline-flex items-center gap-1 text-muted mb-1">
+                            {% svg 'check-circle' "h-3 w-3" %}
+                            {{ talk.chair_display_name }}
+                          </span>
+                        {% endif %}
+                        <form hx-post="{% url 'toggle_session_chair' talk.pk %}"
+                              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                              hx-target="#chair-grid-table"
+                              hx-swap="outerHTML"
+                              class="mt-1 flex w-full items-center gap-1">
+                          <input type="hidden" name="event" value="{{ selected_event }}">
+                          <select name="chair_user_id"
+                                  class="min-w-0 flex-1 rounded border border-gray-300 px-1 py-0.5 text-xs">
+                            <option value="">-- none --</option>
+                            {% for chair in available_chairs %}
+                              <option value="{{ chair.pk }}"
+                                      {% if chair.pk == talk.session_chair_id %}selected{% endif %}>
+                                {{ chair.display_name|default:chair.email }}
+                              </option>
+                            {% endfor %}
+                          </select>
+                          <button type="submit"
+                                  class="text-subtle hover:text-brand-blue"
+                                  title="Assign chair">{% svg 'check-circle' "h-3 w-3" %}</button>
+                        </form>
                       {% elif talk.session_chair_id %}
+                        {# Someone else's block, non-admin: read-only. #}
                         <span class="inline-flex items-center gap-1 text-muted">
                           {% svg 'check-circle' "h-3 w-3" %}
                           {{ talk.chair_display_name }}
                         </span>
                       {% else %}
+                        {# Unassigned, non-admin moderator: claim for self. #}
                         <button hx-post="{% url 'toggle_session_chair' talk.pk %}"
                                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                                 hx-vals='{"event": "{{ selected_event }}"}'
