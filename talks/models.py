@@ -274,6 +274,19 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
         prefetch_streamings(talks)
         return talks
 
+    def with_rating_stats(self) -> Self:
+        """
+        Annotate each talk with ``average_rating`` and ``rating_count``.
+
+        Centralizes the per-row aggregate used by the talk list, upcoming-talks
+        partial, and admin so the annotation lives in one place and templates can
+        rely on the same attribute names everywhere.
+        """
+        return self.annotate(
+            average_rating=Avg("ratings__score"),
+            rating_count=Count("ratings"),
+        )
+
 
 class Talk(models.Model):
     """Represents a conference talk."""

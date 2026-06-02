@@ -8,7 +8,7 @@ live in ``talks.views_rating`` and the bookmark toggle in ``talks.views_saved``.
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, cast
 
-from django.db.models import Avg, Count, Q
+from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
@@ -21,7 +21,7 @@ from django.views.generic import DetailView, ListView
 from events.models import Event
 from events.session import resolve_default_event
 
-from .models import Rating, Room, SavedTalk, Talk, prefetch_streamings
+from .models import Rating, Room, SavedTalk, Talk, TalkQuerySet, prefetch_streamings
 from .utils import get_talk_by_id_or_pretalx, is_htmx_request
 from .views_qa import is_moderator
 
@@ -130,15 +130,9 @@ class TalkListView(ListView[Talk]):
         queryset = self._apply_list_filters(queryset)
         queryset = _apply_search_filter(queryset, self.request)
 
-        # Annotate with rating statistics for list display
-        queryset = queryset.annotate(
-            average_rating=Avg("ratings__score"),
-            rating_count=Count("ratings"),
-        )
+        return queryset.with_rating_stats().order_by("start_time")
 
-        return queryset.order_by("start_time")
-
-    def _base_queryset(self) -> QuerySet[Talk]:
+    def _base_queryset(self) -> TalkQuerySet:
         """Return talks scoped to user access with list-view optimizations."""
         # Defer large text fields not needed in list view to reduce memory usage
         user = cast("CustomUser", self.request.user)
@@ -149,13 +143,13 @@ class TalkListView(ListView[Talk]):
             .accessible_to(user)
         )
 
-    def _filter_options_queryset(self) -> QuerySet[Talk]:
+    def _filter_options_queryset(self) -> TalkQuerySet:
         """Return talks used to build filter options for the selected event/search scope."""
         queryset = self._base_queryset()
         queryset = self._apply_event_filter(queryset)
         return _apply_search_filter(queryset, self.request)
 
-    def _apply_event_filter(self, queryset: QuerySet[Talk]) -> QuerySet[Talk]:
+    def _apply_event_filter(self, queryset: TalkQuerySet) -> TalkQuerySet:
         """Filter talks by event. Defaults to the current event from session/settings."""
         event_id = self.request.GET.get("event", "")
         if event_id == "all":
@@ -172,7 +166,7 @@ class TalkListView(ListView[Talk]):
             queryset = queryset.filter(event=default_event)
         return queryset
 
-    def _apply_list_filters(self, queryset: QuerySet[Talk]) -> QuerySet[Talk]:
+    def _apply_list_filters(self, queryset: TalkQuerySet) -> TalkQuerySet:
         """
         Apply room, date, track, type, and saved filters from GET params.
 
@@ -406,14 +400,7 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
     )
     # ``with_streamings`` avoids an N+1 when the template calls
     # ``get_transcription_url`` / ``get_video_link`` (both fall back to ``streaming``).
-    talks = (
-        talks_qs.annotate(
-            average_rating=Avg("ratings__score"),
-            rating_count=Count("ratings"),
-        )
-        .order_by("start_time")[:8]
-        .with_streamings()
-    )
+    talks = talks_qs.with_rating_stats().order_by("start_time")[:8].with_streamings()
     saved_talk_ids: set[int] = set()
     if request.user.is_authenticated:
         saved_talk_ids = SavedTalk.talk_ids_for(cast("CustomUser", request.user))
@@ -438,7 +425,7 @@ def talk_redirect_view(request: HttpRequest, talk_id: str) -> HttpResponse:
     raise Http404(msg)
 
 
-def _apply_status_filter(queryset: QuerySet[Talk], status: str) -> QuerySet[Talk]:
+def _apply_status_filter(queryset: TalkQuerySet, status: str) -> TalkQuerySet:
     """Filter talks by timing status (current, upcoming, completed)."""
     now = timezone.now()
     margin = timedelta(minutes=5)
@@ -456,7 +443,7 @@ def _apply_status_filter(queryset: QuerySet[Talk], status: str) -> QuerySet[Talk
     return queryset
 
 
-def _apply_search_filter(queryset: QuerySet[Talk], request: HttpRequest) -> QuerySet[Talk]:
+def _apply_search_filter(queryset: TalkQuerySet, request: HttpRequest) -> TalkQuerySet:
     """Apply free-text search with scope filtering to the talk queryset."""
     query = (request.GET.get("q") or "").strip()
     if not query:
