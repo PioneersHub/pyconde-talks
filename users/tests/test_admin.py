@@ -226,6 +226,31 @@ class TestCustomUserAdminActions:
         request = self._make_request(rf, superuser)
         admin.verify_email(request, CustomUser.objects.filter(pk=user.pk))  # type: ignore[arg-type]
 
+    def test_verify_email_bulk_uses_single_update(
+        self,
+        rf: RequestFactory,
+        superuser: CustomUser,
+    ) -> None:
+        """Verifying many users must execute one UPDATE, not one per user."""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        admin = CustomUserAdmin(CustomUser, site)
+        users = []
+        for i in range(5):
+            u = baker.make(CustomUser, email=f"bulk-verify-{i}@example.com")
+            EmailAddress.objects.create(user=u, email=u.email, verified=False, primary=True)
+            users.append(u)
+
+        request = self._make_request(rf, superuser)
+        qs = CustomUser.objects.filter(pk__in=[u.pk for u in users])
+        with CaptureQueriesContext(connection) as ctx:
+            admin.verify_email(request, qs)  # type: ignore[arg-type]
+
+        updates = [q for q in ctx.captured_queries if q["sql"].startswith("UPDATE")]
+        assert len(updates) == 1, updates
+        assert EmailAddress.objects.filter(verified=False).count() == 0
+
     def test_activate_users(self, rf: RequestFactory, superuser: CustomUser) -> None:
         """Set is_active=True on selected inactive users."""
         admin = CustomUserAdmin(CustomUser, site)

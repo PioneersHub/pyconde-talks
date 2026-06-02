@@ -385,11 +385,10 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
 
     @admin.action(description=_("Mark selected users' emails as verified"))
     def verify_email(self, request: HttpRequest, queryset: QuerySet[CustomUser]) -> None:
-        """Mark selected user emails as verified."""
-        count = 0
-        for user in queryset:
-            email_addresses = EmailAddress.objects.filter(user=user, verified=False)
-            count += email_addresses.update(verified=True)
+        """Mark selected user emails as verified in a single UPDATE."""
+        count = EmailAddress.objects.filter(user__in=queryset, verified=False).update(
+            verified=True,
+        )
 
         if count:
             messages.success(
