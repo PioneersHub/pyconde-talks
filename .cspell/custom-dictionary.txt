@@ -30,6 +30,7 @@ csrf
 DARKGREEN
 Darmstadium
 debugpy
+dataclass
 dedented
 Defence
 devcontainers
@@ -59,6 +60,7 @@ formmethod
 fullchain
 fullscreen
 gcwv
+greppable
 Genderqueer
 getbbox
 getbuffer
