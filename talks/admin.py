@@ -326,7 +326,9 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
     )
     date_hierarchy = "start_time"
     filter_horizontal = ("speakers",)
-    autocomplete_fields: ClassVar[list[str]] = ["room"]
+    # room is a plain (non-autocomplete) FK field so its choices can be scoped to the
+    # talk's event on the change form (see formfield_for_foreignkey). Autocomplete can't
+    # be scoped by a sibling field. Cross-event picks are also rejected by Talk.clean().
 
     fieldsets: ClassVar[list[Any]] = [
         (
@@ -396,6 +398,23 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
                 _saved_count=Count("saved_by", distinct=True),
             )
         )
+
+    def formfield_for_foreignkey(
+        self,
+        db_field: Any,
+        request: HttpRequest,
+        **kwargs: Any,
+    ) -> Any:
+        """On the change form, limit the room choices to the talk's own event."""
+        if db_field.name == "room" and request.resolver_match is not None:
+            object_id = request.resolver_match.kwargs.get("object_id")
+            if object_id:
+                event_id = (
+                    Talk.objects.filter(pk=object_id).values_list("event_id", flat=True).first()
+                )
+                if event_id is not None:
+                    kwargs["queryset"] = Room.objects.filter(event_id=event_id)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     @admin.display(description=_("Avg Rating"), ordering="_average_rating")
     def avg_rating(self, obj: Talk) -> str:

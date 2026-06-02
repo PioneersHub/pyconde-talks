@@ -6,6 +6,7 @@ from datetime import timedelta
 import pytest
 from django.contrib.admin.sites import AdminSite
 from django.test import RequestFactory
+from django.urls import ResolverMatch
 from django.utils import timezone
 from model_bakery import baker
 
@@ -365,6 +366,30 @@ class TestTalkAdmin:
         assert admin.avg_rating(talk_obj) == "-"
         assert admin.num_ratings(talk_obj) == 0
         assert admin.num_saves(talk_obj) == 0
+
+    def test_room_choices_scoped_to_talk_event(
+        self,
+        rf: RequestFactory,
+        admin_user: CustomUser,
+    ) -> None:
+        """The change form limits room choices to the talk's own event."""
+        event_a = Event.objects.create(slug="a", name="A", year=2099)
+        event_b = Event.objects.create(slug="b", name="B", year=2099)
+        room_a = Room.objects.create(name="Hall", event=event_a)
+        Room.objects.create(name="Hall", event=event_b)  # same name, different event
+        talk = baker.make(Talk, event=event_a, room=room_a)
+
+        admin = TalkAdmin(Talk, site)
+        request = rf.get(f"/admin/talks/talk/{talk.pk}/change/")
+        request.user = admin_user
+        request.resolver_match = ResolverMatch(
+            func=lambda *_a, **_k: None,
+            args=(),
+            kwargs={"object_id": str(talk.pk)},
+        )
+
+        formfield = admin.formfield_for_foreignkey(Talk._meta.get_field("room"), request)
+        assert list(formfield.queryset) == [room_a]
 
     def test_num_saves_annotation(self, rf: RequestFactory, admin_user: CustomUser) -> None:
         """``num_saves`` reflects the bookmark count annotated on the queryset."""
