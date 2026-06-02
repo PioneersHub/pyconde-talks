@@ -8,6 +8,10 @@ caching are applied consistently.
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+# NOTE: This module deliberately stays on the original ``httpx`` (not ``httpx2``).
+# The retry below catches errors raised by ``pytanis`` / ``httpx-auth``, which use
+# ``httpx`` internally. ``httpx2`` ships distinct exception classes, so importing
+# ``httpx2`` here would silently stop the retry from matching pytanis's failures.
 import httpx
 from django.conf import settings
 from pydantic import ValidationError

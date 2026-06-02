@@ -8,7 +8,7 @@ the email-validation adapter.
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any, cast, override
 
-import httpx
+import httpx2
 import structlog
 from allauth.account.adapter import get_adapter as get_account_adapter
 from allauth.account.models import EmailAddress
@@ -121,7 +121,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
             raise ImmediateHttpResponse(
                 redirect("/accounts/login/?error=not_in_server"),
             ) from None
-        except httpx.HTTPError as exc:
+        except httpx2.HTTPError as exc:
             logger.warning("Discord API error during role check", error=str(exc))
             raise ImmediateHttpResponse(
                 redirect("/accounts/login/?error=discord_error"),
@@ -337,10 +337,10 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
 
         Raises:
             _DiscordNotInGuildError: if the user is not a member of the guild.
-            httpx.HTTPError: on any other non-2xx response or network failure.
+            httpx2.HTTPError: on any other non-2xx response or network failure.
 
         """
-        response = httpx.get(
+        response = httpx2.get(
             f"{_DISCORD_API}/users/@me/guilds/{guild_id}/member",
             headers={"Authorization": f"Bearer {token}"},
             timeout=getattr(settings, "DISCORD_API_TIMEOUT", 5),

@@ -3,7 +3,7 @@
 import io
 from typing import Any
 
-import httpx
+import httpx2
 import pandas as pd
 import structlog
 from django.conf import settings
@@ -61,7 +61,7 @@ class Command(BaseCommand):
             url = f"https://docs.google.com/spreadsheet/ccc?key={sheet_id}&output=xlsx"
             self.stdout.write("Fetching data from Google Sheets...")
 
-            response = httpx.get(url, timeout=30, follow_redirects=True)
+            response = httpx2.get(url, timeout=30, follow_redirects=True)
             response.raise_for_status()
             data = io.BytesIO(response.content)
             s_df = pd.read_excel(data, sheet_name=worksheet_name)

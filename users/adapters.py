@@ -8,7 +8,7 @@ from http import HTTPStatus
 from json.decoder import JSONDecodeError
 from typing import TYPE_CHECKING, Any, cast, override
 
-import httpx
+import httpx2
 import structlog
 from allauth.account.adapter import (
     DefaultAccountAdapter,
@@ -44,7 +44,7 @@ OAUTH_BEARER_CACHE_KEY = "users.adapters.oauth_bearer:v1"
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=1, max=10),
-    retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError)),
+    retry=retry_if_exception_type((httpx2.TimeoutException, httpx2.ConnectError)),
     reraise=True,
 )
 def _fetch_oauth_token(client_id: str, client_secret: str, token_url: str) -> tuple[str, int]:
@@ -53,7 +53,7 @@ def _fetch_oauth_token(client_id: str, client_secret: str, token_url: str) -> tu
 
     The TTL is ``expires_in`` minus a safety margin so callers refresh before real expiry.
     """
-    response = httpx.post(
+    response = httpx2.post(
         token_url,
         data={
             "grant_type": "client_credentials",
@@ -215,11 +215,11 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
         """Call the validation API, returning ``None`` (and logging) on any error."""
         try:
             return self._call_validation_api(email, api_url)
-        except httpx.TimeoutException:  # pragma: no cover
+        except httpx2.TimeoutException:  # pragma: no cover
             logger.warning("Timeout %s", context_msg, email=email_hash)
-        except httpx.ConnectError:  # pragma: no cover
+        except httpx2.ConnectError:  # pragma: no cover
             logger.warning("Connection error %s", context_msg, email=email_hash)
-        except JSONDecodeError, httpx.HTTPError:  # pragma: no cover
+        except JSONDecodeError, httpx2.HTTPError:  # pragma: no cover
             logger.warning("API error %s", context_msg, email=email_hash)
         except Exception:  # pragma: no cover
             logger.exception("Unexpected error %s", context_msg, email=email_hash)
@@ -257,7 +257,7 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=1, max=10),
-        retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError)),
+        retry=retry_if_exception_type((httpx2.TimeoutException, httpx2.ConnectError)),
         reraise=True,
     )
     def _call_validation_api(email: str, api_url: str) -> dict[str, Any]:
@@ -276,7 +276,7 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
         if token:
             headers["Authorization"] = f"Bearer {token}"
 
-        response = httpx.post(
+        response = httpx2.post(
             api_url,
             json={"email": email},
             headers=headers,

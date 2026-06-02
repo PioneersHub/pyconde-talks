@@ -7,7 +7,7 @@ Assumes the video name is in the format {pretalx_id}{SEPARATOR}{title}.
 from itertools import chain
 from typing import Any
 
-import httpx
+import httpx2
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
 from django.db import transaction
@@ -61,7 +61,7 @@ class Command(BaseCommand):
         }
         videos: list[dict[str, str]] = []
         while True:
-            response = httpx.get(url, headers=headers, params=params)
+            response = httpx2.get(url, headers=headers, params=params)
             response.raise_for_status()
             payload = response.json()
             videos.extend(payload.get("data", []))

@@ -2,7 +2,6 @@
 
 from typing import TYPE_CHECKING, Any
 
-import httpx
 import pytest
 
 from events.models import Event
@@ -12,6 +11,11 @@ from users.adapters import AccountAdapter
 if TYPE_CHECKING:
     import respx
     from pytest_django.fixtures import SettingsWrapper
+
+
+# Match the legacy respx_mock default (assert_all_called=False): a couple of tests register a
+# route that an early-return path intentionally never calls.
+pytestmark = pytest.mark.httpx2(assert_all_called=False)
 
 
 @pytest.fixture()
@@ -107,16 +111,14 @@ class TestEventAwareAuthorization:
         user_model: type[Any],
         event_with_api: Event,
         settings: SettingsWrapper,
-        respx_mock: respx.MockRouter,
+        httpx2_mock: respx.Router,
     ) -> None:
         """User NOT linked, event API validates -> authorized AND linked to event."""
         settings.AUTHORIZED_EMAILS_WHITELIST = []
         settings.EMAIL_VALIDATION_API_URL_FALLBACK = ""
         user = user_model.objects.create_user(email="newticket@example.com")
 
-        respx_mock.post(event_with_api.validation_api_url).mock(
-            return_value=httpx.Response(200, json={"valid": True}),
-        )
+        httpx2_mock.post(event_with_api.validation_api_url).respond(200, json={"valid": True})
 
         adapter.set_selected_event(event_with_api)
         assert adapter.is_email_authorized("newticket@example.com") is True
@@ -129,16 +131,14 @@ class TestEventAwareAuthorization:
         user_model: type[Any],
         event_with_api: Event,
         settings: SettingsWrapper,
-        respx_mock: respx.MockRouter,
+        httpx2_mock: respx.Router,
     ) -> None:
         """User NOT linked, event API rejects -> denied, NOT linked."""
         settings.AUTHORIZED_EMAILS_WHITELIST = []
         settings.EMAIL_VALIDATION_API_URL_FALLBACK = ""
         user = user_model.objects.create_user(email="rejected@example.com")
 
-        respx_mock.post(event_with_api.validation_api_url).mock(
-            return_value=httpx.Response(200, json={"valid": False}),
-        )
+        httpx2_mock.post(event_with_api.validation_api_url).respond(200, json={"valid": False})
 
         adapter.set_selected_event(event_with_api)
         assert adapter.is_email_authorized("rejected@example.com") is False
@@ -149,15 +149,13 @@ class TestEventAwareAuthorization:
         adapter: AccountAdapter,
         event_with_api: Event,
         settings: SettingsWrapper,
-        respx_mock: respx.MockRouter,
+        httpx2_mock: respx.Router,
     ) -> None:
         """Non-existent user, event API validates -> authorized (user created later)."""
         settings.AUTHORIZED_EMAILS_WHITELIST = []
         settings.EMAIL_VALIDATION_API_URL_FALLBACK = ""
 
-        respx_mock.post(event_with_api.validation_api_url).mock(
-            return_value=httpx.Response(200, json={"valid": True}),
-        )
+        httpx2_mock.post(event_with_api.validation_api_url).respond(200, json={"valid": True})
 
         adapter.set_selected_event(event_with_api)
         assert adapter.is_email_authorized("brand-new@example.com") is True
@@ -167,43 +165,39 @@ class TestEventAwareAuthorization:
         adapter: AccountAdapter,
         event_with_api: Event,
         settings: SettingsWrapper,
-        respx_mock: respx.MockRouter,
+        httpx2_mock: respx.Router,
     ) -> None:
         """Event-specific API URL is used instead of the global fallback."""
         global_url = "https://global-api.example.com/validate"
         settings.AUTHORIZED_EMAILS_WHITELIST = []
         settings.EMAIL_VALIDATION_API_URL_FALLBACK = global_url
 
-        respx_mock.post(event_with_api.validation_api_url).mock(
-            return_value=httpx.Response(200, json={"valid": True}),
-        )
+        httpx2_mock.post(event_with_api.validation_api_url).respond(200, json={"valid": True})
 
         adapter.set_selected_event(event_with_api)
         assert adapter.is_email_authorized("user@example.com") is True
         # Should have called the event API, not the global one
-        assert respx_mock.calls.call_count == 1
-        assert str(respx_mock.calls[0].request.url) == event_with_api.validation_api_url
+        assert httpx2_mock.calls.call_count == 1
+        assert str(httpx2_mock.calls[0].request.url) == event_with_api.validation_api_url
 
     def test_global_api_fallback_when_event_has_no_url(
         self,
         adapter: AccountAdapter,
         event_without_api: Event,
         settings: SettingsWrapper,
-        respx_mock: respx.MockRouter,
+        httpx2_mock: respx.Router,
     ) -> None:
         """When event has no API URL, global fallback is used."""
         global_url = "https://global-api.example.com/validate"
         settings.AUTHORIZED_EMAILS_WHITELIST = []
         settings.EMAIL_VALIDATION_API_URL_FALLBACK = global_url
 
-        respx_mock.post(global_url).mock(
-            return_value=httpx.Response(200, json={"valid": True}),
-        )
+        httpx2_mock.post(global_url).respond(200, json={"valid": True})
 
         adapter.set_selected_event(event_without_api)
         assert adapter.is_email_authorized("fallback@example.com") is True
-        assert respx_mock.calls.call_count == 1
-        assert str(respx_mock.calls[0].request.url) == global_url
+        assert httpx2_mock.calls.call_count == 1
+        assert str(httpx2_mock.calls[0].request.url) == global_url
 
     def test_no_event_no_api_denies(
         self,

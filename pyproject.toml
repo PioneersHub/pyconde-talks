@@ -44,7 +44,7 @@ dependencies = [
     "django>=6.0.5",
     "emoji>=1.7,<2",
     "furl>=2.1.4",
-    "httpx>=0.28.1",
+    "httpx2>=2.3.0",
     "matplotlib>=3.10.9",
     "model-bakery>=1.23.4",
     "openpyxl>=3.1.5",
@@ -76,9 +76,9 @@ test = [
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
     "pytest-django>=4.12.0",
+    "pytest-httpx2>=1.0.0",
     "pytest-mock>=3.15.1",
     "pytest-random-order>=1.2.0",
-    "respx>=0.23.1",
 ]
 prod = [
     # psycopg3 (a.k.a. ``psycopg``) is the actively-maintained successor to psycopg2.

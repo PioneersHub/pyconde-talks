@@ -3,7 +3,7 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import httpx
+import httpx2
 import pytest
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.models import SocialAccount
@@ -98,7 +98,7 @@ def discord_settings(settings: Any) -> Any:
 class TestFetchMemberRoleIds:
     """Tests for the _fetch_member_role_ids static method."""
 
-    @patch("users.adapters_social.httpx.get")
+    @patch("users.adapters_social.httpx2.get")
     def test_returns_role_ids(self, mock_get: MagicMock) -> None:
         """Successful API call returns the set of role IDs."""
         mock_get.return_value = MagicMock(
@@ -109,19 +109,19 @@ class TestFetchMemberRoleIds:
         result = SocialAccountAdapter._fetch_member_role_ids("tok", "999")
         assert result == {"111", "222"}
 
-    @patch("users.adapters_social.httpx.get")
+    @patch("users.adapters_social.httpx2.get")
     def test_not_found_raises(self, mock_get: MagicMock) -> None:
         """A 404 response raises _DiscordNotInGuildError."""
         mock_get.return_value = MagicMock(status_code=404)
         with pytest.raises(_DiscordNotInGuildError):
             SocialAccountAdapter._fetch_member_role_ids("tok", "999")
 
-    @patch("users.adapters_social.httpx.get")
+    @patch("users.adapters_social.httpx2.get")
     def test_server_error_raises(self, mock_get: MagicMock) -> None:
-        """A 500 response raises httpx.HTTPStatusError."""
-        resp = httpx.Response(500, request=httpx.Request("GET", "http://x"))
+        """A 500 response raises httpx2.HTTPStatusError."""
+        resp = httpx2.Response(500, request=httpx2.Request("GET", "http://x"))
         mock_get.return_value = resp
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(httpx2.HTTPStatusError):
             SocialAccountAdapter._fetch_member_role_ids("tok", "999")
 
 
@@ -319,7 +319,7 @@ class TestPreSocialLogin:
         discord_settings: Any,
     ) -> None:
         """An HTTP error during the role check redirects with discord_error."""
-        mock_fetch.side_effect = httpx.HTTPError("fail")
+        mock_fetch.side_effect = httpx2.HTTPError("fail")
         sl = _make_sociallogin()
         request = rf.get("/")
         with pytest.raises(ImmediateHttpResponse) as exc_info:

@@ -74,6 +74,7 @@ HSTS
 htmlcov
 htmx
 httpx
+httpx2
 idiomorph
 inkscape
 ipython

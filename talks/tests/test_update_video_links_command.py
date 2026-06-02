@@ -5,7 +5,7 @@ from io import StringIO
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import httpx
+import httpx2
 import pytest
 from django.core.management import call_command
 from model_bakery import baker
@@ -37,7 +37,7 @@ VIMEO_RESPONSE: dict[str, Any] = {
 class TestFetchSingleFolder:
     """Verify fetch_single_folder parses Vimeo API responses into name-to-URL maps."""
 
-    @patch("httpx.get")
+    @patch("httpx2.get")
     def test_returns_name_to_url_mapping(
         self,
         mock_get: MagicMock,
@@ -55,7 +55,7 @@ class TestFetchSingleFolder:
             "DEF456-Another Talk": "https://player.vimeo.com/video/222",
         }
 
-    @patch("httpx.get")
+    @patch("httpx2.get")
     def test_empty_folder(self, mock_get: MagicMock, command: Command) -> None:
         """Return an empty dict when the Vimeo folder contains no videos."""
         mock_response = MagicMock()
@@ -66,7 +66,7 @@ class TestFetchSingleFolder:
         result = command.fetch_single_folder("token", "proj1")
         assert result == {}
 
-    @patch("httpx.get")
+    @patch("httpx2.get")
     def test_follows_pagination(self, mock_get: MagicMock, command: Command) -> None:
         """Follow paging.next across pages and merge all videos into one map."""
         page1 = MagicMock()
@@ -93,18 +93,18 @@ class TestFetchSingleFolder:
         }
         assert mock_get.call_count == 2
 
-    @patch("httpx.get")
+    @patch("httpx2.get")
     def test_raises_on_http_error(self, mock_get: MagicMock, command: Command) -> None:
         """Propagate HTTP errors from the Vimeo API."""
         mock_response = MagicMock()
-        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+        mock_response.raise_for_status.side_effect = httpx2.HTTPStatusError(
             "401",
             request=MagicMock(),
             response=MagicMock(),
         )
         mock_get.return_value = mock_response
 
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(httpx2.HTTPStatusError):
             command.fetch_single_folder("bad-token", "proj1")
 
 

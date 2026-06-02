@@ -13,7 +13,7 @@ import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import httpx
+import httpx2
 from django.conf import settings
 from pytanis.pretalx.models import State
 
@@ -90,18 +90,18 @@ def save_avatar_bytes(cache_dir: Path, url: str, data: bytes) -> None:
 
 
 def download_avatar_bytes_sync(url: str, request_timeout: float = 15) -> bytes | None:
-    """Download *url* synchronously via :mod:`httpx`. Return ``None`` on any HTTP error."""
+    """Download *url* synchronously via :mod:`httpx2`. Return ``None`` on any HTTP error."""
     try:
-        resp = httpx.get(url, timeout=request_timeout)
+        resp = httpx2.get(url, timeout=request_timeout)
         resp.raise_for_status()
-    except httpx.HTTPError:
+    except httpx2.HTTPError:
         return None
     else:
         return resp.content
 
 
 async def _download_avatar_bytes_async(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
     url: str,
     request_timeout: float = 15,
 ) -> bytes | None:
@@ -109,7 +109,7 @@ async def _download_avatar_bytes_async(
     try:
         resp = await client.get(url, timeout=request_timeout)
         resp.raise_for_status()
-    except httpx.HTTPError:
+    except httpx2.HTTPError:
         return None
     else:
         return resp.content
@@ -123,7 +123,7 @@ async def _download_avatar_bytes_async(
 async def _prefetch_avatar_urls(urls: set[str], cache_dir: Path, concurrency: int = 8) -> None:
     """Download all *urls* concurrently (bounded by *concurrency*) into both caches."""
 
-    async def _fetch(client: httpx.AsyncClient, url: str) -> None:
+    async def _fetch(client: httpx2.AsyncClient, url: str) -> None:
         if get_cached_avatar_bytes(cache_dir, url) is not None:
             return
         try:
@@ -133,8 +133,8 @@ async def _prefetch_avatar_urls(urls: set[str], cache_dir: Path, concurrency: in
         except Exception as exc:
             warnings.warn(f"Avatar prefetch failed: {exc!s}", stacklevel=2)
 
-    limits = httpx.Limits(max_connections=concurrency, max_keepalive_connections=concurrency)
-    async with httpx.AsyncClient(limits=limits) as client:
+    limits = httpx2.Limits(max_connections=concurrency, max_keepalive_connections=concurrency)
+    async with httpx2.AsyncClient(limits=limits) as client:
         await asyncio.gather(*(_fetch(client, u) for u in urls))
 
 

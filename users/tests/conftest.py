@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Any
 
-import httpx
+import httpx2
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -53,13 +53,13 @@ def mock_email_api_base(settings: SettingsWrapper) -> str:
 
 
 @pytest.fixture()
-def mock_email_api_valid(mock_email_api_base: str, respx_mock: respx.MockRouter) -> str:
+def mock_email_api_valid(mock_email_api_base: str, httpx2_mock: respx.Router) -> str:
     """
     Mock the email validation API to return valid=True for all emails.
 
     Args:
         mock_email_api_base: The base fixture that sets up infrastructure
-        respx_mock: The respx mock router fixture
+        httpx2_mock: The pytest-httpx2 router fixture
 
     Returns:
         str: The fake API URL
@@ -67,15 +67,13 @@ def mock_email_api_valid(mock_email_api_base: str, respx_mock: respx.MockRouter)
     """
     api_url = mock_email_api_base
 
-    respx_mock.post(api_url).mock(
-        return_value=httpx.Response(200, json={"valid": True}),
-    )
+    httpx2_mock.post(api_url).respond(200, json={"valid": True})
 
     return api_url
 
 
 @pytest.fixture()
-def mock_email_api_invalid(mock_email_api_base: str, respx_mock: respx.MockRouter) -> str:
+def mock_email_api_invalid(mock_email_api_base: str, httpx2_mock: respx.Router) -> str:
     """
     Mock the email validation API to return 404 (email not found in the system).
 
@@ -84,7 +82,7 @@ def mock_email_api_invalid(mock_email_api_base: str, respx_mock: respx.MockRoute
 
     Args:
         mock_email_api_base: The base fixture that sets up infrastructure
-        respx_mock: The respx mock router fixture
+        httpx2_mock: The pytest-httpx2 router fixture
 
     Returns:
         str: The fake API URL
@@ -92,15 +90,13 @@ def mock_email_api_invalid(mock_email_api_base: str, respx_mock: respx.MockRoute
     """
     api_url = mock_email_api_base
 
-    respx_mock.post(api_url).mock(
-        return_value=httpx.Response(404, json={"detail": "Email not found"}),
-    )
+    httpx2_mock.post(api_url).respond(404, json={"detail": "Email not found"})
 
     return api_url
 
 
 @pytest.fixture()
-def mock_email_api_error(mock_email_api_base: str, respx_mock: respx.MockRouter) -> str:
+def mock_email_api_error(mock_email_api_base: str, httpx2_mock: respx.Router) -> str:
     """
     Mock the email validation API to return a 422 validation error.
 
@@ -108,7 +104,7 @@ def mock_email_api_error(mock_email_api_base: str, respx_mock: respx.MockRouter)
 
     Args:
         mock_email_api_base: The base fixture that sets up infrastructure
-        respx_mock: The respx mock router fixture
+        httpx2_mock: The pytest-httpx2 router fixture
 
     Returns:
         str: The fake API URL
@@ -116,36 +112,33 @@ def mock_email_api_error(mock_email_api_base: str, respx_mock: respx.MockRouter)
     """
     api_url = mock_email_api_base
 
-    respx_mock.post(api_url).mock(
-        return_value=httpx.Response(
-            422,
-            json={
-                "detail": [
-                    {
-                        "type": "value_error",
-                        "loc": [
-                            "body",
-                            "email",
-                        ],
-                        "msg": (
-                            "value is not a valid email address:"
-                            " An email address must have an @-sign."
-                        ),
-                        "input": "invalid-email-format",
-                        "ctx": {
-                            "reason": "An email address must have an @-sign.",
-                        },
+    httpx2_mock.post(api_url).respond(
+        422,
+        json={
+            "detail": [
+                {
+                    "type": "value_error",
+                    "loc": [
+                        "body",
+                        "email",
+                    ],
+                    "msg": (
+                        "value is not a valid email address: An email address must have an @-sign."
+                    ),
+                    "input": "invalid-email-format",
+                    "ctx": {
+                        "reason": "An email address must have an @-sign.",
                     },
-                ],
-            },
-        ),
+                },
+            ],
+        },
     )
 
     return api_url
 
 
 @pytest.fixture()
-def mock_email_api_exception(mock_email_api_base: str, respx_mock: respx.MockRouter) -> str:
+def mock_email_api_exception(mock_email_api_base: str, httpx2_mock: respx.Router) -> str:
     """
     Mock the email validation API to raise an exception during the request.
 
@@ -153,7 +146,7 @@ def mock_email_api_exception(mock_email_api_base: str, respx_mock: respx.MockRou
 
     Args:
         mock_email_api_base: The base fixture that sets up infrastructure
-        respx_mock: The respx mock router fixture
+        httpx2_mock: The pytest-httpx2 router fixture
 
     Returns:
         str: The fake API URL
@@ -161,7 +154,7 @@ def mock_email_api_exception(mock_email_api_base: str, respx_mock: respx.MockRou
     """
     api_url = mock_email_api_base
 
-    respx_mock.post(api_url).mock(side_effect=httpx.ConnectError("Connection error"))
+    httpx2_mock.post(api_url).mock(side_effect=httpx2.ConnectError("Connection error"))
 
     return api_url
 

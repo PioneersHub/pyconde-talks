@@ -3,7 +3,7 @@
 import json
 from typing import TYPE_CHECKING, Any
 
-import httpx
+import httpx2
 import pytest
 from django.conf import settings
 
@@ -14,6 +14,11 @@ from users.adapters import AccountAdapter
 if TYPE_CHECKING:
     import respx
     from pytest_django.fixtures import SettingsWrapper
+
+
+# Match the legacy respx_mock default (assert_all_called=False): a couple of tests register a
+# route that an early-return path intentionally never calls.
+pytestmark = pytest.mark.httpx2(assert_all_called=False)
 
 
 @pytest.fixture()
@@ -109,7 +114,7 @@ def test_api_authorization_success(
     adapter: AccountAdapter,
     settings: SettingsWrapper,
     mock_email_api_valid: str,
-    respx_mock: respx.MockRouter,
+    httpx2_mock: respx.Router,
 ) -> None:
     """Test successful email authorization via the external API."""
     # Make sure we're testing the API path by clearing the whitelist
@@ -119,8 +124,8 @@ def test_api_authorization_success(
     assert adapter.is_email_authorized("user@example.com") is True
 
     # Check request was properly formed
-    assert respx_mock.calls.call_count == 1
-    request = respx_mock.calls[0].request
+    assert httpx2_mock.calls.call_count == 1
+    request = httpx2_mock.calls[0].request
     assert json.loads(request.content) == {"email": "user@example.com"}
 
 
@@ -129,7 +134,7 @@ def test_api_authorization_failure(
     adapter: AccountAdapter,
     settings: SettingsWrapper,
     mock_email_api_invalid: str,
-    respx_mock: respx.MockRouter,
+    httpx2_mock: respx.Router,
 ) -> None:
     """Test failed email authorization via the external API."""
     # Make sure we're testing the API path by clearing the whitelist
@@ -139,8 +144,8 @@ def test_api_authorization_failure(
     assert adapter.is_email_authorized("user@example.com") is False
 
     # Check request was properly formed
-    assert respx_mock.calls.call_count == 1
-    request = respx_mock.calls[0].request
+    assert httpx2_mock.calls.call_count == 1
+    request = httpx2_mock.calls[0].request
     assert json.loads(request.content) == {"email": "user@example.com"}
 
 
@@ -149,7 +154,7 @@ def test_api_authorization_validation_error(
     adapter: AccountAdapter,
     settings: SettingsWrapper,
     mock_email_api_error: str,
-    respx_mock: respx.MockRouter,
+    httpx2_mock: respx.Router,
 ) -> None:
     """
     Test API authorization with validation error response.
@@ -167,8 +172,8 @@ def test_api_authorization_validation_error(
     assert adapter.is_email_authorized(test_email) is False
 
     # Verify the request was made
-    assert respx_mock.calls.call_count == 1
-    request = respx_mock.calls[0].request
+    assert httpx2_mock.calls.call_count == 1
+    request = httpx2_mock.calls[0].request
     assert json.loads(request.content) == {"email": test_email}
 
 
@@ -177,7 +182,7 @@ def test_api_authorization_exceptions(
     adapter: AccountAdapter,
     settings: SettingsWrapper,
     mock_email_api_exception: str,
-    respx_mock: respx.MockRouter,
+    httpx2_mock: respx.Router,
 ) -> None:
     """
     Test API authorization with exceptions during request.
@@ -191,8 +196,8 @@ def test_api_authorization_exceptions(
     assert adapter.is_email_authorized("error@example.com") is False
 
     # Verify that a request attempt was made
-    assert respx_mock.calls.call_count >= 1
-    assert str(respx_mock.calls[0].request.url) == mock_email_api_exception
+    assert httpx2_mock.calls.call_count >= 1
+    assert str(httpx2_mock.calls[0].request.url) == mock_email_api_exception
 
 
 @pytest.mark.django_db
@@ -235,7 +240,7 @@ class TestSendMail:
 def test_api_authorization_valid_false(
     adapter: AccountAdapter,
     settings: SettingsWrapper,
-    respx_mock: respx.MockRouter,
+    httpx2_mock: respx.Router,
 ) -> None:
     """Test API returns valid=false — hits the warning branch."""
     api_url = "https://fake-api.example.com/validate"
@@ -245,12 +250,10 @@ def test_api_authorization_valid_false(
     settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET = ""
     settings.EMAIL_VALIDATION_API_OAUTH2_TOKEN_URL = ""
 
-    respx_mock.post(api_url).mock(
-        return_value=httpx.Response(200, json={"valid": False}),
-    )
+    httpx2_mock.post(api_url).respond(200, json={"valid": False})
 
     assert adapter.is_email_authorized("rejected@example.com") is False
-    assert respx_mock.calls.call_count == 1
+    assert httpx2_mock.calls.call_count == 1
 
 
 # ---------------------------------------------------------------------------
@@ -276,27 +279,23 @@ def oauth2_settings(settings: SettingsWrapper) -> dict[str, str]:
 def test_oauth2_bearer_token_sent(
     adapter: AccountAdapter,
     oauth2_settings: dict[str, str],
-    respx_mock: respx.MockRouter,
+    httpx2_mock: respx.Router,
 ) -> None:
     """When OAuth2 is configured, the validation API call includes a Bearer token."""
     token_url = oauth2_settings["token_url"]
     api_url = oauth2_settings["api_url"]
 
-    respx_mock.post(token_url).mock(
-        return_value=httpx.Response(200, json={"access_token": "tok-123", "expires_in": 300}),
-    )
-    respx_mock.post(api_url).mock(
-        return_value=httpx.Response(200, json={"valid": True}),
-    )
+    httpx2_mock.post(token_url).respond(200, json={"access_token": "tok-123", "expires_in": 300})
+    httpx2_mock.post(api_url).respond(200, json={"valid": True})
 
     assert adapter.is_email_authorized("user@example.com") is True
 
     # Token endpoint called once
-    token_calls = [c for c in respx_mock.calls if str(c.request.url) == token_url]
+    token_calls = [c for c in httpx2_mock.calls if str(c.request.url) == token_url]
     assert len(token_calls) == 1
 
     # Validation API called with Bearer header
-    api_calls = [c for c in respx_mock.calls if str(c.request.url) == api_url]
+    api_calls = [c for c in httpx2_mock.calls if str(c.request.url) == api_url]
     assert len(api_calls) == 1
     assert api_calls[0].request.headers["Authorization"] == "Bearer tok-123"
 
@@ -305,7 +304,7 @@ def test_oauth2_bearer_token_sent(
 def test_oauth2_disabled_no_auth_header(
     adapter: AccountAdapter,
     settings: SettingsWrapper,
-    respx_mock: respx.MockRouter,
+    httpx2_mock: respx.Router,
 ) -> None:
     """When OAuth2 settings are empty, no Authorization header is sent."""
     api_url = "https://fake-api.example.com/validate"
@@ -316,54 +315,44 @@ def test_oauth2_disabled_no_auth_header(
     settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET = ""
     settings.EMAIL_VALIDATION_API_OAUTH2_TOKEN_URL = ""
 
-    respx_mock.post(api_url).mock(
-        return_value=httpx.Response(200, json={"valid": True}),
-    )
+    httpx2_mock.post(api_url).respond(200, json={"valid": True})
 
     assert adapter.is_email_authorized("user@example.com") is True
-    assert respx_mock.calls.call_count == 1
-    assert "Authorization" not in respx_mock.calls[0].request.headers
+    assert httpx2_mock.calls.call_count == 1
+    assert "Authorization" not in httpx2_mock.calls[0].request.headers
 
 
 @pytest.mark.django_db
 def test_oauth2_token_cached_across_calls(
     adapter: AccountAdapter,
     oauth2_settings: dict[str, str],
-    respx_mock: respx.MockRouter,
+    httpx2_mock: respx.Router,
 ) -> None:
     """The OAuth2 token is fetched once and reused for subsequent validation calls."""
     token_url = oauth2_settings["token_url"]
     api_url = oauth2_settings["api_url"]
 
-    respx_mock.post(token_url).mock(
-        return_value=httpx.Response(200, json={"access_token": "cached-tok", "expires_in": 300}),
-    )
-    respx_mock.post(api_url).mock(
-        return_value=httpx.Response(200, json={"valid": True}),
-    )
+    httpx2_mock.post(token_url).respond(200, json={"access_token": "cached-tok", "expires_in": 300})
+    httpx2_mock.post(api_url).respond(200, json={"valid": True})
 
     assert adapter.is_email_authorized("a@example.com") is True
     assert adapter.is_email_authorized("b@example.com") is True
 
-    token_calls = [c for c in respx_mock.calls if str(c.request.url) == token_url]
+    token_calls = [c for c in httpx2_mock.calls if str(c.request.url) == token_url]
     assert len(token_calls) == 1  # Only one token fetch
 
 
 @pytest.mark.django_db
 def test_oauth2_token_shared_across_adapter_instances(
     oauth2_settings: dict[str, str],
-    respx_mock: respx.MockRouter,
+    httpx2_mock: respx.Router,
 ) -> None:
     """A fresh adapter instance reuses the cached token instead of re-fetching."""
     token_url = oauth2_settings["token_url"]
     api_url = oauth2_settings["api_url"]
 
-    respx_mock.post(token_url).mock(
-        return_value=httpx.Response(200, json={"access_token": "shared-tok", "expires_in": 300}),
-    )
-    respx_mock.post(api_url).mock(
-        return_value=httpx.Response(200, json={"valid": True}),
-    )
+    httpx2_mock.post(token_url).respond(200, json={"access_token": "shared-tok", "expires_in": 300})
+    httpx2_mock.post(api_url).respond(200, json={"valid": True})
 
     # Two separate adapter instances share state via Django's cache backend.
     # In prod with a shared backend (Redis/memcached) this extends across workers;
@@ -371,7 +360,7 @@ def test_oauth2_token_shared_across_adapter_instances(
     assert AccountAdapter().is_email_authorized("a@example.com") is True
     assert AccountAdapter().is_email_authorized("b@example.com") is True
 
-    token_calls = [c for c in respx_mock.calls if str(c.request.url) == token_url]
+    token_calls = [c for c in httpx2_mock.calls if str(c.request.url) == token_url]
     assert len(token_calls) == 1, "Token should be cached across adapter instances"
 
 
@@ -379,23 +368,19 @@ def test_oauth2_token_shared_across_adapter_instances(
 def test_oauth2_token_fetch_failure_propagates(
     adapter: AccountAdapter,
     oauth2_settings: dict[str, str],
-    respx_mock: respx.MockRouter,
+    httpx2_mock: respx.Router,
 ) -> None:
     """When the token endpoint fails, the validation call fails gracefully."""
     token_url = oauth2_settings["token_url"]
     api_url = oauth2_settings["api_url"]
 
-    respx_mock.post(token_url).mock(
-        return_value=httpx.Response(401, json={"error": "invalid_client"}),
-    )
-    respx_mock.post(api_url).mock(
-        return_value=httpx.Response(200, json={"valid": True}),
-    )
+    httpx2_mock.post(token_url).respond(401, json={"error": "invalid_client"})
+    httpx2_mock.post(api_url).respond(200, json={"valid": True})
 
     assert adapter.is_email_authorized("user@example.com") is False
 
     # Validation API should not have been called
-    api_calls = [c for c in respx_mock.calls if str(c.request.url) == api_url]
+    api_calls = [c for c in httpx2_mock.calls if str(c.request.url) == api_url]
     assert len(api_calls) == 0
 
 
@@ -408,7 +393,7 @@ def test_oauth2_token_fetch_failure_propagates(
 def test_404_not_retried(
     adapter: AccountAdapter,
     mock_email_api_base: str,
-    respx_mock: respx.MockRouter,
+    httpx2_mock: respx.Router,
     settings: SettingsWrapper,
 ) -> None:
     """
@@ -420,19 +405,17 @@ def test_404_not_retried(
     api_url = mock_email_api_base
     settings.AUTHORIZED_EMAILS_WHITELIST = []
 
-    respx_mock.post(api_url).mock(
-        return_value=httpx.Response(404, json={"detail": "Email not found"}),
-    )
+    httpx2_mock.post(api_url).respond(404, json={"detail": "Email not found"})
 
     assert adapter.is_email_authorized("notfound@example.com") is False
-    assert respx_mock.calls.call_count == 1  # exactly once -- no retry
+    assert httpx2_mock.calls.call_count == 1  # exactly once -- no retry
 
 
 @pytest.mark.django_db
 def test_can_login_by_email_404_returns_false(
     adapter: AccountAdapter,
     mock_email_api_base: str,
-    respx_mock: respx.MockRouter,
+    httpx2_mock: respx.Router,
     settings: SettingsWrapper,
 ) -> None:
     """
@@ -443,12 +426,10 @@ def test_can_login_by_email_404_returns_false(
     api_url = mock_email_api_base
     settings.AUTHORIZED_EMAILS_WHITELIST = []
 
-    respx_mock.post(api_url).mock(
-        return_value=httpx.Response(404, json={"detail": "Email not found"}),
-    )
+    httpx2_mock.post(api_url).respond(404, json={"detail": "Email not found"})
 
     assert adapter.can_login_by_email("notfound@example.com") is False
-    assert respx_mock.calls.call_count == 1  # exactly once -- no retry
+    assert httpx2_mock.calls.call_count == 1  # exactly once -- no retry
 
 
 def test_call_validation_api_empty_url_returns_false() -> None:
@@ -461,23 +442,23 @@ def test_call_validation_api_empty_url_returns_false() -> None:
 @pytest.mark.parametrize(
     "side_effect",
     [
-        httpx.TimeoutException("slow"),
-        httpx.ConnectError("down"),
+        httpx2.TimeoutException("slow"),
+        httpx2.ConnectError("down"),
         json.JSONDecodeError("broken", "{", 0),
-        httpx.HTTPError("bad status"),
+        httpx2.HTTPError("bad status"),
         RuntimeError("unexpected"),
     ],
 )
 def test_can_login_by_email_swallows_errors(
     adapter: AccountAdapter,
     mock_email_api_base: str,
-    respx_mock: respx.MockRouter,
+    httpx2_mock: respx.Router,
     settings: SettingsWrapper,
     side_effect: Exception,
 ) -> None:
     """Every error raised by the validation API must downgrade to a safe False result."""
     api_url = mock_email_api_base
     settings.AUTHORIZED_EMAILS_WHITELIST = []
-    respx_mock.post(api_url).mock(side_effect=side_effect)
+    httpx2_mock.post(api_url).mock(side_effect=side_effect)
 
     assert adapter.can_login_by_email("user@example.com") is False
