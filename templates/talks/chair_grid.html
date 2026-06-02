@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load svg_tags %}
+{% block content %}
+  <div class="w-full mx-auto p-4">
+    {# ── Header ────────────────────────────────────────────── #}
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+      <h1 class="text-2xl font-bold text-heading">Session chairs</h1>
+      <a href="{% url 'schedule' %}"
+         class="btn-secondary inline-flex items-center px-3 py-1 rounded">
+        {% svg 'calendar' "h-4 w-4 mr-1" %}
+        Schedule
+      </a>
+    </div>
+    <p class="text-sm text-muted mb-4">
+      Pick a day to see who is chairing each session. Open a talk to volunteer or step down.
+    </p>
+    {# ── Day picker ────────────────────────────────────────── #}
+    <div class="flex flex-wrap gap-2 mb-4">
+      {% for d in available_dates %}
+        <a href="{% querystring date=d|date:'Y-m-d' %}"
+           class="px-4 py-2 rounded-lg font-medium text-sm transition-colors {% if d == selected_date %}bg-brand-blue text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+          {% if has_multiple_years %}
+            {{ d|date:"D, M j, Y" }}
+          {% else %}
+            {{ d|date:"D, M j" }}
+          {% endif %}
+        </a>
+      {% empty %}
+        <span class="text-subtle">No scheduled days found.</span>
+      {% endfor %}
+    </div>
+    {# ── Event filter ──────────────────────────────────────── #}
+    <form method="get" class="mb-4 card-compact inline-flex">
+      <select name="event" class="form-select" onchange="this.form.submit()">
+        <option value="">All Events</option>
+        {% for event in events %}
+          <option value="{{ event.id }}"
+                  {% if event.id|stringformat:"s" == selected_event %}selected{% endif %}>{{ event.name }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    {# ── Chair grid ────────────────────────────────────────── #}
+    {% include "talks/partials/chair_grid_table.html" %}
+  </div>
+  {# Persistent highlight for the blocks you chair, plus hover highlight across a whole block. #}
+  <style>
+    .chair-cell.chair-mine { background-color: rgb(219 234 254); }
+    .chair-cell.chair-block-hover { background-color: rgb(239 246 255); }
+    .chair-cell.chair-mine.chair-block-hover { background-color: rgb(191 219 254); }
+    .dark .chair-cell.chair-mine { background-color: rgba(59, 130, 246, 0.22); }
+    .dark .chair-cell.chair-block-hover { background-color: rgba(59, 130, 246, 0.12); }
+  </style>
+  <script>
+    // Highlight every cell of a block when hovering any of its talks. Uses event delegation so it
+    // keeps working after HTMX swaps the table in place.
+    (function () {
+      function setBlockHover(block, on) {
+        if (!block) return;
+        document
+          .querySelectorAll('.chair-cell[data-block="' + block + '"]')
+          .forEach(function (el) { el.classList.toggle('chair-block-hover', on); });
+      }
+      document.addEventListener('mouseover', function (e) {
+        var cell = e.target.closest && e.target.closest('.chair-cell[data-block]');
+        if (cell) setBlockHover(cell.getAttribute('data-block'), true);
+      });
+      document.addEventListener('mouseout', function (e) {
+        var cell = e.target.closest && e.target.closest('.chair-cell[data-block]');
+        if (cell) setBlockHover(cell.getAttribute('data-block'), false);
+      });
+    })();
+  </script>
+{% endblock content %}

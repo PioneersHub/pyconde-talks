@@ -28,6 +28,11 @@
             {% include "talks/partials/save_button.html" %}
           </div>
           <p class="text-xl text-muted mt-2">{{ talk.speaker_names }}</p>
+          {% if user_can_moderate and talk.session_chair_id %}
+            <p class="text-sm text-muted mt-1">
+              Session chair: <span class="font-medium text-heading">{{ talk.chair_display_name }}</span>
+            </p>
+          {% endif %}
           {% if show_rating_summary %}
             <div class="mt-2" id="title-star-rating">{% star_rating average_rating rating_count %}</div>
           {% endif %}
@@ -41,7 +46,7 @@
             </div>
             <div>
               <div class="text-sm text-subtle">Time</div>
-              <div>{{ talk.start_time|date:"g:i A" }}</div>
+              <div>{{ talk.start_time|date:"g:i A" }} - {{ talk.end_time|date:"g:i A" }}</div>
             </div>
             <div>
               <div class="text-sm text-subtle">Room</div>
