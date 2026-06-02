@@ -189,6 +189,14 @@ class TestTalkListView:
         assert "Talk In Room" in content
         assert "Talk No Room" not in content
 
+    def test_filter_by_room_ignores_non_numeric(self, client: Client, user: CustomUser) -> None:
+        """A non-numeric ?room= must not raise ValueError and is simply ignored."""
+        baker.make(Talk, title="Some Talk", room=None, event=None)
+        client.force_login(user)
+        response = client.get(reverse("talk_list") + "?room=not-a-number")
+        assert response.status_code == HTTPStatus.OK
+        assert "Some Talk" in response.content.decode()
+
     def test_filter_by_date(self, client: Client, user: CustomUser) -> None:
         """Show only talks scheduled on the selected date."""
         now = timezone.now()

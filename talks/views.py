@@ -176,7 +176,10 @@ class TalkListView(ListView[Talk]):
         active: dict[str, str] = {}
 
         room_id = self.request.GET.get("room")
-        if room_id and queryset.filter(room_id=room_id).exists():
+        # Guard isdigit so a non-numeric ?room= doesn't raise ValueError from the filter.
+        # A valid id from another event is harmless: the queryset is already event-scoped,
+        # so .exists() is False and the stale param is dropped.
+        if room_id and room_id.isdigit() and queryset.filter(room_id=room_id).exists():
             active["room_id"] = room_id
 
         date_value = self.request.GET.get("date")
