@@ -6,7 +6,7 @@ The Discord social-login adapter lives in ``users.adapters_social``.
 
 from http import HTTPStatus
 from json.decoder import JSONDecodeError
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, cast, override
 
 import httpx
 import structlog
@@ -339,6 +339,7 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
 
         return False
 
+    @override
     def send_mail(self, template_prefix: str, email: str, context: dict[str, Any]) -> None:
         """Add custom variables to the email context before sending."""
         timeout_seconds = getattr(settings, "ACCOUNT_LOGIN_BY_CODE_TIMEOUT", 180)

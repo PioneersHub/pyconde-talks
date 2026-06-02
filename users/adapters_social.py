@@ -6,7 +6,7 @@ the email-validation adapter.
 """
 
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, cast, override
 
 import httpx
 import structlog
@@ -94,6 +94,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
     # allauth hooks
     # ------------------------------------------------------------------
 
+    @override
     def pre_social_login(self, request: HttpRequest, sociallogin: SocialLogin) -> None:
         """
         Run after Discord authenticates the user but before the session is created.
@@ -151,6 +152,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
         # Step 3: new social login - connect to existing email account if possible
         self._connect_to_existing_account(request, sociallogin)
 
+    @override
     def save_user(
         self,
         request: HttpRequest,
