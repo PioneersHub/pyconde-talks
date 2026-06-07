@@ -81,11 +81,10 @@ test = [
     "pytest-random-order>=1.2.0",
 ]
 prod = [
-    # psycopg3 (a.k.a. ``psycopg``) is the actively-maintained successor to psycopg2.
-    # ``[binary]`` ships its own libpq wheel so the Docker image does not need libpq-dev
-    # at build time. ``[pool]`` pulls in psycopg_pool, required for Django's native
-    # connection-pool support (``DATABASES[...]["OPTIONS"]["pool"] = True``).
-    "psycopg[binary,pool]>=3.3.4",
+    # psycopg3 (a.k.a. `psycopg`) is the actively-maintained successor to psycopg2.
+    # ``[binary]`` ships its own libpq wheel so the Docker image does not need libpq-dev.
+    # Add the ``pool`` extra to enable Django's native connection pool (`DJANGO_DB_POOL=True`).
+    "psycopg[binary]>=3.3.4",
 ]
 
 [project.urls]
