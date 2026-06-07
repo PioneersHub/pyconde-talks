@@ -51,9 +51,12 @@ updates:
           - "patch"
 
   - package-ecosystem: "docker"
-    # Base images in docker/Dockerfile and docker/compose.yaml (python, postgres, uv). No group and
-    # no update-types filter: there are only a few images and a base-image major (python 3.x,
-    # postgres N) is significant enough to warrant its own PR.
+    # In practice this tracks only the tag-pinned images Dependabot can resolve: postgres in
+    # docker/compose.yaml. It does NOT maintain docker/Dockerfile's base images - wolfi-base is
+    # pinned as ":latest@sha256:..." (Dependabot treats ":latest" as already-highest and never bumps
+    # the digest) and uv is a "COPY --from" (Dependabot ignores those). Both of those digests are
+    # refreshed by .github/workflows/digestabot.yml instead, and the uv version is bumped by hand.
+    # No group / no update-types filter: a base-image major (postgres N) warrants its own PR.
     directory: "/docker"
     schedule:
       interval: "weekly"

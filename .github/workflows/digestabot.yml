@@ -1,0 +1,42 @@
+# Keep the digest-pinned base images in docker/Dockerfile fresh.
+#
+# docker/Dockerfile pins images as "tag@sha256:digest". Chainguard rebuilds wolfi-base DAILY with
+# CVE fixes, so the digest behind ":latest" moves often. Dependabot cannot follow it: it treats
+# ":latest" as already the highest version and ignores COPY --from lines entirely. digestabot
+# re-resolves each pinned tag and opens a PR whenever its digest changed, so a frozen pin never
+# silently accumulates CVEs.
+name: digestabot
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly (Mon 06:00 UTC), matching the Dependabot cadence
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  digest-update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the digest-bump branch
+      pull-requests: write # open the PR
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Refresh base image digests
+        uses: chainguard-dev/digestabot@43222237fd8a07dc41a06ca13e931c95ce2cedac # v1.2.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # No gitsign: avoids needing id-token/OIDC. The bot commit is reviewed and merged manually.
+          use-gitsign: "false"
+          branch-for-pr: digestabot/update-digests
+          title-for-pr: "build(deps): refresh base image digests"
+          labels-for-pr: dependencies
+          description-for-pr: |
+            Automated refresh of the `tag@sha256:digest` base images in `docker/Dockerfile`.
+
+            Chainguard rebuilds `:latest` daily with CVE fixes; this updates the pinned digest to
+            match. Dependabot cannot do this (it skips `:latest` and ignores `COPY --from`).
