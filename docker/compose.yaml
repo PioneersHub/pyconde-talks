@@ -46,7 +46,7 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/ht/"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ht/?format=json')"]
       # Short interval + a start_period that covers entrypoint migrations: the container flips to
       # "healthy" within ~15s of the app answering, so a deploy's health gate (deploy-event.sh)
       # confirms quickly instead of waiting out a long interval and wrongly rolling back.

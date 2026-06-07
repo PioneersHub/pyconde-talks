@@ -1,4 +1,6 @@
+addgroup
 addopts
+adduser
 ahmadalli
 allauth
 anymail
@@ -16,6 +18,7 @@ buildx
 Callsite
 Certbot
 cffi
+chainguard
 charliermarsh
 Cleese
 collectstatic
@@ -116,6 +119,7 @@ nbytes
 newrelic
 nodelay
 noinput
+nonroot
 noopener
 noreferrer
 noreload
@@ -209,12 +213,15 @@ trixie
 truncatewords
 tspan
 upsert
+urlopen
 upserted
 upserts
+urllib
 venv
 videoteam
 vimeocdn
 webp
+wolfi
 worktree
 wsgi
 xlink

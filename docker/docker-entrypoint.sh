@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 # Apply database migrations. Retry a few times so a slow-to-accept-connections DB
@@ -7,7 +7,7 @@ set -e
 # columns a pending migration would add) and masks the real failure behind 500s.
 echo "Applying database migrations..."
 migrated=false
-for i in {1..3}; do
+for i in 1 2 3; do
     if python manage.py migrate --noinput; then
         migrated=true
         break

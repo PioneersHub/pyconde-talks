@@ -29,8 +29,8 @@ done
 # UIDs/GIDs (can be overridden via env)
 NGINX_UID="${NGINX_UID:-$_default_nginx_uid}"
 NGINX_GID="${NGINX_GID:-$_default_nginx_gid}"
-DJANGO_UID="${DJANGO_UID:-10000}"
-DJANGO_GID="${DJANGO_GID:-999}"
+DJANGO_UID="${DJANGO_UID:-65532}"
+DJANGO_GID="${DJANGO_GID:-65532}"
 
 # Static files: Nginx needs read only
 mkdir -p "${STATIC_DIR}" &&
