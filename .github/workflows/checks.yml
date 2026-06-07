@@ -1,0 +1,47 @@
+# Reusable quality gate: lint, format, type check, tests.
+# Called by ci.yml (on PRs) and by deploy.yml (before any image is built or deployed).
+name: checks
+
+on:
+  workflow_call:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install dependencies
+        # dev (ruff/zuban), test (pytest), and prod (psycopg) so every import resolves.
+        # NOSONAR S8541,S8544 - uv sync reads uv.lock (committed)
+        run: uv sync --all-groups --locked
+
+      - name: Lint (ruff)
+        # NOSONAR S8541,S8544 - uv run uses the locked env from uv.lock
+        run: uv run ruff check --output-format=github .
+
+      - name: Format check (ruff)
+        # NOSONAR S8541,S8544 - uv run uses the locked env from uv.lock
+        run: uv run ruff format --check .
+
+      - name: Type check (zuban)
+        # NOSONAR S8541,S8544 - uv run uses the locked env from uv.lock
+        run: uv run zuban check
+
+      - name: Tests (pytest)
+        # Defaults are CI-safe: SQLite DB, plain StaticFilesStorage, unsafe-secret-key.
+        # NOSONAR S8541,S8544 - uv run uses the locked env from uv.lock
+        run: |
+          mkdir -p reports
+          uv run pytest

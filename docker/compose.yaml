@@ -47,10 +47,13 @@ services:
       - "127.0.0.1:8000:8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/ht/"]
-      interval: 60s
+      # Short interval + a start_period that covers entrypoint migrations: the container flips to
+      # "healthy" within ~15s of the app answering, so a deploy's health gate (deploy-event.sh)
+      # confirms quickly instead of waiting out a long interval and wrongly rolling back.
+      interval: 15s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 60s
     logging:
       driver: "json-file"
       options:

@@ -1,0 +1,61 @@
+# Dependabot keeps three things fresh:
+#   - github-actions: the SHA-pinned actions in .github/workflows (it bumps the pinned commit SHA
+#     and the trailing version comment together)
+#   - uv: the Python dependencies in pyproject.toml / uv.lock
+#   - docker: the base images in docker/Dockerfile and docker/compose.yaml
+#
+# All run weekly. Minor and patch bumps are grouped into one PR per ecosystem; major bumps arrive
+# as individual PRs so breaking changes get their own review.
+# The cooldown holds version bumps for a few days so a freshly published (or
+# compromised-then-yanked) release is not pulled in on day zero. Cooldown never applies to security
+# updates, which still open immediately.
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 3
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+    groups:
+      # Packages in [project.dependencies] (django, daphne, allauth, ...). Group safe bumps; let
+      # majors come through one at a time for their own review.
+      python-production:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      # Everything Dependabot classifies as "development": the dev/test/prod PEP 735
+      # dependency-groups (ruff, zuban, pytest, AND psycopg - group members are never "production"
+      # to Dependabot, even the prod group). Same rule: group minor/patch, isolate majors.
+      python-development:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "docker"
+    # Base images in docker/Dockerfile and docker/compose.yaml (python, postgres, uv). No group and
+    # no update-types filter: there are only a few images and a base-image major (python 3.x,
+    # postgres N) is significant enough to warrant its own PR.
+    directory: "/docker"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 3

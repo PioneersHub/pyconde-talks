@@ -1,0 +1,18 @@
+# Continuous integration for pull requests.
+# Deploys never run from here; see deploy.yml for the main-branch path.
+name: ci
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# Cancel superseded runs on the same PR to save minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/checks.yml

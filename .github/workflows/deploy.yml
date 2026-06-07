@@ -1,0 +1,153 @@
+# Build once, deploy to one target per tag.
+#
+# The codebase serves several event sites (talks.pycon.de, videos.pydata-berlin.org, ...). The
+# image is event-agnostic - each site is configured by its own .env on the server - so CI builds
+# ONE shared image and deploys that exact git sha to whichever target a tag names.
+#
+# Trigger: push a tag "<target>/<version>", e.g.
+#   git tag talks.pycon.de/2026.06.03 && git push origin talks.pycon.de/2026.06.03
+# or run the workflow manually and pick a target.
+#
+# Flow: parse+validate target -> quality gate -> build & push to GHCR (by git sha) -> manual
+# approval in the target's environment -> trigger the locked-down deploy over SSH.
+#
+# Nothing here touches the server's shell. The target is pinned per key in the server's
+# authorized_keys forced command ("deploy-event <target>"); CI controls only the git sha.
+# See docs/deployment-ci.md.
+name: deploy
+
+on:
+  push:
+    tags:
+      - "*/*" # <target>/<version>; the setup job validates <target> against the allowlist
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Deployment target"
+        required: true
+        type: choice
+        options:
+          - talks.pycon.de
+          - videos.pydata-berlin.org
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      target: ${{ steps.parse.outputs.target }}
+      version: ${{ steps.parse.outputs.version }}
+      registry: ${{ steps.parse.outputs.registry }}
+      tag: ${{ steps.parse.outputs.tag }}
+    steps:
+      - name: Parse and validate target
+        id: parse
+        env:
+          # Space-separated allowlist. To add a site: add it here, create a GitHub Environment
+          # named exactly after it, add it to the workflow_dispatch choices above, and set up the
+          # server (see docs/deployment-ci.md).
+          ALLOWED: "talks.pycon.de videos.pydata-berlin.org"
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TARGET: ${{ inputs.target }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            target="$INPUT_TARGET"
+            version="manual-${GITHUB_SHA::12}"
+          else
+            # Tag push: REF_NAME is "<target>/<version>".
+            target="${REF_NAME%/*}"
+            version="${REF_NAME##*/}"
+          fi
+          case " $ALLOWED " in
+            *" $target "*) ;;
+            *) echo "::error::Unknown deploy target '${target}' (allowed: ${ALLOWED})"; exit 1 ;;
+          esac
+          owner_lc="$(echo "$OWNER" | tr 'A-Z' 'a-z')"
+          {
+            echo "target=${target}"
+            echo "version=${version}"
+            echo "registry=ghcr.io/${owner_lc}"
+            echo "tag=${GITHUB_SHA::12}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Deploying ${target} (version ${version}) at ${GITHUB_SHA::12}"
+
+  checks:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/checks.yml
+
+  build:
+    needs: [setup, checks]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+      # Exposes ACTIONS_* tokens so the raw `docker buildx bake` below can use the
+      # GitHub Actions layer cache (type=gha).
+      - name: Expose GitHub Actions cache tokens
+        uses: crazy-max/ghaction-github-runtime@04d248b84655b509d8c44dc1d6f990c879747487 # v4.0.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push shared app image + static assets
+        working-directory: docker
+        env:
+          REGISTRY: ${{ needs.setup.outputs.registry }}
+          TAG: ${{ needs.setup.outputs.tag }}
+        run: |
+          docker buildx bake --allow=fs.read=.. \
+            --set '*.output=type=registry' \
+            --set '*.cache-from=type=gha' \
+            --set '*.cache-to=type=gha,mode=max'
+
+  deploy:
+    needs: [setup, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # One deploy per target at a time; different targets can deploy in parallel.
+    concurrency:
+      group: deploy-${{ needs.setup.outputs.target }}
+      cancel-in-progress: false
+    # Gate: the environment is named after the target and requires a manual approval
+    # (configure a required reviewer in Settings -> Environments -> <target>).
+    environment:
+      name: ${{ needs.setup.outputs.target }}
+      url: https://${{ needs.setup.outputs.target }}
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_DEPLOY_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Trigger remote deploy
+        # The server key is pinned to "deploy-event <target>", so DEPLOY_TAG is the only thing CI
+        # controls. The script validates it as a git sha before acting.
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          DEPLOY_TAG: ${{ needs.setup.outputs.tag }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes \
+            "${SSH_USER}@${SSH_HOST}" "${DEPLOY_TAG}"

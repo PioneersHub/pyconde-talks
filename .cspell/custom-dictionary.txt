@@ -21,6 +21,7 @@ Cleese
 collectstatic
 configfile
 conftest
+cooldown
 createsuperuser
 createuser
 csrf
@@ -47,6 +48,7 @@ endblocktranslate
 endfor
 endpartialdef
 endwith
+esac
 esbenp
 escapejs
 evenodd
@@ -65,6 +67,7 @@ getbuffer
 getdata
 getpixel
 ggpht
+ghaction
 googlevideo
 gpgconf
 greppable
@@ -136,6 +139,8 @@ phont
 phpmyadmin
 pilmoji
 pinentry
+pioneershub
+pipefail
 prek
 pretalx
 privkey
@@ -167,6 +172,7 @@ Reswap
 Retarget
 reupserts
 rgba
+rlpt
 runserver
 ryanluker
 SAMEORIGIN
@@ -177,6 +183,7 @@ sched
 sdist
 shelldre
 signups
+skopeo
 slido
 socialaccount
 sociallogin

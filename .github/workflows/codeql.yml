@@ -1,0 +1,64 @@
+name: "CodeQL Advanced"
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: "27 4 * * 1"
+
+# Cancel superseded PR scans, but never cancel the main/scheduled baseline
+# (killing it would leave the Security tab's results stale).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: python
+            build-mode: none
+            # Skip generated/throwaway code. Tests are covered by SonarQube/bandit and migrations
+            # are auto-generated. `**/test_*.py` also catches stray test modules outside a tests/
+            # dir (e.g. utils/test_perf.py), matching pytest's python_files glob. Must stay on the
+            # python entry only: a `paths`/`paths-ignore` on the actions entry would hide workflow
+            # YAML from it.
+            config: |
+              paths-ignore:
+                - "**/tests"
+                - "**/test_*.py"
+                - "**/migrations"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      # No setup-python / uv sync: under build-mode none the extractor reads source directly (no
+      # dependency install) and the pinned CodeQL parses 3.14 syntax.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@87557b9c84dde89fdd9b10e88954ac2f4248e463 # v4.36.1
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          config: ${{ matrix.config }}
+          # security-extended + security-and-quality: widest coverage. The quality queries overlap
+          # SonarQube/ruff/zuban but may still surface issues those miss; deep taint tracking is
+          # CodeQL's real strength here (Django views, ORM, auth, the Discord/Mailgun/pretalx calls).
+          queries: security-extended,security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@87557b9c84dde89fdd9b10e88954ac2f4248e463 # v4.36.1
+        with:
+          category: "/language:${{ matrix.language }}"

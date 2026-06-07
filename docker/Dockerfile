@@ -3,8 +3,9 @@
 # Stage 1: Builder
 FROM python:3.14-slim AS builder
 
-# Copy uv package manager
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+# Copy uv package manager. Pinned (not :latest) for reproducible builds and so Dependabot's
+# docker ecosystem can track and bump it.
+COPY --from=ghcr.io/astral-sh/uv:0.11.18 /uv /usr/local/bin/uv
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
