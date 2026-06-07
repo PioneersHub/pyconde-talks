@@ -207,8 +207,10 @@ docker buildx bake --allow=fs.read=.. --set '*.args.APP_DOMAIN=talks.example.com
 
 This builds two targets:
 
-1. **django** - multi-stage image with a non-root user (UID 10000), health check on `/ht/`, and
-   Daphne as the ASGI server
+1. **django** - multi-stage image built on [Chainguard's](https://www.chainguard.dev/) hardened,
+   minimal `wolfi-base` (no shell tooling like `curl`/`vim`; Python comes from Wolfi's `apk`
+   package, not a download). Runs as a non-root user (UID 65532), with a pure-Python health check on
+   `/ht/` and Daphne as the ASGI server
 2. **staticfiles** - exports compiled static files to `docker/staticfiles/` for serving with Nginx
 
 ### Run
@@ -220,13 +222,21 @@ sudo mkdir -p ${MEDIA_DIR} ${STATIC_DIR} ${LOGS_DIR}
 # Copy static files
 mv docker/staticfiles/* ${STATIC_DIR}/
 
-# Set permissions for Nginx (www-data) and Django (UID 10000)
+# Set permissions for Nginx (www-data) and Django (UID 65532)
 sudo APP_DOMAIN=talks.example.com ./docker/ensure_permissions.sh
 
 # Start PostgreSQL and Django
 cd docker
 docker compose up -d
 ```
+
+> [!IMPORTANT] The container's Django user changed from UID **10000** to **65532** (Chainguard's
+> nonroot convention). On a server that was set up before this change, the mounted media and log
+> volumes are still owned by 10000, so the new container cannot write to them. Re-run
+> `ensure_permissions.sh` (its defaults are now 65532) **before or with** the deploy to re-own them:
+> `sudo APP_DOMAIN=<target> ./docker/ensure_permissions.sh`. (The UID is set in `docker/Dockerfile`
+> and mirrored in `ensure_permissions.sh`; there is no security difference between 10000 and 65532,
+> so re-owning to 65532 is simplest.)
 
 ### Nginx
 
