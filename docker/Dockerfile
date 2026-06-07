@@ -1,29 +1,49 @@
 # syntax=docker/dockerfile:1.9
 
+# Base image: Chainguard's wolfi-base (glibc + busybox + apk-tools + ca-certificates), a minimal,
+# CVE-patched, daily-rebuilt base. We build BOTH stages on it instead of python:3.14-slim.
+#
+# Pinned by digest for reproducible builds and supply-chain integrity. ":latest" is the only free
+# Chainguard tier and is rebuilt daily with security fixes; a frozen digest would stop receiving
+# those fixes, so the digest is kept fresh by the weekly "digestabot" workflow
+# (.github/workflows/digestabot.yml), which opens a PR whenever the digest behind ":latest" moves.
+# Tag + digest together gives both reproducibility and patching.
+#
+# Note: Dependabot cannot maintain this line. Its docker ecosystem treats ":latest" as already the
+# highest version (so it never bumps the digest) and it ignores COPY --from lines entirely
+# (dependabot-core#5103). digestabot covers both gaps.
+ARG WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest@sha256:b78bb982194828b6c9c214230bf34d51944e2102ea8468f01ac21e5f99328efd
+
 # Stage 1: Builder
-FROM cgr.dev/chainguard/wolfi-base:latest AS builder
+FROM ${WOLFI_BASE} AS builder
 
-# Copy uv package manager. Pinned (not :latest) for reproducible builds and so Dependabot's
-# docker ecosystem can track and bump it.
-COPY --from=ghcr.io/astral-sh/uv:0.11.18 /uv /usr/local/bin/uv
+# uv package manager: a prebuilt static binary copied from Astral's official distroless image.
+# COPY (not the curl install script) avoids uv's broken glibc detection on Wolfi. Pinned by version
+# AND digest for reproducibility. This pin is bumped MANUALLY (version) - Dependabot does not parse
+# COPY --from; digestabot keeps the digest of the pinned 0.11.19 tag current.
+COPY --from=ghcr.io/astral-sh/uv:0.11.19@sha256:b46b03ddfcfbf8f547af7e9eaefdf8a39c8cebcba7c98858d3162bd28cf536f6 /uv /uvx /usr/local/bin/
 
-# Python version - controllable from docker-bake.hcl or compose build args.
-ARG PYTHON_VERSION=3.14
+# Build dependencies: the Python interpreter + headers and a C/C++ toolchain for any wheel that
+# compiles from source. Wolfi's python is dynamically linked against the base image's apk-managed
+# OpenSSL, so a fresh base patches it (unlike uv's python-build-standalone, which statically
+# bundles its own OpenSSL/sqlite that the base image cannot patch). No git is needed: all
+# dependencies resolve from PyPI (see uv.lock). libpq is unnecessary: psycopg[binary] ships it.
+RUN apk add --no-cache \
+    build-base \
+    python-3.14 \
+    python-3.14-dev
 
-# Set environment variables
+# Environment. uv is told to use ONLY the system (apk) interpreter and to never download its own
+# python-build-standalone build.
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_PYTHON_INSTALL_DIR=/opt/python \
+    UV_PYTHON=/usr/bin/python3.14 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PYTHON_PREFERENCE=only-system \
     UV_PROJECT_ENVIRONMENT=/venv \
     PATH="/venv/bin:$PATH"
-
-# Install build dependencies and Python via uv (python-build-standalone).
-# Using uv instead of the base image's package manager gives explicit version control
-# independent of the image tag.
-RUN apk add --no-cache build-base git && \
-    uv python install ${PYTHON_VERSION} --default
 
 WORKDIR /app
 
@@ -80,29 +100,39 @@ ARG DJANGO_STATIC_ROOT=/staticfiles
 COPY --from=builder ${DJANGO_STATIC_ROOT} ${DJANGO_STATIC_ROOT}
 
 # Stage 3: Final image
-# Chainguard wolfi-base: glibc + busybox + apk-tools, nothing else.
-FROM cgr.dev/chainguard/wolfi-base:latest AS final
+# Production runtime: only what is essential to run the app, on the same minimal wolfi-base.
+# The media (DJANGO_MEDIA_ROOT) and logs (DJANGO_LOG_DIR) directories should be mounted as volumes.
+# Set the correct ownership on the host (see docker/ensure_permissions.sh):
+#   - Django (UID 65532) needs read and write permissions to media files and logs
+#   - Nginx (www-data, UID 33) only needs read permissions to serve media files
+FROM ${WOLFI_BASE} AS final
 
-# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     MPLCONFIGDIR=/tmp/matplotlib \
+    HOME=/tmp \
     PATH="/venv/bin:$PATH"
 
-# Create non-root user (busybox adduser/addgroup; no shadow package needed).
-# UID 65532 follows the Chainguard nonroot convention.
-#   chown -R 65532:65532 /var/opt/<target>/media /var/log/<target>
-RUN addgroup -S django && adduser -S -G django -u 65532 -D -H django
+# Runtime packages, kept minimal (no curl, no vim, no compiler):
+#   python-3.14  the interpreter (dynamically linked, apk-patchable OpenSSL)
+#   tzdata       wolfi-base ships no zoneinfo; Django USE_TZ needs named time zones
+#   libstdc++    C++ runtime for the matplotlib/pandas/numpy compiled extensions (manylinux wheels
+#                expect it from the system; Debian shipped it implicitly, wolfi-base does not)
+#   libffi       C ABI used by cffi (argon2-cffi)
+# ca-certificates-bundle (outbound HTTPS: Vimeo API, TLS email, the healthcheck) and busybox
+# (/bin/sh for the entrypoint) already ship in wolfi-base, as does the "nonroot" account
+# (UID/GID 65532) we run as below, so no user creation is needed.
+RUN apk add --no-cache \
+    libffi \
+    libstdc++ \
+    python-3.14 \
+    tzdata
 
 WORKDIR /app
 
-# Copy Python installation from builder. python-build-standalone is self-contained;
-# it only needs glibc, which wolfi-base provides.
-COPY --from=builder /opt/python /opt/python
-
-# Copy virtual environment from builder.
-# uv created it; uv itself is NOT copied to the final image.
-COPY --from=builder /venv /venv
+# Copy the virtual environment from the builder. Root-owned and read-only to the django user; uv
+# itself is NOT copied into the final image.
+COPY --from=builder --chown=root:root /venv /venv
 
 # Copy only project files necessary for production (read-only for the django user)
 COPY --from=builder --chown=root:root --chmod=0555 /app/manage.py /app/
@@ -119,25 +149,38 @@ COPY --from=builder --chown=root:root --chmod=0555 /app/utils /app/utils/
 # content-hashed name. Without this file the app 500s with "Missing staticfiles manifest entry".
 #
 # Mode 0555, not 0444: --chmod also applies to the auto-created /staticfiles directory, and a
-# directory needs the execute (traverse) bit or the non-root django user can't open
-# the file inside it. The execute bit is harmless on the JSON file itself.
+# directory needs the execute (traverse) bit or the non-root django user can't open the file
+# inside it. The execute bit is harmless on the JSON file itself.
 COPY --from=builder --chown=root:root --chmod=0555 /staticfiles/staticfiles.json /staticfiles/staticfiles.json
 ADD --chmod=0444 \
     "https://github.com/notofonts/notofonts.github.io/raw/refs/heads/main/fonts/NotoSans/full/variable-ttf/NotoSans%5Bwdth,wght%5D.ttf" \
     /usr/share/fonts/truetype/noto/NotoSans.ttf
 
-# Switch to non-root user
-USER django:django
+# Fail the BUILD (not production) if any compiled extension cannot resolve a runtime shared library
+# in this minimal image, and confirm the TLS trust store is wired up for outbound HTTPS. Cheap
+# insurance for the hardened base; uses a throwaway matplotlib cache and leaves no artifacts.
+RUN MPLCONFIGDIR=/tmp/build-cache python -c "\
+    import ssl; ssl.create_default_context(); \
+    import django, numpy, pandas, matplotlib; matplotlib.use('Agg'); \
+    import matplotlib.pyplot, PIL.Image, argon2, psycopg; \
+    print('native import + TLS smoke test: OK')" \
+    && rm -rf /tmp/build-cache
+
+# Run entrypoint script
+COPY --chown=root:root --chmod=0555 ./docker/docker-entrypoint.sh /usr/local/bin/
+
+# Run as wolfi-base's predefined "nonroot" account (UID/GID 65532). Keep 65532 in sync with
+# docker/ensure_permissions.sh, which sets ownership of the mounted media/log volumes to that UID.
+USER nonroot:nonroot
 
 # Expose the port Daphne will run on
 EXPOSE 8000
 
-# Healthcheck via Python (no curl in the image).
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ht/?format=json')"
-
-# Run entrypoint script
-COPY --chown=root:root --chmod=0555 ./docker/docker-entrypoint.sh /usr/local/bin/
+# Healthcheck via the bundled Python (no curl/wget in the image). Asserts HTTP 200, so a redirect
+# or degraded response is not read as healthy; a 4xx/5xx raises (HTTPError subclasses OSError) and
+# exits non-zero.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD ["python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/ht/?format=json', timeout=4).status == 200 else 1)"]
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "event_talks.asgi:application"]

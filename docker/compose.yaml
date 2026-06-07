@@ -35,6 +35,17 @@ services:
     container_name: ${CONTAINER_PREFIX}-django
     image: ${IMAGE_NAME:-talks-django}:${IMAGE_TAG:-latest}
     restart: unless-stopped
+    # Runtime hardening (defense in depth on top of the non-root, minimal image): drop every Linux
+    # capability (Daphne binds the high port 8000 and needs none), block privilege escalation, and
+    # run with a read-only root filesystem. The app writes only to the mounted media/logs volumes
+    # and to /tmp (matplotlib cache + HOME), so /tmp is a small writable tmpfs.
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp
     depends_on:
       db:
         condition: service_healthy
@@ -46,7 +57,9 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ht/?format=json')"]
+      # Pure-Python probe (no curl/wget in the hardened image); asserts HTTP 200 so a redirect or
+      # degraded response is not read as healthy.
+      test: ["CMD", "python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/ht/?format=json', timeout=8).status == 200 else 1)"]
       # Short interval + a start_period that covers entrypoint migrations: the container flips to
       # "healthy" within ~15s of the app answering, so a deploy's health gate (deploy-event.sh)
       # confirms quickly instead of waiting out a long interval and wrongly rolling back.
