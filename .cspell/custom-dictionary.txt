@@ -27,6 +27,7 @@ csrf
 DARKGREEN
 Darmstadium
 dataclass
+dbadmin
 debugpy
 dedented
 Defence
@@ -38,6 +39,7 @@ Dynamicum
 Ebene
 EDITMSG
 elif
+elmah
 elts
 emailaddress
 enablejsapi
@@ -105,6 +107,7 @@ msys
 mtime
 mtimes
 multicriteria
+myadmin
 mypy
 nbytes
 newrelic
@@ -130,6 +133,7 @@ passwordless
 pendingpretalxchange
 pgdata
 phont
+phpmyadmin
 pilmoji
 pinentry
 prek
@@ -153,6 +157,7 @@ pyupgrade
 Qube
 queryset
 querysets
+Rakefile
 RAQM
 redef
 regen
