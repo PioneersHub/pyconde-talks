@@ -9,11 +9,10 @@
     </div>
   {% endif %}
   {% if chair_warning %}
-    <div class="sticky top-0 z-30 mb-3 rounded-lg bg-yellow-50 border-2 border-yellow-400 px-4 py-3 text-sm font-medium text-yellow-800 shadow-md"
-         role="status">
+    <output class="sticky top-0 z-30 mb-3 block rounded-lg bg-yellow-50 border-2 border-yellow-400 px-4 py-3 text-sm font-medium text-yellow-800 shadow-md">
       {% svg 'exclamation-triangle' "h-5 w-5 inline mr-1 -mt-0.5" %}
       {{ chair_warning }}
-    </div>
+    </output>
   {% endif %}
   {% if has_grid %}
     <div class="overflow-x-auto pb-4">
