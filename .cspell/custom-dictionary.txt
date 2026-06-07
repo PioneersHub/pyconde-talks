@@ -27,6 +27,7 @@ conftest
 cooldown
 createsuperuser
 createuser
+crossbario
 csrf
 DARKGREEN
 Darmstadium
@@ -221,6 +222,7 @@ trixie
 truncatewords
 tspan
 tzdata
+ubjson
 upsert
 upserted
 upserts

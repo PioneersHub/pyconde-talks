@@ -98,6 +98,12 @@ Issues = "https://github.com/PioneersHub/pyconde-talks/issues"
 exclude-newer = "1 day"
 exclude-newer-package = { ruff = "12 hours", zuban = "12 hours" }
 
+# py-ubjson is an sdist-only C extension that autobahn v25.x accidentally promoted from optional
+# extra to hard dependency (crossbario/autobahn-python#1849). autobahn guards the import with
+# try/except ImportError, so it is safe to exclude. Remove this override once autobahn moves
+# py-ubjson back to an optional extra.
+override-dependencies = ["py-ubjson>=0.16.1; sys_platform == 'nowhere'"]
+
 [tool.mypy]
 python_version = "3.14"
 strict = true

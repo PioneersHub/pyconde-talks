@@ -24,24 +24,20 @@ jobs:
 
       - name: Install dependencies
         # dev (ruff/zuban), test (pytest), and prod (psycopg) so every import resolves.
-        # NOSONAR S8541,S8544 - uv sync reads uv.lock (committed)
-        run: uv sync --all-groups --locked
+        # --no-build: every dependency must ship a prebuilt wheel.
+        run: uv sync --all-groups --locked --no-build
 
       - name: Lint (ruff)
-        # NOSONAR S8541,S8544 - uv run uses the locked env from uv.lock
         run: uv run ruff check --output-format=github .
 
       - name: Format check (ruff)
-        # NOSONAR S8541,S8544 - uv run uses the locked env from uv.lock
         run: uv run ruff format --check .
 
       - name: Type check (zuban)
-        # NOSONAR S8541,S8544 - uv run uses the locked env from uv.lock
         run: uv run zuban check
 
       - name: Tests (pytest)
         # Defaults are CI-safe: SQLite DB, plain StaticFilesStorage, unsafe-secret-key.
-        # NOSONAR S8541,S8544 - uv run uses the locked env from uv.lock
         run: |
           mkdir -p reports
           uv run pytest

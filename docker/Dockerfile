@@ -23,15 +23,14 @@ FROM ${WOLFI_BASE} AS builder
 # COPY --from; digestabot keeps the digest of the pinned 0.11.19 tag current.
 COPY --from=ghcr.io/astral-sh/uv:0.11.19@sha256:b46b03ddfcfbf8f547af7e9eaefdf8a39c8cebcba7c98858d3162bd28cf536f6 /uv /uvx /usr/local/bin/
 
-# Build dependencies: the Python interpreter + headers and a C/C++ toolchain for any wheel that
-# compiles from source. Wolfi's python is dynamically linked against the base image's apk-managed
-# OpenSSL, so a fresh base patches it (unlike uv's python-build-standalone, which statically
-# bundles its own OpenSSL/sqlite that the base image cannot patch). No git is needed: all
-# dependencies resolve from PyPI (see uv.lock). libpq is unnecessary: psycopg[binary] ships it.
+# Build dependency: the Python interpreter. Wolfi's python is dynamically linked against the base
+# image's apk-managed OpenSSL, so a fresh base patches it (unlike uv's python-build-standalone,
+# which statically bundles its own OpenSSL/sqlite that the base image cannot patch). No git is
+# needed: all dependencies resolve from PyPI (see uv.lock). libpq is unnecessary: psycopg[binary]
+# ships it. No C toolchain (build-base / python-dev) is needed: all deps ship prebuilt wheels and
+# py-ubjson is excluded via override-dependencies in pyproject.toml.
 RUN apk add --no-cache \
-    build-base \
-    python-3.14 \
-    python-3.14-dev
+    python-3.14
 
 # Environment. uv is told to use ONLY the system (apk) interpreter and to never download its own
 # python-build-standalone build.
@@ -52,7 +51,7 @@ COPY uv.lock pyproject.toml /app/
 
 # Install dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-install-project --no-default-groups --group prod
+    uv sync --locked --no-build --no-install-project --no-default-groups --group prod
 
 # Install TailwindCSS (ADD fetches over HTTPS and applies --chmod in one layer)
 ARG PLATFORM=linux-x64
@@ -78,7 +77,7 @@ ENV DJANGO_STATIC_ROOT=/staticfiles
 ARG DJANGO_STATICFILES_STORAGE=django.contrib.staticfiles.storage.ManifestStaticFilesStorage
 ENV DJANGO_STATICFILES_STORAGE=${DJANGO_STATICFILES_STORAGE}
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-default-groups --group prod && \
+    uv sync --locked --no-build --no-default-groups --group prod && \
     mkdir -p /app/static/css && \
     /usr/local/bin/tailwindcss -i /app/assets/css/input.css -o /app/static/css/tailwind.min.css --minify && \
     python manage.py collectstatic --noinput
