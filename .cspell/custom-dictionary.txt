@@ -74,6 +74,7 @@ getdata
 getpixel
 ggpht
 ghaction
+githubactions
 gitsign
 googlevideo
 gpgconf
