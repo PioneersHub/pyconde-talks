@@ -1685,7 +1685,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.3.3,<3" },
     { name = "pillow", specifier = ">=12.2.0" },
     { name = "pilmoji", specifier = ">=2.0.5" },
-    { name = "pytanis", git = "https://github.com/jbsilva/pytanis" },
+    { name = "pytanis", specifier = ">=0.10" },
     { name = "sentry-sdk", extras = ["django"], specifier = ">=2.61.1" },
     { name = "structlog", specifier = ">=26.1.0" },
     { name = "tenacity", specifier = ">=9.1.4" },
@@ -1827,17 +1827,22 @@ wheels = [
 
 [[package]]
 name = "pytanis"
-version = "0.11.dev8+g137c77dc9"
-source = { git = "https://github.com/jbsilva/pytanis#137c77dc999e48e1363fff13eed32f690a1bcdbe" }
+version = "0.10"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "httpx-auth" },
     { name = "openpyxl" },
     { name = "pandas" },
+    { name = "pandas-stubs" },
     { name = "pydantic" },
     { name = "structlog" },
     { name = "tomli" },
     { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b0/20/143ea2a0bb5e4643eaa86b68b7297c6f078bf2a4b4a2cbe66d3daac981b6/pytanis-0.10.tar.gz", hash = "sha256:1d03edd5c6b6ad671f3370ba2a60860faf446287bac158885e562e46f9259913", size = 51597, upload-time = "2026-02-18T17:09:00.63Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/45/bc/f7d373906ce99c968a5bda25d8cce72991e6fe465cf654e8b66a6962214b/pytanis-0.10-py3-none-any.whl", hash = "sha256:1a0fb7f91da6478e35d8117ff049a294a16399034158a9fc77c21ff6fb3dc710", size = 58764, upload-time = "2026-02-18T17:08:59.282Z" },
 ]
 
 [[package]]

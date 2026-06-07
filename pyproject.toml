@@ -98,9 +98,6 @@ Issues = "https://github.com/PioneersHub/pyconde-talks/issues"
 exclude-newer = "1 day"
 exclude-newer-package = { ruff = "12 hours", zuban = "12 hours" }
 
-[tool.uv.sources]
-pytanis = { git = "https://github.com/jbsilva/pytanis" }
-
 [tool.mypy]
 python_version = "3.14"
 strict = true
