@@ -58,6 +58,7 @@ def apply_change(
         msg = f"Pending change {change.pk} is already applied or dismissed."
         raise ValueError(msg)
 
+    talk: Talk | None = None
     with transaction.atomic():
         match change.kind:
             case PendingPretalxChange.Kind.CREATE:
@@ -66,7 +67,6 @@ def apply_change(
                 talk = _apply_update(change)
             case PendingPretalxChange.Kind.DELETE:
                 _apply_delete(change)
-                talk = None
             case _:
                 msg = f"Unknown pending change kind: {change.kind!r}"
                 raise ValueError(msg)
