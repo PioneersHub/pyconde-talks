@@ -173,6 +173,12 @@ lines-after-imports = 2
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "event_talks.settings"
 python_files = ["test_*.py"]
+# pytest-httpx2 defines this marker in its plugin, but its entry point only exposes the
+# httpx2_mock fixture (not pytest_configure), so the marker goes unregistered. Register it
+# here to silence PytestUnknownMarkWarning.
+markers = [
+    "httpx2: configure the pytest-httpx2 httpx2_mock fixture (e.g. assert_all_called=False)",
+]
 addopts = [
     "-ra",
     "--durations=10",
