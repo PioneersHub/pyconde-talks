@@ -8,6 +8,7 @@ chairing each session.
 
 from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
@@ -236,13 +237,13 @@ def _chair_redirect(
     selected_date = talk.start_time.date() if talk.start_time else None
     selected_event = request.POST.get("event", "")
     url = reverse("chair_grid")
-    params = []
+    params: dict[str, str] = {}
     if selected_date:
-        params.append(f"date={selected_date.isoformat()}")
+        params["date"] = selected_date.isoformat()
     if selected_event:
-        params.append(f"event={selected_event}")
+        params["event"] = selected_event
     if params:
-        url = f"{url}?{'&'.join(params)}"
+        url = f"{url}?{urlencode(params)}"
     return redirect(url)
 
 
