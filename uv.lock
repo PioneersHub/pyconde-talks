@@ -10,10 +10,6 @@ resolution-markers = [
 exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P1D"
 
-[options.exclude-newer-package]
-zuban = { timestamp = "0001-01-01T00:00:00Z", span = "PT12H" }
-ruff = { timestamp = "0001-01-01T00:00:00Z", span = "PT12H" }
-
 [manifest]
 overrides = [{ name = "py-ubjson", marker = "sys_platform == 'nowhere'", specifier = ">=0.16.1" }]
 
@@ -1679,7 +1675,7 @@ requires-dist = [
     { name = "django-markdownify", specifier = ">=0.9.7" },
     { name = "django-structlog", specifier = ">=10.1.0" },
     { name = "django-stubs-ext", specifier = ">=6.0.5" },
-    { name = "emoji", specifier = ">=1.7" },
+    { name = "emoji", specifier = ">=2.15.0" },
     { name = "furl", specifier = ">=2.1.4" },
     { name = "httpx2", specifier = ">=2.3.0" },
     { name = "matplotlib", specifier = ">=3.10.9" },

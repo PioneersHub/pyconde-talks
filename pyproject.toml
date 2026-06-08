@@ -42,7 +42,7 @@ dependencies = [
     "django-structlog>=10.1.0",
     "django-stubs-ext>=6.0.5",
     "django>=6.0.6",
-    "emoji>=1.7",
+    "emoji>=2.15.0",
     "furl>=2.1.4",
     "httpx2>=2.3.0",
     "matplotlib>=3.10.9",
@@ -96,7 +96,6 @@ Issues = "https://github.com/PioneersHub/pyconde-talks/issues"
 
 [tool.uv]
 exclude-newer = "1 day"
-exclude-newer-package = { ruff = "12 hours", zuban = "12 hours" }
 
 # py-ubjson is an sdist-only C extension that autobahn v25.x accidentally promoted from optional
 # extra to hard dependency (crossbario/autobahn-python#1849). autobahn guards the import with
