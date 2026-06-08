@@ -1,6 +1,9 @@
 ---
 name: security-reviewer
-description: Review Django code for security issues: cross-event data leaks, OWASP risks (SQLi, XSS, CSRF), auth/permission bypasses, and leaked secrets. Use after writing or changing views, querysets, permissions, middleware, or auth code.
+description: >-
+  Review Django code for security issues: cross-event data leaks, OWASP risks (SQLi, XSS, CSRF),
+  auth/permission bypasses, and leaked secrets. Use after writing or changing views, querysets,
+  permissions, middleware, or auth code.
 model: opus
 tools:
   - Read
