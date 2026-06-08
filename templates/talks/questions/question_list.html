@@ -70,8 +70,8 @@
     </div>
     <!-- Question list -->
     {% partialdef question-list %}
-    {% include "talks/questions/question_list_fragment.html" %}
-  {% endpartialdef %}
-  <div id="question-list-container">{% partial question-list %}</div>
-</div>
+      {% include "talks/questions/question_list_fragment.html" %}
+    {% endpartialdef %}
+    <div id="question-list-container">{% partial question-list %}</div>
+  </div>
 {% endblock content %}

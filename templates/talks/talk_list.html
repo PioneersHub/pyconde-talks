@@ -138,149 +138,149 @@
     </div>
     <!-- Define the talks partial -->
     {% partialdef talk-list %}
-    {% if is_htmx_request %}
-      {# OOB-swap all filter dropdowns so they stay in sync with the selected event. #}
-      {# djlint:off H025 #}
-      <select id="date-filter" name="date" class="form-select" hx-swap-oob="true">
-        <option value="">All Days</option>
-        {% for date in dates %}
-          <option value="{{ date|date:'Y-m-d' }}"
-                  {% if date|date:'Y-m-d' == selected_date %}selected{% endif %}>
-            {% if has_multiple_years %}
-              {{ date|date:"l, F j, Y" }}
-            {% else %}
-              {{ date|date:"l, F j" }}
-            {% endif %}
-          </option>
-        {% endfor %}
-      </select>
-      <select id="room-filter" name="room" class="form-select" hx-swap-oob="true">
-        <option value="">All Rooms</option>
-        {% for room in rooms %}
-          <option value="{{ room.id }}"
-                  {% if room.id|stringformat:"s" == selected_room %}selected{% endif %}>{{ room.name }}</option>
-        {% endfor %}
-      </select>
-      <select id="type-filter"
-              name="presentation_type"
-              class="form-select"
-              hx-swap-oob="true">
-        <option value="">All Types</option>
-        {% for type_value, type_label in presentation_types %}
-          <option value="{{ type_value }}"
-                  {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
-        {% endfor %}
-      </select>
-      <select id="track-filter"
-              name="track"
-              class="form-select truncate w-60"
-              hx-swap-oob="true">
-        <option value="">All Tracks</option>
-        {% for track in tracks %}
-          <option value="{{ track }}"
-                  {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
-        {% endfor %}
-      </select>
-      <select id="status-filter"
-              name="status"
-              class="form-select"
-              hx-swap-oob="true">
-        <option value="">All Statuses</option>
-        {% for status_value, status_label in status_choices %}
-          <option value="{{ status_value }}"
-                  {% if status_value == selected_status %}selected{% endif %}>{{ status_label }}</option>
-        {% endfor %}
-      </select>
-      {# djlint:on #}
-    {% endif %}
-    <div class="space-y-4">
-      {% for talk in talks %}
-        <div class="relative rounded shadow overflow-hidden {% if talk.is_current %} ring-current {% elif talk.is_upcoming %} ring-upcoming {% endif %}">
-          <!-- Status indicator bar -->
-          <div class="absolute left-0 top-0 bottom-0 w-1.5 {% if talk.is_current %} status-bar-current {% elif talk.is_upcoming %} status-bar-upcoming {% else %} status-bar-default {% endif %}">
-          </div>
-          <div class="p-4 {% if talk.is_current %} card-bg-current {% elif talk.is_upcoming %} card-bg-upcoming {% else %} card-bg-default {% endif %}">
-            <!-- Title and status badge -->
-            <div class="flex justify-between items-start">
-              <a href="{% url 'talk_detail' talk.pk %}" class="link-title pl-2">{{ talk.title|highlight:search_query }}</a>
-              {% if talk.is_current %}
-                <span class="badge badge-orange px-2 py-0.5 text-xs font-medium flex items-center flex-shrink-0 whitespace-nowrap">
-                  {% svg 'clock' "h-3 w-3 mr-1" %}
-                  HAPPENING NOW
-                </span>
-              {% elif talk.is_upcoming %}
-                <span class="badge badge-blue text-xs font-medium flex items-center flex-shrink-0 whitespace-nowrap">
-                  {% svg 'calendar' "h-3 w-3 mr-1" %}
-                  UPCOMING
-                </span>
+      {% if is_htmx_request %}
+        {# OOB-swap all filter dropdowns so they stay in sync with the selected event. #}
+        {# djlint:off H025 #}
+        <select id="date-filter" name="date" class="form-select" hx-swap-oob="true">
+          <option value="">All Days</option>
+          {% for date in dates %}
+            <option value="{{ date|date:'Y-m-d' }}"
+                    {% if date|date:'Y-m-d' == selected_date %}selected{% endif %}>
+              {% if has_multiple_years %}
+                {{ date|date:"l, F j, Y" }}
               {% else %}
-                <span class="badge badge-gray text-xs font-medium flex items-center flex-shrink-0 whitespace-nowrap">
-                  {% svg 'check-circle' "h-3 w-3 mr-1" %}
-                  COMPLETED
-                </span>
+                {{ date|date:"l, F j" }}
               {% endif %}
+            </option>
+          {% endfor %}
+        </select>
+        <select id="room-filter" name="room" class="form-select" hx-swap-oob="true">
+          <option value="">All Rooms</option>
+          {% for room in rooms %}
+            <option value="{{ room.id }}"
+                    {% if room.id|stringformat:"s" == selected_room %}selected{% endif %}>{{ room.name }}</option>
+          {% endfor %}
+        </select>
+        <select id="type-filter"
+                name="presentation_type"
+                class="form-select"
+                hx-swap-oob="true">
+          <option value="">All Types</option>
+          {% for type_value, type_label in presentation_types %}
+            <option value="{{ type_value }}"
+                    {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
+          {% endfor %}
+        </select>
+        <select id="track-filter"
+                name="track"
+                class="form-select truncate w-60"
+                hx-swap-oob="true">
+          <option value="">All Tracks</option>
+          {% for track in tracks %}
+            <option value="{{ track }}"
+                    {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
+          {% endfor %}
+        </select>
+        <select id="status-filter"
+                name="status"
+                class="form-select"
+                hx-swap-oob="true">
+          <option value="">All Statuses</option>
+          {% for status_value, status_label in status_choices %}
+            <option value="{{ status_value }}"
+                    {% if status_value == selected_status %}selected{% endif %}>{{ status_label }}</option>
+          {% endfor %}
+        </select>
+        {# djlint:on #}
+      {% endif %}
+      <div class="space-y-4">
+        {% for talk in talks %}
+          <div class="relative rounded shadow overflow-hidden {% if talk.is_current %} ring-current {% elif talk.is_upcoming %} ring-upcoming {% endif %}">
+            <!-- Status indicator bar -->
+            <div class="absolute left-0 top-0 bottom-0 w-1.5 {% if talk.is_current %} status-bar-current {% elif talk.is_upcoming %} status-bar-upcoming {% else %} status-bar-default {% endif %}">
             </div>
-            <p class="text-muted pl-2">{{ talk.speaker_names|highlight:search_query }}</p>
-            <!-- Rating -->
-            {% if show_rating_summary %}
-              <div class="mt-1 pl-2">{% star_rating talk.average_rating talk.rating_count %}</div>
-            {% endif %}
-            <!-- Date and Room info -->
-            <div class="text-sm mt-2 pl-2">
-              <span class="{% if talk.is_current %} badge badge-orange {% elif talk.is_upcoming %} badge badge-purple {% else %} badge badge-gray {% endif %}">{{ talk.start_time|date:"D, g:i A" }}</span>
-              <span class="ml-2 badge badge-gray">{{ talk.room }}</span>
-            </div>
-            <!-- Presentation Type and Track info -->
-            <div class="text-sm mt-1 pl-2">
-              <span class="badge badge-green">{{ talk.get_presentation_type_display }}</span>
-              <span class="ml-2 badge badge-blue">{{ talk.track }}</span>
-            </div>
-            <!-- Links -->
-            <div class="mt-3 flex flex-wrap gap-2 pl-2">
-              {% include "talks/partials/save_button.html" with talk=talk is_saved=talk.pk|is_in:saved_talk_ids %}
-              <a href="{{ talk.pretalx_link }}"
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 class="btn-outline-primary inline-flex items-center px-3 py-1 rounded">
-                {% svg 'information-circle' "h-4 w-4 mr-1" %}
-                Details
-              </a>
-              {% if talk.get_video_link %}
-                <a href="{% url 'talk_detail' talk.pk %}"
+            <div class="p-4 {% if talk.is_current %} card-bg-current {% elif talk.is_upcoming %} card-bg-upcoming {% else %} card-bg-default {% endif %}">
+              <!-- Title and status badge -->
+              <div class="flex justify-between items-start">
+                <a href="{% url 'talk_detail' talk.pk %}" class="link-title pl-2">{{ talk.title|highlight:search_query }}</a>
+                {% if talk.is_current %}
+                  <span class="badge badge-orange px-2 py-0.5 text-xs font-medium flex items-center flex-shrink-0 whitespace-nowrap">
+                    {% svg 'clock' "h-3 w-3 mr-1" %}
+                    HAPPENING NOW
+                  </span>
+                {% elif talk.is_upcoming %}
+                  <span class="badge badge-blue text-xs font-medium flex items-center flex-shrink-0 whitespace-nowrap">
+                    {% svg 'calendar' "h-3 w-3 mr-1" %}
+                    UPCOMING
+                  </span>
+                {% else %}
+                  <span class="badge badge-gray text-xs font-medium flex items-center flex-shrink-0 whitespace-nowrap">
+                    {% svg 'check-circle' "h-3 w-3 mr-1" %}
+                    COMPLETED
+                  </span>
+                {% endif %}
+              </div>
+              <p class="text-muted pl-2">{{ talk.speaker_names|highlight:search_query }}</p>
+              <!-- Rating -->
+              {% if show_rating_summary %}
+                <div class="mt-1 pl-2">{% star_rating talk.average_rating talk.rating_count %}</div>
+              {% endif %}
+              <!-- Date and Room info -->
+              <div class="text-sm mt-2 pl-2">
+                <span class="{% if talk.is_current %} badge badge-orange {% elif talk.is_upcoming %} badge badge-purple {% else %} badge badge-gray {% endif %}">{{ talk.start_time|date:"D, g:i A" }}</span>
+                <span class="ml-2 badge badge-gray">{{ talk.room }}</span>
+              </div>
+              <!-- Presentation Type and Track info -->
+              <div class="text-sm mt-1 pl-2">
+                <span class="badge badge-green">{{ talk.get_presentation_type_display }}</span>
+                <span class="ml-2 badge badge-blue">{{ talk.track }}</span>
+              </div>
+              <!-- Links -->
+              <div class="mt-3 flex flex-wrap gap-2 pl-2">
+                {% include "talks/partials/save_button.html" with talk=talk is_saved=talk.pk|is_in:saved_talk_ids %}
+                <a href="{{ talk.pretalx_link }}"
                    target="_blank"
                    rel="noopener noreferrer"
-                   class="btn-danger inline-flex items-center px-3 py-1 rounded">
-                  {% svg 'play-circle' "h-4 w-4 mr-1" %}
-                  Video
+                   class="btn-outline-primary inline-flex items-center px-3 py-1 rounded">
+                  {% svg 'information-circle' "h-4 w-4 mr-1" %}
+                  Details
                 </a>
-              {% endif %}
-              <a href="{% url 'talk_questions' talk.pk %}"
-                 class="btn-secondary inline-flex items-center px-3 py-1 rounded">
-                {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-1" %}
-                Q&amp;A
-              </a>
-              {% if talk.get_transcription_url %}
-                <a href="{{ talk.get_transcription_url }}"
-                   target="_blank"
-                   rel="noopener noreferrer"
+                {% if talk.get_video_link %}
+                  <a href="{% url 'talk_detail' talk.pk %}"
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     class="btn-danger inline-flex items-center px-3 py-1 rounded">
+                    {% svg 'play-circle' "h-4 w-4 mr-1" %}
+                    Video
+                  </a>
+                {% endif %}
+                <a href="{% url 'talk_questions' talk.pk %}"
                    class="btn-secondary inline-flex items-center px-3 py-1 rounded">
-                  {% svg 'language' "h-4 w-4 mr-1" %}
-                  Transcription
+                  {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-1" %}
+                  Q&amp;A
                 </a>
-              {% endif %}
+                {% if talk.get_transcription_url %}
+                  <a href="{{ talk.get_transcription_url }}"
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     class="btn-secondary inline-flex items-center px-3 py-1 rounded">
+                    {% svg 'language' "h-4 w-4 mr-1" %}
+                    Transcription
+                  </a>
+                {% endif %}
+              </div>
             </div>
           </div>
-        </div>
-      {% empty %}
-        <div class="bg-surface p-4 rounded text-center text-subtle">No talks found</div>
-      {% endfor %}
-    </div>
-  {% endpartialdef %}
-  <!-- Talks container that references the partial -->
-  <div id="talks-container"
-       class="space-y-4"
-       hx-get="{% url 'talk_list' %}"
-       hx-include="#filters-form, #search-form"
-       hx-trigger="every 300s">{% partial talk-list %}</div>
-</div>
+        {% empty %}
+          <div class="bg-surface p-4 rounded text-center text-subtle">No talks found</div>
+        {% endfor %}
+      </div>
+    {% endpartialdef %}
+    <!-- Talks container that references the partial -->
+    <div id="talks-container"
+         class="space-y-4"
+         hx-get="{% url 'talk_list' %}"
+         hx-include="#filters-form, #search-form"
+         hx-trigger="every 300s">{% partial talk-list %}</div>
+  </div>
 {% endblock content %}
