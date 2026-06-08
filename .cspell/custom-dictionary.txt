@@ -65,6 +65,7 @@ fieldset
 forloop
 formaction
 formmethod
+frontmatter
 fullchain
 fullscreen
 gcwv
@@ -111,6 +112,7 @@ markdownify
 matplotlib
 maxlength
 Mcpjson
+mdformat
 minmax
 misclick
 miterlimit
