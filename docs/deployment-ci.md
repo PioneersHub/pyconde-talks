@@ -58,7 +58,7 @@ own `.env`, so talks and videos can run different commits at the same time.
 
 The old `sudo rsync` of static files and the full-shell SSH key are both gone.
 
----
+______________________________________________________________________
 
 ## One-time setup
 
@@ -102,8 +102,8 @@ GHCR packages are private by default. Pick one:
 
 - **Private (recommended):** create a fine-grained PAT with **only** `read:packages`, then on the
   server: `echo "<TOKEN>" | docker login ghcr.io -u <github-username> --password-stdin`.
-- **Public:** set each package's visibility to public (Packages -> event-talks -> Package
-  settings). No server login needed.
+- **Public:** set each package's visibility to public (Packages -> event-talks -> Package settings).
+  No server login needed.
 
 ### 5. Ownership so the deploy needs no sudo
 
@@ -122,41 +122,42 @@ ssh pycon '
 
 ### 6. GitHub environment + secrets
 
-- **Settings -> Environments -> New environment**, named **exactly** after the target
-  (e.g. `talks.pycon.de`), then add yourself as a **Required reviewer** (the approval gate).
+- **Settings -> Environments -> New environment**, named **exactly** after the target (e.g.
+  `talks.pycon.de`), then add yourself as a **Required reviewer** (the approval gate).
+
 - Add these **environment** secrets (scoped to that environment, not repo-wide):
 
-  | Secret | Value |
-  | --- | --- |
-  | `SSH_DEPLOY_KEY` | full contents of the private `ci-<target>` file |
-  | `SSH_HOST` | the server's hostname/IP |
-  | `SSH_USER` | `videoteam` |
-  | `SSH_KNOWN_HOSTS` | output of `ssh-keyscan -p 22 <host>` |
+  | Secret            | Value                                           |
+  | ----------------- | ----------------------------------------------- |
+  | `SSH_DEPLOY_KEY`  | full contents of the private `ci-<target>` file |
+  | `SSH_HOST`        | the server's hostname/IP                        |
+  | `SSH_USER`        | `videoteam`                                     |
+  | `SSH_KNOWN_HOSTS` | output of `ssh-keyscan -p 22 <host>`            |
 
-Image *push* needs no PAT: the workflow uses the built-in `GITHUB_TOKEN` with `packages: write`.
+Image _push_ needs no PAT: the workflow uses the built-in `GITHUB_TOKEN` with `packages: write`.
 
 ### 7. Branch protection (optional but recommended)
 
 Protect `main` and require the `ci` checks to pass before merging, so only green code can be tagged
 for deploy.
 
----
+______________________________________________________________________
 
 ## Adding a new target
 
-> [!IMPORTANT]
-> Create the protected GitHub Environment (step 6) **before** adding the target to the allowlist.
-> If a tag names an allowlisted target whose Environment does not yet exist, GitHub auto-creates it
-> **without any protection rules**, so the approval gate would not apply. (In practice the deploy
-> then fails anyway, because the environment also has no `SSH_*` secrets - it fails closed - but do
-> not rely on that: set up the environment first.)
+> [!IMPORTANT] Create the protected GitHub Environment (step 6) **before** adding the target to the
+> allowlist. If a tag names an allowlisted target whose Environment does not yet exist, GitHub
+> auto-creates it **without any protection rules**, so the approval gate would not apply. (In
+> practice the deploy then fails anyway, because the environment also has no `SSH_*` secrets - it
+> fails closed - but do not rely on that: set up the environment first.)
 
 1. Run the one-time setup steps 1-6 above for the new domain, ending with the protected Environment
    (required reviewer + `SSH_*` secrets).
 2. Add the domain to `ALLOWED_TARGETS` in
    [docker/deploy/deploy-event.sh](../docker/deploy/deploy-event.sh).
-3. Add the domain to the allowlist in [.github/workflows/deploy.yml](../.github/workflows/deploy.yml)
-   (`ALLOWED` env in the `setup` job) and to the `workflow_dispatch` target choices.
+3. Add the domain to the allowlist in
+   [.github/workflows/deploy.yml](../.github/workflows/deploy.yml) (`ALLOWED` env in the `setup`
+   job) and to the `workflow_dispatch` target choices.
 
 ## One host or several
 
@@ -177,6 +178,7 @@ the container's health status), so only the published host port needs changing p
 ## Rollback
 
 A failed health check rolls back automatically. To roll back a healthy-but-bad deploy, push a new
-tag on the previous (good) commit, e.g. `git tag talks.pycon.de/2026.06.03-rollback <good-sha> &&
-git push origin talks.pycon.de/2026.06.03-rollback`. If you still have direct SSH access, the
-forced-command path also works: `ssh -i ci-<target> <user>@<host> "<good-sha>"`.
+tag on the previous (good) commit, e.g.
+`git tag talks.pycon.de/2026.06.03-rollback <good-sha> && git push origin talks.pycon.de/2026.06.03-rollback`.
+If you still have direct SSH access, the forced-command path also works:
+`ssh -i ci-<target> <user>@<host> "<good-sha>"`.

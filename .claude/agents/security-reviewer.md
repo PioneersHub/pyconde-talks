@@ -26,22 +26,22 @@ Review each change with that priority in mind.
 1. **PII handling.**
    - Emails in logs must be hashed via `utils/email_utils.py`. Flag any `logger.*` or `structlog`
      call that logs a raw email, token, or any identifier that could re-identify a user.
-   - Flag PII fields returned in error responses, admin-only views exposed without auth, or
-     user lists returned without the request user's permission checks.
+   - Flag PII fields returned in error responses, admin-only views exposed without auth, or user
+     lists returned without the request user's permission checks.
    - Flag PII written to files, fixtures, or test snapshots.
 2. **Secrets and credentials.**
    - Any hardcoded token, API key, password, or real email in code. Placeholders are fine.
    - `django-vars.env` and `docker/.env` changes with non-placeholder values in the diff.
    - Credentials accidentally committed to migrations, management commands, or fixtures.
 3. **Auth / permission bypasses.** Views should use the right decorators or mixins
-   (`LoginRequiredMixin`, `UserPassesTestMixin`, `@login_required`, custom role checks). For
-   Discord OAuth, confirm role mapping respects `DISCORD_ALLOWED_ROLES`, `DISCORD_ADMIN_ROLES`,
-   and `DISCORD_STAFF_ROLES`.
+   (`LoginRequiredMixin`, `UserPassesTestMixin`, `@login_required`, custom role checks). For Discord
+   OAuth, confirm role mapping respects `DISCORD_ALLOWED_ROLES`, `DISCORD_ADMIN_ROLES`, and
+   `DISCORD_STAFF_ROLES`.
 4. **Cross-event queryset leaks.** Every queryset over `Talk`, `Speaker`, `Room`, `Rating`,
-   `RatingComment`, `SavedTalk`, `Question`, `QuestionVote`, `Livestream`, and `VideoLink`
-   should filter by the request's event (or the explicit event in scope). A view that does
-   `Talk.objects.all()` instead of `Talk.objects.filter(event=request.event)` is a leak. Flag
-   any queryset that does not scope to an event.
+   `RatingComment`, `SavedTalk`, `Question`, `QuestionVote`, `Livestream`, and `VideoLink` should
+   filter by the request's event (or the explicit event in scope). A view that does
+   `Talk.objects.all()` instead of `Talk.objects.filter(event=request.event)` is a leak. Flag any
+   queryset that does not scope to an event.
 5. **SQLi / XSS / CSRF.**
    - SQLi: look for `raw()`, `extra()`, f-string-built SQL, or unescaped user input.
    - XSS: look for `|safe`, `mark_safe`, `{% autoescape off %}` in templates.

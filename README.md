@@ -265,22 +265,20 @@ sudo systemctl reload nginx
 
 [MIT](LICENSE)
 
-[Daphne]: https://github.com/django/daphne
-[Django]: https://www.djangoproject.com/
-[Docker]: https://www.docker.com/
-[HTMX]: https://htmx.org/
-[Mailgun]: https://www.mailgun.com/
-[Mailpit]: https://mailpit.axllent.org
-[Nginx]: https://nginx.org/
-[PostgreSQL]: https://www.postgresql.org/
-[Pretalx]: https://pretalx.com/
-[Python]: https://www.python.org/
-[Tailwind CSS]: https://tailwindcss.com/
+[daphne]: https://github.com/django/daphne
+[django]: https://www.djangoproject.com/
 [django-allauth]: https://docs.allauth.org/
 [django-anymail]: https://anymail.dev/
 [django-structlog]: https://django-structlog.readthedocs.io/
+[docker]: https://www.docker.com/
+[htmx]: https://htmx.org/
+[mailgun]: https://www.mailgun.com/
+[mailpit]: https://mailpit.axllent.org
+[nginx]: https://nginx.org/
+[postgresql]: https://www.postgresql.org/
+[pretalx]: https://pretalx.com/
 [pytest]: https://docs.pytest.org/
+[python]: https://www.python.org/
 [structlog]: https://www.structlog.org/
-[uv]: https://docs.astral.sh/uv
-[tailwindCSS]: https://tailwindcss.com/
+[tailwind css]: https://tailwindcss.com/
 [uv]: https://docs.astral.sh/uv

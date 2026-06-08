@@ -63,10 +63,10 @@ Two MCP servers are configured in `.mcp.json`: `sonarqube` (self-hosted Docker, 
 - **Never push to GitHub** unless the user explicitly asks in this turn. Creating local commits is
   fine; `git push` is not.
 - **Never skip hooks** (`--no-verify`, `--no-gpg-sign`). If a hook fails, fix the cause.
-- **gpg-agent restart is pre-authorized.** If a commit hangs, times out, or fails with a
-  pinentry / gpg-agent error (common after the laptop wakes from sleep), Claude MUST run
-  `gpgconf --kill gpg-agent` itself via the Bash tool and retry the commit. Do not stop and wait
-  for the user: this command is the standard fix, safe to run at any time, and the commit cannot
+- **gpg-agent restart is pre-authorized.** If a commit hangs, times out, or fails with a pinentry /
+  gpg-agent error (common after the laptop wakes from sleep), Claude MUST run
+  `gpgconf --kill gpg-agent` itself via the Bash tool and retry the commit. Do not stop and wait for
+  the user: this command is the standard fix, safe to run at any time, and the commit cannot
   complete until the agent is restarted.
 - **Never commit real secrets.** If `django-vars.env` or `docker/.env` shows non-placeholder values
   in a staged diff, stop and flag it.
@@ -93,5 +93,6 @@ Load these only when relevant; they are not auto-imported.
 - Day-to-day commands, setup, CI: [docs/development.md](docs/development.md)
 - CI/CD pipeline, GHCR images, server deploy: [docs/deployment-ci.md](docs/deployment-ci.md)
 - App layout and integrations: [docs/architecture.md](docs/architecture.md)
-- Pretalx importer (modes, detect-and-review, image regen): [docs/pretalx-sync.md](docs/pretalx-sync.md)
+- Pretalx importer (modes, detect-and-review, image regen):
+  [docs/pretalx-sync.md](docs/pretalx-sync.md)
 - Env var reference: [django-vars.env](django-vars.env)
