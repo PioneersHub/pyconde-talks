@@ -5,30 +5,28 @@
 #
 # Pinned by digest for reproducible builds and supply-chain integrity. ":latest" is the only free
 # Chainguard tier and is rebuilt daily with security fixes; a frozen digest would stop receiving
-# those fixes, so the digest is kept fresh by the weekly "digestabot" workflow
-# (.github/workflows/digestabot.yml), which opens a PR whenever the digest behind ":latest" moves.
-# Tag + digest together gives both reproducibility and patching.
-#
-# Note: Dependabot cannot maintain this line. Its docker ecosystem treats ":latest" as already the
-# highest version (so it never bumps the digest) and it ignores COPY --from lines entirely
-# (dependabot-core#5103). digestabot covers both gaps.
+# those fixes, so the digest is kept fresh by Renovate's dockerfile manager, which expands this ARG,
+# re-resolves the digest behind ":latest", and opens a PR whenever it moves. Tag + digest together
+# gives both reproducibility and patching.
 ARG WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest@sha256:b78bb982194828b6c9c214230bf34d51944e2102ea8468f01ac21e5f99328efd
 
 # Stage 1: Builder
 FROM ${WOLFI_BASE} AS builder
 
 # uv package manager: a prebuilt static binary copied from Astral's official distroless image.
-# COPY (not the curl install script) avoids uv's broken glibc detection on Wolfi. Pinned by version
-# AND digest for reproducibility. This pin is bumped MANUALLY (version) - Dependabot does not parse
-# COPY --from; digestabot keeps the digest of the pinned 0.11.19 tag current.
+# COPY (not the curl install script) avoids uv's broken glibc detection on Wolfi.
+# Pinned by version AND digest for reproducibility.
+# Renovate bumps both the version tag and the digest, grouped with the uv-pre-commit hook so the two
+# uv pins stay in sync (see renovate.json5).
 COPY --from=ghcr.io/astral-sh/uv:0.11.19@sha256:b46b03ddfcfbf8f547af7e9eaefdf8a39c8cebcba7c98858d3162bd28cf536f6 /uv /uvx /usr/local/bin/
 
-# Build dependency: the Python interpreter. Wolfi's python is dynamically linked against the base
+# Build dependency: the Python interpreter. Wolfi's Python is dynamically linked against the base
 # image's apk-managed OpenSSL, so a fresh base patches it (unlike uv's python-build-standalone,
 # which statically bundles its own OpenSSL/sqlite that the base image cannot patch). No git is
-# needed: all dependencies resolve from PyPI (see uv.lock). libpq is unnecessary: psycopg[binary]
-# ships it. No C toolchain (build-base / python-dev) is needed: all deps ship prebuilt wheels and
-# py-ubjson is excluded via override-dependencies in pyproject.toml.
+# needed: all dependencies resolve from PyPI (see uv.lock).
+# libpq is unnecessary: psycopg[binary] ships it.
+# No C toolchain (build-base / python-dev) is needed: all deps ship prebuilt wheels and py-ubjson is
+# excluded via override-dependencies in pyproject.toml.
 RUN apk add --no-cache \
     python-3.14
 

@@ -1,0 +1,121 @@
+// Renovate configuration: automated dependency updates across pyproject.toml / uv.lock, GitHub
+// Actions, docker/Dockerfile (base-image digests and the COPY --from uv pin), docker/compose.yaml,
+// and .pre-commit-config.yaml hook revs.
+//
+// Setup: install the Renovate GitHub App (https://github.com/apps/renovate) and merge the one-time
+// "Configure Renovate" onboarding PR. Renovate's GitHub-sourced security PRs need the repo's
+// Dependency graph + Dependabot alerts enabled (Settings -> Security).
+//
+// Validate after editing: `npx --yes --package renovate -- renovate-config-validator --strict`
+// (also wired as a pre-commit hook).
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+
+  // config:best-practices applies this repo's policy by default: GitHub Actions pinned to a full
+  // commit SHA (with the version kept in the trailing comment), Docker images pinned by digest, and
+  // weekly uv.lock maintenance. It also enables the Dependency Dashboard issue. ":enablePreCommit"
+  // is separate because the pre-commit manager is off by default.
+  extends: ["config:best-practices", ":enablePreCommit"],
+
+  timezone: "Europe/Berlin",
+
+  // Cron (the minute field must be "*"): a Monday 02:00-06:59 window. The window only *allows* PRs
+  // to open; the hosted App decides when it actually runs.
+  schedule: ["* 2-6 * * 1"],
+
+  // Hold a non-security release for 3 days before opening a PR. This also keeps Renovate compatible
+  // with "[tool.uv] exclude-newer" in pyproject.toml: uv refuses to lock an artifact younger than
+  // 1 day, so proposing anything newer would yield an unresolvable "uv lock" PR.
+  minimumReleaseAge: "3 days",
+
+  // Security fixes open immediately, bypassing the weekly window and the 3-day hold. The pinned
+  // minimumReleaseAge keeps that bypass even with a global value set above. osvVulnerabilityAlerts
+  // adds OSV.dev coverage for the Python dependencies.
+  osvVulnerabilityAlerts: true,
+  vulnerabilityAlerts: {
+    labels: ["dependencies", "security"],
+    minimumReleaseAge: "0 days",
+  },
+
+  labels: ["dependencies"],
+
+  // PR titles read "build(deps): ...".
+  semanticCommits: "enabled",
+  semanticCommitType: "build",
+  semanticCommitScope: "deps",
+
+  packageRules: [
+    // --- Ecosystem grouping: batch minor+patch, let majors land alone for their own review. ---
+    {
+      description: "GitHub Actions: group minor+patch",
+      matchManagers: ["github-actions"],
+      matchUpdateTypes: ["minor", "patch"],
+      groupName: "github-actions (minor+patch)",
+    },
+    {
+      description: "Python runtime deps [project.dependencies]: group minor+patch",
+      matchManagers: ["pep621"],
+      matchDepTypes: ["project.dependencies"],
+      matchUpdateTypes: ["minor", "patch"],
+      groupName: "python production (minor+patch)",
+    },
+    {
+      // PEP 735 groups all share the single depType "dependency-groups", so this covers dev, test
+      // and prod together.
+      description: "Python dev/test/prod deps [dependency-groups]: group minor+patch",
+      matchManagers: ["pep621"],
+      matchDepTypes: ["dependency-groups"],
+      matchUpdateTypes: ["minor", "patch"],
+      groupName: "python development (minor+patch)",
+    },
+
+    // --- Batch every remaining pre-commit hook bump into one PR. The tool-specific groups below
+    //     come AFTER this and override it for ruff/uv/djlint/bandit (last matching rule wins). ---
+    {
+      description: "pre-commit hooks without a cross-file twin",
+      matchManagers: ["pre-commit"],
+      groupName: "pre-commit hooks",
+    },
+
+    // --- Cross-file version sync. Renovate names a pre-commit hook by its repo slug
+    //     (astral-sh/ruff-pre-commit), a PyPI dep by package name (ruff), and a Docker image by its
+    //     path (ghcr.io/astral-sh/uv). They never collide, so a shared groupName pulls each tool's
+    //     occurrences into ONE PR. No matchUpdateTypes filter: the hook and the pin must move
+    //     together on every bump, majors included. Each occurrence tracks the same upstream release
+    //     tags, so within the PR they converge to the same version. ---
+    {
+      description: "ruff: pyproject dep + ruff-pre-commit hook",
+      matchPackageNames: ["ruff", "astral-sh/ruff-pre-commit"],
+      groupName: "ruff",
+    },
+    {
+      description: "uv: uv-pre-commit hook + Dockerfile COPY --from image",
+      matchPackageNames: ["astral-sh/uv-pre-commit", "ghcr.io/astral-sh/uv"],
+      groupName: "uv",
+    },
+    {
+      description: "djlint: pyproject dep + djLint hook (the repo keeps the capital L)",
+      matchPackageNames: ["djlint", "djlint/djLint"],
+      groupName: "djlint",
+    },
+    {
+      description: "bandit: pyproject dep (extras stripped to 'bandit') + PyCQA/bandit hook",
+      matchPackageNames: ["bandit", "PyCQA/bandit"],
+      groupName: "bandit",
+    },
+
+    // --- Base-image digest refresh. A digest move is a same-tag rebuild (typically a CVE fix), so
+    //     it must NOT sit behind the 3-day hold. cgr.dev (wolfi-base) and ghcr.io (uv) publish no
+    //     build timestamp, and Renovate's default (timestamp-required) would otherwise park a
+    //     timestamp-less update as "pending" forever; timestamp-optional ships it immediately.
+    //     Scoped to the docker managers so the no-cooldown policy never touches Action SHA bumps. ---
+    {
+      description: "Docker base-image digests: one PR, no cooldown, never parked as pending",
+      matchManagers: ["dockerfile", "docker-compose"],
+      matchUpdateTypes: ["digest", "pinDigest"],
+      groupName: "Docker image digests",
+      minimumReleaseAge: "0 days",
+      minimumReleaseAgeBehaviour: "timestamp-optional",
+    },
+  ],
+}
