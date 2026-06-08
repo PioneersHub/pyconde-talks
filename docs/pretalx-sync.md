@@ -51,29 +51,28 @@ The end-of-run report breaks down counts:
 
 ## Rooms (event-scoped, matched by Pretalx id)
 
-Rooms belong to an event: the same physical room reused across events is a separate `Room`
-row per event (`Room.event`, `on_delete=PROTECT`). Room names are unique **per event**, not
-globally.
+Rooms belong to an event: the same physical room reused across events is a separate `Room` row per
+event (`Room.event`, `on_delete=PROTECT`). Room names are unique **per event**, not globally.
 
-The importer matches a submission's room by the stable Pretalx room id
-(`slot.room.id`, stored on `Room.pretalx_id`), falling back to `(event, name)` for legacy
-rows that predate id-keying. This is what makes renames safe:
+The importer matches a submission's room by the stable Pretalx room id (`slot.room.id`, stored on
+`Room.pretalx_id`), falling back to `(event, name)` for legacy rows that predate id-keying. This is
+what makes renames safe:
 
-- **Renamed on Pretalx** (same id, new name): the existing `Room` is **renamed in place**, so
-  its streamings, `slido_link`, `capacity`, and all `Talk` FKs stay attached. No orphan row is
-  left behind. (Before id-keying, a rename created a brand-new room and stranded the old one's
-  streamings and config.)
-- **Legacy room matched by name**: its `pretalx_id` is **stamped** on the first sync, converting
-  it to an id-keyed row so future renames are handled in place.
+- **Renamed on Pretalx** (same id, new name): the existing `Room` is **renamed in place**, so its
+  streamings, `slido_link`, `capacity`, and all `Talk` FKs stay attached. No orphan row is left
+  behind. (Before id-keying, a rename created a brand-new room and stranded the old one's streamings
+  and config.)
+- **Legacy room matched by name**: its `pretalx_id` is **stamped** on the first sync, converting it
+  to an id-keyed row so future renames are handled in place.
 - **New room**: created under the event.
-- A name match whose stored id differs from the incoming id is logged and left alone (two
-  distinct Pretalx rooms never overwrite each other's id).
+- A name match whose stored id differs from the incoming id is logged and left alone (two distinct
+  Pretalx rooms never overwrite each other's id).
 
 In `--detect-only` mode the Room table is never written: a pending rename is recorded as a
-reviewable `room` field diff (carrying `new_pretalx_id`) and the actual rename happens only when
-the change is applied. A **pure rename** (the room a talk already sits in was renamed, with no
-other change) is detected explicitly so it still shows up for review instead of silently
-applying only on a direct sync.
+reviewable `room` field diff (carrying `new_pretalx_id`) and the actual rename happens only when the
+change is applied. A **pure rename** (the room a talk already sits in was renamed, with no other
+change) is detected explicitly so it still shows up for review instead of silently applying only on
+a direct sync.
 
 `Room.event` is **required** (NOT NULL): every room belongs to exactly one event. The importer
 always sets it, and `generate_fake_talks` uses a synthetic `fake-event` when no `--event-slug` is
@@ -87,24 +86,24 @@ within one event by construction.
 
 ### Migrating an existing database
 
-The change ships as four migrations that must run in order (the column is nullable only during
-the backfill window):
+The change ships as four migrations that must run in order (the column is nullable only during the
+backfill window):
 
 1. `0024_room_event_pretalx_id` - additive, adds nullable `event` + `pretalx_id` (zero-downtime).
-2. `0025_backfill_room_event` - assigns each existing room its event from its talks (a room with
-   no talks falls back to the newest event; a room whose talks span multiple events aborts the
+2. `0025_backfill_room_event` - assigns each existing room its event from its talks (a room with no
+   talks falls back to the newest event; a room whose talks span multiple events aborts the
    migration loudly rather than guessing - rooms are expected to be per-event).
-3. `0026_room_event_scoped_constraints` - drops the global unique on `name` and adds the
-   per-event `(event, name)` and partial `(event, pretalx_id)` constraints.
+3. `0026_room_event_scoped_constraints` - drops the global unique on `name` and adds the per-event
+   `(event, name)` and partial `(event, pretalx_id)` constraints.
 4. `0027_room_event_required` - tightens `Room.event` to NOT NULL once the backfill has populated
    every row.
-5. `0028_backfill_talk_event` - assigns each event-less talk its room's event (or the newest
-   event when it has no room), then `0029_talk_event_required` tightens `Talk.event` to NOT NULL.
+5. `0028_backfill_talk_event` - assigns each event-less talk its room's event (or the newest event
+   when it has no room), then `0029_talk_event_required` tightens `Talk.event` to NOT NULL.
 
-`pretalx_id` for existing rooms is **not** backfilled by a migration (there is nothing local to
-map from); it is stamped lazily on the next real sync via the `(event, name)` fallback. On a
-production database, snapshot the DB before applying migration `0025`, and verify no
-`Room.event IS NULL` rows remain before `0027` runs.
+`pretalx_id` for existing rooms is **not** backfilled by a migration (there is nothing local to map
+from); it is stamped lazily on the next real sync via the `(event, name)` fallback. On a production
+database, snapshot the DB before applying migration `0025`, and verify no `Room.event IS NULL` rows
+remain before `0027` runs.
 
 ## Image (social card) regeneration
 
@@ -220,20 +219,21 @@ Settings the sync feature reads (also in [django-vars.env](../django-vars.env)):
 The importer is split into small modules under
 [talks/management/commands/\_pretalx/](../talks/management/commands/_pretalx/):
 
-| Module          | Responsibility                                                   |
-| --------------- | ---------------------------------------------------------------- |
-| `client.py`     | Pretalx API setup + retry logic                                  |
-| `context.py`    | `ImportContext` - the frozen dataclass passed everywhere         |
-| `mixins.py`     | The `Command` plumbing: per-submission loop, mode banners        |
-| `submission.py` | Flatten / normalize a Pretalx `Submission` into `SubmissionData` |
-| `rooms.py`      | Room get-or-create + bulk upsert                                 |
-| `speakers.py`   | Speaker get-or-create + bulk upsert (returns visual-change set)  |
-| `talks.py`      | `create_talk`, `update_talk` + change detection (`_diff_*`)      |
-| `images.py`     | Social-card generation, template-mtime helpers                   |
-| `avatars.py`    | Avatar prefetch / disk cache                                     |
-| `pending.py`    | Detect-only: build diff, upsert `PendingPretalxChange` rows      |
-| `apply.py`      | Apply a pending row back onto a live `Talk`                      |
-| `digest.py`     | Build and send the summary email                                 |
+| Module              | Responsibility                                                   |
+| ------------------- | ---------------------------------------------------------------- |
+| `client.py`         | `PretalxClient` (httpx2), throttling, setup + fetch with retry   |
+| `pretalx_models.py` | Typed Pydantic models for the Pretalx API responses we read      |
+| `context.py`        | `ImportContext` - the frozen dataclass passed everywhere         |
+| `mixins.py`         | The `Command` plumbing: per-submission loop, mode banners        |
+| `submission.py`     | Flatten / normalize a Pretalx `Submission` into `SubmissionData` |
+| `rooms.py`          | Room get-or-create + bulk upsert                                 |
+| `speakers.py`       | Speaker get-or-create + bulk upsert (returns visual-change set)  |
+| `talks.py`          | `create_talk`, `update_talk` + change detection (`_diff_*`)      |
+| `images.py`         | Social-card generation, template-mtime helpers                   |
+| `avatars.py`        | Avatar prefetch / disk cache                                     |
+| `pending.py`        | Detect-only: build diff, upsert `PendingPretalxChange` rows      |
+| `apply.py`          | Apply a pending row back onto a live `Talk`                      |
+| `digest.py`         | Build and send the summary email                                 |
 
 The admin glue is in [talks/admin_pretalx.py](../talks/admin_pretalx.py) (bulk actions, "Check
 Pretalx now" view) and the change-list template at

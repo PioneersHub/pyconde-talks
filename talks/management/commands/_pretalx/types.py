@@ -1,10 +1,7 @@
-"""Shared enums and lightweight Pydantic models for the Pretalx importer."""
+"""Shared enums and protocols for the Pretalx importer."""
 
 from enum import Enum
 from typing import Protocol
-
-from pydantic import BaseModel
-from pytanis.config import PretalxCfg  # noqa: TC002
 
 
 class VerbosityLevel(Enum):
@@ -31,9 +28,3 @@ class LogFn(Protocol):
         min_level: VerbosityLevel,
         style: str | None = None,
     ) -> None: ...
-
-
-class PytanisCfg(BaseModel):
-    """Pytanis config wrapper - only the Pretalx section is needed."""
-
-    Pretalx: PretalxCfg

@@ -27,12 +27,12 @@ class ImportContext:
     skip_images: bool = False
     force_images: bool = False
     no_avatars: bool = False
+    use_cache: bool = False
     image_format: str = "webp"
     max_retries: int = 3
     pretalx_event_url: str = ""
     event_slug: str = ""
     event_name: str = ""
-    api_token: str = ""
     event_obj: Event | None = None
 
     # ------------------------------------------------------------------
@@ -68,10 +68,10 @@ class ImportContext:
             skip_images=options.get("skip_images", False),
             force_images=options.get("force_images", False),
             no_avatars=options.get("no_avatars", False),
+            use_cache=options.get("use_cache", False),
             image_format=options.get("image_format", "webp") or "webp",
             max_retries=options.get("max_retries", 3),
             pretalx_event_url=options.get("pretalx_event_url", ""),
             event_slug=options.get("event_slug", ""),
             event_name=options.get("event_name", ""),
-            api_token=options.get("api_token", ""),
         )

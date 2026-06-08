@@ -47,7 +47,7 @@ Review each change with that priority in mind.
    - XSS: look for `|safe`, `mark_safe`, `{% autoescape off %}` in templates.
    - CSRF: flag `@csrf_exempt` and form views missing CSRF protection.
 6. **Open redirects and SSRF.** Check any code that builds a URL from user input or makes an
-   outgoing HTTP request (httpx, pytanis) without an allowlist.
+   outgoing HTTP request (httpx, httpx2) without an allowlist.
 
 ## How to review
 

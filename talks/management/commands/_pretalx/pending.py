@@ -20,9 +20,8 @@ from talks.models import PendingPretalxChange, Talk
 
 
 if TYPE_CHECKING:
-    from pytanis.pretalx.models import SubmissionSpeaker
-
     from talks.management.commands._pretalx.context import ImportContext
+    from talks.management.commands._pretalx.pretalx_models import SubmissionSpeaker
     from talks.management.commands._pretalx.submission import SubmissionData
 
 

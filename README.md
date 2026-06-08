@@ -34,7 +34,7 @@ A Django application to publish talks, schedules, and live Q&A for conference ev
 | Database     | SQLite (dev), [PostgreSQL] 18 (prod)                   |
 | Email        | [Mailpit] (dev), [Mailgun] (prod) via [django-anymail] |
 | Logging      | [structlog] + [django-structlog]                       |
-| Talks import | [Pretalx] API via [pytanis]                            |
+| Talks import | [Pretalx] REST API (small in-repo `httpx2` client)     |
 | Video        | Vimeo API, YouTube embeds                              |
 | Deployment   | [Docker] multi-stage build, [Nginx], Let's Encrypt     |
 | Package mgr  | [uv]                                                   |
@@ -280,7 +280,6 @@ sudo systemctl reload nginx
 [django-anymail]: https://anymail.dev/
 [django-structlog]: https://django-structlog.readthedocs.io/
 [pytest]: https://docs.pytest.org/
-[pytanis]: https://github.com/PioneersHub/pytanis
 [structlog]: https://www.structlog.org/
 [uv]: https://docs.astral.sh/uv
 [tailwindCSS]: https://tailwindcss.com/

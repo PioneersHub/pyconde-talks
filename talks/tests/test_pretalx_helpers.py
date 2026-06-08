@@ -8,13 +8,12 @@ Pretalx API or mocked HTTP layer. The bigger integration flows still live in
 # ruff: noqa: PLR2004
 
 from dataclasses import FrozenInstanceError
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 from model_bakery import baker
-from pytanis.pretalx.models import State
 
 from events.models import Event
 from talks.management.commands._pretalx.context import ImportContext
@@ -24,6 +23,11 @@ from talks.management.commands._pretalx.events import (
     resolve_event_slug,
     resolve_pretalx_url,
     split_pretalx_url,
+)
+from talks.management.commands._pretalx.pretalx_models import (
+    State,
+    Submission,
+    SubmissionSpeaker,
 )
 from talks.management.commands._pretalx.rooms import get_or_create_room
 from talks.management.commands._pretalx.speakers import (
@@ -41,6 +45,7 @@ from talks.management.commands._pretalx.talks import (
 from talks.management.commands._pretalx.types import LogFn, VerbosityLevel
 from talks.management.commands._pretalx.validation import is_valid_submission
 from talks.models import MAX_TALK_TITLE_LENGTH, Room, Speaker, Talk
+from talks.tests._pretalx_factory import DEFAULT_START, make_speaker, make_submission
 
 
 # ---------------------------------------------------------------------------
@@ -85,57 +90,37 @@ def _mock_submission_speaker(
     name: str = "Ada Lovelace",
     biography: str = "",
     avatar_url: str = "",
-) -> MagicMock:
-    sp = MagicMock()
-    sp.code = code
-    sp.name = name
-    sp.biography = biography
-    sp.avatar_url = avatar_url
-    return sp
+) -> SubmissionSpeaker:
+    """Build a real ``SubmissionSpeaker`` (name kept for test readability)."""
+    return make_speaker(code=code, name=name, biography=biography, avatar_url=avatar_url)
 
 
 def _mock_submission(
     *,
     code: str = "SUB-1",
     title: str = "A Talk",
-    submission_type: str = "Talk",
+    submission_type: str | None = "Talk",
     track: str | None = "PyData",
     room: str = "Main Hall",
-    duration: int = 30,
+    duration: int | None = 30,
     start: datetime | None = None,
     state: State = State.confirmed,
-    speakers: list[MagicMock] | None = None,
+    speakers: list[SubmissionSpeaker] | None = None,
     image: str = "",
-) -> MagicMock:
-    sub = MagicMock()
-    sub.code = code
-    sub.title = title
-    sub.abstract = "abs"
-    sub.description = "desc"
-    sub.state = state
-    sub.duration = duration
-    sub.image = image
-
-    slot = MagicMock()
-    if room:
-        slot.room.name = {"en": room}
-    else:
-        slot.room = None
-    slot.start = start or datetime(2099, 6, 1, 10, 0, tzinfo=UTC)
-    sub.slots = [slot] if slot else []
-
-    if track is None:
-        sub.track = None
-    else:
-        sub.track = MagicMock()
-        sub.track.name = MagicMock()
-        sub.track.name.en = track
-
-    sub.submission_type = MagicMock()
-    sub.submission_type.en = submission_type
-
-    sub.speakers = speakers if speakers is not None else [_mock_submission_speaker()]
-    return sub
+) -> Submission:
+    """Build a real ``Submission`` from API-shaped data (name kept for test readability)."""
+    return make_submission(
+        code=code,
+        title=title,
+        submission_type=submission_type,
+        track=track,
+        room=room,
+        duration=duration,
+        start=start or DEFAULT_START,
+        state=state,
+        speakers=speakers,
+        image=image or None,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -181,12 +166,12 @@ class TestImportContext:
                 "no_update": True,
                 "skip_images": True,
                 "no_avatars": True,
+                "use_cache": True,
                 "image_format": "jpeg",
                 "max_retries": 5,
                 "pretalx_event_url": "https://pretalx.com/slug",
                 "event_slug": "slug",
                 "event_name": "Test",
-                "api_token": "t",
             },
             log_fn=log_fn,
         )
@@ -200,7 +185,7 @@ class TestImportContext:
         assert ctx.pretalx_event_url == "https://pretalx.com/slug"
         assert ctx.event_slug == "slug"
         assert ctx.event_name == "Test"
-        assert ctx.api_token == "t"
+        assert ctx.use_cache is True
 
 
 # ---------------------------------------------------------------------------
@@ -283,6 +268,18 @@ class TestEventHelpers:
         maybe_update_event_name(client, "pyconde-2099", event, _ctx(), created=False)
         event.refresh_from_db()
         assert event.name == "Human Name"
+
+    def test_maybe_update_event_name_handles_unparsable_event(self) -> None:
+        """When the API event fails to parse (client returns None), the name resolves to ''."""
+        event = Event.objects.create(slug="pyconde-2099", name="pyconde-2099", year=2099)
+        client = MagicMock()
+        client.event.return_value = None
+
+        name = maybe_update_event_name(client, "pyconde-2099", event, _ctx(), created=True)
+
+        assert name == ""
+        event.refresh_from_db()
+        assert event.name == "pyconde-2099"  # left unchanged, no crash
 
 
 # ---------------------------------------------------------------------------

@@ -18,9 +18,8 @@ from talks.models import MAX_TALK_TITLE_LENGTH
 
 
 if TYPE_CHECKING:
-    from pytanis.pretalx.models import Submission
-
     from talks.management.commands._pretalx.context import ImportContext
+    from talks.management.commands._pretalx.pretalx_models import Submission
 
 
 def is_valid_submission(
@@ -92,13 +91,8 @@ def _warn_missing_room(
     ctx: ImportContext,
 ) -> None:
     """Log a trace-level warning if the submission has no room assigned."""
-    has_room = (
-        hasattr(submission, "slots")
-        and submission.slots
-        and hasattr(submission.slots[0], "room")
-        and submission.slots[0].room
-    )
-    if not has_room:
+    slot = submission.first_slot
+    if slot is None or slot.room is None:
         ctx.log(
             f"Submission {submission.code} has no room assigned",
             VerbosityLevel.TRACE,

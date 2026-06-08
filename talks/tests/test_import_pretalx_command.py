@@ -14,12 +14,12 @@ from unittest.mock import Mock, patch
 import pytest
 from django.db import IntegrityError
 from model_bakery import baker
-from pytanis.pretalx.models import State
 
 from events.models import Event
 from talks.management.commands._pretalx import pending as pending_mod
 from talks.management.commands._pretalx.context import ImportContext
 from talks.management.commands._pretalx.pending import record_pending_change
+from talks.management.commands._pretalx.pretalx_models import State, Submission
 from talks.management.commands._pretalx.rooms import batch_create_rooms
 from talks.management.commands._pretalx.speakers import (
     batch_create_or_update_speakers,
@@ -42,6 +42,7 @@ from talks.models import (
     Speaker,
     Talk,
 )
+from talks.tests._pretalx_factory import make_speaker, make_submission
 
 
 def _noop_log(
@@ -74,64 +75,42 @@ def command() -> Command:
 
 
 @pytest.fixture()
-def mock_submission() -> Mock:
-    """Create a mock Submission object with minimal valid data."""
-    submission = Mock()
-    submission.code = "ABC123"
-    submission.title = "Test Talk Title"
-    submission.abstract = "Test abstract"
-    submission.description = "Test description"
-    submission.state = State.confirmed
-    submission.duration = 45
-
-    # Mock slots with room and start time
-    slot = Mock()
-    slot.room = Mock()
-    slot.room.name = {"en": "Main Hall"}
-    slot.start = datetime(2024, 6, 15, 10, 0, tzinfo=UTC)
-    submission.slots = [slot]
-
-    # Mock track
-    submission.track = Mock()
-    submission.track.name = Mock()
-    submission.track.name.en = "Data Science"
-
-    # Mock submission_type
-    submission.submission_type = Mock()
-    submission.submission_type.en = "Talk"
-
-    # Mock speakers
-    speaker1 = Mock()
-    speaker1.code = "SPK001"
-    speaker1.name = "John Cleese"
-    speaker1.biography = "Speaker bio"
-    speaker1.avatar_url = "https://example.com/avatar.jpg"
-
-    speaker2 = Mock()
-    speaker2.code = "SPK002"
-    speaker2.name = "Eric Idle"
-    speaker2.biography = "Another bio"
-    speaker2.avatar_url = "https://example.com/avatar2.jpg"
-
-    submission.speakers = [speaker1, speaker2]
-    submission.image = ""
-
-    return submission
+def mock_submission() -> Submission:
+    """Build a real Submission with minimal valid data."""
+    return make_submission(
+        code="ABC123",
+        title="Test Talk Title",
+        abstract="Test abstract",
+        description="Test description",
+        state=State.confirmed,
+        duration=45,
+        room="Main Hall",
+        start=datetime(2024, 6, 15, 10, 0, tzinfo=UTC),
+        track="Data Science",
+        submission_type="Talk",
+        speakers=[
+            make_speaker("SPK001", "John Cleese", "Speaker bio", "https://example.com/avatar.jpg"),
+            make_speaker("SPK002", "Eric Idle", "Another bio", "https://example.com/avatar2.jpg"),
+        ],
+    )
 
 
 @pytest.fixture()
-def mock_submission_no_speakers(mock_submission: Mock) -> Mock:
-    """Create a mock Submission without speakers."""
+def mock_submission_no_speakers(mock_submission: Submission) -> Submission:
+    """Build a Submission with no speakers."""
     mock_submission.speakers = []
     return mock_submission
 
 
 @pytest.fixture()
-def mock_submission_lightning(mock_submission: Mock) -> Mock:
-    """Create a mock Lightning Talk submission."""
-    mock_submission.submission_type.en = "Lightning Talks"
-    mock_submission.speakers = []
-    return mock_submission
+def mock_submission_lightning() -> Submission:
+    """Build a lightning-talk Submission (by submission type) with no speakers."""
+    return make_submission(
+        code="ABC123",
+        title="Test Talk Title",
+        submission_type="Lightning Talks",
+        speakers=[],
+    )
 
 
 # ---------------------- SubmissionData Tests ----------------------
@@ -140,7 +119,7 @@ def mock_submission_lightning(mock_submission: Mock) -> Mock:
 class TestSubmissionData:
     """Tests for the SubmissionData class."""
 
-    def test_basic_data_extraction(self, mock_submission: Mock) -> None:
+    def test_basic_data_extraction(self, mock_submission: Submission) -> None:
         """Test that SubmissionData extracts basic fields correctly."""
         data = SubmissionData(
             mock_submission,
@@ -156,7 +135,7 @@ class TestSubmissionData:
         assert data.submission_type == "Talk"
         assert data.pretalx_link == "https://pretalx.com/pyconde2024/talk/ABC123"
 
-    def test_custom_base_url(self, mock_submission: Mock) -> None:
+    def test_custom_base_url(self, mock_submission: Submission) -> None:
         """Test that custom base URL is properly used."""
         data = SubmissionData(
             mock_submission,
@@ -165,7 +144,7 @@ class TestSubmissionData:
 
         assert data.pretalx_link == "https://custom.pretalx.com/pyconde2099/talk/ABC123"
 
-    def test_trailing_slash_handling(self, mock_submission: Mock) -> None:
+    def test_trailing_slash_handling(self, mock_submission: Submission) -> None:
         """Test that trailing slash is handled correctly."""
         data = SubmissionData(
             mock_submission,
@@ -174,76 +153,65 @@ class TestSubmissionData:
 
         assert data.pretalx_link == "https://pretalx.com/pyconde2099/talk/ABC123"
 
-    def test_missing_room(self, mock_submission: Mock) -> None:
+    def test_missing_room(self, mock_submission: Submission) -> None:
         """Test handling of submission without room."""
         mock_submission.slots = []
         data = SubmissionData(mock_submission, "pyconde2099")
 
         assert data.room == ""
 
-    def test_missing_track(self, mock_submission: Mock) -> None:
+    def test_missing_track(self, mock_submission: Submission) -> None:
         """Test handling of submission without track."""
         mock_submission.track = None
         data = SubmissionData(mock_submission, "pyconde2099")
 
         assert data.track == ""
 
-    def test_title_truncation(self, mock_submission: Mock) -> None:
+    def test_title_truncation(self, mock_submission: Submission) -> None:
         """Test that long titles are truncated."""
         mock_submission.title = "A" * (MAX_TALK_TITLE_LENGTH + 50)
         data = SubmissionData(mock_submission, "pyconde2099")
 
         assert len(data.title) == MAX_TALK_TITLE_LENGTH
 
-    def test_duration_extraction(self, mock_submission: Mock) -> None:
+    def test_duration_extraction(self, mock_submission: Submission) -> None:
         """Test that duration is extracted as timedelta."""
         data = SubmissionData(mock_submission, "pyconde2099")
 
         assert data.duration == timedelta(minutes=45)
 
-    def test_missing_duration(self, mock_submission: Mock) -> None:
+    def test_missing_duration(self, mock_submission: Submission) -> None:
         """Test handling of submission without duration."""
         mock_submission.duration = None
         data = SubmissionData(mock_submission, "pyconde2099")
 
         assert data.duration is None
 
-    def test_start_time_extraction(self, mock_submission: Mock) -> None:
+    def test_start_time_extraction(self, mock_submission: Submission) -> None:
         """Test that start time is extracted from slots."""
         data = SubmissionData(mock_submission, "pyconde2099")
 
         assert data.start_time == datetime(2024, 6, 15, 10, 0, tzinfo=UTC)
 
-    def test_missing_start_time(self, mock_submission: Mock) -> None:
+    def test_missing_start_time(self) -> None:
         """Test handling of submission without start time."""
-        mock_submission.slots[0].start = None
-        data = SubmissionData(mock_submission, "pyconde2099")
+        data = SubmissionData(make_submission(start=None), "pyconde2099")
 
         assert data.start_time == FAR_FUTURE
 
-    def test_empty_title_handling(self, mock_submission: Mock) -> None:
+    def test_empty_title_handling(self) -> None:
         """Test handling of empty title."""
-        mock_submission.title = None
-        data = SubmissionData(mock_submission, "pyconde2099")
+        data = SubmissionData(make_submission(title=""), "pyconde2099")
 
         assert data.title == ""
 
-    def test_pretalx_room_id_from_room_id_field(self, mock_submission: Mock) -> None:
-        """The flat slot.room_id is used as the stable room id when present."""
-        mock_submission.slots[0].room_id = 4993
-        data = SubmissionData(mock_submission, "pyconde2099")
+    def test_pretalx_room_id_from_nested_room(self) -> None:
+        """The stable room id comes from the nested slot.room.id."""
+        data = SubmissionData(make_submission(room="Main Hall", room_id=4993), "pyconde2099")
 
         assert data.pretalx_room_id == 4993
 
-    def test_pretalx_room_id_falls_back_to_nested(self, mock_submission: Mock) -> None:
-        """When slot.room_id is absent, fall back to the nested slot.room.id."""
-        mock_submission.slots[0].room_id = None
-        mock_submission.slots[0].room.id = 4993
-        data = SubmissionData(mock_submission, "pyconde2099")
-
-        assert data.pretalx_room_id == 4993
-
-    def test_pretalx_room_id_none_when_no_slot(self, mock_submission: Mock) -> None:
+    def test_pretalx_room_id_none_when_no_slot(self, mock_submission: Submission) -> None:
         """No slots means no room id."""
         mock_submission.slots = []
         data = SubmissionData(mock_submission, "pyconde2099")
@@ -258,18 +226,17 @@ class TestSubmissionData:
 class TestIsValidSubmission:
     """Tests for the _is_valid_submission method."""
 
-    def test_valid_submission(self, command: Command, mock_submission: Mock) -> None:
+    def test_valid_submission(self, command: Command, mock_submission: Submission) -> None:
         """Test that valid submission passes validation."""
         ctx = _ctx(log_fn=command._log)
         result = is_valid_submission(mock_submission, ctx)
 
         assert result is True
 
-    def test_missing_title(self, command: Command, mock_submission: Mock) -> None:
+    def test_missing_title(self, command: Command) -> None:
         """Test that submission without title fails validation."""
-        mock_submission.title = None
         ctx = _ctx(log_fn=command._log)
-        result = is_valid_submission(mock_submission, ctx)
+        result = is_valid_submission(make_submission(title=""), ctx)
 
         assert result is False
 
@@ -278,11 +245,10 @@ class TestIsValidSubmission:
         self,
         mock_settings: Mock,
         command: Command,
-        mock_submission_no_speakers: Mock,
+        mock_submission_no_speakers: Submission,
     ) -> None:
         """Test that submission without speakers follows IMPORT_TALKS_WITHOUT_SPEAKERS setting."""
         mock_settings.IMPORT_TALKS_WITHOUT_SPEAKERS = False
-        mock_submission_no_speakers.submission_type.en = "Talk"
         ctx = _ctx(log_fn=command._log)
 
         result = is_valid_submission(
@@ -295,7 +261,7 @@ class TestIsValidSubmission:
     def test_lightning_talk_without_speakers(
         self,
         command: Command,
-        mock_submission_lightning: Mock,
+        mock_submission_lightning: Submission,
     ) -> None:
         """Test that Lightning Talks are allowed without speakers."""
         ctx = _ctx(log_fn=command._log)
@@ -368,7 +334,7 @@ class TestMapPresentationType:
 class TestBatchCreateRooms:
     """Tests for the batch_create_rooms function."""
 
-    def test_creates_new_rooms(self, mock_submission: Mock) -> None:
+    def test_creates_new_rooms(self, mock_submission: Submission) -> None:
         """Test that new rooms are created via bulk_create."""
         event = Event.objects.create(slug="evt", name="Evt", year=2099)
         mock_submission.state = State.confirmed
@@ -379,7 +345,7 @@ class TestBatchCreateRooms:
 
         assert Room.objects.filter(name="Main Hall", event=event).exists()
 
-    def test_skips_existing_rooms(self, mock_submission: Mock) -> None:
+    def test_skips_existing_rooms(self, mock_submission: Submission) -> None:
         """Test that existing rooms are not recreated."""
         # Create existing room in the same event
         event = Event.objects.create(slug="evt", name="Evt", year=2099)
@@ -398,7 +364,7 @@ class TestBatchCreateRooms:
 
     def test_skips_non_confirmed_submissions(
         self,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Test that submissions not in confirmed/accepted state are skipped."""
         mock_submission.state = State.submitted
@@ -409,29 +375,25 @@ class TestBatchCreateRooms:
 
         assert not Room.objects.filter(name="Main Hall").exists()
 
-    def test_handles_multiple_unique_rooms(self, mock_submission: Mock) -> None:
+    def test_handles_multiple_unique_rooms(self, mock_submission: Submission) -> None:
         """Test creating multiple unique rooms from submissions."""
         # First submission
         mock_submission.state = State.confirmed
 
         # Second submission with different room
-        submission2 = Mock()
-        submission2.code = "DEF456"
-        submission2.title = "Another Talk"
-        submission2.abstract = ""
-        submission2.description = ""
-        submission2.state = State.confirmed
-        submission2.duration = 30
-        submission2.image = ""
-        slot2 = Mock()
-        slot2.room = Mock()
-        slot2.room.name = {"en": "Workshop Room"}
-        slot2.start = datetime(2024, 6, 15, 14, 0, tzinfo=UTC)
-        submission2.slots = [slot2]
-        submission2.track = None  # No track
-        submission2.submission_type = Mock()
-        submission2.submission_type.en = "Talk"
-        submission2.speakers = mock_submission.speakers
+        submission2 = make_submission(
+            code="DEF456",
+            title="Another Talk",
+            abstract="",
+            description="",
+            duration=30,
+            room="Workshop Room",
+            room_id=5001,  # distinct id so it does not collide with the first room
+            start=datetime(2024, 6, 15, 14, 0, tzinfo=UTC),
+            track=None,  # No track
+            submission_type="Talk",
+            speakers=mock_submission.speakers,
+        )
 
         submissions = [mock_submission, submission2]
         ctx = _ctx(event_obj=Event.objects.create(slug="evt", name="Evt", year=2099))
@@ -450,7 +412,7 @@ class TestBatchCreateRooms:
 class TestBatchCreateOrUpdateSpeakers:
     """Tests for the batch_create_or_update_speakers function."""
 
-    def test_creates_new_speakers(self, mock_submission: Mock) -> None:
+    def test_creates_new_speakers(self, mock_submission: Submission) -> None:
         """Test that new speakers are bulk created."""
         mock_submission.state = State.confirmed
         submissions = [mock_submission]
@@ -462,7 +424,7 @@ class TestBatchCreateOrUpdateSpeakers:
         assert Speaker.objects.filter(pretalx_id="SPK002").exists()
         assert Speaker.objects.count() == 2
 
-    def test_updates_existing_speakers(self, mock_submission: Mock) -> None:
+    def test_updates_existing_speakers(self, mock_submission: Submission) -> None:
         """Test that existing speakers are bulk updated."""
         # Create existing speaker with old data
         Speaker.objects.create(
@@ -484,7 +446,7 @@ class TestBatchCreateOrUpdateSpeakers:
 
     def test_skips_update_with_no_update_flag(
         self,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Test that existing speakers are not updated when no_update is True."""
         # Create existing speaker
@@ -506,21 +468,18 @@ class TestBatchCreateOrUpdateSpeakers:
 
     def test_deduplicates_speakers_across_submissions(
         self,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Test that the same speaker appearing in multiple submissions is only created once."""
         mock_submission.state = State.confirmed
 
         # Second submission with same speaker
-        submission2 = Mock()
-        submission2.code = "DEF456"
-        submission2.state = State.confirmed
-        submission2.speakers = [mock_submission.speakers[0]]  # Same speaker
-        slot = Mock()
-        slot.room = Mock()
-        slot.room.name = {"en": "Room B"}
-        slot.start = datetime(2024, 6, 15, 14, 0, tzinfo=UTC)
-        submission2.slots = [slot]
+        submission2 = make_submission(
+            code="DEF456",
+            room="Room B",
+            start=datetime(2024, 6, 15, 14, 0, tzinfo=UTC),
+            speakers=[mock_submission.speakers[0]],  # Same speaker
+        )
 
         submissions = [mock_submission, submission2]
         ctx = _ctx()
@@ -532,7 +491,7 @@ class TestBatchCreateOrUpdateSpeakers:
 
     def test_returns_changed_visual_ids_for_avatar_change(
         self,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Speakers whose avatar URL changed are reported back so talk images can re-render."""
         Speaker.objects.create(
@@ -549,7 +508,7 @@ class TestBatchCreateOrUpdateSpeakers:
 
         assert changed == {"SPK001"}
 
-    def test_returns_empty_set_with_no_update(self, mock_submission: Mock) -> None:
+    def test_returns_empty_set_with_no_update(self, mock_submission: Submission) -> None:
         """With --no-update existing rows are untouched, so nothing visual changed."""
         Speaker.objects.create(
             name="Old",
@@ -573,7 +532,7 @@ class TestCollectSpeakersFromSubmissions:
 
     def test_collects_speakers_from_valid_submissions(
         self,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Test that speakers are collected from confirmed/accepted submissions."""
         mock_submission.state = State.confirmed
@@ -585,7 +544,7 @@ class TestCollectSpeakersFromSubmissions:
         assert "SPK001" in result
         assert "SPK002" in result
 
-    def test_skips_invalid_states(self, mock_submission: Mock) -> None:
+    def test_skips_invalid_states(self, mock_submission: Submission) -> None:
         """Test that speakers from non-confirmed submissions are skipped."""
         mock_submission.state = State.submitted
         submissions = [mock_submission]
@@ -594,15 +553,15 @@ class TestCollectSpeakersFromSubmissions:
 
         assert len(result) == 0
 
-    def test_deduplicates_speakers(self, mock_submission: Mock) -> None:
+    def test_deduplicates_speakers(self, mock_submission: Submission) -> None:
         """Test that duplicate speakers are deduplicated."""
         mock_submission.state = State.confirmed
 
         # Create second submission with overlapping speakers
-        submission2 = Mock()
-        submission2.code = "DEF456"
-        submission2.state = State.confirmed
-        submission2.speakers = [mock_submission.speakers[0]]  # Same speaker
+        submission2 = make_submission(
+            code="DEF456",
+            speakers=[mock_submission.speakers[0]],  # Same speaker
+        )
 
         submissions = [mock_submission, submission2]
 
@@ -617,31 +576,21 @@ class TestCollectSpeakersFromSubmissions:
 class TestHelperMethods:
     """Tests for helper functions."""
 
-    def test_submission_is_lightning_talk_with_type(
-        self,
-        mock_submission: Mock,
-    ) -> None:
-        """Test lightning talk detection via submission_type."""
-        mock_submission.submission_type.en = "Lightning Talks"
+    def test_submission_is_lightning_talk_with_type(self) -> None:
+        """A submission whose type is a lightning-talk term is detected."""
+        sub = make_submission(submission_type="Lightning Talks", track="PyData")
 
-        result = submission_is_lightning_talk(mock_submission)
+        assert submission_is_lightning_talk(sub) is True
 
-        assert result is True
+    def test_submission_is_lightning_talk_with_track(self) -> None:
+        """A submission whose track name is a lightning-talk term is detected."""
+        sub = make_submission(submission_type="Talk", track="Lightning")
 
-    def test_submission_is_lightning_talk_with_track(
-        self,
-        mock_submission: Mock,
-    ) -> None:
-        """Test lightning talk detection via track."""
-        mock_submission.track.en = "Lightning"
-
-        result = submission_is_lightning_talk(mock_submission)
-
-        assert result is True
+        assert submission_is_lightning_talk(sub) is True
 
     def test_submission_is_not_lightning_talk(
         self,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Test that regular talks are not detected as lightning talks."""
         result = submission_is_lightning_talk(mock_submission)
@@ -650,7 +599,7 @@ class TestHelperMethods:
 
     def test_submission_is_announcement(
         self,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Test announcement detection."""
         mock_submission.title = "Opening Session"
@@ -661,7 +610,7 @@ class TestHelperMethods:
 
     def test_submission_is_not_announcement(
         self,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Test that regular talks are not detected as announcements."""
         result = submission_is_announcement(mock_submission)
@@ -723,7 +672,7 @@ class TestProcessSingleSubmission:
         mock_add_speakers: Mock,
         mock_create_talk: Mock,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Test that new talks are created."""
         mock_submission.state = State.confirmed
@@ -750,7 +699,7 @@ class TestProcessSingleSubmission:
     def test_dry_run_does_not_create(
         self,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Test that dry_run mode does not actually create talks but returns 'created'."""
         mock_submission.state = State.confirmed
@@ -774,7 +723,7 @@ class TestProcessSingleSubmission:
         self,
         mock_update_talk: Mock,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Test that existing talks are updated and images are regenerated."""
         mock_submission.state = State.confirmed
@@ -814,7 +763,7 @@ class TestProcessSingleSubmission:
         self,
         mock_update_talk: Mock,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Test that image generation runs on update when skip_images is False."""
         mock_submission.state = State.confirmed
@@ -851,7 +800,7 @@ class TestProcessSingleSubmission:
         self,
         mock_update_talk: Mock,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Test that image generation is skipped on update when skip_images is True."""
         mock_submission.state = State.confirmed
@@ -888,7 +837,7 @@ class TestProcessSingleSubmission:
         self,
         mock_update_talk: Mock,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """When update_talk reports no changes, the result is 'unchanged' and no image is built."""
         mock_update_talk.return_value = False
@@ -926,7 +875,7 @@ class TestProcessSingleSubmission:
         self,
         mock_update_talk: Mock,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """An avatar/name change on a still-attached speaker triggers image regen."""
         mock_update_talk.return_value = False
@@ -962,7 +911,7 @@ class TestProcessSingleSubmission:
         self,
         mock_update_talk: Mock,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """--force-images regenerates the image even when nothing changed."""
         mock_update_talk.return_value = False
@@ -1001,7 +950,7 @@ class TestProcessSingleSubmission:
         self,
         mock_update_talk: Mock,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """--skip-images wins over --force-images when both are set."""
         mock_update_talk.return_value = False
@@ -1035,7 +984,7 @@ class TestProcessSingleSubmission:
         self,
         mock_update_talk: Mock,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """A template touched after the existing image triggers image regen."""
         mock_update_talk.return_value = False
@@ -1077,7 +1026,7 @@ class TestDetectOnlyMode:
     def test_detect_create_writes_pending_row(
         self,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """A new submission produces a CREATE pending row and leaves the Talk table alone."""
         event = Event.objects.create(slug="evt", name="Evt", year=2099)
@@ -1106,7 +1055,7 @@ class TestDetectOnlyMode:
     def test_detect_update_writes_pending_row_without_touching_talk(
         self,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """A diff against an existing Talk produces an UPDATE pending row, no DB writes to Talk."""
         event = Event.objects.create(slug="evt", name="Evt", year=2099)
@@ -1146,7 +1095,7 @@ class TestDetectOnlyMode:
     def test_detect_does_not_create_rooms(
         self,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Detect-only must not touch the Room table while building the field diff."""
         event = Event.objects.create(slug="evt", name="Evt", year=2099)
@@ -1183,7 +1132,7 @@ class TestDetectOnlyMode:
     def test_detect_no_changes_yields_unchanged(
         self,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """When the local Talk already matches Pretalx, no pending row is written."""
         event = Event.objects.create(slug="evt", name="Evt", year=2099)
@@ -1199,7 +1148,7 @@ class TestDetectOnlyMode:
             title=mock_submission.title,
             abstract=mock_submission.abstract,
             description=mock_submission.description,
-            start_time=mock_submission.slots[0].start,
+            start_time=mock_submission.start,
             duration=timedelta(minutes=mock_submission.duration),
             room=room,
             track="Data Science",
@@ -1221,18 +1170,12 @@ class TestDetectOnlyMode:
         assert result == "unchanged"
         assert PendingPretalxChange.objects.count() == 0
 
-    def test_detect_pure_room_rename_is_recorded(
-        self,
-        command: Command,
-        mock_submission: Mock,
-    ) -> None:
+    def test_detect_pure_room_rename_is_recorded(self, command: Command) -> None:
         """A room renamed on Pretalx (same id, new name) is recorded without writing."""
         event = Event.objects.create(slug="evt", name="Evt", year=2099)
-        mock_submission.state = State.confirmed
         pretalx_url = "https://pretalx.com/evt"
         # The submission references room id 4993, now renamed to "New Hall".
-        mock_submission.slots[0].room_id = 4993
-        mock_submission.slots[0].room.name = {"en": "New Hall"}
+        mock_submission = make_submission(room="New Hall", room_id=4993)
         # The local room carries that id but the OLD name; every other field matches.
         room = Room.objects.create(event=event, name="Old Hall", pretalx_id=4993)
         speaker1 = Speaker.objects.create(name="John Cleese", pretalx_id="SPK001")
@@ -1242,7 +1185,7 @@ class TestDetectOnlyMode:
             title=mock_submission.title,
             abstract=mock_submission.abstract,
             description=mock_submission.description,
-            start_time=mock_submission.slots[0].start,
+            start_time=mock_submission.start,
             duration=timedelta(minutes=mock_submission.duration),
             room=room,
             track="Data Science",
@@ -1275,7 +1218,7 @@ class TestDetectOnlyMode:
     def test_detect_cancelled_writes_delete_pending(
         self,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """A submission whose state is no longer confirmed/accepted produces a DELETE row."""
         event = Event.objects.create(slug="evt", name="Evt", year=2099)
@@ -1307,7 +1250,7 @@ class TestDetectOnlyMode:
     def test_detect_idempotent_reupserts_open_row(
         self,
         command: Command,
-        mock_submission: Mock,
+        mock_submission: Submission,
     ) -> None:
         """Re-running detect for an unchanged-detection submission reuses the same row."""
         event = Event.objects.create(slug="evt", name="Evt", year=2099)
@@ -1392,3 +1335,48 @@ class TestRecordPendingChangeRace:
                 speaker_diffs={"added": [], "removed": []},
                 pretalx_payload={},
             )
+
+
+# ---------------------- Command._fetch_submissions Tests ----------------------
+
+
+class TestCommandFetchSubmissions:
+    """Command._fetch_submissions (folded from FetchMixin) turns fetch errors into a logged None."""
+
+    _TARGET = "talks.management.commands.import_pretalx_talks.fetch_submissions"
+
+    def test_returns_none_and_logs_on_failure(
+        self,
+        command: Command,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """An exhausted-retry failure (reraised by fetch_submissions) becomes a logged None."""
+
+        def _boom(*_args: Any, **_kwargs: Any) -> None:
+            msg = "network down"
+            raise RuntimeError(msg)
+
+        monkeypatch.setattr(self._TARGET, _boom)
+        entries: list[tuple[str, str | None]] = []
+        ctx = _ctx(log_fn=lambda m, _v, _ml, s=None: entries.append((m, s)))
+
+        result = command._fetch_submissions(Mock(), "evt", ctx)
+
+        assert result is None
+        assert any("Failed to fetch talks:" in m and s == "ERROR" for m, s in entries)
+
+    def test_returns_list_and_logs_count_on_success(
+        self,
+        command: Command,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A successful fetch is returned and the count is logged."""
+        subs = [make_submission(code="A"), make_submission(code="B")]
+        monkeypatch.setattr(self._TARGET, lambda *_a, **_k: subs)
+        entries: list[tuple[str, str | None]] = []
+        ctx = _ctx(log_fn=lambda m, _v, _ml, s=None: entries.append((m, s)))
+
+        result = command._fetch_submissions(Mock(), "evt", ctx)
+
+        assert result == subs
+        assert any("Fetched 2 talks" in m for m, _ in entries)

@@ -17,9 +17,12 @@ asks about how apps fit together, what an app owns, or about external integratio
 
 ## Non-obvious bits
 
-- **Pretalx access** goes through [pytanis](https://pypi.org/project/pytanis/), not the raw Pretalx
-  API. The full importer reference (modes, change detection, image regen triggers,
-  detect-and-review workflow, scheduling, module layout) lives in
+- **Pretalx access** goes through a small in-repo REST client
+  ([\_pretalx/client.py](../talks/management/commands/_pretalx/client.py) +
+  [\_pretalx/pretalx_models.py](../talks/management/commands/_pretalx/pretalx_models.py)), built on
+  `httpx2`. It models only the fields the importer reads, so there is no heavyweight third-party API
+  wrapper to keep in sync. The full importer reference (modes, change detection, image regen
+  triggers, detect-and-review workflow, scheduling, module layout) lives in
   [pretalx-sync.md](pretalx-sync.md).
 - **Tailwind CSS v4** uses the standalone binary, downloaded by `scripts/dev-setup.sh`.
 - **SVG icons** live in `svg/` and load via a template tag, not `<img src=>`.

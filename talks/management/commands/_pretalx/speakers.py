@@ -2,8 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from pytanis.pretalx.models import State
-
+from talks.management.commands._pretalx.pretalx_models import State
 from talks.management.commands._pretalx.types import VerbosityLevel
 from talks.models import Speaker
 
@@ -11,9 +10,8 @@ from talks.models import Speaker
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pytanis.pretalx.models import Submission, SubmissionSpeaker
-
     from talks.management.commands._pretalx.context import ImportContext
+    from talks.management.commands._pretalx.pretalx_models import Submission, SubmissionSpeaker
 
 
 # ------------------------------------------------------------------

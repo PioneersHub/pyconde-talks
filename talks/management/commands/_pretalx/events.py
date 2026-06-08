@@ -14,8 +14,7 @@ from talks.management.commands._pretalx.types import VerbosityLevel
 
 
 if TYPE_CHECKING:
-    from pytanis import PretalxClient
-
+    from talks.management.commands._pretalx.client import PretalxClient
     from talks.management.commands._pretalx.context import ImportContext
 
 
@@ -106,10 +105,8 @@ def maybe_update_event_name(
 
     Returns the fetched event name (may be empty if unavailable).
     """
-    event_name = ""
     event = pretalx_client.event(pretalx_event_slug)
-    if hasattr(event, "name") and event.name and hasattr(event.name, "en") and event.name.en:
-        event_name = event.name.en
+    event_name = (event.name.en or "") if event is not None else ""
 
     ctx.log(
         f"Fetched event name from Pretalx API: '{event_name}'",

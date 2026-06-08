@@ -15,15 +15,15 @@ from typing import TYPE_CHECKING
 
 import httpx2
 from django.conf import settings
-from pytanis.pretalx.models import State
+
+from talks.management.commands._pretalx.pretalx_models import State
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pytanis.pretalx.models import Submission
-
     from talks.management.commands._pretalx.context import ImportContext
+    from talks.management.commands._pretalx.pretalx_models import Submission
 
 
 # ---------------------------------------------------------------------------

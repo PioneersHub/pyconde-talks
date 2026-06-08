@@ -2,13 +2,14 @@
 
 # ruff: noqa: BLE001
 
+import argparse
 import traceback
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
 
-from talks.management.commands._pretalx.client import setup_pretalx_client
+from talks.management.commands._pretalx.client import PretalxClient, fetch_submissions
 from talks.management.commands._pretalx.context import ImportContext
 from talks.management.commands._pretalx.events import (
     get_or_create_event,
@@ -18,17 +19,20 @@ from talks.management.commands._pretalx.events import (
     split_pretalx_url,
 )
 from talks.management.commands._pretalx.images import TalkImageGenerator
-from talks.management.commands._pretalx.mixins import FetchMixin, ProcessingMixin
+from talks.management.commands._pretalx.mixins import ProcessingMixin
 from talks.management.commands._pretalx.types import VerbosityLevel
 
 
-class Command(ProcessingMixin, FetchMixin, BaseCommand):
+if TYPE_CHECKING:
+    from talks.management.commands._pretalx.pretalx_models import Submission
+
+
+class Command(ProcessingMixin, BaseCommand):
     """
     Import talks and speakers from the Pretalx API into the Django database.
 
-    Composes :class:`~._pretalx.mixins.FetchMixin` (API retrieval) and
-    :class:`~._pretalx.mixins.ProcessingMixin` (talk creation / update / deletion) with Django's
-    ``BaseCommand``.
+    Builds on :class:`~._pretalx.mixins.ProcessingMixin` (talk creation / update / deletion) and
+    Django's ``BaseCommand``; submission fetching lives in :meth:`_fetch_submissions`.
     """
 
     help = "Import talks and speakers from Pretalx"
@@ -108,6 +112,13 @@ class Command(ProcessingMixin, FetchMixin, BaseCommand):
             help="Skip downloading and pasting speaker avatars on social cards",
         )
         parser.add_argument(
+            "--use-cache",
+            action=argparse.BooleanOptionalAction,
+            default=settings.PICKLE_PRETALX_TALKS,
+            help="Cache fetched submissions on disk for faster repeated local runs (dev only). "
+            "Defaults to the PICKLE_PRETALX_TALKS setting; turn off with --no-use-cache.",
+        )
+        parser.add_argument(
             "--image-format",
             type=str,
             choices=["webp", "jpeg"],
@@ -148,8 +159,8 @@ class Command(ProcessingMixin, FetchMixin, BaseCommand):
         pretalx_base_url, pretalx_event_slug = split_pretalx_url(pretalx_event_url)
 
         try:
-            pretalx_client = setup_pretalx_client(
-                api_token=ctx.api_token,
+            pretalx_client = PretalxClient(
+                api_token=options["api_token"],
                 api_base_url=pretalx_base_url,
             )
 
@@ -182,3 +193,32 @@ class Command(ProcessingMixin, FetchMixin, BaseCommand):
                     VerbosityLevel.DEBUG,
                     "ERROR",
                 )
+
+    def _fetch_submissions(
+        self,
+        pretalx_client: PretalxClient,
+        pretalx_event_slug: str,
+        ctx: ImportContext,
+    ) -> list[Submission] | None:
+        """Fetch submissions from the API; return ``None`` on failure (logged, not raised)."""
+        event_slug = ctx.event_slug or pretalx_event_slug
+        ctx.log(
+            f"Fetching talks from Pretalx event '{event_slug}'...",
+            VerbosityLevel.NORMAL,
+        )
+        try:
+            submissions = fetch_submissions(pretalx_client, pretalx_event_slug, ctx)
+        except Exception as exc:
+            ctx.log(
+                f"Failed to fetch talks: {exc!s}",
+                VerbosityLevel.NORMAL,
+                "ERROR",
+            )
+            return None
+
+        ctx.log(
+            f"Fetched {len(submissions)} talks from Pretalx event '{event_slug}'",
+            VerbosityLevel.NORMAL,
+            style="SUCCESS",
+        )
+        return submissions

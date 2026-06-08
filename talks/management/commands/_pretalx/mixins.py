@@ -2,7 +2,6 @@
 Command mixins that compose with :class:`~django.core.management.base.BaseCommand`.
 
 * :class:`LoggingMixin` -- structured, verbosity-aware logging.
-* :class:`FetchMixin` -- fetches submissions from the Pretalx API.
 * :class:`ProcessingMixin` -- turns submissions into Django ``Talk`` rows.
 """
 
@@ -11,10 +10,7 @@ Command mixins that compose with :class:`~django.core.management.base.BaseComman
 import traceback
 from typing import TYPE_CHECKING, Literal
 
-from pytanis.pretalx.models import State
-
 from talks.management.commands._pretalx.avatars import prefetch_avatars_for_submissions
-from talks.management.commands._pretalx.client import fetch_talks_with_retry
 from talks.management.commands._pretalx.digest import maybe_send_digest
 from talks.management.commands._pretalx.images import (
     image_is_older_than,
@@ -26,6 +22,7 @@ from talks.management.commands._pretalx.pending import (
     record_pending_change,
     serialize_field_diffs,
 )
+from talks.management.commands._pretalx.pretalx_models import State
 from talks.management.commands._pretalx.rooms import batch_create_rooms
 from talks.management.commands._pretalx.speakers import batch_create_or_update_speakers
 from talks.management.commands._pretalx.submission import SubmissionData
@@ -44,11 +41,10 @@ if TYPE_CHECKING:
 
     from django.core.management.base import OutputWrapper
     from django.core.management.color import Style
-    from pytanis import PretalxClient
-    from pytanis.pretalx.models import Submission, SubmissionSpeaker
 
     from talks.management.commands._pretalx.context import ImportContext
     from talks.management.commands._pretalx.images import TalkImageGenerator
+    from talks.management.commands._pretalx.pretalx_models import Submission, SubmissionSpeaker
 
 #: Keys used in the stats dict returned by :func:`_new_stats`.
 type _StatKey = Literal[
@@ -123,53 +119,6 @@ class LoggingMixin:
             self.stderr.write(self.style.ERROR(message))
         else:
             self.stdout.write(message)
-
-
-# ------------------------------------------------------------------
-# API fetching
-# ------------------------------------------------------------------
-
-
-class FetchMixin(LoggingMixin):
-    """
-    Fetches submissions from the Pretalx API.
-
-    Provides :meth:`_fetch_submissions` for use in ``Command.handle()``.
-    """
-
-    def _fetch_submissions(
-        self,
-        pretalx_client: PretalxClient,
-        pretalx_event_slug: str,
-        ctx: ImportContext,
-    ) -> list[Submission] | None:
-        """Fetch submissions from the API; return ``None`` on failure."""
-        event_slug = ctx.event_slug or pretalx_event_slug
-
-        ctx.log(
-            f"Fetching talks from Pretalx event '{event_slug}'...",
-            VerbosityLevel.NORMAL,
-        )
-        try:
-            talk_count, submissions = fetch_talks_with_retry(
-                pretalx_client,
-                pretalx_event_slug,
-                ctx,
-            )
-            ctx.log(
-                f"Fetched {talk_count} talks from Pretalx event '{event_slug}'",
-                VerbosityLevel.NORMAL,
-                style="SUCCESS",
-            )
-        except Exception as exc:
-            ctx.log(
-                f"Failed to fetch talks: {exc!s}",
-                VerbosityLevel.NORMAL,
-                "ERROR",
-            )
-            return None
-
-        return list(submissions)
 
 
 # ------------------------------------------------------------------
