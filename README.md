@@ -202,7 +202,7 @@ PostgreSQL, and Nginx.
 
 ```bash
 cd docker
-docker buildx bake --allow=fs.read=.. --set '*.args.APP_DOMAIN=talks.example.com'
+docker buildx bake --allow=fs.read=..
 ```
 
 This builds two targets:
