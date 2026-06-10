@@ -1,11 +1,11 @@
 """URL configuration for event_talks project."""
 
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth.decorators import login_not_required
 from django.urls import include, path
 from django.views.generic import TemplateView
+from django.views.static import serve
 from health_check.views import HealthCheckView
 
 
@@ -36,5 +36,17 @@ urlpatterns = [
     ),
 ]
 
-if settings.DEBUG:  # pragma: no cover
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG or settings.SERVE_STATIC_LOCALLY:  # pragma: no cover
+    # Serve static and media files locally when in DEBUG mode or if explicitly enabled via env var.
+    urlpatterns += [
+        path(
+            f"{settings.STATIC_URL.lstrip('/')}<path:path>",
+            login_not_required(serve),
+            {"document_root": settings.STATIC_ROOT},
+        ),
+        path(
+            f"{settings.MEDIA_URL.lstrip('/')}<path:path>",
+            login_not_required(serve),
+            {"document_root": settings.MEDIA_ROOT},
+        ),
+    ]

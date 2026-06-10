@@ -365,6 +365,8 @@ STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 ]
 
+# Allow Django to serve static/media directly when testing without nginx.
+SERVE_STATIC_LOCALLY = env.bool("DJANGO_SERVE_STATIC_LOCALLY", default=False)
 
 # --------------------------------------------------------------------------------------------------
 # STORAGES (Django 4.2+ unified config; replaces DEFAULT_FILE_STORAGE / STATICFILES_STORAGE)
