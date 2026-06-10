@@ -1,0 +1,8 @@
+services:
+  django:
+    environment:
+      - DJANGO_SERVE_STATIC_LOCALLY=true
+    volumes:
+      - ../.local/staticfiles:${DJANGO_STATIC_ROOT}
+      - ../.local/media:${DJANGO_MEDIA_ROOT}
+      - ../.local/logs:${DJANGO_LOGS_DIR}

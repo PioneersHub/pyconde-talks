@@ -20,6 +20,14 @@ variable "REGISTRY" {
   default = ""
 }
 
+variable "LOCAL_PLATFORM" {
+  default = "linux/amd64"
+}
+
+variable "CI_PLATFORM" {
+  default = "linux/amd64"
+}
+
 variable "TAG" {
   default = "latest"
 }
@@ -39,7 +47,7 @@ group "default" {
 target "django" {
   context    = ".."
   dockerfile = "docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = REGISTRY != "" ? [CI_PLATFORM] : [LOCAL_PLATFORM]
   tags = REGISTRY != "" ? [
     "${REGISTRY}/${IMAGE_NAME}:${TAG}",
     "${REGISTRY}/${IMAGE_NAME}:latest",
@@ -53,7 +61,7 @@ target "staticfiles-export" {
   # "type=registry" so the assets are pushed as their own (scratch-based) image that
   # the server extracts on deploy.
   output    = ["type=local,dest=./staticfiles"]
-  platforms = ["linux/amd64"]
+  platforms = REGISTRY != "" ? [CI_PLATFORM] : [LOCAL_PLATFORM]
   tags = REGISTRY != "" ? [
     "${REGISTRY}/${STATIC_IMAGE}:${TAG}",
     "${REGISTRY}/${STATIC_IMAGE}:latest",

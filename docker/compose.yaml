@@ -23,6 +23,7 @@ services:
   django:
     # ATTENTION: build with Bake: `COMPOSE_BAKE=true docker compose up --build`
     #            or `docker buildx bake --allow=fs.read=..` instead of `docker compose build`
+    platform: ${DOCKER_PLATFORM:-linux/amd64}
     build:
       context: ..
       dockerfile: docker/Dockerfile

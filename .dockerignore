@@ -72,6 +72,9 @@ docs/
 *.sqlite3
 *.db
 
+# Local bind-mount data used by docker compose
+.local/
+
 # Logs
 # The folder should stay
 *.log

@@ -94,7 +94,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 #   - Nginx (www-data user with UID 33) needs read-only permissions to serve static files
 FROM scratch AS staticfiles-stage
 ARG DJANGO_STATIC_ROOT=/staticfiles
-COPY --from=builder ${DJANGO_STATIC_ROOT} ${DJANGO_STATIC_ROOT}
+COPY --from=builder ${DJANGO_STATIC_ROOT}/ /
 
 # Stage 3: Final image
 # Production runtime: only what is essential to run the app, on the same minimal wolfi-base.
