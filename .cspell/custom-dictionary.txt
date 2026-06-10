@@ -43,6 +43,8 @@ digestabot
 distroless
 djlint
 docstrings
+dumpall
+dumpdata
 Dynamicum
 Ebene
 EDITMSG
