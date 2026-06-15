@@ -53,6 +53,10 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
+    # Talk images are uploaded through the Django admin and routinely exceed nginx's 1 MB
+    # default, which would otherwise reject them with an opaque 413 before reaching Daphne.
+    client_max_body_size 10m;
+
     # ── Security headers ──────────────────────────────────────────────────────────────────────────
     add_header X-Content-Type-Options nosniff;
     add_header X-Frame-Options SAMEORIGIN;
@@ -122,6 +126,13 @@ server {
         alias /var/cache/talks.example.com/staticfiles/;
         expires 30d;
         add_header Cache-Control "public, max-age=2592000, immutable";
+        # nginx's add_header does NOT inherit once a location sets its own, so the server-level
+        # security headers above are otherwise dropped for every static response. Re-assert the
+        # ones that matter for assets (nosniff above all) so they are not served bare.
+        add_header X-Content-Type-Options nosniff;
+        add_header X-Frame-Options SAMEORIGIN;
+        add_header Referrer-Policy strict-origin-when-cross-origin;
+        add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";
     }
 
     # ── Media files ───────────────────────────────────────────────────────────────────────────────

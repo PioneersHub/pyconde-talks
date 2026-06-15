@@ -27,9 +27,10 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      # Only build-time inputs the Dockerfile actually declares as ARG. DATABASE_URL and
+      # DJANGO_SETTINGS_MODULE are runtime-only (supplied via .env): collectstatic does not touch
+      # the DB, so plumbing the DB password into the build context here was dead and misleading.
       args:
-        - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
-        - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
         - DJANGO_STATIC_ROOT=${DJANGO_STATIC_ROOT}
         # Must match the runtime backend in .env so the build bakes a matching manifest.
         - DJANGO_STATICFILES_STORAGE=${DJANGO_STATICFILES_STORAGE}
