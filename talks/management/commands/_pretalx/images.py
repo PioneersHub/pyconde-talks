@@ -33,6 +33,13 @@ if TYPE_CHECKING:
     from talks.models import Speaker, Talk
 
 
+# Cap the pixel count Pillow will decode for a (semi-trusted) speaker avatar, so a crafted image
+# that decompresses to an enormous bitmap cannot exhaust memory during decode. ~50 MP is far more
+# than any headshot rendered at avatar sizes; beyond it Pillow raises DecompressionBombError,
+# which the per-talk import error handling already absorbs. Pairs with the byte cap in avatars.py.
+Image.MAX_IMAGE_PIXELS = 50_000_000
+
+
 #: Supported output formats for generated talk images.
 type _ImageFormat = Literal["webp", "jpeg"]
 
