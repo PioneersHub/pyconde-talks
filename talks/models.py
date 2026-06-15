@@ -912,13 +912,20 @@ def prefetch_streamings(talks: list[Talk]) -> None:
     room_ids = {t.room_id for t in talks if t.room_id is not None}  # type: ignore[attr-defined]
     streamings_by_room: dict[int, list[Streaming]] = {}
     if room_ids:
-        for s in Streaming.objects.filter(room_id__in=room_ids).only(
-            "id",
-            "room_id",
-            "start_time",
-            "end_time",
-            "video_link",
-            "transcription_url",
+        # order_by("start_time") so a talk covered by more than one streaming matches the same
+        # (earliest) one the ``Talk.streaming`` cached_property would pick via .first(), which
+        # honors Streaming.Meta.ordering. Without it the batch path could pick a different row.
+        for s in (
+            Streaming.objects.filter(room_id__in=room_ids)
+            .only(
+                "id",
+                "room_id",
+                "start_time",
+                "end_time",
+                "video_link",
+                "transcription_url",
+            )
+            .order_by("start_time")
         ):
             streamings_by_room.setdefault(s.room_id, []).append(s)  # type: ignore[attr-defined]
 
