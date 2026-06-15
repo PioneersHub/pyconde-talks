@@ -3,6 +3,8 @@
 A Django application to publish talks, schedules, and live Q&A for conference events such as
 [PyCon DE](https://pycon.de/) and [PyData Berlin](https://berlin.pydata.org/).
 
+📖 **Full documentation:** <https://pioneershub.github.io/pyconde-talks/>
+
 ## Features
 
 - **Multi-event support** - manage multiple conferences from a single instance, each with its own

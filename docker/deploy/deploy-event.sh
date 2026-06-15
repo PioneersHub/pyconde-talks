@@ -20,7 +20,7 @@
 #   5. health-check; roll back to the previous tag if it does not come up
 #
 # It needs no sudo: the invoking user is in the `docker` group and owns each target's COMPOSE_DIR
-# and STATIC_DIR. See docs/deployment-ci.md for the one-time server setup.
+# and STATIC_DIR. See docs/deployment/ci-cd.md for the one-time server setup.
 
 set -euo pipefail
 

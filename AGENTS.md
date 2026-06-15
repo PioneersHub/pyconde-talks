@@ -88,11 +88,18 @@ search output.
 
 ## Further reading
 
-Load these only when relevant; they are not auto-imported.
+The `docs/` tree is a [Zensical](https://zensical.org/) site, published to GitHub Pages at
+<https://pioneershub.github.io/pyconde-talks/> by `.github/workflows/docs.yml`. Load these sources
+only when relevant; they are not auto-imported.
 
-- Day-to-day commands, setup, CI: [docs/development.md](docs/development.md)
-- CI/CD pipeline, GHCR images, server deploy: [docs/deployment-ci.md](docs/deployment-ci.md)
-- App layout and integrations: [docs/architecture.md](docs/architecture.md)
+- Day-to-day commands, setup, CI: [docs/development/index.md](docs/development/index.md)
+- CI/CD pipeline, GHCR images, server deploy: [docs/deployment/ci-cd.md](docs/deployment/ci-cd.md)
+- App layout and integrations: [docs/architecture/index.md](docs/architecture/index.md)
+- Data model reference: [docs/architecture/data-model.md](docs/architecture/data-model.md)
 - Pretalx importer (modes, detect-and-review, image regen):
-  [docs/pretalx-sync.md](docs/pretalx-sync.md)
-- Env var reference: [django-vars.env](django-vars.env)
+  [docs/reference/pretalx-sync.md](docs/reference/pretalx-sync.md)
+- Management command reference:
+  [docs/reference/management-commands.md](docs/reference/management-commands.md)
+- Env var reference: [docs/getting-started/configuration.md](docs/getting-started/configuration.md)
+  and [django-vars.env](django-vars.env)
+- Editing the docs site: [docs/development/documentation.md](docs/development/documentation.md)

@@ -13,7 +13,7 @@
 #
 # Nothing here touches the server's shell. The target is pinned per key in the server's
 # authorized_keys forced command ("deploy-event <target>"); CI controls only the git sha.
-# See docs/deployment-ci.md.
+# See docs/deployment/ci-cd.md.
 name: deploy
 
 on:
@@ -46,7 +46,7 @@ jobs:
         env:
           # Space-separated allowlist. To add a site: add it here, create a GitHub Environment
           # named exactly after it, add it to the workflow_dispatch choices above, and set up the
-          # server (see docs/deployment-ci.md).
+          # server (see docs/deployment/ci-cd.md).
           ALLOWED: "talks.pycon.de videos.pydata-berlin.org"
           EVENT_NAME: ${{ github.event_name }}
           REF_NAME: ${{ github.ref_name }}
