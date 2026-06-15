@@ -65,19 +65,41 @@ class Command(BaseCommand):
             response.raise_for_status()
             data = io.BytesIO(response.content)
             s_df = pd.read_excel(data, sheet_name=worksheet_name)
-            s_df = s_df[(s_df[COL_VIMEO_RESTREAM] == "Vimeo") & (s_df[COL_EMBED_LINK].notna())]
-            s_df = s_df[[COL_ROOM, COL_START_TIME, COL_END_TIME, COL_EMBED_LINK]]
-
-            # Localize timestamps
-            s_df[COL_START_TIME] = pd.to_datetime(s_df[COL_START_TIME]).dt.tz_localize(
-                "Europe/Berlin",
-            )
-            s_df[COL_END_TIME] = pd.to_datetime(s_df[COL_END_TIME]).dt.tz_localize("Europe/Berlin")
+            s_df = self._clean_streams_dataframe(s_df)
         except Exception as exc:
             self.stderr.write(self.style.ERROR(f"Error fetching spreadsheet data: {exc}"))
             raise
         else:
             return s_df
+
+    def _clean_streams_dataframe(self, s_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Keep only Vimeo rows with an embed link and a usable start/end time.
+
+        Parsing uses ``errors="coerce"`` so a blank or malformed time cell becomes ``NaT`` rather
+        than aborting the whole (atomic) import on one bad spreadsheet row, and the DST arguments
+        keep a wall-clock time in the spring-forward gap / fall-back hour from raising. Rows that
+        end up with a missing start or end are then dropped: ``Streaming`` has NOT NULL datetime
+        columns and a ``CHECK(start < end)`` constraint, so a ``NaT`` would raise IntegrityError.
+        """
+        s_df = s_df[(s_df[COL_VIMEO_RESTREAM] == "Vimeo") & (s_df[COL_EMBED_LINK].notna())]
+        s_df = s_df[[COL_ROOM, COL_START_TIME, COL_END_TIME, COL_EMBED_LINK]]
+
+        for col in (COL_START_TIME, COL_END_TIME):
+            s_df[col] = pd.to_datetime(s_df[col], errors="coerce").dt.tz_localize(
+                "Europe/Berlin",
+                nonexistent="shift_forward",
+                ambiguous="NaT",
+            )
+
+        before = len(s_df)
+        s_df = s_df.dropna(subset=[COL_START_TIME, COL_END_TIME])
+        dropped = before - len(s_df)
+        if dropped:
+            self.stdout.write(
+                self.style.WARNING(f"Skipped {dropped} row(s) with a missing/invalid time."),
+            )
+        return s_df
 
     def get_room(self, room_name: str, event: Event | None = None) -> Room | None:
         """
