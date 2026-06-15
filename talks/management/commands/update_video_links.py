@@ -83,8 +83,10 @@ class Command(BaseCommand):
     def update_video_links(self, vimeo_data: dict[str, str]) -> None:
         """Update video links in the database."""
         for name, video_link in vimeo_data.items():
-            pretalx_id = name.split(SEPARATOR)[0]
-            talk = Talk.objects.filter(pretalx_link__contains=pretalx_id).first()
+            pretalx_id = name.split(SEPARATOR)[0].strip()
+            if not pretalx_id:
+                continue
+            talk = self._find_talk(pretalx_id)
             if talk:
                 talk.video_link = video_link
                 talk.video_start_time = 0
@@ -94,6 +96,30 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.WARNING(f"Talk not found for pretalx ID: {pretalx_id}"),
                 )
+
+    def _find_talk(self, pretalx_id: str) -> Talk | None:
+        """
+        Return the unique talk whose Pretalx code equals *pretalx_id*, or None.
+
+        ``pretalx_link__contains`` only narrows the candidates; the match is then made on the
+        exact ``Talk.pretalx_code``. A bare substring match would let a short code (e.g. "ABC")
+        clobber the recording link of a talk whose code merely starts with it ("ABCDEF"), or any
+        talk whose URL happens to contain the string. On an ambiguous match we skip rather than
+        silently overwrite an arbitrary ``.first()``.
+        """
+        candidates = [
+            talk
+            for talk in Talk.objects.filter(pretalx_link__contains=pretalx_id)
+            if talk.pretalx_code == pretalx_id
+        ]
+        if len(candidates) > 1:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Multiple talks match pretalx ID {pretalx_id}; skipping to avoid clobbering.",
+                ),
+            )
+            return None
+        return candidates[0] if candidates else None
 
     @transaction.atomic
     def handle(self, *args: Any, **options: Any) -> None:  # noqa: ARG002

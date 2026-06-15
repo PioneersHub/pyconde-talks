@@ -158,6 +158,16 @@ class TestUpdateVideoLinks:
         assert talk.video_link == "https://player.vimeo.com/video/111"
         assert talk.video_start_time == 0
 
+    def test_exact_code_match_avoids_prefix_collision(self, command: Command) -> None:
+        """A short code must not clobber a talk whose code merely starts with it."""
+        short = baker.make(Talk, pretalx_link="https://pretalx.com/t/ABC/", video_link="")
+        longer = baker.make(Talk, pretalx_link="https://pretalx.com/t/ABCDEF/", video_link="orig")
+        command.update_video_links({"ABC-Talk": "https://vimeo.com/short"})
+        short.refresh_from_db()
+        longer.refresh_from_db()
+        assert short.video_link == "https://vimeo.com/short"
+        assert longer.video_link == "orig"  # untouched: ABCDEF != ABC
+
     def test_no_matching_talk_logs_warning(self, command: Command) -> None:
         """Log a warning when no talk matches the pretalx ID from the video name."""
         vimeo_data = {"MISSING-Talk": "https://player.vimeo.com/video/999"}
