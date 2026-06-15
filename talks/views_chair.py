@@ -52,7 +52,7 @@ def is_admin(user: CustomUser) -> bool:
 
 def _user_label(user: CustomUser) -> str:
     """Return the most human-readable name for a user: display name, full name, or email."""
-    return str(user.display_name.strip() or user.get_full_name().strip() or user.email)  # type: ignore[attr-defined]
+    return user.label()
 
 
 def _talks_overlap(a: Talk, b: Talk) -> bool:

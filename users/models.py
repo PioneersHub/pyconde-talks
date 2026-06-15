@@ -200,6 +200,18 @@ class CustomUser(AbstractUser):
         super().clean()
         self.email = self.email.lower()
 
+    def label(self, *, obfuscate: bool = False) -> str:
+        """
+        Return the most human-readable name for this user.
+
+        Prefers the chosen display name, then the full name, then the email. Pass
+        ``obfuscate=True`` to mask the email fallback for public contexts (e.g. the Q&A author
+        line); moderator-facing callers show it verbatim. Returns an empty string only when all
+        three are empty, so callers that want an "Anonymous" fallback should coalesce.
+        """
+        email = obfuscate_email(self.email) if obfuscate else self.email
+        return self.display_name.strip() or self.get_full_name().strip() or email
+
     def visible_events(self) -> models.QuerySet[Event]:
         """
         Return active events visible to this user, ordered by name.

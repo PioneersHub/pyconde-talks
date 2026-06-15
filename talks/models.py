@@ -567,7 +567,7 @@ class Talk(models.Model):
         chair = self.session_chair
         if not chair:
             return ""
-        return str(chair.display_name.strip() or chair.get_full_name().strip() or chair.email)
+        return str(chair.label())
 
     def clean(self) -> None:
         """Validate room/event coherence and that the talk doesn't overlap in its room."""

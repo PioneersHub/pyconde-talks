@@ -13,8 +13,6 @@ from django.db.models import Count
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from utils.email_utils import obfuscate_email
-
 from .models import Talk
 
 
@@ -132,12 +130,7 @@ class Question(models.Model):
         """Return the author's display name based on related user."""
         if not self.user:
             return _("Anonymous")
-        name = (
-            self.user.display_name.strip()
-            or self.user.get_full_name().strip()
-            or obfuscate_email(self.user.email)
-        )
-        return name or _("Anonymous")
+        return self.user.label(obfuscate=True) or _("Anonymous")
 
     @property
     def has_answer(self) -> bool:
