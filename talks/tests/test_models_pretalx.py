@@ -1,5 +1,7 @@
 """Unit tests for :class:`talks.models.PendingPretalxChange`."""
 
+from datetime import UTC, datetime
+
 import pytest
 from django.db.utils import IntegrityError
 from model_bakery import baker
@@ -55,6 +57,24 @@ class TestPendingChangeStatus:
         assert change.is_dismissed
         assert change.dismissed_at is not None
         assert not change.is_pending
+
+    @pytest.mark.parametrize("action", ["mark_applied", "mark_dismissed"])
+    def test_marking_preserves_last_detected_at(self, action: str) -> None:
+        """Applying/dismissing must not rewrite last_detected_at (its audit + ordering value)."""
+        change = PendingPretalxChange.objects.create(
+            event=_make_event(),
+            pretalx_code="ABC123",
+            kind=PendingPretalxChange.Kind.UPDATE,
+        )
+        # last_detected_at is auto_now, so set a known past value via .update (which bypasses it).
+        past = datetime(2020, 1, 1, 12, 0, tzinfo=UTC)
+        PendingPretalxChange.objects.filter(pk=change.pk).update(last_detected_at=past)
+        change.refresh_from_db()
+
+        getattr(change, action)(user=None)
+        change.refresh_from_db()
+
+        assert change.last_detected_at == past
 
 
 class TestUniqueOpenConstraint:

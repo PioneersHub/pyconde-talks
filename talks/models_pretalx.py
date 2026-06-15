@@ -173,13 +173,17 @@ class PendingPretalxChange(models.Model):
         """Record that *user* applied this change just now and save the row."""
         self.applied_at = timezone.now()
         self.applied_by = user
-        self.save(update_fields=["applied_at", "applied_by", "last_detected_at"])
+        # Do not list ``last_detected_at`` here: it is auto_now, and including it would rewrite
+        # this row's "most recent detection" to the apply time, corrupting the audit value and
+        # jumping the now-historical row to the top of the detect-ordered admin lists.
+        self.save(update_fields=["applied_at", "applied_by"])
 
     def mark_dismissed(self, user: CustomUser | None = None) -> None:
         """Record that *user* dismissed this change just now and save the row."""
         self.dismissed_at = timezone.now()
         self.dismissed_by = user
-        self.save(update_fields=["dismissed_at", "dismissed_by", "last_detected_at"])
+        # See mark_applied: keep auto_now ``last_detected_at`` out of update_fields.
+        self.save(update_fields=["dismissed_at", "dismissed_by"])
 
     # ------------------------------------------------------------------
     # Display helpers
