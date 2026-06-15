@@ -64,7 +64,7 @@ class Rating(models.Model):
         verbose_name_plural = _("Ratings")
         ordering: ClassVar[list[str]] = ["-created_at"]
         indexes: ClassVar[list[models.Index]] = [
-            models.Index(fields=["talk", "user"]),
+            # No (talk, user) index here: the unique constraint below already provides one.
             models.Index(fields=["talk", "-created_at"]),
         ]
         constraints: ClassVar[list[models.CheckConstraint | models.UniqueConstraint]] = [
@@ -109,9 +109,7 @@ class SavedTalk(models.Model):
         verbose_name = _("Saved Talk")
         verbose_name_plural = _("Saved Talks")
         ordering: ClassVar[list[str]] = ["-created_at"]
-        indexes: ClassVar[list[models.Index]] = [
-            models.Index(fields=["user", "talk"]),
-        ]
+        # No explicit (user, talk) index: the unique constraint below already provides one.
         constraints: ClassVar[list[models.UniqueConstraint]] = [
             models.UniqueConstraint(
                 fields=["user", "talk"],
