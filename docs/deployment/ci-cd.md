@@ -67,8 +67,6 @@ built-in `GITHUB_TOKEN` with `packages: write`.
 - **Immutable tags + rollback.** Deploys pin the git sha; a failed health check rolls back to the
     previous tag automatically.
 
-The old `sudo rsync` of static files and the full-shell SSH key are both gone.
-
 ______________________________________________________________________
 
 ## One-time setup

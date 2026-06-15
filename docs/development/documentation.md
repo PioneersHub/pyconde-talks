@@ -18,6 +18,14 @@ uv run --group docs zensical serve
 
 The preview is served at <http://localhost:8000>.
 
+If port 8000 is already in use, bind the server to another port, for example 8001:
+
+```bash
+uv run --group docs zensical serve -a localhost:8001
+```
+
+This serves the preview at <http://localhost:8001>.
+
 ## Build the static site
 
 Build the fully rendered HTML site into `site/`:
@@ -107,8 +115,7 @@ The Material/MkDocs authoring extensions are available. Use them where they make
 ## Style and formatting
 
 Prose is hard-wrapped at 100 columns. Use plain language and explain the why, not just the what.
-Headings are sentence case. Never use an em-dash; use a regular hyphen or rephrase. Nested list
-items indent with four spaces.
+Headings are sentence case. Nested list items indent with four spaces.
 
 Markdown formatting is enforced by a pre-commit hook. There are two `mdformat` passes (see
 [.pre-commit-config.yaml](https://github.com/PioneersHub/pyconde-talks/blob/main/.pre-commit-config.yaml)):
