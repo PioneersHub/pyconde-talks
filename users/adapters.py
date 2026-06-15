@@ -157,6 +157,13 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
             logger.exception("Database error looking up user", email=email_hash)
             return False
 
+        # A deactivated/banned account is never authorized. Deny up front so we neither call the
+        # external validation API nor re-link the user to the event, instead of relying on a later
+        # allauth layer to block the login.
+        if user is not None and not user.is_active:
+            logger.warning("Authorization denied for inactive user", email=email_hash)
+            return False
+
         # If user exists, is active, and already linked to this event -> allow
         if user and user.is_active and event and user.events.filter(pk=event.pk).exists():
             logger.info(

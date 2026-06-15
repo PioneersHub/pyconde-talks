@@ -9,6 +9,7 @@ from django.conf import settings
 
 from events.models import Event
 from users.adapters import AccountAdapter
+from users.models import CustomUser
 
 
 if TYPE_CHECKING:
@@ -254,6 +255,32 @@ def test_api_authorization_valid_false(
 
     assert adapter.is_email_authorized("rejected@example.com") is False
     assert httpx2_mock.calls.call_count == 1
+
+
+@pytest.mark.django_db
+def test_inactive_user_denied_without_api_call(
+    adapter: AccountAdapter,
+    settings: SettingsWrapper,
+    httpx2_mock: respx.Router,
+) -> None:
+    """A deactivated account is denied up front: no validation-API call, no event re-link."""
+    api_url = "https://fake-api.example.com/validate"
+    settings.EMAIL_VALIDATION_API_URL_FALLBACK = api_url
+    settings.AUTHORIZED_EMAILS_WHITELIST = []
+    settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_ID = ""
+    settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET = ""
+    settings.EMAIL_VALIDATION_API_OAUTH2_TOKEN_URL = ""
+
+    # The API would say "valid" if asked; the inactive guard must short-circuit before that.
+    httpx2_mock.post(api_url).respond(200, json={"valid": True})
+
+    event = Event.objects.create(name="Inactive Test", slug="inactive-test", is_active=True)
+    user = CustomUser.objects.create_user(email="banned@example.com", is_active=False)
+    adapter.set_selected_event(event)
+
+    assert adapter.is_email_authorized("banned@example.com") is False
+    assert httpx2_mock.calls.call_count == 0
+    assert not user.events.filter(pk=event.pk).exists()
 
 
 # ---------------------------------------------------------------------------

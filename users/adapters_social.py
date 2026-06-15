@@ -137,6 +137,12 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
 
         # Step 2: existing social account
         if sociallogin.is_existing:
+            # Never flip permissions or add event links for a deactivated account. allauth
+            # rejects the login itself in its pre_login hook; this mirrors the is_active guard
+            # in AccountAdapter.is_email_authorized so deactivation is honored on both paths.
+            if not cast("CustomUser", sociallogin.user).is_active:
+                logger.warning("Discord login for inactive user; skipping side effects")
+                return
             # Auto-merge: if the authenticated user differs from the social
             # account owner and has an API-validated email, absorb the orphan.
             current_user = getattr(request, "user", None)
@@ -261,6 +267,13 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
             return  # No existing account - allauth will call save_user for a new signup
 
         existing_user = existing_email.user
+
+        # Do not link to (or grant permissions on) a deactivated account. allauth will reject the
+        # resulting login anyway; this prevents a banned user from regaining a Discord link or
+        # having is_staff/is_superuser flipped back on.
+        if not existing_user.is_active:
+            logger.warning("Discord email matches an inactive account; not linking")
+            return
 
         logger.info(
             "Connected Discord social account to existing email account",

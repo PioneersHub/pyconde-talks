@@ -362,6 +362,25 @@ class TestPreSocialLogin:
         assert user.is_superuser is False
         assert user.is_staff is False
 
+    @patch.object(SocialAccountAdapter, "_add_default_event")
+    @patch.object(SocialAccountAdapter, "_fetch_member_role_ids")
+    def test_existing_inactive_user_skips_side_effects(
+        self,
+        mock_fetch: MagicMock,
+        mock_add_event: MagicMock,
+        adapter: SocialAccountAdapter,
+        rf: RequestFactory,
+        discord_settings: Any,
+        user_model: type[Any],
+    ) -> None:
+        """A deactivated existing social account is not re-linked to events on login."""
+        user = user_model.objects.create_user(email="banned@test.com", is_active=False)
+        mock_fetch.return_value = {"111"}  # attendee
+        sl = _make_sociallogin(is_existing=True, user=user)
+        request = rf.get("/")
+        adapter.pre_social_login(request, sl)
+        mock_add_event.assert_not_called()
+
     @patch.object(SocialAccountAdapter, "_try_merge_accounts")
     @patch.object(SocialAccountAdapter, "_fetch_member_role_ids")
     def test_existing_account_with_different_authenticated_user_triggers_merge(
@@ -502,6 +521,30 @@ class TestConnectToExistingAccount:
         request = rf.get("/")
         adapter._connect_to_existing_account(request, sl)
         sl.connect.assert_not_called()
+
+    def test_no_connect_when_user_inactive(
+        self,
+        adapter: SocialAccountAdapter,
+        rf: RequestFactory,
+        user_model: type[Any],
+    ) -> None:
+        """A deactivated account is never linked or granted permissions via Discord."""
+        user = user_model.objects.create_user(email="banned@test.com", is_active=False)
+        sl = _make_sociallogin(
+            email="banned@test.com",
+            verified=True,
+            extra_data={
+                "email": "banned@test.com",
+                "verified": True,
+                "matched_roles": ["organiser"],
+            },
+        )
+        request = rf.get("/")
+        adapter._connect_to_existing_account(request, sl)
+        sl.connect.assert_not_called()
+        user.refresh_from_db()
+        assert user.is_superuser is False
+        assert user.is_staff is False
 
     def test_case_insensitive_email_match(
         self,
