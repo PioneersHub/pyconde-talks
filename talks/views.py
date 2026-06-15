@@ -430,9 +430,14 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
     saved_talk_ids: set[int] = set()
     if request.user.is_authenticated:
         saved_talk_ids = SavedTalk.talk_ids_for(cast("CustomUser", request.user))
+    # Pass real dates for the Today/Tomorrow badges: the template cannot do date arithmetic
+    # (chaining |date|add on the {% now %} string never produced a valid date).
+    today = timezone.localdate()
     context = {
         "upcoming_talks": talks,
         "saved_talk_ids": saved_talk_ids,
+        "today": today.isoformat(),
+        "tomorrow": (today + timedelta(days=1)).isoformat(),
         "show_rating_summary": _can_see_rating_summary(
             request.user,
             resolve_default_event(request),

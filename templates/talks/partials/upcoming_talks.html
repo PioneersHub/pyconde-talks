@@ -18,14 +18,13 @@
           {% endwith %}
           <!-- Time and day badges -->
           <div class="absolute right-2 top-8 flex flex-col gap-1 items-end">
-            {% now "Y-m-d" as today %}
             {% with talk_date=talk.start_time|date:"Y-m-d" %}
               {% if talk_date == today %}
                 <span class="badge badge-green text-xs font-semibold">
                   {% svg 'calendar' "h-3 w-3 mr-1" %}
                   Today
                 </span>
-              {% elif talk_date == today|date:"Y-m-d"|add:"1 day" %}
+              {% elif talk_date == tomorrow %}
                 <span class="badge badge-orange text-xs font-semibold">
                   {% svg 'calendar' "h-3 w-3 mr-1" %}
                   Tomorrow

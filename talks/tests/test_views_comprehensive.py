@@ -592,6 +592,23 @@ class TestUpcomingTalks:
         assert response.status_code == HTTPStatus.OK
         assert "Upcoming Test" in response.content.decode()
 
+    def test_upcoming_talks_renders_tomorrow_badge(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """A talk scheduled tomorrow shows the Tomorrow badge (it never rendered before)."""
+        event = baker.make(Event, is_active=True)
+        user.events.add(event)
+        tomorrow = timezone.now() + timedelta(days=1)
+        baker.make(Talk, title="Tomorrow Talk", start_time=tomorrow, event=event)
+        client.force_login(user)
+        response = client.get(reverse("upcoming_talks"))
+        content = response.content.decode()
+        assert response.status_code == HTTPStatus.OK
+        assert "Tomorrow Talk" in content
+        assert "Tomorrow" in content
+
     def test_upcoming_talks_excludes_other_events(self, client: Client, user: CustomUser) -> None:
         """Upcoming talks should not include talks from events the user cannot access."""
         my_event = baker.make(Event, is_active=True)
