@@ -37,14 +37,14 @@ def validate_display_name(value: str) -> None:
         return
 
     stripped = value.strip()
+    visible = _strip_invisible(stripped)
 
-    if stripped != _strip_invisible(stripped):
+    if stripped != visible:
         raise ValidationError(
             _("Display name must not contain invisible characters."),
             code="invisible_chars",
         )
 
-    visible = _strip_invisible(stripped)
     if len(visible) < MIN_DISPLAY_NAME_LENGTH:
         raise ValidationError(
             _("Display name must be at least %(min_length)d visible characters."),
