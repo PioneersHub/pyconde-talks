@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.9
+# syntax=docker/dockerfile:1.24@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
 
 # Base image: Chainguard's wolfi-base (glibc + busybox + apk-tools + ca-certificates), a minimal,
 # CVE-patched, daily-rebuilt base. We build BOTH stages on it instead of python:3.14-slim.
@@ -8,7 +8,7 @@
 # those fixes, so the digest is kept fresh by Renovate's dockerfile manager, which expands this ARG,
 # re-resolves the digest behind ":latest", and opens a PR whenever it moves. Tag + digest together
 # gives both reproducibility and patching.
-ARG WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest@sha256:b78bb982194828b6c9c214230bf34d51944e2102ea8468f01ac21e5f99328efd
+ARG WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest@sha256:34977aa13765da89f60fee8fe5230e2bb1c55192df08e383c58221ee0d1277fb
 
 # Stage 1: Builder
 FROM ${WOLFI_BASE} AS builder
