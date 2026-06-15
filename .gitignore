@@ -60,3 +60,6 @@ reports/
 
 # Local dev cache written by import_pretalx_talks --use-cache (one file per event slug)
 .pretalx_cache_*
+
+# Zensical documentation build output (see zensical.toml)
+site/

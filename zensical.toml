@@ -1,0 +1,160 @@
+# Zensical configuration for the documentation site (https://zensical.org).
+#
+# Sources live in docs/. Preview locally with `uv run --group docs zensical serve`;
+# .github/workflows/docs.yml builds and publishes the site to GitHub Pages on pushes to main.
+
+[project]
+site_name = "Conference Talks Website"
+site_description = """
+Django application to publish talks, schedules, and live Q&A for conference events \
+such as PyCon DE and PyData Berlin.\
+"""
+site_author = "Julio Batista Silva"
+site_url = "https://pioneershub.github.io/pyconde-talks/"
+
+# Adds the repository link in the page header and powers the edit/view page buttons.
+repo_url = "https://github.com/PioneersHub/pyconde-talks"
+repo_name = "PioneersHub/pyconde-talks"
+edit_uri = "edit/main/docs/"
+
+copyright = """
+Copyright &copy; Julio Batista Silva and contributors. MIT license.
+"""
+
+nav = [
+  { "Home" = "index.md" },
+  { "Getting started" = [
+    "getting-started/index.md",
+    { "Configuration" = "getting-started/configuration.md" },
+    { "Authentication" = "getting-started/authentication.md" },
+  ] },
+  { "Architecture" = [
+    "architecture/index.md",
+    { "Data model" = "architecture/data-model.md" },
+    { "Integrations" = "architecture/integrations.md" },
+    { "Frontend" = "architecture/frontend.md" },
+  ] },
+  { "Features" = [
+    { "Talks" = "features/talks.md" },
+    { "Schedule" = "features/schedule.md" },
+    { "Ratings" = "features/ratings.md" },
+    { "Questions and answers" = "features/questions.md" },
+    { "Live streaming" = "features/streaming.md" },
+    { "Social cards" = "features/social-cards.md" },
+  ] },
+  { "Development" = [
+    "development/index.md",
+    { "Docker full stack" = "development/docker-local.md" },
+    { "Testing" = "development/testing.md" },
+    { "Code quality" = "development/code-quality.md" },
+    { "Documentation" = "development/documentation.md" },
+  ] },
+  { "Reference" = [
+    { "Management commands" = "reference/management-commands.md" },
+    { "Pretalx sync" = "reference/pretalx-sync.md" },
+  ] },
+  { "Deployment" = [
+    "deployment/index.md",
+    { "CI/CD pipeline" = "deployment/ci-cd.md" },
+    { "Nginx" = "deployment/nginx.md" },
+    { "Operations" = "deployment/operations.md" },
+  ] },
+  { "The story" = "story.md" },
+  { "Contributing" = "contributing.md" },
+  { "License" = "license.md" },
+]
+
+[project.theme]
+logo = "assets/logo.png"
+favicon = "assets/favicon.png"
+language = "en"
+
+features = [
+  # Let readers dismiss the announcement bar (if one is ever configured).
+  "announce.dismiss",
+  # Edit/view buttons on each page, linking to the file on GitHub via edit_uri.
+  "content.action.edit",
+  "content.action.view",
+  # Code block niceties: annotations, copy button, line-range selection.
+  "content.code.annotate",
+  "content.code.copy",
+  "content.code.select",
+  # Read footnotes inline without jumping to the bottom of the page.
+  "content.footnote.tooltips",
+  # Switch all same-named content tabs together.
+  "content.tabs.link",
+  "content.tooltips",
+  # Previous/next links in the footer.
+  "navigation.footer",
+  # Section index pages: a section can have its own overview page (index.md).
+  "navigation.indexes",
+  # SPA-style navigation: intercept internal links and prefetch on hover.
+  "navigation.instant",
+  "navigation.instant.prefetch",
+  # Breadcrumbs above the page title.
+  "navigation.path",
+  # Group top-level sections in the sidebar on wide viewports.
+  "navigation.sections",
+  # Render top-level sections as tabs below the header on wide viewports.
+  "navigation.tabs",
+  # Back-to-top button and URL anchor tracking while scrolling.
+  "navigation.top",
+  "navigation.tracking",
+  # Highlight search terms on the target page after following a search result.
+  "search.highlight",
+  # Keep the active table-of-contents entry scrolled into view.
+  "toc.follow",
+]
+
+# Light/dark mode toggle.
+[[project.theme.palette]]
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/PioneersHub/pyconde-talks"
+
+# Markdown extensions (the Zensical defaults: admonitions, footnotes, content tabs,
+# syntax highlighting, task lists, Mermaid diagrams via superfences, ...).
+[project.markdown_extensions.abbr]
+[project.markdown_extensions.admonition]
+[project.markdown_extensions.attr_list]
+[project.markdown_extensions.def_list]
+[project.markdown_extensions.footnotes]
+[project.markdown_extensions.md_in_html]
+[project.markdown_extensions.toc]
+permalink = true
+[project.markdown_extensions.pymdownx.arithmatex]
+generic = true
+[project.markdown_extensions.pymdownx.betterem]
+[project.markdown_extensions.pymdownx.caret]
+[project.markdown_extensions.pymdownx.details]
+[project.markdown_extensions.pymdownx.emoji]
+emoji_generator = "zensical.extensions.emoji.to_svg"
+emoji_index = "zensical.extensions.emoji.twemoji"
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = true
+line_spans = "__span"
+pygments_lang_class = true
+[project.markdown_extensions.pymdownx.inlinehilite]
+[project.markdown_extensions.pymdownx.keys]
+[project.markdown_extensions.pymdownx.magiclink]
+[project.markdown_extensions.pymdownx.mark]
+[project.markdown_extensions.pymdownx.smartsymbols]
+[project.markdown_extensions.pymdownx.superfences]
+custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style = true
+combine_header_slug = true
+[project.markdown_extensions.pymdownx.tasklist]
+custom_checkbox = true
+[project.markdown_extensions.pymdownx.tilde]

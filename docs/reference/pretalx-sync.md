@@ -1,21 +1,26 @@
+---
+icon: lucide/refresh-cw
+---
+
 # Pretalx sync
 
 How the project imports talks from Pretalx, when it touches the live data, and how admins review
 changes before they go live. The implementation lives under
-[talks/management/commands/\_pretalx/](../talks/management/commands/_pretalx/); this file is the
-operator's manual.
+[`talks/management/commands/_pretalx/`](https://github.com/PioneersHub/pyconde-talks/blob/main/talks/management/commands/_pretalx);
+this page is the operator's manual. For the bare flag reference of the command itself, see
+[Management commands](management-commands.md#import_pretalx_talks).
 
 ## TL;DR
 
 - `manage.py import_pretalx_talks` is the workhorse. It is idempotent: an unchanged Pretalx event is
-  a no-op on the second run (no DB writes, no fresh social cards, just a "unchanged" count in the
-  report).
+    a no-op on the second run (no DB writes, no fresh social cards, just an "unchanged" count in the
+    report).
 - `--detect-only` lets the importer run periodically and record diffs without applying them. Admins
-  triage them at `/admin/talks/pendingpretalxchange/` and click **Apply selected** when ready.
+    triage them at `/admin/talks/pendingpretalxchange/` and click **Apply selected** when ready.
 - The "Check Pretalx now" object-tool button in that admin page re-runs the detect-only importer for
-  `DEFAULT_EVENT` so admins do not need shell access.
-- A plain-text email digest goes to `PRETALX_DIGEST_RECIPIENTS` (or `ADMINS`) at the end of any
-  detect run that produced or refreshed at least one pending row.
+    `DEFAULT_EVENT` so admins do not need shell access.
+- A plain-text email digest goes to `PRETALX_DIGEST_RECIPIENTS` (or the admin list) at the end of
+    any detect run that produced or refreshed at least one pending row.
 
 ## Modes
 
@@ -24,7 +29,7 @@ operator's manual.
 | Flag             | What changes happens to the DB                                    |
 | ---------------- | ----------------------------------------------------------------- |
 | _(default)_      | Full mutation: create/update/delete Talks, Speakers, Rooms        |
-| `--dry-run`      | Nothing - just logs what would happen                             |
+| `--dry-run`      | Nothing, just logs what would happen                              |
 | `--detect-only`  | Writes `PendingPretalxChange` rows only; live data untouched      |
 | `--no-update`    | Skips updates to existing rows; still creates new ones            |
 | `--skip-images`  | Skips talk-image (social-card) generation                         |
@@ -34,17 +39,18 @@ operator's manual.
 the latter applies it). `--skip-images` wins when combined with `--force-images`.
 
 Other flags (`--event-slug`, `--event-name`, `--pretalx-event-url`, `--api-token`, `--max-retries`,
-`--no-avatars`, `--image-format`) are described in `--help` and have not changed.
+`--no-avatars`, `--use-cache`, `--image-format`) are covered in
+[Management commands](management-commands.md#import_pretalx_talks) and via `--help`.
 
 ## Change detection
 
 The importer compares each Pretalx submission against the local `Talk` it maps to:
 
 - If every field already matches, the row is reported as **unchanged**. Nothing is written,
-  `updated_at` does not bump, and the social card is not regenerated.
+    `updated_at` does not bump, and the social card is not regenerated.
 - If at least one field or speaker association differs, the row is reported as **updated**. Only the
-  fields that actually differ are written (`save(update_fields=...)`), so manual local edits to
-  other fields survive.
+    fields that actually differ are written (`save(update_fields=...)`), so manual local edits to
+    other fields survive.
 
 The end-of-run report breaks down counts:
 `... created, ... updated, ... unchanged, ... detected, ... deleted, ... skipped, ... failed, ... total`.
@@ -59,14 +65,14 @@ The importer matches a submission's room by the stable Pretalx room id (`slot.ro
 what makes renames safe:
 
 - **Renamed on Pretalx** (same id, new name): the existing `Room` is **renamed in place**, so its
-  streamings, `slido_link`, `capacity`, and all `Talk` FKs stay attached. No orphan row is left
-  behind. (Before id-keying, a rename created a brand-new room and stranded the old one's streamings
-  and config.)
+    streamings, `slido_link`, `capacity`, and all `Talk` FKs stay attached. No orphan row is left
+    behind. (Before id-keying, a rename created a brand-new room and stranded the old one's
+    streamings and config.)
 - **Legacy room matched by name**: its `pretalx_id` is **stamped** on the first sync, converting it
-  to an id-keyed row so future renames are handled in place.
+    to an id-keyed row so future renames are handled in place.
 - **New room**: created under the event.
 - A name match whose stored id differs from the incoming id is logged and left alone (two distinct
-  Pretalx rooms never overwrite each other's id).
+    Pretalx rooms never overwrite each other's id).
 
 In `--detect-only` mode the Room table is never written: a pending rename is recorded as a
 reviewable `room` field diff (carrying `new_pretalx_id`) and the actual rename happens only when the
@@ -86,24 +92,25 @@ within one event by construction.
 
 ### Migrating an existing database
 
-The change ships as four migrations that must run in order (the column is nullable only during the
-backfill window):
+!!! warning "Order matters, and back up first"
+
+    The change ships as a chain of migrations that must run in order (the `Room.event` column is
+    nullable only during the backfill window). On a production database, snapshot the DB before applying
+    migration `0025`, and verify no `Room.event IS NULL` rows remain before `0027` runs.
 
 1. `0024_room_event_pretalx_id` - additive, adds nullable `event` + `pretalx_id` (zero-downtime).
 2. `0025_backfill_room_event` - assigns each existing room its event from its talks (a room with no
-   talks falls back to the newest event; a room whose talks span multiple events aborts the
-   migration loudly rather than guessing - rooms are expected to be per-event).
+    talks falls back to the newest event; a room whose talks span multiple events aborts the
+    migration loudly rather than guessing, since rooms are expected to be per-event).
 3. `0026_room_event_scoped_constraints` - drops the global unique on `name` and adds the per-event
-   `(event, name)` and partial `(event, pretalx_id)` constraints.
+    `(event, name)` and partial `(event, pretalx_id)` constraints.
 4. `0027_room_event_required` - tightens `Room.event` to NOT NULL once the backfill has populated
-   every row.
+    every row.
 5. `0028_backfill_talk_event` - assigns each event-less talk its room's event (or the newest event
-   when it has no room), then `0029_talk_event_required` tightens `Talk.event` to NOT NULL.
+    when it has no room), then `0029_talk_event_required` tightens `Talk.event` to NOT NULL.
 
 `pretalx_id` for existing rooms is **not** backfilled by a migration (there is nothing local to map
-from); it is stamped lazily on the next real sync via the `(event, name)` fallback. On a production
-database, snapshot the DB before applying migration `0025`, and verify no `Room.event IS NULL` rows
-remain before `0027` runs.
+from); it is stamped lazily on the next real sync via the `(event, name)` fallback.
 
 ## Image (social card) regeneration
 
@@ -113,10 +120,10 @@ For an existing talk, the social-card image is regenerated when **any** of these
 1. The talk's data or speaker set changed (the normal "updated" path).
 2. `--force-images` was passed.
 3. A still-attached speaker's name or avatar changed earlier in the same run. The bulk-upsert step
-   returns the set of changed speaker IDs and the per-talk loop checks for overlap.
+    returns the set of changed speaker IDs and the per-talk loop checks for overlap.
 4. The current image file is missing, _or_ a social-card template PNG for the event was touched
-   after the image's mtime. Useful when you swap a template on disk: the next import re-renders
-   affected cards automatically.
+    after the image's mtime. Useful when you swap a template on disk: the next import re-renders
+    affected cards automatically.
 
 New talks always get an image (unless `--skip-images` is set).
 
@@ -125,6 +132,15 @@ New talks always get an image (unless `--skip-images` is set).
 `--detect-only` is the safe periodic-check mode. The importer runs the same diff logic but writes
 the result to `PendingPretalxChange` rows instead of mutating the live `Talk` / `Speaker` / `Room`
 graph.
+
+```mermaid
+flowchart LR
+    A[Pretalx API] -->|import_pretalx_talks --detect-only| B[PendingPretalxChange rows]
+    B --> C{Admin reviews queue}
+    C -->|Apply selected| D[Live Talks / Speakers / Rooms]
+    C -->|Dismiss selected| E[Closed: audit trail]
+    B -->|at least one open row| F[Email digest]
+```
 
 ### Pending change model
 
@@ -136,12 +152,12 @@ Each row carries:
 - `speaker_diffs` - `{"added": [...], "removed": [...]}`.
 - `pretalx_payload` - a snapshot rich enough to apply later without going back to Pretalx.
 - `first_detected_at`, `last_detected_at`, `applied_at`, `applied_by`, `dismissed_at`,
-  `dismissed_by`.
+    `dismissed_by`.
 
 A partial-unique constraint enforces at most one **open** (neither applied nor dismissed) row per
 `(event, pretalx_code)`. Re-running detect for an unchanged diff is idempotent: it refreshes the
-same row instead of creating a duplicate. After a row is applied/dismissed, a fresh detection opens
-a new row.
+same row instead of creating a duplicate. After a row is applied or dismissed, a fresh detection
+opens a new row.
 
 ### Admin UI
 
@@ -149,14 +165,17 @@ a new row.
 one-line summary per row. Actions:
 
 - **Apply selected pending Pretalx changes** - runs `apply_change` for each pending row in the
-  selection. Updates only touch fields recorded in `field_diffs`, so manual local edits to other
-  fields are preserved. Wrapped in a transaction.
+    selection. Updates only touch fields recorded in `field_diffs`, so manual local edits to other
+    fields are preserved. Wrapped in a transaction.
 - **Dismiss selected pending Pretalx changes** - flips `dismissed_at`.
 - **Check Pretalx now** (object-tool button at the top of the list) - synchronously re-runs
-  `import_pretalx_talks --detect-only` for `settings.DEFAULT_EVENT`. The request takes 10-30 s for a
-  500-talk event; the browser is intentionally blocked because there is no worker process to hand
-  the job off to. Once it returns, the page reloads and any new/refreshed rows are visible at the
-  top of the list.
+    `import_pretalx_talks --detect-only` for `settings.DEFAULT_EVENT`.
+
+!!! note "The browser blocks during 'Check Pretalx now'"
+
+    The request takes 10-30 s for a 500-talk event. The browser is intentionally blocked because there
+    is no worker process to hand the job off to. Once it returns, the page reloads and any new or
+    refreshed rows are visible at the top of the list.
 
 Closed (applied or dismissed) rows stay in the table as an audit trail and are filtered by the
 **status** sidebar.
@@ -164,40 +183,45 @@ Closed (applied or dismissed) rows stay in the table as an audit trail and are f
 ### Email digest
 
 At the end of any `--detect-only` run that produced or refreshed at least one pending row, the
-importer sends a single plain-text email to the configured recipients. Body contains the per-row
+importer sends a single plain-text email to the configured recipients. The body contains the per-row
 summary (`.summarize()`) and an admin URL.
 
 `PRETALX_DIGEST_RECIPIENTS` controls who gets it:
 
-- **unset / empty value** - fall back to Django's `ADMINS`. This is what ships out of the box.
+- **unset / empty value** - fall back to Django's `ADMINS` list (built from `ADMIN_NAMES` and
+    `ADMIN_EMAILS`). This is what ships out of the box.
 - **comma-separated list of addresses** - send to exactly those.
-- **`-` (single dash)** - disable the digest entirely. Useful when you want `ADMINS` configured but
-  do not want this particular email.
+- **`-` (single dash)** - disable the digest entirely. Useful when you want admins configured but do
+    not want this particular email.
 
 The send uses `django.core.mail.send_mail`, which routes through whatever email backend is
-configured (django-anymail/Mailgun in production, the console backend in dev).
+configured (django-anymail/Mailgun in production, the console or Mailpit backend in dev).
 
 ## Scheduling periodic checks
 
-Cron / systemd-timer is the recommended driver. Detect-only is short and synchronous; it never holds
-a long-running connection open.
+Cron or a systemd timer is the recommended driver. Detect-only is short and synchronous; it never
+holds a long-running connection open.
 
-Sample crontab entry (every 10 minutes):
+=== "Cron"
 
-```cron
-*/10 * * * * cd /srv/pyconde-talks && /srv/pyconde-talks/.venv/bin/python manage.py \
-    import_pretalx_talks --detect-only --event-slug=pyconde-pydata-2026 >> logs/detect.log 2>&1
-```
+    Sample crontab entry (every 10 minutes):
 
-Tips:
+    ```cron
+    */10 * * * * cd /srv/pyconde-talks && /srv/pyconde-talks/.venv/bin/python manage.py \
+        import_pretalx_talks --detect-only --event-slug=pyconde-pydata-2026 >> logs/detect.log 2>&1
+    ```
 
-- Use the venv's `python`, not the system `python`, so the cron job picks up the project's deps
-  without needing `source`.
-- Redirect stdout/stderr to a log file under `logs/` so failed runs are greppable.
-- Combine with logrotate as you would for any other Django log.
+    Tips:
 
-`/etc/systemd/system/pretalx-detect.timer` is the equivalent if you prefer systemd. The unit file
-just calls the same `manage.py` invocation.
+    - Use the venv's `python`, not the system `python`, so the cron job picks up the project's deps
+        without needing `source`.
+    - Redirect stdout and stderr to a log file under `logs/` so failed runs are greppable.
+    - Combine with logrotate as you would for any other Django log.
+
+=== "systemd timer"
+
+    `/etc/systemd/system/pretalx-detect.timer` is the equivalent if you prefer systemd. The unit file
+    just calls the same `manage.py` invocation as the cron entry above.
 
 If you ever decide to graduate from manual review to auto-apply, add a second cron entry that runs
 the importer without `--detect-only` on a slower cadence. The two cron entries can coexist: the
@@ -205,25 +229,30 @@ detect job populates the audit table; the apply job is the source of truth for t
 
 ## Configuration reference
 
-Settings the sync feature reads (also in [django-vars.env](../django-vars.env)):
+Settings the sync feature reads (also in
+[`django-vars.env`](https://github.com/PioneersHub/pyconde-talks/blob/main/django-vars.env)):
 
 - `PRETALX_API_TOKEN` - API token for the Pretalx instance. Required.
 - `DEFAULT_EVENT` - event slug used by the admin "Check Pretalx now" button and as the fallback when
-  `--event-slug` is omitted on the CLI.
-- `PRETALX_DIGEST_RECIPIENTS` - see above. Defaults to fall-back-to-ADMINS.
-- `ADMINS` / `ADMIN_EMAILS` - Django's classic admin list; reused as the digest fallback recipient
-  list.
+    `--event-slug` is omitted on the CLI.
+- `PRETALX_DIGEST_RECIPIENTS` - see [Email digest](#email-digest). Defaults to falling back to the
+    admin list.
+- `ADMIN_NAMES` / `ADMIN_EMAILS` - the classic Django admin list (combined into `ADMINS`); reused as
+    the digest fallback recipient list.
+- `PICKLE_PRETALX_TALKS` - default for `--use-cache`. Caches fetched submissions on disk for faster
+    repeated local runs. Development only.
 
 ## Architecture pointers
 
 The importer is split into small modules under
-[talks/management/commands/\_pretalx/](../talks/management/commands/_pretalx/):
+[`talks/management/commands/_pretalx/`](https://github.com/PioneersHub/pyconde-talks/blob/main/talks/management/commands/_pretalx):
 
 | Module              | Responsibility                                                   |
 | ------------------- | ---------------------------------------------------------------- |
 | `client.py`         | `PretalxClient` (httpx2), throttling, setup + fetch with retry   |
 | `pretalx_models.py` | Typed Pydantic models for the Pretalx API responses we read      |
-| `context.py`        | `ImportContext` - the frozen dataclass passed everywhere         |
+| `context.py`        | `ImportContext`, the frozen dataclass passed everywhere          |
+| `events.py`         | Resolve / create the `Event`, sync its name from the API         |
 | `mixins.py`         | The `Command` plumbing: per-submission loop, mode banners        |
 | `submission.py`     | Flatten / normalize a Pretalx `Submission` into `SubmissionData` |
 | `rooms.py`          | Room get-or-create + bulk upsert                                 |
@@ -234,7 +263,9 @@ The importer is split into small modules under
 | `pending.py`        | Detect-only: build diff, upsert `PendingPretalxChange` rows      |
 | `apply.py`          | Apply a pending row back onto a live `Talk`                      |
 | `digest.py`         | Build and send the summary email                                 |
+| `validation.py`     | Input validation helpers for fetched submission data             |
 
-The admin glue is in [talks/admin_pretalx.py](../talks/admin_pretalx.py) (bulk actions, "Check
-Pretalx now" view) and the change-list template at
-[templates/admin/talks/pendingpretalxchange/change_list.html](../templates/admin/talks/pendingpretalxchange/change_list.html).
+The admin glue is in
+[`talks/admin_pretalx.py`](https://github.com/PioneersHub/pyconde-talks/blob/main/talks/admin_pretalx.py)
+(bulk actions, "Check Pretalx now" view) and the change-list template at
+[`templates/admin/talks/pendingpretalxchange/change_list.html`](https://github.com/PioneersHub/pyconde-talks/blob/main/templates/admin/talks/pendingpretalxchange/change_list.html).

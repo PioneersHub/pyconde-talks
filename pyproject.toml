@@ -86,10 +86,13 @@ prod = [
     # Add the ``pool`` extra to enable Django's native connection pool (`DJANGO_DB_POOL=True`).
     "psycopg[binary]>=3.3.4",
 ]
+docs = [
+    "zensical>=0.0.45",
+]
 
 [project.urls]
 Homepage = "https://github.com/PioneersHub/pyconde-talks"
-Documentation = "https://github.com/PioneersHub/pyconde-talks#readme"
+Documentation = "https://pioneershub.github.io/pyconde-talks/"
 Repository = "https://github.com/PioneersHub/pyconde-talks"
 CI = "https://github.com/PioneersHub/pyconde-talks/actions"
 Issues = "https://github.com/PioneersHub/pyconde-talks/issues"
