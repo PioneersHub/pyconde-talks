@@ -1,5 +1,7 @@
 #!/bin/sh
-set -e
+# -e: abort on any failed command; -u: treat an unset variable as an error (catches typos /
+# missing config early). pipefail is intentionally omitted: it is not POSIX and this is /bin/sh.
+set -eu
 
 # Apply database migrations. Retry a few times so a slow-to-accept-connections DB
 # (just-started container) doesn't kill the boot, but FAIL HARD if they never succeed:

@@ -38,8 +38,15 @@ mkdir -p "${STATIC_DIR}" &&
     chmod -R 400 "${STATIC_DIR}" &&
     find "${STATIC_DIR}" -type d -print0 | xargs -0 chmod 500
 
-# Media: Django needs read and write. Nginx needs read only
-mkdir -p "${MEDIA_DIR}/talk_images/${DEFAULT_EVENT}" &&
+# Media: Django needs read and write. Nginx needs read only.
+# DEFAULT_EVENT is optional: pre-create its talk_images subdir only when set. Without this
+# default the script aborts under `set -u` when the documented invocation does not export it.
+DEFAULT_EVENT="${DEFAULT_EVENT:-}"
+MEDIA_TALK_IMAGES="${MEDIA_DIR}/talk_images"
+if [[ -n "${DEFAULT_EVENT}" ]]; then
+    MEDIA_TALK_IMAGES="${MEDIA_TALK_IMAGES}/${DEFAULT_EVENT}"
+fi
+mkdir -p "${MEDIA_TALK_IMAGES}" &&
     chown -R "${DJANGO_UID}:${NGINX_GID}" "${MEDIA_DIR}" &&
     chmod -R 640 "${MEDIA_DIR}" &&
     find "${MEDIA_DIR}" -type d -print0 | xargs -0 chmod 2750
