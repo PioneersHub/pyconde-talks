@@ -258,11 +258,36 @@ ACCOUNT_LOGIN_BY_CODE_ENABLED = True
 ACCOUNT_LOGIN_BY_CODE_TIMEOUT = env.int("ACCOUNT_LOGIN_BY_CODE_TIMEOUT", default=300)
 ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS = 3
 ACCOUNT_PREVENT_ENUMERATION = True
-# Rate limits for authentication to prevent brute force attacks
+# Number of trusted reverse-proxy hops so allauth derives the real client IP from
+# X-Forwarded-For. This is for correct IP attribution in logs/Sentry only: the auth rate limits
+# below are deliberately NOT keyed on IP (see ACCOUNT_RATE_LIMITS). Default 0 for local/dev
+# (no proxy); the Docker/nginx deployment sets it to 1 (see docker/.env).
+ALLAUTH_TRUSTED_PROXY_COUNT = env.int("ALLAUTH_TRUSTED_PROXY_COUNT", default=0)
+# Authentication rate limits, keyed PER ACCOUNT / PER EMAIL ("key"), never per IP.
+#
+# At the conference venue ~2000 attendees reach the site through a single NAT public IP, so a
+# per-IP limit there is collective punishment: one attacker, or merely the opening-session login
+# rush, trips it and locks out everyone behind that IP. Per-account limits are immune to a shared
+# IP because they only throttle the specific account/email being targeted, which is the
+# protection we actually want. The same config behaves correctly post-conference from home.
+#
+# allauth's defaults are per IP (login 30/m/ip, signup 20/m/ip, request_login_code 20/m/ip,...),
+# so we override them. login/signup are disabled (None): they are anonymous actions with no
+# per-account key, and brute force is already bounded without an IP limit. Login is passwordless
+# email-code, so an attacker never sees the emailed code; ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS caps
+# code guesses; the email-validation API gates who can receive a code at all; and nginx applies a
+# coarse per-connection request limit on top.
 # https://docs.allauth.org/en/latest/account/rate_limits.html
 ACCOUNT_RATE_LIMITS = {
-    "login_failed": "5/5m",  # 5 failed login attempts per 5 minutes
-    "confirm_email": "3/3m",  # 3 email confirmation requests per 3 minutes
+    # 5 wrong code entries per account / 5 min (key = the targeted account).
+    "login_failed": "5/5m/key",
+    # 5 login-code requests per email / 5 min (key = the email a code is requested for).
+    "request_login_code": "5/5m/key",
+    # 3 email-confirmation requests per account / 3 min.
+    "confirm_email": "3/3m/key",
+    # Anonymous, no per-account key -> a per-IP limit would lock out the shared venue, so disable.
+    "login": None,
+    "signup": None,
 }
 ACCOUNT_EMAIL_SUBJECT_PREFIX = env(
     "ACCOUNT_EMAIL_SUBJECT_PREFIX",

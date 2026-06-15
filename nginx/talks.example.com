@@ -6,8 +6,9 @@
 # Make sure /etc/nginx/sites-available/default has catch-all default_server blocks for ports 80 and
 # 443 that return 444, otherwise direct-IP and wrong-Host scans still reach Daphne.
 
-# Rate limiting: 10 req/s per IP with configurable burst per location.
-limit_req_zone $binary_remote_addr zone=general:10m rate=10r/s;
+# Rate limiting: 30 req/s per IP with configurable burst per location.
+# This cannot be too low, because many attendees share the same venue NAT IP.
+limit_req_zone $binary_remote_addr zone=general:10m rate=30r/s;
 limit_req_status 429;
 
 # Per-IP concurrency cap.
