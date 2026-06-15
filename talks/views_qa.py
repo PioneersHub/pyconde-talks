@@ -32,9 +32,15 @@ if TYPE_CHECKING:
     from users.models import CustomUser
 
 
+# The status filters the Q&A views understand. Anything else collapses to "all" so an attacker
+# cannot reflect arbitrary text into the hx-vals JSON / hx-get URL the list fragment builds.
+_VALID_STATUS_FILTERS = frozenset({"all", "mine", "approved", "answered", "rejected"})
+
+
 def _get_status_filter(request: HttpRequest) -> str:
-    """Return the status_filter from POST (hx-vals) or GET, defaulting to 'all'."""
-    return request.POST.get("status_filter") or request.GET.get("status_filter", "all")
+    """Return a validated status_filter from POST (hx-vals) or GET, defaulting to 'all'."""
+    raw = request.POST.get("status_filter") or request.GET.get("status_filter", "all")
+    return raw if raw in _VALID_STATUS_FILTERS else "all"
 
 
 def _get_accessible_question(user: AbstractBaseUser | AnonymousUser, question_id: int) -> Question:
@@ -75,8 +81,8 @@ class QuestionListView(ListView[Question]):
         user = cast("CustomUser", self.request.user)
         self.talk = get_object_or_404(Talk.objects.accessible_to(user), pk=self.kwargs["talk_id"])
 
-        # Get the status filter from the request
-        self.status_filter = self.request.GET.get("status_filter", "all")
+        # Get the (validated) status filter from the request
+        self.status_filter = _get_status_filter(self.request)
 
         # Use the shared function to get filtered questions
         return get_filtered_questions(
@@ -145,7 +151,7 @@ class QuestionCreateView(CreateView[Question, forms.ModelForm[Question]]):
         # If this is an HTMX request, return to the question list
         if is_htmx_request(self.request):
             user_can_moderate = is_moderator(self.request.user)
-            status_filter = self.request.GET.get("status_filter", "all")
+            status_filter = _get_status_filter(self.request)
             return render(
                 self.request,
                 "talks/questions/question_success.html",

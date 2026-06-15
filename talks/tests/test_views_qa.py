@@ -4,12 +4,14 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 import pytest
+from django.test import RequestFactory
 from django.urls import reverse
 from model_bakery import baker
 
 from events.models import Event
 from talks.models import Talk
 from talks.models_qa import CONTENT_MAX_LENGTH, Question, QuestionVote
+from talks.views_qa import _get_status_filter
 from users.models import CustomUser
 from utils.test_perf import assert_no_n_plus_one
 
@@ -388,6 +390,13 @@ class TestQuestionDelete:
         response = client.post(url, HTTP_HX_REQUEST="true")
         assert response.status_code == HTTPStatus.OK
         assert not Question.objects.filter(pk=question.pk).exists()
+
+
+def test_get_status_filter_rejects_unknown_values() -> None:
+    """An unknown status_filter collapses to 'all' so it can't be reflected into templates."""
+    factory = RequestFactory()
+    assert _get_status_filter(factory.get("/", {"status_filter": '"><script>'})) == "all"
+    assert _get_status_filter(factory.get("/", {"status_filter": "rejected"})) == "rejected"
 
 
 @pytest.mark.django_db
