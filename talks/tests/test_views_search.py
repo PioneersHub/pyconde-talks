@@ -5,16 +5,23 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 import pytest
+from django.test import RequestFactory
 from django.urls import reverse
 from model_bakery import baker
 
 from events.models import Event
-from talks.models import Speaker, Talk
+from talks.models import Rating, Speaker, Talk
+from talks.views import _apply_search_filter
 from users.models import CustomUser
 
 
 if TYPE_CHECKING:
     from django.test.client import Client
+
+
+# Expected aggregates for the search fan-out regression test below.
+_EXPECTED_RATING_COUNT = 2
+_EXPECTED_AVERAGE = 4.0
 
 
 @pytest.fixture()
@@ -121,3 +128,32 @@ class TestTalkListSearch:
         assert "grail" in content
         # Non-matching title should not appear
         assert talk_b.title.lower() not in content
+
+
+@pytest.mark.django_db
+def test_rating_count_not_inflated_by_search_speaker_join() -> None:
+    """
+    A multi-speaker talk reports its true rating count when a search joins speakers.
+
+    The default ("all") search scope ORs a Q(speakers__name__icontains=...) into the filter,
+    which fans each talk row out once per speaker. Before the fix, the shared with_rating_stats()
+    annotation used a plain Count("ratings"), so the displayed count was multiplied by the
+    speaker count. This drives the exact query chain TalkListView.get_queryset builds.
+    """
+    event = Event.objects.create(slug="ratings", name="Ratings", year=2099)
+    talk = baker.make(Talk, event=event, title="Distinctive Title")
+    talk.speakers.add(baker.make(Speaker), baker.make(Speaker))  # two speakers -> 2x fan-out
+    for _ in range(_EXPECTED_RATING_COUNT):
+        Rating.objects.create(talk=talk, user=baker.make(CustomUser), score=4)
+
+    # Matches by title; the OR still joins all speakers, reproducing the fan-out.
+    request = RequestFactory().get("/", {"q": "Distinctive", "search_in": "all"})
+    stats = (
+        _apply_search_filter(Talk.objects.all(), request)
+        .with_rating_stats()
+        .values("rating_count", "average_rating")
+        .get(pk=talk.pk)
+    )
+
+    assert stats["rating_count"] == _EXPECTED_RATING_COUNT  # not 4
+    assert stats["average_rating"] == _EXPECTED_AVERAGE

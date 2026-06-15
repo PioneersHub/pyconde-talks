@@ -69,7 +69,13 @@ class TalkDetailView(DetailView[Talk]):
     def get_queryset(self) -> QuerySet[Talk]:
         """Optimize query with related data."""
         user = cast("CustomUser", self.request.user)
-        return Talk.objects.select_related("room").prefetch_related("speakers").accessible_to(user)
+        # select_related("event"): the detail template's get_image_url and the rating-summary
+        # check both dereference talk.event, which would otherwise be a separate query per page.
+        return (
+            Talk.objects.select_related("room", "event")
+            .prefetch_related("speakers")
+            .accessible_to(user)
+        )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Enhance context with rating statistics and user's existing rating."""

@@ -290,9 +290,7 @@ class Speaker(models.Model):
         verbose_name = _("Speaker")
         verbose_name_plural = _("Speakers")
         ordering: ClassVar[list[str]] = ["name"]
-        indexes: ClassVar[list[models.Index]] = [
-            models.Index(fields=["pretalx_id"]),
-        ]
+        # No explicit index on pretalx_id: unique=True already creates one.
 
     def __str__(self) -> str:
         """Return the speaker name."""
@@ -344,10 +342,17 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
         Centralizes the per-row aggregate used by the talk list, upcoming-talks
         partial, and admin so the annotation lives in one place and templates can
         rely on the same attribute names everywhere.
+
+        ``Count`` uses ``distinct=True`` because callers chain this after a search that may
+        join ``speakers`` (the author/all scope adds ``Q(speakers__name__icontains=...)``).
+        That join fans each talk row out once per speaker, and a plain ``Count("ratings")``
+        would then count every rating once per speaker, inflating the displayed total.
+        ``Avg`` needs no ``distinct``: the fan-out duplicates every rating uniformly, so the
+        average is unaffected (and ``distinct`` would wrongly collapse equal scores).
         """
         return self.annotate(
             average_rating=Avg("ratings__score"),
-            rating_count=Count("ratings"),
+            rating_count=Count("ratings", distinct=True),
         )
 
 

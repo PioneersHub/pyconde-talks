@@ -391,7 +391,9 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
             super()
             .get_queryset(request)
             .prefetch_related("speakers")
-            .select_related("room")
+            # "event" is shown in list_display and is a non-null FK, so without it the
+            # changelist runs one extra query per row to render Event.__str__.
+            .select_related("room", "event")
             .annotate(
                 _average_rating=Avg("ratings__score"),
                 _rating_count=Count("ratings", distinct=True),
