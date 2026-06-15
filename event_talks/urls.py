@@ -10,7 +10,8 @@ from health_check.views import HealthCheckView
 
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    # Honor DJANGO_ADMIN_URL so operators can relocate the admin off the well-known /admin/ path.
+    path(settings.ADMIN_URL, admin.site.urls),
     path("accounts/", include("users.urls")),
     path("talks/", include("talks.urls")),
     path(
@@ -22,10 +23,15 @@ urlpatterns = [
         "ht/",
         login_not_required(
             HealthCheckView.as_view(
+                # This endpoint is unauthenticated and hit on every Docker/compose/deploy
+                # liveness probe, so it stays cheap and self-contained. The Mail check is
+                # deliberately excluded: it opens a real SMTP/Mailgun connection on each hit,
+                # which would (1) let anyone drive outbound mail-backend connections and
+                # (2) flip the container to "unhealthy" during an unrelated ESP outage,
+                # triggering false deploy rollbacks. Monitor mail deliverability separately.
                 checks=[
                     "health_check.Cache",
                     "health_check.Database",
-                    "health_check.Mail",
                     "health_check.Storage",
                     # 3rd party checks
                     "health_check.contrib.psutil.Disk",
