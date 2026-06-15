@@ -22,6 +22,11 @@ if TYPE_CHECKING:
 
 # Constants
 CONTENT_PREVIEW_LENGTH = 50
+# Upper bound for a question / answer body. Bounded (like Rating.comment) so a logged-in attendee
+# cannot store a multi-megabyte body that is then re-rendered to every viewer of the Q&A page.
+# Enforced by the auto-generated ModelForms (which map a max_length TextField to a length-validated
+# CharField) on both the create and edit paths.
+CONTENT_MAX_LENGTH = 2000
 
 
 def _truncate_for_preview(text: str) -> str:
@@ -73,6 +78,7 @@ class Question(models.Model):
     )
 
     content = models.TextField(
+        max_length=CONTENT_MAX_LENGTH,
         help_text=_("The question text"),
     )
 
@@ -218,6 +224,7 @@ class Answer(models.Model):
     )
 
     content = models.TextField(
+        max_length=CONTENT_MAX_LENGTH,
         help_text=_("The answer text"),
     )
 

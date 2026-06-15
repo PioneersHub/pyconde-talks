@@ -9,7 +9,7 @@ from model_bakery import baker
 
 from events.models import Event
 from talks.models import Talk
-from talks.models_qa import Question, QuestionVote
+from talks.models_qa import CONTENT_MAX_LENGTH, Question, QuestionVote
 from users.models import CustomUser
 from utils.test_perf import assert_no_n_plus_one
 
@@ -325,6 +325,23 @@ class TestQuestionCreate:
         )
         question = Question.objects.get(talk=talk, content="What is Django?")
         assert QuestionVote.objects.filter(question=question, user=user).exists()
+
+    def test_over_length_question_is_rejected(
+        self,
+        client: Client,
+        user: CustomUser,
+        talk: Talk,
+    ) -> None:
+        """A question longer than CONTENT_MAX_LENGTH is rejected, not stored (abuse guard)."""
+        client.force_login(user)
+        url = reverse("question_create", args=[talk.pk])
+        response = client.post(
+            url,
+            {"content": "x" * (CONTENT_MAX_LENGTH + 1)},
+            HTTP_HX_REQUEST="true",
+        )
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+        assert not Question.objects.filter(talk=talk).exists()
 
 
 @pytest.mark.django_db

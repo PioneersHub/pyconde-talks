@@ -5,6 +5,7 @@ This module provides class-based and function-based views for handling Question 
 listing, creating, voting, and moderation actions.
 """
 
+from http import HTTPStatus
 from typing import TYPE_CHECKING, Any, cast
 
 from django import forms
@@ -156,6 +157,23 @@ class QuestionCreateView(CreateView[Question, forms.ModelForm[Question]]):
             )
 
         return response
+
+    def form_invalid(self, form: forms.ModelForm[Question]) -> HttpResponse:
+        """
+        Reject an invalid submission (e.g. content over CONTENT_MAX_LENGTH) without a 500.
+
+        The create form is embedded in the question list page, so there is no standalone form
+        template to re-render. Return a 422 with the error for HTMX (mirroring the rating views),
+        or flash it and redirect back otherwise.
+        """
+        errors = form.errors.get("content")
+        message = (
+            "; ".join(str(e) for e in errors) if errors else _("Your question could not be posted.")
+        )
+        if is_htmx_request(self.request):
+            return HttpResponse(message, status=HTTPStatus.UNPROCESSABLE_ENTITY)
+        messages.error(self.request, message)
+        return redirect("talk_questions", talk_id=self.kwargs["talk_id"])
 
     def get_success_url(self) -> str:
         """Redirect to the talk's Q&A page."""
