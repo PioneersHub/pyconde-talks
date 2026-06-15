@@ -18,7 +18,7 @@ FROM ${WOLFI_BASE} AS builder
 # Pinned by version AND digest for reproducibility.
 # Renovate bumps both the version tag and the digest, grouped with the uv-pre-commit hook so the two
 # uv pins stay in sync (see renovate.json5).
-COPY --from=ghcr.io/astral-sh/uv:0.11.19@sha256:b46b03ddfcfbf8f547af7e9eaefdf8a39c8cebcba7c98858d3162bd28cf536f6 /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.21@sha256:ff07b86af50d4d9391d9daf4ff89ce427bc544f9aae87057e69a1cc0aa369946 /uv /uvx /usr/local/bin/
 
 # Build dependency: the Python interpreter. Wolfi's Python is dynamically linked against the base
 # image's apk-managed OpenSSL, so a fresh base patches it (unlike uv's python-build-standalone,
