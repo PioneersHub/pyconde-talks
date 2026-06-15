@@ -5,11 +5,7 @@ Core browsing: list, detail, dashboard, upcoming, and ID-or-pretalx redirect. Ra
 live in ``talks.views_rating`` and the bookmark toggle in ``talks.views_saved``.
 """
 
-from datetime import (
-    date as date_type,
-    datetime,
-    timedelta,
-)
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from django.db.models import Count, Q
@@ -26,7 +22,7 @@ from events.models import Event
 from events.session import resolve_default_event
 
 from .models import Rating, Room, SavedTalk, Talk, TalkQuerySet, prefetch_streamings
-from .utils import get_talk_by_id_or_pretalx, is_htmx_request
+from .utils import get_talk_by_id_or_pretalx, is_htmx_request, parse_iso_date
 from .views_qa import is_moderator
 
 
@@ -34,14 +30,6 @@ if TYPE_CHECKING:
     from django.db.models.query import QuerySet
 
     from users.models import CustomUser
-
-
-def _parse_date(value: str) -> date_type | None:
-    """Parse a YYYY-MM-DD string, returning None on any malformed input."""
-    try:
-        return datetime.strptime(value, "%Y-%m-%d").date()  # noqa: DTZ007
-    except ValueError, TypeError:
-        return None
 
 
 def _can_see_rating_summary(user: Any, event: Event | None) -> bool:
@@ -206,7 +194,7 @@ class TalkListView(ListView[Talk]):
         date_value = self.request.GET.get("date")
         if (
             date_value
-            and _parse_date(date_value)
+            and parse_iso_date(date_value)
             and queryset.filter(start_time__date=date_value).exists()
         ):
             active["start_time__date"] = date_value

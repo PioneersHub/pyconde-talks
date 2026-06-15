@@ -1,5 +1,6 @@
 """Utilities for the talks app."""
 
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from .models import Talk
@@ -14,6 +15,21 @@ if TYPE_CHECKING:
 def is_htmx_request(request: HttpRequest) -> bool:
     """Return True when *request* was issued by HTMX."""
     return request.headers.get("HX-Request") == "true"
+
+
+def parse_iso_date(value: str | None) -> date | None:
+    """
+    Parse a ``YYYY-MM-DD`` string into a date, returning None on empty or malformed input.
+
+    Shared by the talk-list, schedule, and chair views so they all reject bad ?date params the
+    same way (previously each had its own copy, one of which caught a different exception set).
+    """
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()  # noqa: DTZ007
+    except ValueError, TypeError:
+        return None
 
 
 def get_talk_by_id_or_pretalx(talk_id: str, *, user: CustomUser | None = None) -> Talk | None:

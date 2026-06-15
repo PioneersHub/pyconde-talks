@@ -24,8 +24,8 @@ from django.views.decorators.http import require_POST, require_safe
 from events.session import resolve_default_event
 
 from .grid_utils import build_grid_slices, build_time_labels, grid_line_name
-from .models import FAR_FUTURE, Room, Talk
-from .utils import is_htmx_request
+from .models import Room, Talk
+from .utils import is_htmx_request, parse_iso_date
 from .views_qa import is_moderator
 
 
@@ -76,7 +76,7 @@ def _find_chair_conflicts(target_user: CustomUser, block: list[Talk]) -> list[Ta
     existing = list(
         Talk.objects.filter(session_chair=target_user, start_time__date__in=dates)
         .exclude(pk__in=block_pks)
-        .exclude(start_time__year=FAR_FUTURE.year)
+        .scheduled()
         .select_related("room")
     )
     seen: set[int] = set()
@@ -105,16 +105,6 @@ def _get_available_chairs(user: CustomUser, event_id: int | None) -> list[Custom
         accessible = user.visible_events()  # type: ignore[attr-defined]
         qs = qs.filter(Q(is_superuser=True) | Q(events__in=accessible))
     return list(qs.order_by("display_name", "email").distinct())
-
-
-def _parse_chair_date(date_str: str | None) -> date | None:
-    """Parse a YYYY-MM-DD string into a date, returning None on failure."""
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, "%Y-%m-%d").date()  # noqa: DTZ007
-    except ValueError:
-        return None
 
 
 _MAX_CONFLICT_TITLES = 3
@@ -148,7 +138,7 @@ def _find_tight_transitions(
         Talk.objects.filter(session_chair=target_user, start_time__date=talk_start.date())
         .exclude(pk=talk.pk)
         .exclude(room=talk.room)
-        .exclude(start_time__year=FAR_FUTURE.year)
+        .scheduled()
         .select_related("room")
     )
     tight: list[Talk] = []
@@ -282,7 +272,7 @@ def toggle_session_chair(request: HttpRequest, talk_id: int) -> HttpResponse:
 
 def _chair_dates(user: CustomUser, event_id: int | None) -> list[date]:
     """Return the available schedule dates for the chair grid, scoped to the user's access."""
-    talks_qs = Talk.objects.exclude(start_time__year=FAR_FUTURE.year).accessible_to(user)
+    talks_qs = Talk.objects.scheduled().accessible_to(user)
     if event_id:
         talks_qs = talks_qs.filter(event_id=event_id)
     date_qs = (
@@ -305,7 +295,7 @@ def _resolve_event_id(request: HttpRequest) -> int | None:
 
 def _resolve_selected_date(request: HttpRequest, available_dates: list[date]) -> date | None:
     """Pick the chair grid date: user's ?date, then today, then the first available date."""
-    selected = _parse_chair_date(request.GET.get("date"))
+    selected = parse_iso_date(request.GET.get("date"))
     if selected in available_dates:
         return selected
     today = timezone.localdate()
@@ -351,7 +341,7 @@ def _build_chair_grid(
     """
     talks_qs = (
         Talk.objects.filter(start_time__date=selected_date)
-        .exclude(start_time__year=FAR_FUTURE.year)
+        .scheduled()
         .accessible_to(user)
         .select_related("room", "session_chair")
         .order_by("start_time", "room__name")

@@ -310,6 +310,15 @@ def _talk_image_upload_path(instance: Talk, filename: str) -> str:
 class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
     """Custom queryset for ``Talk`` with access-control helpers."""
 
+    def scheduled(self) -> Self:
+        """
+        Exclude talks that have no real slot yet (left at the ``FAR_FUTURE`` sentinel start time).
+
+        Keeps the sentinel knowledge next to ``FAR_FUTURE`` instead of repeating the
+        ``exclude(start_time__year=FAR_FUTURE.year)`` lookup across the schedule/chair views.
+        """
+        return self.exclude(start_time__year=FAR_FUTURE.year)
+
     def accessible_to(self, user: CustomUser) -> Self:
         """
         Return talks the given user is allowed to see.

@@ -1,6 +1,5 @@
 """Views for the Pretalx-style CSS Grid schedule."""
 
-from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from django.db.models.functions import TruncDate
@@ -11,23 +10,16 @@ from django.views.decorators.http import require_safe
 from events.session import resolve_default_event
 
 from .grid_utils import build_grid_slices, build_time_labels, grid_line_name
-from .models import FAR_FUTURE, Room, SavedTalk, Talk
+from .models import Room, SavedTalk, Talk
+from .utils import parse_iso_date
 
 
 if TYPE_CHECKING:
+    from datetime import date
+
     from django.http import HttpRequest, HttpResponse
 
     from users.models import CustomUser
-
-
-def _parse_schedule_date(date_str: str | None) -> date | None:
-    """Parse a YYYY-MM-DD string into a date, returning None on failure."""
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, "%Y-%m-%d").date()  # noqa: DTZ007
-    except ValueError:
-        return None
 
 
 def _get_schedule_dates(user: CustomUser, event_id: int | None = None) -> list[date]:
@@ -35,7 +27,7 @@ def _get_schedule_dates(user: CustomUser, event_id: int | None = None) -> list[d
     # Always scope to the user's accessible events first, then optionally narrow to one event.
     # Skipping `accessible_to` when ``event_id`` is set would let a user request any event's
     # schedule by passing ``?event=<id>`` in the URL.
-    talks_qs = Talk.objects.exclude(start_time__year=FAR_FUTURE.year).accessible_to(user)
+    talks_qs = Talk.objects.scheduled().accessible_to(user)
     if event_id:
         talks_qs = talks_qs.filter(event_id=event_id)
     date_qs = (
@@ -59,7 +51,7 @@ def _build_schedule_data(
     """
     talks_qs = (
         Talk.objects.filter(start_time__date=selected_date)
-        .exclude(start_time__year=FAR_FUTURE.year)
+        .scheduled()
         .select_related("room")
         .prefetch_related("speakers")
         .defer("description", "abstract")
@@ -161,7 +153,7 @@ def _resolve_selected_date(
     available_dates: list[date],
 ) -> date | None:
     """Pick the best-available schedule date: user's ?date, today, or the first one."""
-    selected_date = _parse_schedule_date(request.GET.get("date"))
+    selected_date = parse_iso_date(request.GET.get("date"))
     if selected_date in available_dates:
         return selected_date
     today = timezone.localdate()
