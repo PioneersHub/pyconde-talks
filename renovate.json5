@@ -92,6 +92,10 @@
       description: "uv: uv-pre-commit hook + Dockerfile COPY --from image",
       matchPackageNames: ["astral-sh/uv-pre-commit", "ghcr.io/astral-sh/uv"],
       groupName: "uv",
+      // ghcr.io publishes no build timestamp, so timestamp-required (the default) would park
+      // version bumps as pending forever. timestamp-optional ships once the 3-day hold has passed
+      // using the GitHub release date when available, or immediately when no timestamp exists.
+      minimumReleaseAgeBehaviour: "timestamp-optional",
     },
     {
       description: "djlint: pyproject dep + djLint hook (the repo keeps the capital L)",
