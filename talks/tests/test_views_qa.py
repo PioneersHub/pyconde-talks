@@ -371,3 +371,38 @@ class TestQuestionDelete:
         response = client.post(url, HTTP_HX_REQUEST="true")
         assert response.status_code == HTTPStatus.OK
         assert not Question.objects.filter(pk=question.pk).exists()
+
+
+@pytest.mark.django_db
+class TestQuestionEditAccess:
+    """The edit endpoint must respect event access, not just ownership."""
+
+    def test_owner_without_event_access_gets_404(
+        self,
+        client: Client,
+        user: CustomUser,
+    ) -> None:
+        """A user who owns a question but lost access to its talk's event cannot edit it."""
+        # ``user`` belongs to the shared ``event`` fixture, not to this one.
+        other_event = Event.objects.create(slug="other", name="Other", year=2099)
+        other_talk = baker.make(Talk, title="Inaccessible", event=other_event)
+        question = baker.make(Question, talk=other_talk, user=user, content="mine")
+
+        client.force_login(user)
+        url = reverse("question_edit", args=[question.pk])
+
+        assert client.get(url).status_code == HTTPStatus.NOT_FOUND
+        assert client.post(url, {"content": "edited"}).status_code == HTTPStatus.NOT_FOUND
+        question.refresh_from_db()
+        assert question.content == "mine"  # unchanged
+
+    def test_owner_with_event_access_can_edit(
+        self,
+        client: Client,
+        user: CustomUser,
+        question: Question,
+    ) -> None:
+        """The normal path still works: an owner with access reaches the edit form."""
+        client.force_login(user)
+        url = reverse("question_edit", args=[question.pk])
+        assert client.get(url).status_code == HTTPStatus.OK

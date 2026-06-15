@@ -312,6 +312,18 @@ class QuestionUpdateView(
     template_name = "talks/questions/question_edit_form.html"
     pk_url_kwarg = "question_id"
 
+    def get_queryset(self) -> QuestionQuerySet:
+        """
+        Scope editable questions to talks the user can still access.
+
+        ``QuestionOwnerRequiredMixin`` only checks ownership; without this, a user who lost
+        access to a talk's event (ticket revoked, event deactivated) could still GET/POST the
+        edit form for their old question and the HTMX response would leak that talk's question
+        list. Mirrors the ``accessible_to`` scoping used by every other endpoint in this module.
+        """
+        user = cast("CustomUser", self.request.user)
+        return Question.objects.filter(talk__in=Talk.objects.accessible_to(user))
+
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Add status filter to context."""
         ctx = super().get_context_data(**kwargs)
