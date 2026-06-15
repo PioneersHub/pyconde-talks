@@ -26,7 +26,6 @@ def backwards(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("talks", "0027_room_event_required"),
     ]
