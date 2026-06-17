@@ -44,7 +44,7 @@ repos:
           - mdformat-frontmatter # Don't mess with YAML front matter blocks
 
   - repo: https://github.com/streetsidesoftware/cspell-cli
-    rev: v10.0.0
+    rev: v10.0.1
     hooks:
       - id: cspell # Spell check changed files
       - id: cspell # Spell check the commit message
@@ -75,7 +75,7 @@ repos:
   # rev is Renovate's bare semver with NO "v" prefix; Renovate keeps it bumped via the pre-commit
   # manager (it lands in the "pre-commit hooks" group).
   - repo: https://github.com/renovatebot/pre-commit-hooks
-    rev: 43.224.0
+    rev: 43.227.0
     hooks:
       - id: renovate-config-validator
         args: [--strict]
