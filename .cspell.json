@@ -4,7 +4,7 @@
   "version": "0.2",
   // Current active spelling language
   "language": "en",
-  "ignorePaths": ["**/migrations/**", "django-vars.env", "docker/.env"],
+  "ignorePaths": ["**/migrations/**", "django-vars.env", "docker/.env", "locale/**"],
   "dictionaryDefinitions": [
     {
       "name": "custom-dictionary",
