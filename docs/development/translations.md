@@ -17,9 +17,12 @@ Offered languages live in `settings.LANGUAGES`:
 | ------- | ------------------- | ----------------------------------------- |
 | `en`    | English (source)    | none (source strings)                     |
 | `pt-br` | Portuguese (Brazil) | `locale/pt_BR/LC_MESSAGES/django.{po,mo}` |
+| `de`    | German              | `locale/de/LC_MESSAGES/django.{po,mo}`    |
+| `es`    | Spanish             | `locale/es/LC_MESSAGES/django.{po,mo}`    |
 
-The on-disk locale directory uses Django's locale name (`pt_BR`); the language code used everywhere
-else is lowercase and hyphenated (`pt-br`).
+The on-disk locale directory uses Django's locale name (e.g. `pt_BR`, `de`, `es`); the language code
+used everywhere else is lowercase and hyphenated (e.g. `pt-br`). German uses the formal register and
+Spanish a neutral/formal register, matching Django's own bundled catalogs.
 
 ## How the active language is chosen
 

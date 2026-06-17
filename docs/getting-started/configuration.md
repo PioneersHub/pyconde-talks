@@ -46,20 +46,20 @@ Where the committed `django-vars.env` differs (because it targets local developm
 
 ## Core Django
 
-| Variable                 | Default             | Purpose                                                                         |
-| ------------------------ | ------------------- | ------------------------------------------------------------------------------- |
-| `DJANGO_DEBUG`           | `False`             | Debug mode. `django-vars.env` sets `True` for local development.                |
-| `DJANGO_SECRET_KEY`      | `unsafe-secret-key` | Cryptographic signing key. Must be replaced in production.                      |
-| `DJANGO_ALLOWED_HOSTS`   | empty               | Comma-separated hosts Django will serve. Dev file sets `localhost,...`.         |
-| `SITE_ID`                | `1`                 | `django.contrib.sites` site id.                                                 |
-| `LANGUAGE_CODE`          | `en`                | Default/source language. One of `settings.LANGUAGES` (`en`, `pt-br`).           |
-| `TIME_ZONE`              | `Europe/Berlin`     | Project time zone.                                                              |
-| `USE_I18N`               | `True`              | Enable Django translation machinery.                                            |
-| `USE_TZ`                 | `True`              | Store datetimes as timezone-aware UTC.                                          |
-| `LANGUAGE_COOKIE_SECURE` | `True`              | Mark the `django_language` cookie Secure. Set `False` for local dev (no HTTPS). |
-| `DJANGO_ADMIN_URL`       | `admin/`            | Path prefix for the Django admin site.                                          |
-| `ADMIN_NAMES`            | `Admin`             | Comma-separated admin display names (zipped with `ADMIN_EMAILS`).               |
-| `ADMIN_EMAILS`           | `admin@example.com` | Comma-separated admin emails. Used as `ADMINS` / `MANAGERS`.                    |
+| Variable                 | Default             | Purpose                                                                           |
+| ------------------------ | ------------------- | --------------------------------------------------------------------------------- |
+| `DJANGO_DEBUG`           | `False`             | Debug mode. `django-vars.env` sets `True` for local development.                  |
+| `DJANGO_SECRET_KEY`      | `unsafe-secret-key` | Cryptographic signing key. Must be replaced in production.                        |
+| `DJANGO_ALLOWED_HOSTS`   | empty               | Comma-separated hosts Django will serve. Dev file sets `localhost,...`.           |
+| `SITE_ID`                | `1`                 | `django.contrib.sites` site id.                                                   |
+| `LANGUAGE_CODE`          | `en`                | Default/source language. One of `settings.LANGUAGES` (`en`, `pt-br`, `de`, `es`). |
+| `TIME_ZONE`              | `Europe/Berlin`     | Project time zone.                                                                |
+| `USE_I18N`               | `True`              | Enable Django translation machinery.                                              |
+| `USE_TZ`                 | `True`              | Store datetimes as timezone-aware UTC.                                            |
+| `LANGUAGE_COOKIE_SECURE` | `True`              | Mark the `django_language` cookie Secure. Set `False` for local dev (no HTTPS).   |
+| `DJANGO_ADMIN_URL`       | `admin/`            | Path prefix for the Django admin site.                                            |
+| `ADMIN_NAMES`            | `Admin`             | Comma-separated admin display names (zipped with `ADMIN_EMAILS`).                 |
+| `ADMIN_EMAILS`           | `admin@example.com` | Comma-separated admin emails. Used as `ADMINS` / `MANAGERS`.                      |
 
 ## Static and media files
 
