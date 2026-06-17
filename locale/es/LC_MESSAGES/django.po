@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyconde-talks\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 21:02+0200\n"
+"POT-Creation-Date: 2026-06-17 21:28+0200\n"
 "PO-Revision-Date: 2026-06-17 21:03+0200\n"
 "Last-Translator: Julio Batista Silva <python@juliobs.com>\n"
 "Language-Team: Julio Batista Silva <python@juliobs.com>\n"
@@ -88,8 +88,8 @@ msgid ""
 "Event slug. Name used in URLs and for assets/media organization. Not "
 "necessarily the same as the Pretalx slug."
 msgstr ""
-"Slug del evento. Nombre usado en las URL y para organizar recursos y medios."
-" No tiene por qué coincidir con el slug de Pretalx."
+"Slug del evento. Nombre usado en las URL y para organizar recursos y medios. "
+"No tiene por qué coincidir con el slug de Pretalx."
 
 #: events/models.py:42
 msgid "Event year"
@@ -279,8 +279,10 @@ msgstr "Sin sala ni hora programadas"
 
 #: talks/admin.py:480
 #, python-brace-format
-msgid "Streaming from {} to {} - <a href=\"{}\" target=\"_blank\">Video Link</a>"
-msgstr "Transmisión de {} a {} - <a href=\"{}\" target=\"_blank\">Enlace al vídeo</a>"
+msgid ""
+"Streaming from {} to {} - <a href=\"{}\" target=\"_blank\">Video Link</a>"
+msgstr ""
+"Transmisión de {} a {} - <a href=\"{}\" target=\"_blank\">Enlace al vídeo</a>"
 
 #: talks/admin.py:486
 msgid "No active streaming found for this time slot"
@@ -350,8 +352,7 @@ msgid "Pretalx detect failed: %(error)s"
 msgstr "Falló la detección de Pretalx: %(error)s"
 
 #: talks/admin_pretalx.py:248
-msgid ""
-"Pretalx detect complete. New or updated rows (if any) are listed below."
+msgid "Pretalx detect complete. New or updated rows (if any) are listed below."
 msgstr ""
 "Detección de Pretalx completada. Las filas nuevas o actualizadas (si las "
 "hay) se listan a continuación."
@@ -717,11 +718,11 @@ msgstr "Si este cambio crearía, actualizaría o eliminaría la charla"
 
 #: talks/models_pretalx.py:74
 msgid ""
-"Per-field diff: {field_name: {old: <value>, new: <value>}}. Empty for "
-"CREATE/DELETE."
+"Per-field diff: {field_name: {old: <value>, new: <value>}}. Empty for CREATE/"
+"DELETE."
 msgstr ""
-"Diferencia por campo: {field_name: {old: <value>, new: <value>}}. Vacío para"
-" CREATE/DELETE."
+"Diferencia por campo: {field_name: {old: <value>, new: <value>}}. Vacío para "
+"CREATE/DELETE."
 
 #: talks/models_pretalx.py:80
 msgid "Speaker M2M diff: {added: [{code, name}], removed: [...]}."
@@ -916,6 +917,10 @@ msgstr "Charla guardada"
 #: talks/models_rating.py:110
 msgid "Saved Talks"
 msgstr "Charlas guardadas"
+
+#: talks/templatetags/rating_tags.py:53
+msgid "No ratings yet"
+msgstr "Aún no hay valoraciones"
 
 #: talks/validators.py:29
 msgid "Invalid URL format"
@@ -1123,8 +1128,8 @@ msgstr "¡Vaya! Algo salió mal por nuestra parte."
 #: templates/500.html:24
 msgid "Our team has been notified of this issue and we're working to fix it."
 msgstr ""
-"Nuestro equipo ha sido notificado de este problema y estamos trabajando para"
-" solucionarlo."
+"Nuestro equipo ha sido notificado de este problema y estamos trabajando para "
+"solucionarlo."
 
 #: templates/500.html:25
 msgid "Please try again later or navigate to a different page."
@@ -1344,8 +1349,8 @@ msgid ""
 "with email login links, but not with a password."
 msgstr ""
 "Cree un usuario normal con autenticación sin contraseña. Este usuario puede "
-"iniciar sesión con enlaces de acceso por correo electrónico, pero no con una"
-" contraseña."
+"iniciar sesión con enlaces de acceso por correo electrónico, pero no con una "
+"contraseña."
 
 #: templates/admin/users/customuser/add_selection.html:94
 msgid "Create Regular User"
@@ -1502,8 +1507,8 @@ msgstr "Añadir una dirección de correo electrónico"
 #: templates/users/add_email.html:12
 msgid "Add a verified email so you can also sign in without Discord."
 msgstr ""
-"Añada un correo electrónico verificado para poder iniciar sesión también sin"
-" Discord."
+"Añada un correo electrónico verificado para poder iniciar sesión también sin "
+"Discord."
 
 #: templates/socialaccount/connections.html:86
 msgid "Add Email"
@@ -1519,8 +1524,8 @@ msgid ""
 "used to purchase your ticket so you can also sign in without Discord."
 msgstr ""
 "Su correo electrónico actual no está asociado a ninguna entrada. Conecte el "
-"correo electrónico que usó para comprar su entrada para poder iniciar sesión"
-" también sin Discord."
+"correo electrónico que usó para comprar su entrada para poder iniciar sesión "
+"también sin Discord."
 
 #: templates/socialaccount/connections.html:98
 msgid "Connect Ticket Email"
@@ -2185,8 +2190,7 @@ msgstr ""
 "asociado a la compra de una entrada."
 
 #: users/adapters_social.py:234
-msgid ""
-"Your Discord account has been linked and the duplicate account removed."
+msgid "Your Discord account has been linked and the duplicate account removed."
 msgstr ""
 "Su cuenta de Discord se ha vinculado y se ha eliminado la cuenta duplicada."
 
@@ -2220,12 +2224,12 @@ msgstr "Permisos"
 
 #: users/admin.py:143
 msgid ""
-"Only superusers and staff members can log in to the admin site. Normal users"
-" login through the passwordless authentication."
+"Only superusers and staff members can log in to the admin site. Normal users "
+"login through the passwordless authentication."
 msgstr ""
 "Solo los superusuarios y los miembros del personal pueden iniciar sesión en "
-"el sitio de administración. Los usuarios normales inician sesión mediante la"
-" autenticación sin contraseña."
+"el sitio de administración. Los usuarios normales inician sesión mediante la "
+"autenticación sin contraseña."
 
 #: users/admin.py:149
 msgid "Important dates"
@@ -2234,8 +2238,8 @@ msgstr "Fechas importantes"
 #: users/admin.py:152
 msgid "Shows when the user first registered and last logged in."
 msgstr ""
-"Muestra cuándo se registró el usuario por primera vez y cuándo inició sesión"
-" por última vez."
+"Muestra cuándo se registró el usuario por primera vez y cuándo inició sesión "
+"por última vez."
 
 #: users/admin.py:204
 msgid "Creating a superuser account with password authentication."
@@ -2352,18 +2356,18 @@ msgid ""
 "Staff users can access the admin site but cannot login without being "
 "superusers."
 msgstr ""
-"Los usuarios del personal pueden acceder al sitio de administración, pero no"
-" pueden iniciar sesión sin ser superusuarios."
+"Los usuarios del personal pueden acceder al sitio de administración, pero no "
+"pueden iniciar sesión sin ser superusuarios."
 
 #: users/forms.py:129
 msgid ""
 "Raw passwords are not stored, so there is no way to see this user's "
-"password, but you can change the password using <a "
-"href=\"../password/\">this form</a>."
+"password, but you can change the password using <a href=\"../password/"
+"\">this form</a>."
 msgstr ""
 "Las contraseñas sin cifrar no se almacenan, por lo que no hay forma de ver "
-"la contraseña de este usuario, pero puede cambiarla usando <a "
-"href=\"../password/\">este formulario</a>."
+"la contraseña de este usuario, pero puede cambiarla usando <a href=\"../"
+"password/\">este formulario</a>."
 
 #: users/forms.py:174
 msgid ""
@@ -2387,8 +2391,8 @@ msgstr "Ya existe un usuario con ese correo electrónico."
 
 #: users/models.py:165
 msgid ""
-"Public name shown when asking questions (optional). If blank, we'll use your"
-" full name or email."
+"Public name shown when asking questions (optional). If blank, we'll use your "
+"full name or email."
 msgstr ""
 "Nombre público que se muestra al hacer preguntas (opcional). Si se deja en "
 "blanco, usaremos su nombre completo o su correo electrónico."

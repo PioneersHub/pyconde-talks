@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyconde-talks\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 21:02+0200\n"
+"POT-Creation-Date: 2026-06-17 21:28+0200\n"
 "PO-Revision-Date: 2026-06-17 21:03+0200\n"
 "Last-Translator: Julio Batista Silva <python@juliobs.com>\n"
 "Language-Team: Julio Batista Silva <python@juliobs.com>\n"
@@ -89,8 +89,8 @@ msgid ""
 "Event slug. Name used in URLs and for assets/media organization. Not "
 "necessarily the same as the Pretalx slug."
 msgstr ""
-"Veranstaltungs-Slug. Name, der in URLs und zur Organisation von "
-"Assets/Medien verwendet wird. Nicht zwingend identisch mit dem Pretalx-Slug."
+"Veranstaltungs-Slug. Name, der in URLs und zur Organisation von Assets/"
+"Medien verwendet wird. Nicht zwingend identisch mit dem Pretalx-Slug."
 
 #: events/models.py:42
 msgid "Event year"
@@ -114,8 +114,8 @@ msgid ""
 "Show average rating and rating count to regular users. Staff and superusers "
 "always see rating summaries."
 msgstr ""
-"Durchschnittsbewertung und Anzahl der Bewertungen für normale Benutzer:innen"
-" anzeigen. Team und Superuser sehen die Bewertungsübersichten immer."
+"Durchschnittsbewertung und Anzahl der Bewertungen für normale Benutzer:innen "
+"anzeigen. Team und Superuser sehen die Bewertungsübersichten immer."
 
 #: events/models.py:80
 msgid "Main website URL for the event"
@@ -279,8 +279,10 @@ msgstr "Kein Raum oder Zeit geplant"
 
 #: talks/admin.py:480
 #, python-brace-format
-msgid "Streaming from {} to {} - <a href=\"{}\" target=\"_blank\">Video Link</a>"
-msgstr "Streaming von {} bis {} - <a href=\"{}\" target=\"_blank\">Video-Link</a>"
+msgid ""
+"Streaming from {} to {} - <a href=\"{}\" target=\"_blank\">Video Link</a>"
+msgstr ""
+"Streaming von {} bis {} - <a href=\"{}\" target=\"_blank\">Video-Link</a>"
 
 #: talks/admin.py:486
 msgid "No active streaming found for this time slot"
@@ -350,8 +352,7 @@ msgid "Pretalx detect failed: %(error)s"
 msgstr "Pretalx-Abgleich fehlgeschlagen: %(error)s"
 
 #: talks/admin_pretalx.py:248
-msgid ""
-"Pretalx detect complete. New or updated rows (if any) are listed below."
+msgid "Pretalx detect complete. New or updated rows (if any) are listed below."
 msgstr ""
 "Pretalx-Abgleich abgeschlossen. Neue oder aktualisierte Zeilen (falls "
 "vorhanden) sind unten aufgeführt."
@@ -434,8 +435,7 @@ msgstr "Name des Raums"
 
 #: talks/models.py:73
 msgid "Stable Pretalx room id (slot.room.id); null for manual/legacy rooms"
-msgstr ""
-"Stabile Pretalx-Raum-ID (slot.room.id); null für manuelle/Legacy-Räume"
+msgstr "Stabile Pretalx-Raum-ID (slot.room.id); null für manuelle/Legacy-Räume"
 
 #: talks/models.py:78
 msgid "Description of the room"
@@ -471,8 +471,7 @@ msgstr "Link zum Streaming"
 
 #: talks/models.py:181
 msgid "Link to the transcription page for talks in this streaming session."
-msgstr ""
-"Link zur Transkriptionsseite für Vorträge in dieser Streaming-Sitzung."
+msgstr "Link zur Transkriptionsseite für Vorträge in dieser Streaming-Sitzung."
 
 #: talks/models.py:187
 msgid "Streaming"
@@ -711,8 +710,7 @@ msgstr "Pretalx-Einreichungscode (z. B. 'ABC123')"
 
 #: talks/models_pretalx.py:63
 msgid "Local talk this change targets (null for CREATE)"
-msgstr ""
-"Lokaler Vortrag, auf den sich diese Änderung bezieht (null für CREATE)"
+msgstr "Lokaler Vortrag, auf den sich diese Änderung bezieht (null für CREATE)"
 
 #: talks/models_pretalx.py:68
 msgid "Whether this change would create, update, or delete the talk"
@@ -721,11 +719,11 @@ msgstr ""
 
 #: talks/models_pretalx.py:74
 msgid ""
-"Per-field diff: {field_name: {old: <value>, new: <value>}}. Empty for "
-"CREATE/DELETE."
+"Per-field diff: {field_name: {old: <value>, new: <value>}}. Empty for CREATE/"
+"DELETE."
 msgstr ""
-"Diff pro Feld: {field_name: {old: <value>, new: <value>}}. Leer für "
-"CREATE/DELETE."
+"Diff pro Feld: {field_name: {old: <value>, new: <value>}}. Leer für CREATE/"
+"DELETE."
 
 #: talks/models_pretalx.py:80
 msgid "Speaker M2M diff: {added: [{code, name}], removed: [...]}."
@@ -923,6 +921,10 @@ msgstr "Gespeicherter Vortrag"
 #: talks/models_rating.py:110
 msgid "Saved Talks"
 msgstr "Gespeicherte Vorträge"
+
+#: talks/templatetags/rating_tags.py:53
+msgid "No ratings yet"
+msgstr "Noch keine Bewertungen"
 
 #: talks/validators.py:29
 msgid "Invalid URL format"
@@ -1139,8 +1141,7 @@ msgstr ""
 #: templates/500.html:25
 msgid "Please try again later or navigate to a different page."
 msgstr ""
-"Bitte versuchen Sie es später erneut oder wechseln Sie auf eine andere "
-"Seite."
+"Bitte versuchen Sie es später erneut oder wechseln Sie auf eine andere Seite."
 
 #: templates/500.html:30
 msgid "Try Again"
@@ -1192,8 +1193,8 @@ msgstr "Dieser Code läuft in %(minutes)s Minuten ab."
 #: templates/account/email/login_code_message.txt:5
 msgid "If you didn't request this code, please ignore this email."
 msgstr ""
-"Wenn Sie diesen Code nicht angefordert haben, ignorieren Sie bitte diese "
-"E-Mail."
+"Wenn Sie diesen Code nicht angefordert haben, ignorieren Sie bitte diese E-"
+"Mail."
 
 #: templates/account/email/login_code_message.txt:1
 #, python-format
@@ -1282,8 +1283,8 @@ msgstr "Wichtiger Hinweis"
 msgid ""
 "Please use the same email address that you used when purchasing your ticket."
 msgstr ""
-"Bitte verwenden Sie dieselbe E-Mail-Adresse, die Sie beim Kauf Ihres Tickets"
-" verwendet haben."
+"Bitte verwenden Sie dieselbe E-Mail-Adresse, die Sie beim Kauf Ihres Tickets "
+"verwendet haben."
 
 #: templates/account/request_login_code.html:75
 msgid "Your login code will be valid for"
@@ -1307,8 +1308,7 @@ msgstr "So funktioniert es"
 
 #: templates/account/request_login_code.html:87
 msgid "Enter your ticket purchase email address"
-msgstr ""
-"Geben Sie die E-Mail-Adresse ein, mit der Sie Ihr Ticket gekauft haben"
+msgstr "Geben Sie die E-Mail-Adresse ein, mit der Sie Ihr Ticket gekauft haben"
 
 #: templates/account/request_login_code.html:88
 msgid "We'll send you a secure login code"
@@ -1316,8 +1316,7 @@ msgstr "Wir senden Ihnen einen sicheren Anmeldecode"
 
 #: templates/account/request_login_code.html:89
 msgid "Enter the code on the next screen to sign in"
-msgstr ""
-"Geben Sie den Code auf dem nächsten Bildschirm ein, um sich anzumelden"
+msgstr "Geben Sie den Code auf dem nächsten Bildschirm ein, um sich anzumelden"
 
 #: templates/account/request_login_code.html:95
 msgid "or"
@@ -1350,8 +1349,7 @@ msgstr "Neue:n Benutzer:in hinzufügen"
 
 #: templates/admin/users/customuser/add_selection.html:87
 msgid "Choose the type of user you want to create:"
-msgstr ""
-"Wählen Sie den Typ der/des Benutzer:in, die/den Sie erstellen möchten:"
+msgstr "Wählen Sie den Typ der/des Benutzer:in, die/den Sie erstellen möchten:"
 
 #: templates/admin/users/customuser/add_selection.html:90
 msgid "Regular User"
@@ -1462,8 +1460,7 @@ msgstr "Bitte melden Sie sich an, um auf die Konferenzvorträge zuzugreifen."
 
 #: templates/partials/event_selector.html:13
 msgid "Select the event you purchased a ticket for"
-msgstr ""
-"Wählen Sie die Veranstaltung aus, für die Sie ein Ticket gekauft haben"
+msgstr "Wählen Sie die Veranstaltung aus, für die Sie ein Ticket gekauft haben"
 
 #: templates/partials/language_selector.html:15
 msgid "Language"
@@ -1539,9 +1536,9 @@ msgid ""
 "Your current email is not associated with a ticket. Connect the email you "
 "used to purchase your ticket so you can also sign in without Discord."
 msgstr ""
-"Ihre aktuelle E-Mail-Adresse ist nicht mit einem Ticket verknüpft. Verbinden"
-" Sie die E-Mail-Adresse, mit der Sie Ihr Ticket gekauft haben, damit Sie "
-"sich auch ohne Discord anmelden können."
+"Ihre aktuelle E-Mail-Adresse ist nicht mit einem Ticket verknüpft. Verbinden "
+"Sie die E-Mail-Adresse, mit der Sie Ihr Ticket gekauft haben, damit Sie sich "
+"auch ohne Discord anmelden können."
 
 #: templates/socialaccount/connections.html:98
 msgid "Connect Ticket Email"
@@ -2206,8 +2203,7 @@ msgstr ""
 "Ticketkauf verknüpft ist."
 
 #: users/adapters_social.py:234
-msgid ""
-"Your Discord account has been linked and the duplicate account removed."
+msgid "Your Discord account has been linked and the duplicate account removed."
 msgstr "Ihr Discord-Konto wurde verknüpft und das doppelte Konto entfernt."
 
 #: users/admin.py:27
@@ -2240,8 +2236,8 @@ msgstr "Berechtigungen"
 
 #: users/admin.py:143
 msgid ""
-"Only superusers and staff members can log in to the admin site. Normal users"
-" login through the passwordless authentication."
+"Only superusers and staff members can log in to the admin site. Normal users "
+"login through the passwordless authentication."
 msgstr ""
 "Nur Superuser und Teammitglieder können sich auf der Admin-Seite anmelden. "
 "Normale Benutzer:innen melden sich über die passwortlose Authentifizierung "
@@ -2377,13 +2373,12 @@ msgstr ""
 #: users/forms.py:129
 msgid ""
 "Raw passwords are not stored, so there is no way to see this user's "
-"password, but you can change the password using <a "
-"href=\"../password/\">this form</a>."
+"password, but you can change the password using <a href=\"../password/"
+"\">this form</a>."
 msgstr ""
 "Klartext-Passwörter werden nicht gespeichert, daher gibt es keine "
 "Möglichkeit, das Passwort dieser/dieses Benutzer:in einzusehen, aber Sie "
-"können das Passwort über <a href=\"../password/\">dieses Formular</a> "
-"ändern."
+"können das Passwort über <a href=\"../password/\">dieses Formular</a> ändern."
 
 #: users/forms.py:174
 msgid ""
@@ -2409,8 +2404,8 @@ msgstr "Ein:e Benutzer:in mit dieser E-Mail-Adresse existiert bereits."
 
 #: users/models.py:165
 msgid ""
-"Public name shown when asking questions (optional). If blank, we'll use your"
-" full name or email."
+"Public name shown when asking questions (optional). If blank, we'll use your "
+"full name or email."
 msgstr ""
 "Öffentlicher Name, der beim Stellen von Fragen angezeigt wird (optional). "
 "Wenn leer, verwenden wir Ihren vollständigen Namen oder Ihre E-Mail-Adresse."
@@ -2428,8 +2423,8 @@ msgid ""
 "Language for the interface and emails. Leave blank to follow the browser or "
 "site default."
 msgstr ""
-"Sprache für die Oberfläche und E-Mails. Leer lassen, um dem Browser oder der"
-" Standardeinstellung der Website zu folgen."
+"Sprache für die Oberfläche und E-Mails. Leer lassen, um dem Browser oder der "
+"Standardeinstellung der Website zu folgen."
 
 #: users/models.py:199
 msgid "user"
@@ -2465,14 +2460,13 @@ msgstr "Diese E-Mail-Adresse ist nicht für den Zugriff autorisiert."
 #: users/views.py:117
 msgid "Unable to create account. Please ensure your email is valid."
 msgstr ""
-"Konto konnte nicht erstellt werden. Bitte stellen Sie sicher, dass Ihre "
-"E-Mail-Adresse gültig ist."
+"Konto konnte nicht erstellt werden. Bitte stellen Sie sicher, dass Ihre E-"
+"Mail-Adresse gültig ist."
 
 #: users/views.py:124
 msgid "System error while creating account. Please try again later."
 msgstr ""
-"Systemfehler beim Erstellen des Kontos. Bitte versuchen Sie es später "
-"erneut."
+"Systemfehler beim Erstellen des Kontos. Bitte versuchen Sie es später erneut."
 
 #: users/views.py:129
 msgid "Error creating user. Please try again later."
@@ -2498,8 +2492,7 @@ msgstr "Diese E-Mail-Adresse wird bereits von einem anderen Konto verwendet."
 
 #: users/views_connections.py:241
 msgid "The verification code has expired. Please request a new one."
-msgstr ""
-"Der Bestätigungscode ist abgelaufen. Bitte fordern Sie einen neuen an."
+msgstr "Der Bestätigungscode ist abgelaufen. Bitte fordern Sie einen neuen an."
 
 #: users/views_connections.py:254
 msgid "Too many incorrect attempts. Please request a new code."

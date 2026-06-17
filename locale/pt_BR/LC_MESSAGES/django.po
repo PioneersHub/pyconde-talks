@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyconde-talks\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 21:00+0200\n"
+"POT-Creation-Date: 2026-06-17 21:28+0200\n"
 "PO-Revision-Date: 2026-06-17 21:02+0200\n"
 "Last-Translator: Julio Batista Silva <python@juliobs.com>\n"
 "Language-Team: Julio Batista Silva <python@juliobs.com>\n"
@@ -64,8 +64,8 @@ msgid ""
 "Grant or revoke access for multiple users at once. Changes are saved when "
 "the event is saved."
 msgstr ""
-"Conceda ou revogue o acesso de vários usuários de uma vez. As alterações são"
-" salvas quando o evento é salvo."
+"Conceda ou revogue o acesso de vários usuários de uma vez. As alterações são "
+"salvas quando o evento é salvo."
 
 #: events/admin.py:109
 msgid "Branding"
@@ -101,8 +101,7 @@ msgid ""
 "event. Leave blank to disable API validation for this event."
 msgstr ""
 "URL da API externa usada para validar se um usuário comprou ingresso para "
-"este evento. Deixe em branco para desativar a validação por API neste "
-"evento."
+"este evento. Deixe em branco para desativar a validação por API neste evento."
 
 #: events/models.py:62
 msgid "Whether this event is currently active and visible on the site"
@@ -277,8 +276,10 @@ msgstr "Sem sala ou horário agendado"
 
 #: talks/admin.py:480
 #, python-brace-format
-msgid "Streaming from {} to {} - <a href=\"{}\" target=\"_blank\">Video Link</a>"
-msgstr "Transmissão das {} às {} - <a href=\"{}\" target=\"_blank\">Link do vídeo</a>"
+msgid ""
+"Streaming from {} to {} - <a href=\"{}\" target=\"_blank\">Video Link</a>"
+msgstr ""
+"Transmissão das {} às {} - <a href=\"{}\" target=\"_blank\">Link do vídeo</a>"
 
 #: talks/admin.py:486
 msgid "No active streaming found for this time slot"
@@ -348,11 +349,10 @@ msgid "Pretalx detect failed: %(error)s"
 msgstr "Falha na detecção do Pretalx: %(error)s"
 
 #: talks/admin_pretalx.py:248
-msgid ""
-"Pretalx detect complete. New or updated rows (if any) are listed below."
+msgid "Pretalx detect complete. New or updated rows (if any) are listed below."
 msgstr ""
-"Detecção do Pretalx concluída. Linhas novas ou atualizadas (se houver) estão"
-" listadas abaixo."
+"Detecção do Pretalx concluída. Linhas novas ou atualizadas (se houver) estão "
+"listadas abaixo."
 
 #: talks/admin_qa.py:81 templates/talks/talk_list.html:56
 msgid "Author"
@@ -433,8 +433,7 @@ msgstr "Nome da sala"
 #: talks/models.py:73
 msgid "Stable Pretalx room id (slot.room.id); null for manual/legacy rooms"
 msgstr ""
-"ID estável da sala no Pretalx (slot.room.id); nulo para salas "
-"manuais/legadas"
+"ID estável da sala no Pretalx (slot.room.id); nulo para salas manuais/legadas"
 
 #: talks/models.py:78
 msgid "Description of the room"
@@ -640,8 +639,8 @@ msgstr "Link para perguntas no Slido. Substitui o link da sala, se fornecido."
 msgid ""
 "Link to talk recording. Overrides the calculated streaming link if provided."
 msgstr ""
-"Link para a gravação da palestra. Substitui o link de transmissão calculado,"
-" se fornecido."
+"Link para a gravação da palestra. Substitui o link de transmissão calculado, "
+"se fornecido."
 
 #: talks/models.py:475
 msgid "Link to external transcription page for this talk."
@@ -710,8 +709,8 @@ msgstr "Se esta alteração criaria, atualizaria ou excluiria a palestra"
 
 #: talks/models_pretalx.py:74
 msgid ""
-"Per-field diff: {field_name: {old: <value>, new: <value>}}. Empty for "
-"CREATE/DELETE."
+"Per-field diff: {field_name: {old: <value>, new: <value>}}. Empty for CREATE/"
+"DELETE."
 msgstr ""
 "Diff por campo: {field_name: {old: <value>, new: <value>}}. Vazio para "
 "CREATE/DELETE."
@@ -911,6 +910,10 @@ msgstr "Palestra salva"
 msgid "Saved Talks"
 msgstr "Palestras salvas"
 
+#: talks/templatetags/rating_tags.py:53
+msgid "No ratings yet"
+msgstr "Ainda não há avaliações"
+
 #: talks/validators.py:29
 msgid "Invalid URL format"
 msgstr "Formato de URL inválido"
@@ -972,8 +975,7 @@ msgstr "Sua pergunta foi excluída."
 
 #: talks/views_qa.py:368
 msgid "Your question was updated and all previous votes were cleared."
-msgstr ""
-"Sua pergunta foi atualizada e todos os votos anteriores foram zerados."
+msgstr "Sua pergunta foi atualizada e todos os votos anteriores foram zerados."
 
 #: talks/views_qa.py:431
 msgid "Question has been rejected."
@@ -1046,8 +1048,8 @@ msgstr "Ops! Parece que esta página escorregou para longe."
 msgid ""
 "It might have been moved or deleted, or perhaps there was a typo in the URL."
 msgstr ""
-"Ela pode ter sido movida ou excluída, ou talvez haja um erro de digitação na"
-" URL."
+"Ela pode ter sido movida ou excluída, ou talvez haja um erro de digitação na "
+"URL."
 
 #: templates/404.html:27 templates/500.html:28
 msgid "Return to Homepage"
@@ -1273,8 +1275,8 @@ msgid ""
 "The login code may take a couple of minutes to arrive. Also check your spam "
 "folder."
 msgstr ""
-"O código de acesso pode levar alguns minutos para chegar. Verifique também a"
-" pasta de spam."
+"O código de acesso pode levar alguns minutos para chegar. Verifique também a "
+"pasta de spam."
 
 #: templates/account/request_login_code.html:85
 msgid "How it works"
@@ -1505,8 +1507,8 @@ msgid ""
 "Your current email is not associated with a ticket. Connect the email you "
 "used to purchase your ticket so you can also sign in without Discord."
 msgstr ""
-"Seu e-mail atual não está associado a um ingresso. Conecte o e-mail que você"
-" usou para comprar o ingresso para também poder entrar sem o Discord."
+"Seu e-mail atual não está associado a um ingresso. Conecte o e-mail que você "
+"usou para comprar o ingresso para também poder entrar sem o Discord."
 
 #: templates/socialaccount/connections.html:98
 msgid "Connect Ticket Email"
@@ -2164,12 +2166,11 @@ msgid ""
 "Your email is not authorized for independent login. You can only remove "
 "Discord if your email is associated with a ticket purchase."
 msgstr ""
-"Seu e-mail não está autorizado para login independente. Você só pode remover"
-" o Discord se o seu e-mail estiver associado à compra de um ingresso."
+"Seu e-mail não está autorizado para login independente. Você só pode remover "
+"o Discord se o seu e-mail estiver associado à compra de um ingresso."
 
 #: users/adapters_social.py:234
-msgid ""
-"Your Discord account has been linked and the duplicate account removed."
+msgid "Your Discord account has been linked and the duplicate account removed."
 msgstr "Sua conta do Discord foi vinculada e a conta duplicada foi removida."
 
 #: users/admin.py:27
@@ -2202,8 +2203,8 @@ msgstr "Permissões"
 
 #: users/admin.py:143
 msgid ""
-"Only superusers and staff members can log in to the admin site. Normal users"
-" login through the passwordless authentication."
+"Only superusers and staff members can log in to the admin site. Normal users "
+"login through the passwordless authentication."
 msgstr ""
 "Apenas superusuários e membros da equipe podem acessar o site de "
 "administração. Usuários comuns entram pela autenticação sem senha."
@@ -2334,8 +2335,8 @@ msgstr ""
 #: users/forms.py:129
 msgid ""
 "Raw passwords are not stored, so there is no way to see this user's "
-"password, but you can change the password using <a "
-"href=\"../password/\">this form</a>."
+"password, but you can change the password using <a href=\"../password/"
+"\">this form</a>."
 msgstr ""
 "As senhas não são armazenadas em texto puro, então não há como ver a senha "
 "deste usuário, mas você pode alterá-la usando <a href=\"../password/\">este "
@@ -2363,8 +2364,8 @@ msgstr "Já existe um usuário com esse e-mail."
 
 #: users/models.py:165
 msgid ""
-"Public name shown when asking questions (optional). If blank, we'll use your"
-" full name or email."
+"Public name shown when asking questions (optional). If blank, we'll use your "
+"full name or email."
 msgstr ""
 "Nome público exibido ao fazer perguntas (opcional). Se vazio, usaremos seu "
 "nome completo ou e-mail."

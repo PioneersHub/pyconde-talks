@@ -3,6 +3,7 @@
 from django import template
 from django.utils.html import format_html
 from django.utils.safestring import SafeString
+from django.utils.translation import gettext as _
 
 from .svg_tags import svg
 
@@ -47,8 +48,9 @@ def star_rating(average_rating: float | None, rating_count: int = 0) -> SafeStri
 
     """
     if average_rating is None or rating_count == 0:
-        return SafeString(  # nosec: B703 - Static HTML, no user input
-            '<span class="text-sm text-subtle">No ratings yet</span>',
+        return format_html(
+            '<span class="text-sm text-subtle">{}</span>',
+            _("No ratings yet"),
         )
 
     # Round to nearest 0.5
