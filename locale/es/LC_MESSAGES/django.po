@@ -1,4 +1,4 @@
-# Brazilian Portuguese translation for pyconde-talks.
+# Spanish translation for pyconde-talks.
 # Copyright (C) 2025-2026 Julio Batista Silva
 # This file is distributed under the same license as the pyconde-talks package.
 #
@@ -6,70 +6,70 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyconde-talks\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 21:00+0200\n"
-"PO-Revision-Date: 2026-06-17 21:02+0200\n"
+"POT-Creation-Date: 2026-06-17 21:02+0200\n"
+"PO-Revision-Date: 2026-06-17 21:03+0200\n"
 "Last-Translator: Julio Batista Silva <python@juliobs.com>\n"
 "Language-Team: Julio Batista Silva <python@juliobs.com>\n"
-"Language: pt_BR\n"
+"Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: event_talks/context_processors.py:69 event_talks/context_processors.py:92
 #: talks/models.py:520 templates/base.html:60
 #: templates/talks/partials/dashboard_stats.html:24
 #: templates/talks/talk_list.html:11 users/adapters.py:388
 msgid "Talks"
-msgstr "Palestras"
+msgstr "Charlas"
 
 #: event_talks/context_processors.py:70 event_talks/context_processors.py:93
 msgid "Talks and Schedule"
-msgstr "Palestras e Programação"
+msgstr "Charlas y programa"
 
 #: event_talks/settings.py:64
 msgid "English"
-msgstr "Inglês"
+msgstr "Inglés"
 
 #: event_talks/settings.py:65
 msgid "Portuguese (Brazil)"
-msgstr "Português (Brasil)"
+msgstr "Portugués (Brasil)"
 
 #: event_talks/settings.py:66
 msgid "German"
-msgstr "Alemão"
+msgstr "Alemán"
 
 #: event_talks/settings.py:67
 msgid "Spanish"
-msgstr "Espanhol"
+msgstr "Español"
 
 #: events/admin.py:25 users/models.py:200
 msgid "users"
-msgstr "usuários"
+msgstr "usuarios"
 
 #: events/admin.py:26 events/admin.py:99
 msgid "Users with access"
-msgstr "Usuários com acesso"
+msgstr "Usuarios con acceso"
 
 #: events/admin.py:28
 msgid ""
 "Move users to the right to grant access, to the left to revoke it. Use the "
 "filter box to search."
 msgstr ""
-"Mova os usuários para a direita para conceder acesso e para a esquerda para "
-"revogá-lo. Use a caixa de filtro para pesquisar."
+"Mueva los usuarios a la derecha para conceder acceso y a la izquierda para "
+"revocarlo. Use el cuadro de filtro para buscar."
 
 #: events/admin.py:103
 msgid ""
 "Grant or revoke access for multiple users at once. Changes are saved when "
 "the event is saved."
 msgstr ""
-"Conceda ou revogue o acesso de vários usuários de uma vez. As alterações são"
-" salvas quando o evento é salvo."
+"Conceda o revoque el acceso de varios usuarios a la vez. Los cambios se "
+"guardan cuando se guarda el evento."
 
 #: events/admin.py:109
 msgid "Branding"
-msgstr "Identidade visual"
+msgstr "Identidad visual"
 
 #: events/admin.py:125 talks/admin.py:101
 msgid "Pretalx"
@@ -81,80 +81,82 @@ msgstr "API configurada"
 
 #: events/models.py:27
 msgid "Display name of the event. Include the year if applicable."
-msgstr "Nome de exibição do evento. Inclua o ano, se aplicável."
+msgstr "Nombre visible del evento. Incluya el año si corresponde."
 
 #: events/models.py:36
 msgid ""
 "Event slug. Name used in URLs and for assets/media organization. Not "
 "necessarily the same as the Pretalx slug."
 msgstr ""
-"Slug do evento. Nome usado em URLs e na organização de arquivos/mídia. Não "
-"necessariamente igual ao slug do Pretalx."
+"Slug del evento. Nombre usado en las URL y para organizar recursos y medios."
+" No tiene por qué coincidir con el slug de Pretalx."
 
 #: events/models.py:42
 msgid "Event year"
-msgstr "Ano do evento"
+msgstr "Año del evento"
 
 #: events/models.py:55
 msgid ""
 "URL of the external API used to validate if a user bought a ticket for this "
 "event. Leave blank to disable API validation for this event."
 msgstr ""
-"URL da API externa usada para validar se um usuário comprou ingresso para "
-"este evento. Deixe em branco para desativar a validação por API neste "
-"evento."
+"URL de la API externa usada para validar si un usuario compró una entrada "
+"para este evento. Deje en blanco para desactivar la validación por API en "
+"este evento."
 
 #: events/models.py:62
 msgid "Whether this event is currently active and visible on the site"
-msgstr "Define se este evento está ativo e visível no site"
+msgstr "Si este evento está activo actualmente y es visible en el sitio"
 
 #: events/models.py:68
 msgid ""
 "Show average rating and rating count to regular users. Staff and superusers "
 "always see rating summaries."
 msgstr ""
-"Mostrar a média e a quantidade de avaliações para usuários comuns. Equipe e "
-"superusuários sempre veem os resumos de avaliação."
+"Mostrar la valoración media y el número de valoraciones a los usuarios "
+"normales. El personal y los superusuarios siempre ven los resúmenes de "
+"valoraciones."
 
 #: events/models.py:80
 msgid "Main website URL for the event"
-msgstr "URL do site principal do evento"
+msgstr "URL del sitio web principal del evento"
 
 #: events/models.py:86
 msgid "URL to the event's Imprint page"
-msgstr "URL da página de Aviso legal do evento"
+msgstr "URL de la página de aviso legal del evento"
 
 #: events/models.py:92
 msgid "URL to the event's Code of Conduct page"
-msgstr "URL da página de Código de conduta do evento"
+msgstr "URL de la página de código de conducta del evento"
 
 #: events/models.py:98
 msgid "URL to the event's Privacy Policy page"
-msgstr "URL da página de Política de privacidade do evento"
+msgstr "URL de la página de política de privacidad del evento"
 
 #: events/models.py:104
 msgid "Venue information URL"
-msgstr "URL com informações do local"
+msgstr "URL con información de la sede"
 
 #: events/models.py:110
 msgid "URL to the transcriptions overview page"
-msgstr "URL da página de transcrições"
+msgstr "URL de la página general de transcripciones"
 
 #: events/models.py:117
 msgid "Name of the SVG logo file (without extension)"
-msgstr "Nome do arquivo SVG do logotipo (sem extensão)"
+msgstr "Nombre del archivo del logotipo SVG (sin extensión)"
 
 #: events/models.py:124
 msgid "Name of the organizing team or community"
-msgstr "Nome da equipe organizadora ou comunidade"
+msgstr "Nombre del equipo organizador o de la comunidad"
 
 #: events/models.py:130
 msgid "URL linking to the organizer or community page"
-msgstr "URL para a página do organizador ou da comunidade"
+msgstr "URL que enlaza con la página del organizador o de la comunidad"
 
 #: events/models.py:139
 msgid "Pretalx event base URL (e.g., 'https://pretalx.com/my-event')"
-msgstr "URL base do evento no Pretalx (ex.: 'https://pretalx.com/my-event')"
+msgstr ""
+"URL base del evento en Pretalx (p. ej., 'https://pretalx.com/my-event')"
 
 #: events/models.py:148 talks/admin.py:169
 #: templates/partials/event_selector.html:4
@@ -168,54 +170,54 @@ msgstr "Eventos"
 
 #: talks/admin.py:34 templates/talks/talk_detail.html:131
 msgid "Rating comments"
-msgstr "Comentários das avaliações"
+msgstr "Comentarios de valoraciones"
 
 #: talks/admin.py:44
 msgid "With comments"
-msgstr "Com comentários"
+msgstr "Con comentarios"
 
 #: talks/admin.py:45
 msgid "Without comments"
-msgstr "Sem comentários"
+msgstr "Sin comentarios"
 
 #: talks/admin.py:107 talks/admin.py:360
 msgid "Links"
-msgstr "Links"
+msgstr "Enlaces"
 
 #: talks/admin.py:125 talks/admin.py:272
 msgid "Talk Count"
-msgstr "Total de palestras"
+msgstr "Número de charlas"
 
 #: talks/admin.py:130
 msgid "Streaming Count"
-msgstr "Total de transmissões"
+msgstr "Número de transmisiones"
 
 #: talks/admin.py:135
 msgid "Has Slido"
-msgstr "Tem Slido"
+msgstr "Tiene Slido"
 
 #: talks/admin.py:182 talks/admin.py:354
 msgid "Media"
-msgstr "Mídia"
+msgstr "Medios"
 
 #: talks/admin.py:189 talks/admin.py:196
 msgid "Video Link"
-msgstr "Link do vídeo"
+msgstr "Enlace al vídeo"
 
 #: talks/admin.py:200 talks/admin.py:207
 #: templates/talks/partials/upcoming_talks.html:87
 #: templates/talks/talk_detail.html:110 templates/talks/talk_detail.html:174
 #: templates/talks/talk_list.html:270
 msgid "Transcription"
-msgstr "Transcrição"
+msgstr "Transcripción"
 
 #: talks/admin.py:243
 msgid "Personal Information"
-msgstr "Informações pessoais"
+msgstr "Información personal"
 
 #: talks/admin.py:249
 msgid "Integration"
-msgstr "Integração"
+msgstr "Integración"
 
 #: talks/admin.py:261
 msgid "Avatar"
@@ -228,23 +230,23 @@ msgstr "Avatar de {}"
 
 #: talks/admin.py:348
 msgid "Scheduling"
-msgstr "Agendamento"
+msgstr "Programación"
 
 #: talks/admin.py:373
 msgid "Settings"
-msgstr "Configurações"
+msgstr "Configuración"
 
 #: talks/admin.py:421
 msgid "Avg Rating"
-msgstr "Avaliação média"
+msgstr "Valoración media"
 
 #: talks/admin.py:429
 msgid "# Ratings"
-msgstr "Nº de avaliações"
+msgstr "N.º de valoraciones"
 
 #: talks/admin.py:434
 msgid "# Saves"
-msgstr "Nº de salvamentos"
+msgstr "N.º de guardados"
 
 #: talks/admin.py:439 talks/models.py:99 templates/talks/talk_detail.html:53
 msgid "Room"
@@ -252,107 +254,107 @@ msgstr "Sala"
 
 #: talks/admin.py:444
 msgid "Image Preview"
-msgstr "Pré-visualização da imagem"
+msgstr "Vista previa de la imagen"
 
 #: talks/admin.py:451 talks/admin.py:457
 #, python-brace-format
 msgid "Preview of {}"
-msgstr "Pré-visualização de {}"
+msgstr "Vista previa de {}"
 
 #: talks/admin.py:461 talks/views.py:295
 msgid "Upcoming"
-msgstr "Em breve"
+msgstr "Próxima"
 
 #: talks/admin.py:466
 msgid "Has Video"
-msgstr "Tem vídeo"
+msgstr "Tiene vídeo"
 
 #: talks/admin.py:471
 msgid "Active Streaming"
-msgstr "Transmissão ativa"
+msgstr "Transmisión activa"
 
 #: talks/admin.py:475
 msgid "No room or time scheduled"
-msgstr "Sem sala ou horário agendado"
+msgstr "Sin sala ni hora programadas"
 
 #: talks/admin.py:480
 #, python-brace-format
 msgid "Streaming from {} to {} - <a href=\"{}\" target=\"_blank\">Video Link</a>"
-msgstr "Transmissão das {} às {} - <a href=\"{}\" target=\"_blank\">Link do vídeo</a>"
+msgstr "Transmisión de {} a {} - <a href=\"{}\" target=\"_blank\">Enlace al vídeo</a>"
 
 #: talks/admin.py:486
 msgid "No active streaming found for this time slot"
-msgstr "Nenhuma transmissão ativa encontrada para este horário"
+msgstr "No se encontró ninguna transmisión activa para esta franja horaria"
 
 #: talks/admin_pretalx.py:34 talks/admin_pretalx.py:106
 msgid "status"
-msgstr "status"
+msgstr "estado"
 
 #: talks/admin_pretalx.py:44 talks/admin_pretalx.py:113
 msgid "Pending"
-msgstr "Pendente"
+msgstr "Pendiente"
 
 #: talks/admin_pretalx.py:45 talks/admin_pretalx.py:110
 msgid "Applied"
-msgstr "Aplicada"
+msgstr "Aplicado"
 
 #: talks/admin_pretalx.py:46 talks/admin_pretalx.py:112
 msgid "Dismissed"
-msgstr "Descartada"
+msgstr "Descartado"
 
 #: talks/admin_pretalx.py:101
 msgid "summary"
-msgstr "resumo"
+msgstr "resumen"
 
 #: talks/admin_pretalx.py:123
 msgid "Apply selected pending Pretalx changes"
-msgstr "Aplicar as alterações pendentes do Pretalx selecionadas"
+msgstr "Aplicar los cambios pendientes de Pretalx seleccionados"
 
 #: talks/admin_pretalx.py:144
 #, python-format
 msgid "Failed to apply %(code)s: %(error)s"
-msgstr "Falha ao aplicar %(code)s: %(error)s"
+msgstr "No se pudo aplicar %(code)s: %(error)s"
 
 #: talks/admin_pretalx.py:151
 #, python-format
 msgid "Applied %(n)d pending change(s)."
-msgstr "%(n)d alteração(ões) pendente(s) aplicada(s)."
+msgstr "Se aplicaron %(n)d cambio(s) pendiente(s)."
 
 #: talks/admin_pretalx.py:157
 #, python-format
 msgid "%(n)d already-closed row(s) were left untouched."
-msgstr "%(n)d linha(s) já encerrada(s) não foram alteradas."
+msgstr "Se dejaron sin tocar %(n)d fila(s) ya cerrada(s)."
 
 #: talks/admin_pretalx.py:162
 msgid "No changes were applied."
-msgstr "Nenhuma alteração foi aplicada."
+msgstr "No se aplicó ningún cambio."
 
 #: talks/admin_pretalx.py:164
 msgid "Dismiss selected pending Pretalx changes"
-msgstr "Descartar as alterações pendentes do Pretalx selecionadas"
+msgstr "Descartar los cambios pendientes de Pretalx seleccionados"
 
 #: talks/admin_pretalx.py:179
 #, python-format
 msgid "Dismissed %(n)d pending change(s)."
-msgstr "%(n)d alteração(ões) pendente(s) descartada(s)."
+msgstr "Se descartaron %(n)d cambio(s) pendiente(s)."
 
 #: talks/admin_pretalx.py:227
 msgid "DEFAULT_EVENT is not configured; cannot run the Pretalx detect."
 msgstr ""
-"DEFAULT_EVENT não está configurado; não é possível executar a detecção do "
+"DEFAULT_EVENT no está configurado; no se puede ejecutar la detección de "
 "Pretalx."
 
 #: talks/admin_pretalx.py:242
 #, python-format
 msgid "Pretalx detect failed: %(error)s"
-msgstr "Falha na detecção do Pretalx: %(error)s"
+msgstr "Falló la detección de Pretalx: %(error)s"
 
 #: talks/admin_pretalx.py:248
 msgid ""
 "Pretalx detect complete. New or updated rows (if any) are listed below."
 msgstr ""
-"Detecção do Pretalx concluída. Linhas novas ou atualizadas (se houver) estão"
-" listadas abaixo."
+"Detección de Pretalx completada. Las filas nuevas o actualizadas (si las "
+"hay) se listan a continuación."
 
 #: talks/admin_qa.py:81 templates/talks/talk_list.html:56
 msgid "Author"
@@ -360,16 +362,16 @@ msgstr "Autor"
 
 #: talks/admin_qa.py:87 talks/admin_qa.py:209 talks/admin_rating.py:81
 msgid "Metadata"
-msgstr "Metadados"
+msgstr "Metadatos"
 
 #: talks/admin_qa.py:95 talks/admin_qa.py:175 talks/admin_qa.py:222
 #: talks/models_qa.py:123
 msgid "Question"
-msgstr "Pergunta"
+msgstr "Pregunta"
 
 #: talks/admin_qa.py:100
 msgid "Has Answers"
-msgstr "Tem respostas"
+msgstr "Tiene respuestas"
 
 #: talks/admin_qa.py:107
 msgid "Votes"
@@ -377,76 +379,76 @@ msgstr "Votos"
 
 #: talks/admin_qa.py:123
 msgid "Reject selected questions (hide from public)"
-msgstr "Rejeitar as perguntas selecionadas (ocultar do público)"
+msgstr "Rechazar las preguntas seleccionadas (ocultar al público)"
 
 #: talks/admin_qa.py:130
 #, python-format
 msgid "%(count)d question(s) have been rejected."
-msgstr "%(count)d pergunta(s) foram rejeitada(s)."
+msgstr "Se han rechazado %(count)d pregunta(s)."
 
 #: talks/admin_qa.py:133
 msgid "Mark selected questions as answered"
-msgstr "Marcar as perguntas selecionadas como respondidas"
+msgstr "Marcar las preguntas seleccionadas como respondidas"
 
 #: talks/admin_qa.py:140
 #, python-format
 msgid "%(count)d question(s) have been marked as answered."
-msgstr "%(count)d pergunta(s) foram marcada(s) como respondida(s)."
+msgstr "Se han marcado como respondidas %(count)d pregunta(s)."
 
 #: talks/admin_qa.py:143
 msgid "Approve selected questions"
-msgstr "Aprovar as perguntas selecionadas"
+msgstr "Aprobar las preguntas seleccionadas"
 
 #: talks/admin_qa.py:150
 #, python-format
 msgid "%(count)d question(s) have been approved."
-msgstr "%(count)d pergunta(s) foram aprovada(s)."
+msgstr "Se han aprobado %(count)d pregunta(s)."
 
 #: talks/admin_qa.py:217 talks/models_qa.py:258
 msgid "Answer"
-msgstr "Resposta"
+msgstr "Respuesta"
 
 #: talks/admin_rating.py:24
 msgid "Has comment"
-msgstr "Tem comentário"
+msgstr "Tiene comentario"
 
 #: talks/admin_rating.py:34
 msgid "With comment"
-msgstr "Com comentário"
+msgstr "Con comentario"
 
 #: talks/admin_rating.py:35
 msgid "Without comment"
-msgstr "Sem comentário"
+msgstr "Sin comentario"
 
 #: talks/admin_rating.py:89
 msgid "Has Comment"
-msgstr "Tem comentário"
+msgstr "Tiene comentario"
 
 #: talks/models.py:57
 msgid "Event this room belongs to"
-msgstr "Evento ao qual esta sala pertence"
+msgstr "Evento al que pertenece esta sala"
 
 #: talks/models.py:64
 msgid "Name of the room"
-msgstr "Nome da sala"
+msgstr "Nombre de la sala"
 
 #: talks/models.py:73
 msgid "Stable Pretalx room id (slot.room.id); null for manual/legacy rooms"
 msgstr ""
-"ID estável da sala no Pretalx (slot.room.id); nulo para salas "
-"manuais/legadas"
+"Identificador estable de sala de Pretalx (slot.room.id); nulo para salas "
+"manuales o heredadas"
 
 #: talks/models.py:78
 msgid "Description of the room"
-msgstr "Descrição da sala"
+msgstr "Descripción de la sala"
 
 #: talks/models.py:84
 msgid "Maximum number of people that can fit in the room"
-msgstr "Número máximo de pessoas que cabem na sala"
+msgstr "Número máximo de personas que caben en la sala"
 
 #: talks/models.py:90
 msgid "Link to Slido for this room"
-msgstr "Link do Slido para esta sala"
+msgstr "Enlace a Slido para esta sala"
 
 #: talks/models.py:100
 msgid "Rooms"
@@ -454,48 +456,49 @@ msgstr "Salas"
 
 #: talks/models.py:163
 msgid "Room where the streaming takes place"
-msgstr "Sala onde ocorre a transmissão"
+msgstr "Sala donde tiene lugar la transmisión"
 
 #: talks/models.py:167
 msgid "When the streaming starts"
-msgstr "Quando a transmissão começa"
+msgstr "Cuándo comienza la transmisión"
 
 #: talks/models.py:171
 msgid "When the streaming ends"
-msgstr "Quando a transmissão termina"
+msgstr "Cuándo termina la transmisión"
 
 #: talks/models.py:175
 msgid "Link to the streaming"
-msgstr "Link da transmissão"
+msgstr "Enlace a la transmisión"
 
 #: talks/models.py:181
 msgid "Link to the transcription page for talks in this streaming session."
 msgstr ""
-"Link da página de transcrição das palestras desta sessão de transmissão."
+"Enlace a la página de transcripción de las charlas de esta sesión de "
+"transmisión."
 
 #: talks/models.py:187
 msgid "Streaming"
-msgstr "Transmissão"
+msgstr "Transmisión"
 
 #: talks/models.py:188
 msgid "Streamings"
-msgstr "Transmissões"
+msgstr "Transmisiones"
 
 #: talks/models.py:223
 msgid "This streaming overlaps with another streaming for the same room."
-msgstr "Esta transmissão se sobrepõe a outra transmissão na mesma sala."
+msgstr "Esta transmisión se solapa con otra transmisión de la misma sala."
 
 #: talks/models.py:238
 msgid "Man"
-msgstr "Homem"
+msgstr "Hombre"
 
 #: talks/models.py:239
 msgid "Woman"
-msgstr "Mulher"
+msgstr "Mujer"
 
 #: talks/models.py:240
 msgid "Non-binary"
-msgstr "Não binário"
+msgstr "No binario"
 
 #: talks/models.py:241
 msgid "Genderqueer"
@@ -503,52 +506,51 @@ msgstr "Genderqueer"
 
 #: talks/models.py:242
 msgid "Self-describe"
-msgstr "Autodescrever"
+msgstr "Describirlo yo"
 
 #: talks/models.py:243
 msgid "Prefer not to say"
-msgstr "Prefiro não dizer"
+msgstr "Prefiero no decirlo"
 
 #: talks/models.py:247
 msgid "Full name of the speaker"
-msgstr "Nome completo do palestrante"
+msgstr "Nombre completo del ponente"
 
 #: talks/models.py:252
 msgid "Biography of the speaker"
-msgstr "Biografia do palestrante"
+msgstr "Biografía del ponente"
 
 #: talks/models.py:257
 msgid "URL to the speaker's avatar image"
-msgstr "URL da imagem de avatar do palestrante"
+msgstr "URL de la imagen de avatar del ponente"
 
 #: talks/models.py:264
 msgid "Gender identity (optional)"
-msgstr "Identidade de gênero (opcional)"
+msgstr "Identidad de género (opcional)"
 
 #: talks/models.py:270
 msgid "If you selected 'Self-describe', please specify your gender identity"
-msgstr ""
-"Se você selecionou 'Autodescrever', especifique sua identidade de gênero"
+msgstr "Si seleccionó 'Describirlo yo', especifique su identidad de género"
 
 #: talks/models.py:276
 msgid "Preferred pronouns (e.g., he/him, she/her, they/them)"
-msgstr "Pronomes preferidos (ex.: ele/dele, ela/dela, elu/delu)"
+msgstr "Pronombres preferidos (p. ej., él, ella, elle)"
 
 #: talks/models.py:282
 msgid "Unique identifier for the speaker in the Pretalx system"
-msgstr "Identificador único do palestrante no sistema Pretalx"
+msgstr "Identificador único del ponente en el sistema Pretalx"
 
 #: talks/models.py:290
 msgid "Speaker"
-msgstr "Palestrante"
+msgstr "Ponente"
 
 #: talks/models.py:291 templates/404.html:44 templates/base.html:123
 msgid "Speakers"
-msgstr "Palestrantes"
+msgstr "Ponentes"
 
 #: talks/models.py:374
 msgid "Keynote"
-msgstr "Keynote"
+msgstr "Conferencia magistral"
 
 #: talks/models.py:375
 msgid "Kids"
@@ -556,23 +558,23 @@ msgstr "Infantil"
 
 #: talks/models.py:376
 msgid "Lightning Talk"
-msgstr "Lightning Talk"
+msgstr "Charla relámpago"
 
 #: talks/models.py:377
 msgid "Open Space"
-msgstr "Open Space"
+msgstr "Espacio abierto"
 
 #: talks/models.py:378
 msgid "Panel"
-msgstr "Painel"
+msgstr "Panel"
 
 #: talks/models.py:379
 msgid "Plenary"
-msgstr "Plenária"
+msgstr "Plenaria"
 
 #: talks/models.py:380 talks/models.py:519
 msgid "Talk"
-msgstr "Palestra"
+msgstr "Charla"
 
 #: talks/models.py:381
 msgid "Tutorial"
@@ -580,190 +582,194 @@ msgstr "Tutorial"
 
 #: talks/models.py:395
 msgid "Type of the presentation"
-msgstr "Tipo da apresentação"
+msgstr "Tipo de la presentación"
 
 #: talks/models.py:399
 msgid "Title of the talk"
-msgstr "Título da palestra"
+msgstr "Título de la charla"
 
 #: talks/models.py:404
 msgid "Speakers giving this talk"
-msgstr "Palestrantes que apresentam esta palestra"
+msgstr "Ponentes que imparten esta charla"
 
 #: talks/models.py:408
 msgid "Talk abstract"
-msgstr "Resumo da palestra"
+msgstr "Resumen de la charla"
 
 #: talks/models.py:412
 msgid "Full description of the talk"
-msgstr "Descrição completa da palestra"
+msgstr "Descripción completa de la charla"
 
 #: talks/models.py:417
 msgid "Date and time when the talk is scheduled"
-msgstr "Data e hora em que a palestra está agendada"
+msgstr "Fecha y hora en que está programada la charla"
 
 #: talks/models.py:422
 msgid "Duration of the talk"
-msgstr "Duração da palestra"
+msgstr "Duración de la charla"
 
 #: talks/models.py:429
 msgid "Computed talk end time (start_time + duration). Never set directly."
 msgstr ""
-"Horário de término calculado da palestra (start_time + duração). Nunca "
-"defina diretamente."
+"Hora de fin de la charla calculada (start_time + duración). Nunca se "
+"establece directamente."
 
 #: talks/models.py:437
 msgid "Room where the talk takes place"
-msgstr "Sala onde a palestra acontece"
+msgstr "Sala donde tiene lugar la charla"
 
 #: talks/models.py:443
 msgid "Track or category of the talk"
-msgstr "Trilha ou categoria da palestra"
+msgstr "Track o categoría de la charla"
 
 #: talks/models.py:448
 msgid "URL to an externally hosted image"
-msgstr "URL de uma imagem hospedada externamente"
+msgstr "URL de una imagen alojada externamente"
 
 #: talks/models.py:454
 msgid "Image for the talk. Overrides the external image URL if provided."
-msgstr "Imagem da palestra. Substitui a URL da imagem externa, se fornecida."
+msgstr ""
+"Imagen de la charla. Sustituye a la URL de la imagen externa si se "
+"proporciona."
 
 #: talks/models.py:459
 msgid "Link to talk description in pretalx"
-msgstr "Link para a descrição da palestra no Pretalx"
+msgstr "Enlace a la descripción de la charla en pretalx"
 
 #: talks/models.py:464
 msgid "Link to questions on Slido. Overrides the room's link if provided."
-msgstr "Link para perguntas no Slido. Substitui o link da sala, se fornecido."
+msgstr ""
+"Enlace a las preguntas en Slido. Sustituye al enlace de la sala si se "
+"proporciona."
 
 #: talks/models.py:470
 msgid ""
 "Link to talk recording. Overrides the calculated streaming link if provided."
 msgstr ""
-"Link para a gravação da palestra. Substitui o link de transmissão calculado,"
-" se fornecido."
+"Enlace a la grabación de la charla. Sustituye al enlace de transmisión "
+"calculado si se proporciona."
 
 #: talks/models.py:475
 msgid "Link to external transcription page for this talk."
-msgstr "Link para a página externa de transcrição desta palestra."
+msgstr "Enlace a la página de transcripción externa de esta charla."
 
 #: talks/models.py:480
 msgid "Start time in seconds"
-msgstr "Horário de início em segundos"
+msgstr "Hora de inicio en segundos"
 
 #: talks/models.py:488
 msgid "Event this talk belongs to"
-msgstr "Evento ao qual esta palestra pertence"
+msgstr "Evento al que pertenece esta charla"
 
 #: talks/models.py:496
 msgid "User who volunteered to chair this session"
-msgstr "Usuário que se voluntariou para moderar esta sessão"
+msgstr "Usuario que se ofreció para moderar esta sesión"
 
 #: talks/models.py:500
 msgid "Hide this talk from the public"
-msgstr "Ocultar esta palestra do público"
+msgstr "Ocultar esta charla al público"
 
 #: talks/models.py:504
 msgid "When this talk was added to the system"
-msgstr "Quando esta palestra foi adicionada ao sistema"
+msgstr "Cuándo se añadió esta charla al sistema"
 
 #: talks/models.py:508
 msgid "When this talk was last modified"
-msgstr "Quando esta palestra foi modificada pela última vez"
+msgstr "Cuándo se modificó esta charla por última vez"
 
 #: talks/models.py:589
 msgid "The selected room belongs to a different event than this talk."
-msgstr "A sala selecionada pertence a um evento diferente do desta palestra."
+msgstr ""
+"La sala seleccionada pertenece a un evento distinto del de esta charla."
 
 #: talks/models.py:602
 msgid "This talk overlaps with another talk in the same room."
-msgstr "Esta palestra se sobrepõe a outra palestra na mesma sala."
+msgstr "Esta charla se solapa con otra charla en la misma sala."
 
 #: talks/models_pretalx.py:43
 msgid "Create"
-msgstr "Criar"
+msgstr "Crear"
 
 #: talks/models_pretalx.py:44
 msgid "Update"
-msgstr "Atualizar"
+msgstr "Actualizar"
 
 #: talks/models_pretalx.py:45
 #: templates/talks/questions/question_list_fragment.html:140
 msgid "Delete"
-msgstr "Excluir"
+msgstr "Eliminar"
 
 #: talks/models_pretalx.py:51
 msgid "Event this submission belongs to"
-msgstr "Evento ao qual esta submissão pertence"
+msgstr "Evento al que pertenece esta propuesta"
 
 #: talks/models_pretalx.py:55
 msgid "Pretalx submission code (e.g. 'ABC123')"
-msgstr "Código da submissão no Pretalx (ex.: 'ABC123')"
+msgstr "Código de propuesta de Pretalx (p. ej., 'ABC123')"
 
 #: talks/models_pretalx.py:63
 msgid "Local talk this change targets (null for CREATE)"
-msgstr "Palestra local que esta alteração afeta (nulo para CREATE)"
+msgstr "Charla local a la que afecta este cambio (nulo para CREATE)"
 
 #: talks/models_pretalx.py:68
 msgid "Whether this change would create, update, or delete the talk"
-msgstr "Se esta alteração criaria, atualizaria ou excluiria a palestra"
+msgstr "Si este cambio crearía, actualizaría o eliminaría la charla"
 
 #: talks/models_pretalx.py:74
 msgid ""
 "Per-field diff: {field_name: {old: <value>, new: <value>}}. Empty for "
 "CREATE/DELETE."
 msgstr ""
-"Diff por campo: {field_name: {old: <value>, new: <value>}}. Vazio para "
-"CREATE/DELETE."
+"Diferencia por campo: {field_name: {old: <value>, new: <value>}}. Vacío para"
+" CREATE/DELETE."
 
 #: talks/models_pretalx.py:80
 msgid "Speaker M2M diff: {added: [{code, name}], removed: [...]}."
-msgstr "Diff M2M de palestrantes: {added: [{code, name}], removed: [...]}."
+msgstr "Diferencia M2M de ponentes: {added: [{code, name}], removed: [...]}."
 
 #: talks/models_pretalx.py:86
 msgid ""
 "Full snapshot of the new values to apply. Self-contained so applying does "
 "not require re-fetching Pretalx."
 msgstr ""
-"Snapshot completo dos novos valores a aplicar. Autocontido, de modo que "
-"aplicar não exige consultar o Pretalx novamente."
+"Instantánea completa de los nuevos valores que se aplicarán. Es autónoma, "
+"por lo que aplicarla no requiere volver a consultar Pretalx."
 
 #: talks/models_pretalx.py:92
 msgid "When this diff was first observed"
-msgstr "Quando este diff foi observado pela primeira vez"
+msgstr "Cuándo se observó por primera vez esta diferencia"
 
 #: talks/models_pretalx.py:96
 msgid "Most recent detect run that confirmed this diff"
-msgstr "Execução de detecção mais recente que confirmou este diff"
+msgstr "Ejecución de detección más reciente que confirmó esta diferencia"
 
 #: talks/models_pretalx.py:101
 msgid "When the change was applied to the local Talk (null = still pending)"
-msgstr ""
-"Quando a alteração foi aplicada à palestra local (nulo = ainda pendente)"
+msgstr "Cuándo se aplicó el cambio a la charla local (nulo = aún pendiente)"
 
 #: talks/models_pretalx.py:109
 msgid "Admin who applied this change"
-msgstr "Administrador que aplicou esta alteração"
+msgstr "Administrador que aplicó este cambio"
 
 #: talks/models_pretalx.py:114
 msgid "When the change was dismissed (null = still pending)"
-msgstr "Quando a alteração foi descartada (nulo = ainda pendente)"
+msgstr "Cuándo se descartó el cambio (nulo = aún pendiente)"
 
 #: talks/models_pretalx.py:122
 msgid "Admin who dismissed this change"
-msgstr "Administrador que descartou esta alteração"
+msgstr "Administrador que descartó este cambio"
 
 #: talks/models_pretalx.py:128
 msgid "Pending Pretalx change"
-msgstr "Alteração pendente do Pretalx"
+msgstr "Cambio pendiente de Pretalx"
 
 #: talks/models_pretalx.py:129
 msgid "Pending Pretalx changes"
-msgstr "Alterações pendentes do Pretalx"
+msgstr "Cambios pendientes de Pretalx"
 
 #: talks/models_qa.py:69
 msgid "Approved"
-msgstr "Aprovada"
+msgstr "Aprobada"
 
 #: talks/models_qa.py:70
 #: templates/talks/questions/question_list_fragment.html:36
@@ -775,175 +781,175 @@ msgstr "Respondida"
 #: templates/talks/questions/question_list_fragment.html:39
 #: templates/talks/questions/question_list_fragment.html:77
 msgid "Rejected"
-msgstr "Rejeitada"
+msgstr "Rechazada"
 
 #: talks/models_qa.py:77
 msgid "Talk this question is about"
-msgstr "Palestra a que esta pergunta se refere"
+msgstr "Charla a la que se refiere esta pregunta"
 
 #: talks/models_qa.py:82
 msgid "The question text"
-msgstr "O texto da pergunta"
+msgstr "El texto de la pregunta"
 
 #: talks/models_qa.py:91
 msgid "User who asked the question (if logged in)"
-msgstr "Usuário que fez a pergunta (se estiver logado)"
+msgstr "Usuario que hizo la pregunta (si inició sesión)"
 
 #: talks/models_qa.py:98
 msgid "Status of the question"
-msgstr "Status da pergunta"
+msgstr "Estado de la pregunta"
 
 #: talks/models_qa.py:103
 msgid "When this question was asked"
-msgstr "Quando esta pergunta foi feita"
+msgstr "Cuándo se hizo esta pregunta"
 
 #: talks/models_qa.py:108
 msgid "When this question was last modified"
-msgstr "Quando esta pergunta foi modificada pela última vez"
+msgstr "Cuándo se modificó esta pregunta por última vez"
 
 #: talks/models_qa.py:124
 #: templates/talks/questions/question_list_fragment.html:14
 msgid "Questions"
-msgstr "Perguntas"
+msgstr "Preguntas"
 
 #: talks/models_qa.py:138 talks/models_qa.py:139 users/views.py:213
 msgid "Anonymous"
-msgstr "Anônimo"
+msgstr "Anónimo"
 
 #: talks/models_qa.py:184
 msgid "Question being voted on"
-msgstr "Pergunta sendo votada"
+msgstr "Pregunta que se está votando"
 
 #: talks/models_qa.py:191
 msgid "User who voted"
-msgstr "Usuário que votou"
+msgstr "Usuario que votó"
 
 #: talks/models_qa.py:196
 msgid "When this vote was created"
-msgstr "Quando este voto foi criado"
+msgstr "Cuándo se creó este voto"
 
 #: talks/models_qa.py:202
 msgid "Question Vote"
-msgstr "Voto em pergunta"
+msgstr "Voto de pregunta"
 
 #: talks/models_qa.py:203
 msgid "Question Votes"
-msgstr "Votos em perguntas"
+msgstr "Votos de pregunta"
 
 #: talks/models_qa.py:223
 msgid "Question this answer responds to"
-msgstr "Pergunta à qual esta resposta responde"
+msgstr "Pregunta a la que responde esta respuesta"
 
 #: talks/models_qa.py:228
 msgid "The answer text"
-msgstr "O texto da resposta"
+msgstr "El texto de la respuesta"
 
 #: talks/models_qa.py:236
 msgid "User who provided the answer"
-msgstr "Usuário que forneceu a resposta"
+msgstr "Usuario que proporcionó la respuesta"
 
 #: talks/models_qa.py:241
 msgid "Whether this is an official answer from a speaker or organizer"
-msgstr "Se esta é uma resposta oficial de um palestrante ou organizador"
+msgstr "Si esta es una respuesta oficial de un ponente u organizador"
 
 #: talks/models_qa.py:246
 msgid "When this answer was created"
-msgstr "Quando esta resposta foi criada"
+msgstr "Cuándo se creó esta respuesta"
 
 #: talks/models_qa.py:251
 msgid "When this answer was last modified"
-msgstr "Quando esta resposta foi modificada pela última vez"
+msgstr "Cuándo se modificó esta respuesta por última vez"
 
 #: talks/models_qa.py:259
 msgid "Answers"
-msgstr "Respostas"
+msgstr "Respuestas"
 
 #: talks/models_rating.py:35
 msgid "The talk being rated"
-msgstr "A palestra sendo avaliada"
+msgstr "La charla que se está valorando"
 
 #: talks/models_rating.py:41
 msgid "The user who submitted the rating"
-msgstr "O usuário que enviou a avaliação"
+msgstr "El usuario que envió la valoración"
 
 #: talks/models_rating.py:44
 msgid "Rating score from 1 to 5"
-msgstr "Nota da avaliação de 1 a 5"
+msgstr "Puntuación de la valoración del 1 al 5"
 
 #: talks/models_rating.py:49
 msgid "Optional comment about the talk (visible only to admins)"
 msgstr ""
-"Comentário opcional sobre a palestra (visível apenas para administradores)"
+"Comentario opcional sobre la charla (visible solo para administradores)"
 
 #: talks/models_rating.py:53
 msgid "When this rating was created"
-msgstr "Quando esta avaliação foi criada"
+msgstr "Cuándo se creó esta valoración"
 
 #: talks/models_rating.py:57
 msgid "When this rating was last modified"
-msgstr "Quando esta avaliação foi modificada pela última vez"
+msgstr "Cuándo se modificó esta valoración por última vez"
 
 #: talks/models_rating.py:63
 msgid "Rating"
-msgstr "Avaliação"
+msgstr "Valoración"
 
 #: talks/models_rating.py:64
 msgid "Ratings"
-msgstr "Avaliações"
+msgstr "Valoraciones"
 
 #: talks/models_rating.py:93
 msgid "The user who saved the talk"
-msgstr "O usuário que salvou a palestra"
+msgstr "El usuario que guardó la charla"
 
 #: talks/models_rating.py:99
 msgid "The saved talk"
-msgstr "A palestra salva"
+msgstr "La charla guardada"
 
 #: talks/models_rating.py:103
 msgid "When this talk was saved"
-msgstr "Quando esta palestra foi salva"
+msgstr "Cuándo se guardó esta charla"
 
 #: talks/models_rating.py:109
 msgid "Saved Talk"
-msgstr "Palestra salva"
+msgstr "Charla guardada"
 
 #: talks/models_rating.py:110
 msgid "Saved Talks"
-msgstr "Palestras salvas"
+msgstr "Charlas guardadas"
 
 #: talks/validators.py:29
 msgid "Invalid URL format"
-msgstr "Formato de URL inválido"
+msgstr "Formato de URL no válido"
 
 #: talks/validators.py:35
 msgid "URL must include a domain"
-msgstr "A URL deve incluir um domínio"
+msgstr "La URL debe incluir un dominio"
 
 #: talks/validators.py:48
 #, python-format
 msgid ""
 "URL must be from a valid video provider. Allowed providers: %(providers)s"
 msgstr ""
-"A URL deve ser de um provedor de vídeo válido. Provedores permitidos: "
+"La URL debe ser de un proveedor de vídeo válido. Proveedores permitidos: "
 "%(providers)s"
 
 #: talks/views.py:294
 msgid "Happening Now"
-msgstr "Acontecendo agora"
+msgstr "Ahora mismo"
 
 #: talks/views.py:296
 msgid "Completed"
-msgstr "Concluída"
+msgstr "Finalizada"
 
 #: talks/views_chair.py:119 talks/views_chair.py:172
 msgid " and more"
-msgstr " e mais"
+msgstr " y más"
 
 #: talks/views_chair.py:120
 #, python-format
 msgid ""
 "%(label)s already chairs a session at the same time: %(talks)s%(suffix)s"
-msgstr "%(label)s já modera uma sessão no mesmo horário: %(talks)s%(suffix)s"
+msgstr "%(label)s ya modera una sesión a la misma hora: %(talks)s%(suffix)s"
 
 #: talks/views_chair.py:175
 #, python-format
@@ -951,139 +957,138 @@ msgid ""
 "%(label)s will have under %(minutes)s minutes to change rooms: "
 "%(talks)s%(suffix)s"
 msgstr ""
-"%(label)s terá menos de %(minutes)s minutos para trocar de sala: "
+"%(label)s tendrá menos de %(minutes)s minutos para cambiar de sala: "
 "%(talks)s%(suffix)s"
 
 #: talks/views_chair.py:221 talks/views_chair.py:224
 msgid "You"
-msgstr "Você"
+msgstr "Usted"
 
 #: talks/views_qa.py:149
 msgid "Your question has been posted."
-msgstr "Sua pergunta foi publicada."
+msgstr "Su pregunta se ha publicado."
 
 #: talks/views_qa.py:177
 msgid "Your question could not be posted."
-msgstr "Não foi possível publicar sua pergunta."
+msgstr "No se pudo publicar su pregunta."
 
 #: talks/views_qa.py:310
 msgid "Your question has been deleted."
-msgstr "Sua pergunta foi excluída."
+msgstr "Su pregunta se ha eliminado."
 
 #: talks/views_qa.py:368
 msgid "Your question was updated and all previous votes were cleared."
-msgstr ""
-"Sua pergunta foi atualizada e todos os votos anteriores foram zerados."
+msgstr "Su pregunta se actualizó y se borraron todos los votos anteriores."
 
 #: talks/views_qa.py:431
 msgid "Question has been rejected."
-msgstr "A pergunta foi rejeitada."
+msgstr "La pregunta se ha rechazado."
 
 #: talks/views_qa.py:442
 msgid "Question has been marked as answered."
-msgstr "A pergunta foi marcada como respondida."
+msgstr "La pregunta se ha marcado como respondida."
 
 #: talks/views_qa.py:453
 msgid "Question has been approved."
-msgstr "A pergunta foi aprovada."
+msgstr "La pregunta se ha aprobado."
 
 #: talks/views_rating.py:89
 msgid "Invalid rating value."
-msgstr "Valor de avaliação inválido."
+msgstr "Valor de valoración no válido."
 
 #: talks/views_rating.py:95
 #, python-format
 msgid "Rating must be between %(min)s and %(max)s stars."
-msgstr "A avaliação deve ser entre %(min)s e %(max)s estrelas."
+msgstr "La valoración debe estar entre %(min)s y %(max)s estrellas."
 
 #: talks/views_rating.py:114
 msgid "Your rating has been submitted!"
-msgstr "Sua avaliação foi enviada!"
+msgstr "¡Su valoración se ha enviado!"
 
 #: talks/views_rating.py:116
 msgid "Your rating has been updated!"
-msgstr "Sua avaliação foi atualizada!"
+msgstr "¡Su valoración se ha actualizado!"
 
 #: talks/views_rating.py:123
 msgid "Error submitting rating. Please try again."
-msgstr "Erro ao enviar a avaliação. Tente novamente."
+msgstr "Error al enviar la valoración. Inténtelo de nuevo."
 
 #: talks/views_rating.py:148
 msgid "Your rating has been removed."
-msgstr "Sua avaliação foi removida."
+msgstr "Su valoración se ha eliminado."
 
 #: talks/views_rating.py:150
 msgid "No rating to remove."
-msgstr "Nenhuma avaliação para remover."
+msgstr "No hay ninguna valoración que eliminar."
 
 #: talks/views_saved.py:61
 msgid "Talk saved!"
-msgstr "Palestra salva!"
+msgstr "¡Charla guardada!"
 
 #: talks/views_saved.py:63
 msgid "Talk removed from saved."
-msgstr "Palestra removida dos salvos."
+msgstr "Charla quitada de guardadas."
 
 #: templates/404.html:4
 #, python-format
 msgid "Page Not Found - %(title)s"
-msgstr "Página não encontrada - %(title)s"
+msgstr "Página no encontrada - %(title)s"
 
 #: templates/404.html:7
 #, python-format
 msgid "Page not found - %(description)s"
-msgstr "Página não encontrada - %(description)s"
+msgstr "Página no encontrada - %(description)s"
 
 #: templates/404.html:21
 msgid "Page Not Found"
-msgstr "Página não encontrada"
+msgstr "Página no encontrada"
 
 #: templates/404.html:23
 msgid "Oops! Looks like this page has slithered away."
-msgstr "Ops! Parece que esta página escorregou para longe."
+msgstr "¡Vaya! Parece que esta página se ha escabullido."
 
 #: templates/404.html:24
 msgid ""
 "It might have been moved or deleted, or perhaps there was a typo in the URL."
 msgstr ""
-"Ela pode ter sido movida ou excluída, ou talvez haja um erro de digitação na"
-" URL."
+"Puede que se haya movido o eliminado, o quizá hubo un error de escritura en "
+"la URL."
 
 #: templates/404.html:27 templates/500.html:28
 msgid "Return to Homepage"
-msgstr "Voltar para a página inicial"
+msgstr "Volver al inicio"
 
 #: templates/404.html:29
 msgid "Go Back"
-msgstr "Voltar"
+msgstr "Volver atrás"
 
 #: templates/404.html:32
 msgid "You might be looking for:"
-msgstr "Talvez você esteja procurando por:"
+msgstr "Quizá esté buscando:"
 
 #: templates/404.html:35 templates/500.html:36
 msgid "List of Talks"
-msgstr "Lista de palestras"
+msgstr "Lista de charlas"
 
 #: templates/404.html:38 templates/base.html:67
 msgid "Logout"
-msgstr "Sair"
+msgstr "Cerrar sesión"
 
 #: templates/404.html:41
 msgid "Login"
-msgstr "Entrar"
+msgstr "Iniciar sesión"
 
 #: templates/404.html:43 templates/500.html:39
 msgid "Event Schedule"
-msgstr "Programação do evento"
+msgstr "Programa del evento"
 
 #: templates/404.html:45 templates/500.html:38
 msgid "Venue Information"
-msgstr "Informações do local"
+msgstr "Información de la sede"
 
 #: templates/404.html:46 templates/500.html:37
 msgid "Main Website"
-msgstr "Site principal"
+msgstr "Sitio web principal"
 
 #: templates/404.html:47 templates/500.html:40 templates/base.html:138
 msgid "Imprint"
@@ -1091,63 +1096,64 @@ msgstr "Aviso legal"
 
 #: templates/404.html:48 templates/500.html:41 templates/base.html:143
 msgid "Code of Conduct"
-msgstr "Código de conduta"
+msgstr "Código de conducta"
 
 #: templates/404.html:49 templates/500.html:42 templates/base.html:148
 msgid "Privacy Policy"
-msgstr "Política de privacidade"
+msgstr "Política de privacidad"
 
 #: templates/500.html:4
 #, python-format
 msgid "Server Error - %(title)s"
-msgstr "Erro do servidor - %(title)s"
+msgstr "Error del servidor - %(title)s"
 
 #: templates/500.html:7
 #, python-format
 msgid "Server error - %(description)s"
-msgstr "Erro do servidor - %(description)s"
+msgstr "Error del servidor - %(description)s"
 
 #: templates/500.html:21
 msgid "Server Error"
-msgstr "Erro do servidor"
+msgstr "Error del servidor"
 
 #: templates/500.html:23
 msgid "Oops! Something went wrong on our end."
-msgstr "Ops! Algo deu errado do nosso lado."
+msgstr "¡Vaya! Algo salió mal por nuestra parte."
 
 #: templates/500.html:24
 msgid "Our team has been notified of this issue and we're working to fix it."
 msgstr ""
-"Nossa equipe foi notificada sobre o problema e estamos trabalhando para "
-"corrigi-lo."
+"Nuestro equipo ha sido notificado de este problema y estamos trabajando para"
+" solucionarlo."
 
 #: templates/500.html:25
 msgid "Please try again later or navigate to a different page."
-msgstr "Tente novamente mais tarde ou navegue para outra página."
+msgstr "Inténtelo de nuevo más tarde o vaya a otra página."
 
 #: templates/500.html:30
 msgid "Try Again"
-msgstr "Tentar novamente"
+msgstr "Intentar de nuevo"
 
 #: templates/500.html:33
 msgid "You can still visit:"
-msgstr "Você ainda pode visitar:"
+msgstr "Aún puede visitar:"
 
 #: templates/account/confirm_login_code.html:6
 msgid "Enter Login Code"
-msgstr "Digite o código de acesso"
+msgstr "Introduzca el código de acceso"
 
 #: templates/account/confirm_login_code.html:9 users/views_connections.py:261
 msgid "The code you entered is incorrect. Please try again."
-msgstr "O código digitado está incorreto. Tente novamente."
+msgstr "El código que introdujo es incorrecto. Inténtelo de nuevo."
 
 #: templates/account/confirm_login_code.html:16
 msgid "Login Code"
-msgstr "Código de acesso"
+msgstr "Código de acceso"
 
 #: templates/account/confirm_login_code.html:18
 msgid "Please enter the code we sent to your email address."
-msgstr "Digite o código que enviamos para o seu endereço de e-mail."
+msgstr ""
+"Introduzca el código que enviamos a su dirección de correo electrónico."
 
 #: templates/account/confirm_login_code.html:20
 msgid "Verify Code"
@@ -1156,11 +1162,11 @@ msgstr "Verificar código"
 #: templates/account/email/login_code_message.html:3
 #, python-format
 msgid "%(event_name)s Login Code"
-msgstr "Código de acesso do %(event_name)s"
+msgstr "Código de acceso de %(event_name)s"
 
 #: templates/account/email/login_code_message.html:5
 msgid "Your login code is:"
-msgstr "Seu código de acesso é:"
+msgstr "Su código de acceso es:"
 
 #: templates/account/email/login_code_message.html:7
 #: templates/account/email/login_code_message.txt:3
@@ -1168,101 +1174,103 @@ msgstr "Seu código de acesso é:"
 #: templates/users/email/add_email_code.txt:3
 #, python-format
 msgid "This code will expire in %(minutes)s minutes."
-msgstr "Este código expira em %(minutes)s minutos."
+msgstr "Este código caducará en %(minutes)s minutos."
 
 #: templates/account/email/login_code_message.html:8
 #: templates/account/email/login_code_message.txt:5
 msgid "If you didn't request this code, please ignore this email."
-msgstr "Se você não solicitou este código, ignore este e-mail."
+msgstr "Si no solicitó este código, ignore este correo electrónico."
 
 #: templates/account/email/login_code_message.txt:1
 #, python-format
 msgid "Your %(event_name)s login code is: %(code)s"
-msgstr "Seu código de acesso do %(event_name)s é: %(code)s"
+msgstr "Su código de acceso de %(event_name)s es: %(code)s"
 
 #: templates/account/logout.html:6 templates/account/logout.html:15
 #: templates/home.html:18
 msgid "Sign Out"
-msgstr "Sair"
+msgstr "Cerrar sesión"
 
 #: templates/account/logout.html:7
 msgid "Are you sure you want to sign out?"
-msgstr "Tem certeza de que deseja sair?"
+msgstr "¿Seguro que desea cerrar sesión?"
 
 #: templates/account/request_login_code.html:6
 #: templates/account/request_login_code.html:31 templates/home.html:51
 msgid "Sign In"
-msgstr "Entrar"
+msgstr "Iniciar sesión"
 
 #: templates/account/request_login_code.html:9
 msgid "Request a login code to access your account without a password"
-msgstr "Solicite um código de acesso para entrar na sua conta sem senha"
+msgstr "Solicite un código de acceso para entrar en su cuenta sin contraseña"
 
 #: templates/account/request_login_code.html:18
 msgid "You are not a member of the Discord server. Please join first."
-msgstr "Você não é membro do servidor do Discord. Entre no servidor primeiro."
+msgstr "No es miembro del servidor de Discord. Únase primero."
 
 #: templates/account/request_login_code.html:20
 msgid ""
 "Please register in the #registration channel on our Discord server to get "
 "access."
 msgstr ""
-"Registre-se no canal #registration do nosso servidor do Discord para obter "
-"acesso."
+"Regístrese en el canal #registration de nuestro servidor de Discord para "
+"obtener acceso."
 
 #: templates/account/request_login_code.html:22
 msgid ""
 "An error occurred while verifying your Discord account. Please try again "
 "later."
 msgstr ""
-"Ocorreu um erro ao verificar sua conta do Discord. Tente novamente mais "
-"tarde."
+"Se produjo un error al verificar su cuenta de Discord. Inténtelo de nuevo "
+"más tarde."
 
 #: templates/account/request_login_code.html:24
 msgid "An error occurred during login. Please try again."
-msgstr "Ocorreu um erro durante o login. Tente novamente."
+msgstr "Se produjo un error durante el inicio de sesión. Inténtelo de nuevo."
 
 #: templates/account/request_login_code.html:32
 msgid "We'll send a secure login code to your email"
-msgstr "Enviaremos um código de acesso seguro para o seu e-mail"
+msgstr "Enviaremos un código de acceso seguro a su correo electrónico"
 
 #: templates/account/request_login_code.html:40
 #: templates/users/add_email.html:20 users/admin.py:71
 msgid "Email Address"
-msgstr "Endereço de e-mail"
+msgstr "Dirección de correo electrónico"
 
 #: templates/account/request_login_code.html:41
 #: templates/users/add_email.html:21
 msgid "Use your ticket email"
-msgstr "Use o e-mail do seu ingresso"
+msgstr "Use el correo electrónico de su entrada"
 
 #: templates/account/request_login_code.html:57
 #: templates/users/add_email.html:30
 msgid "your@email.com"
-msgstr "seu@email.com"
+msgstr "su@correo.com"
 
 #: templates/account/request_login_code.html:63
 msgid "Check your inbox (and spam folder) for a login code after submission"
 msgstr ""
-"Após o envio, verifique sua caixa de entrada (e a pasta de spam) para "
-"encontrar o código de acesso"
+"Tras el envío, revise su bandeja de entrada (y la carpeta de spam) para "
+"encontrar un código de acceso"
 
 #: templates/account/request_login_code.html:66
 msgid "Send Login Code"
-msgstr "Enviar código de acesso"
+msgstr "Enviar código de acceso"
 
 #: templates/account/request_login_code.html:70
 msgid "Important Note"
-msgstr "Observação importante"
+msgstr "Nota importante"
 
 #: templates/account/request_login_code.html:72
 msgid ""
 "Please use the same email address that you used when purchasing your ticket."
-msgstr "Use o mesmo endereço de e-mail que você usou ao comprar o ingresso."
+msgstr ""
+"Use la misma dirección de correo electrónico que utilizó al comprar su "
+"entrada."
 
 #: templates/account/request_login_code.html:75
 msgid "Your login code will be valid for"
-msgstr "Seu código de acesso será válido por"
+msgstr "Su código de acceso será válido durante"
 
 #: templates/account/request_login_code.html:75
 msgid "minutes."
@@ -1273,102 +1281,104 @@ msgid ""
 "The login code may take a couple of minutes to arrive. Also check your spam "
 "folder."
 msgstr ""
-"O código de acesso pode levar alguns minutos para chegar. Verifique também a"
-" pasta de spam."
+"El código de acceso puede tardar unos minutos en llegar. Revise también su "
+"carpeta de spam."
 
 #: templates/account/request_login_code.html:85
 msgid "How it works"
-msgstr "Como funciona"
+msgstr "Cómo funciona"
 
 #: templates/account/request_login_code.html:87
 msgid "Enter your ticket purchase email address"
-msgstr "Digite o endereço de e-mail usado na compra do ingresso"
+msgstr ""
+"Introduzca la dirección de correo electrónico con la que compró su entrada"
 
 #: templates/account/request_login_code.html:88
 msgid "We'll send you a secure login code"
-msgstr "Enviaremos um código de acesso seguro"
+msgstr "Le enviaremos un código de acceso seguro"
 
 #: templates/account/request_login_code.html:89
 msgid "Enter the code on the next screen to sign in"
-msgstr "Digite o código na próxima tela para entrar"
+msgstr "Introduzca el código en la siguiente pantalla para iniciar sesión"
 
 #: templates/account/request_login_code.html:95
 msgid "or"
-msgstr "ou"
+msgstr "o"
 
 #: templates/account/request_login_code.html:100
 #: templates/account/request_login_code.html:107
 msgid "Sign in with Discord"
-msgstr "Entrar com o Discord"
+msgstr "Iniciar sesión con Discord"
 
 #: templates/account/request_login_code.html:101
 msgid "Use your Discord account to sign in"
-msgstr "Use sua conta do Discord para entrar"
+msgstr "Use su cuenta de Discord para iniciar sesión"
 
 #: templates/account/request_login_code.html:113
 msgid ""
 "Make sure you have registered in the #registration channel on our Discord "
 "server before signing in."
 msgstr ""
-"Antes de entrar, verifique se você se registrou no canal #registration do "
-"nosso servidor do Discord."
+"Asegúrese de haberse registrado en el canal #registration de nuestro "
+"servidor de Discord antes de iniciar sesión."
 
 #: templates/admin/talks/pendingpretalxchange/change_list.html:15
 msgid "Check Pretalx now"
-msgstr "Verificar o Pretalx agora"
+msgstr "Comprobar Pretalx ahora"
 
 #: templates/admin/users/customuser/add_selection.html:86
 msgid "Add new user"
-msgstr "Adicionar novo usuário"
+msgstr "Añadir nuevo usuario"
 
 #: templates/admin/users/customuser/add_selection.html:87
 msgid "Choose the type of user you want to create:"
-msgstr "Escolha o tipo de usuário que deseja criar:"
+msgstr "Elija el tipo de usuario que desea crear:"
 
 #: templates/admin/users/customuser/add_selection.html:90
 msgid "Regular User"
-msgstr "Usuário comum"
+msgstr "Usuario normal"
 
 #: templates/admin/users/customuser/add_selection.html:92
 msgid ""
 "Create a regular user with passwordless authentication. This user can login "
 "with email login links, but not with a password."
 msgstr ""
-"Crie um usuário comum com autenticação sem senha. Esse usuário pode entrar "
-"com links de acesso enviados por e-mail, mas não com senha."
+"Cree un usuario normal con autenticación sin contraseña. Este usuario puede "
+"iniciar sesión con enlaces de acceso por correo electrónico, pero no con una"
+" contraseña."
 
 #: templates/admin/users/customuser/add_selection.html:94
 msgid "Create Regular User"
-msgstr "Criar usuário comum"
+msgstr "Crear usuario normal"
 
 #: templates/admin/users/customuser/add_selection.html:97
 msgid "Superuser"
-msgstr "Superusuário"
+msgstr "Superusuario"
 
 #: templates/admin/users/customuser/add_selection.html:99
 msgid ""
 "Create a superuser with password authentication. This user will have full "
 "administrative access and can log in with their password."
 msgstr ""
-"Crie um superusuário com autenticação por senha. Esse usuário terá acesso "
-"administrativo total e poderá entrar com a senha."
+"Cree un superusuario con autenticación por contraseña. Este usuario tendrá "
+"acceso administrativo completo y podrá iniciar sesión con su contraseña."
 
 #: templates/admin/users/customuser/add_selection.html:101
 msgid "Create Superuser"
-msgstr "Criar superusuário"
+msgstr "Crear superusuario"
 
 #: templates/base.html:57
 msgid "Home"
-msgstr "Início"
+msgstr "Inicio"
 
 #: templates/base.html:61 templates/base.html:118 templates/home.html:16
 #: templates/talks/chair_grid.html:12 templates/talks/schedule.html:10
 msgid "Schedule"
-msgstr "Programação"
+msgstr "Programa"
 
 #: templates/base.html:63
 msgid "Chairs"
-msgstr "Moderação"
+msgstr "Moderación"
 
 #: templates/base.html:66
 msgid "Profile"
@@ -1376,63 +1386,63 @@ msgstr "Perfil"
 
 #: templates/base.html:71
 msgid "Toggle dark mode"
-msgstr "Alternar modo escuro"
+msgstr "Alternar modo oscuro"
 
 #: templates/base.html:107
 #, python-format
 msgid "Made with ❤️ by the <a href=\"%(made_by_url)s\">%(made_by_name)s</a>"
-msgstr "Feito com ❤️ pela <a href=\"%(made_by_url)s\">%(made_by_name)s</a>"
+msgstr "Hecho con ❤️ por <a href=\"%(made_by_url)s\">%(made_by_name)s</a>"
 
 #: templates/base.html:113
 msgid "Main website"
-msgstr "Site principal"
+msgstr "Sitio web principal"
 
 #: templates/base.html:128
 msgid "Venue"
-msgstr "Local"
+msgstr "Sede"
 
 #: templates/base.html:133
 msgid "Transcriptions"
-msgstr "Transcrições"
+msgstr "Transcripciones"
 
 #: templates/base.html:156
 #, python-format
 msgid "© %(year)s %(event_name)s. All rights reserved."
-msgstr "© %(year)s %(event_name)s. Todos os direitos reservados."
+msgstr "© %(year)s %(event_name)s. Todos los derechos reservados."
 
 #: templates/home.html:8
 #, python-format
 msgid "Welcome to %(event_name)s!"
-msgstr "Bem-vindo(a) ao %(event_name)s!"
+msgstr "¡Bienvenido a %(event_name)s!"
 
 #: templates/home.html:12
 msgid "Browse Talks"
-msgstr "Explorar palestras"
+msgstr "Explorar charlas"
 
 #: templates/home.html:28
 msgid "Loading stats..."
-msgstr "Carregando estatísticas..."
+msgstr "Cargando estadísticas..."
 
 #: templates/home.html:40 templates/talks/partials/upcoming_talks.html:5
 msgid "Coming Up Next"
-msgstr "A seguir"
+msgstr "A continuación"
 
 #: templates/home.html:42
 msgid "Loading upcoming talks..."
-msgstr "Carregando próximas palestras..."
+msgstr "Cargando próximas charlas..."
 
 #: templates/home.html:48
 #, python-format
 msgid "Welcome to %(event_name)s"
-msgstr "Bem-vindo(a) ao %(event_name)s"
+msgstr "Bienvenido a %(event_name)s"
 
 #: templates/home.html:49
 msgid "Please sign in to access the conference talks."
-msgstr "Entre para acessar as palestras da conferência."
+msgstr "Inicie sesión para acceder a las charlas de la conferencia."
 
 #: templates/partials/event_selector.html:13
 msgid "Select the event you purchased a ticket for"
-msgstr "Selecione o evento para o qual você comprou ingresso"
+msgstr "Seleccione el evento para el que compró una entrada"
 
 #: templates/partials/language_selector.html:15
 msgid "Language"
@@ -1445,21 +1455,22 @@ msgstr "Ir"
 #: templates/socialaccount/connections.html:6
 #: templates/socialaccount/connections.html:10 templates/users/profile.html:55
 msgid "Connected Accounts"
-msgstr "Contas conectadas"
+msgstr "Cuentas conectadas"
 
 #: templates/socialaccount/connections.html:22
 msgid ""
 "Link your Discord account so you can sign in with either email or Discord."
 msgstr ""
-"Vincule sua conta do Discord para poder entrar com e-mail ou com o Discord."
+"Vincule su cuenta de Discord para poder iniciar sesión con correo "
+"electrónico o con Discord."
 
 #: templates/socialaccount/connections.html:27
 msgid "Your connected accounts"
-msgstr "Suas contas conectadas"
+msgstr "Sus cuentas conectadas"
 
 #: templates/socialaccount/connections.html:50
 msgid "Remove selected"
-msgstr "Remover selecionada(s)"
+msgstr "Quitar seleccionadas"
 
 #: templates/socialaccount/connections.html:67
 #, python-format
@@ -1467,99 +1478,102 @@ msgid ""
 "Your Discord email (%(email)s) is not authorized for independent login. You "
 "can only remove Discord if your email is associated with a ticket purchase."
 msgstr ""
-"Seu e-mail do Discord (%(email)s) não está autorizado para login "
-"independente. Você só pode remover o Discord se o seu e-mail estiver "
-"associado à compra de um ingresso."
+"Su correo electrónico de Discord (%(email)s) no está autorizado para el "
+"inicio de sesión independiente. Solo puede quitar Discord si su correo "
+"electrónico está asociado a la compra de una entrada."
 
 #: templates/socialaccount/connections.html:69
 msgid ""
 "Discord is your only sign-in method. Add a verified email address before "
 "removing it."
 msgstr ""
-"O Discord é seu único método de login. Adicione um endereço de e-mail "
-"verificado antes de removê-lo."
+"Discord es su único método de inicio de sesión. Añada una dirección de "
+"correo electrónico verificada antes de quitarlo."
 
 #: templates/socialaccount/connections.html:76
 msgid "You currently have no third-party accounts connected."
-msgstr "No momento, você não tem contas de terceiros conectadas."
+msgstr "Actualmente no tiene ninguna cuenta de terceros conectada."
 
 #: templates/socialaccount/connections.html:81
 msgid "Add an email address"
-msgstr "Adicionar um endereço de e-mail"
+msgstr "Añadir una dirección de correo electrónico"
 
 #: templates/socialaccount/connections.html:82
 #: templates/users/add_email.html:12
 msgid "Add a verified email so you can also sign in without Discord."
-msgstr "Adicione um e-mail verificado para também poder entrar sem o Discord."
+msgstr ""
+"Añada un correo electrónico verificado para poder iniciar sesión también sin"
+" Discord."
 
 #: templates/socialaccount/connections.html:86
 msgid "Add Email"
-msgstr "Adicionar e-mail"
+msgstr "Añadir correo electrónico"
 
 #: templates/socialaccount/connections.html:91
 msgid "Connect your ticket email"
-msgstr "Conecte o e-mail do seu ingresso"
+msgstr "Conecte el correo electrónico de su entrada"
 
 #: templates/socialaccount/connections.html:93
 msgid ""
 "Your current email is not associated with a ticket. Connect the email you "
 "used to purchase your ticket so you can also sign in without Discord."
 msgstr ""
-"Seu e-mail atual não está associado a um ingresso. Conecte o e-mail que você"
-" usou para comprar o ingresso para também poder entrar sem o Discord."
+"Su correo electrónico actual no está asociado a ninguna entrada. Conecte el "
+"correo electrónico que usó para comprar su entrada para poder iniciar sesión"
+" también sin Discord."
 
 #: templates/socialaccount/connections.html:98
 msgid "Connect Ticket Email"
-msgstr "Conectar e-mail do ingresso"
+msgstr "Conectar correo electrónico de la entrada"
 
 #: templates/socialaccount/connections.html:104
 msgid "Add a connection"
-msgstr "Adicionar uma conexão"
+msgstr "Añadir una conexión"
 
 #: templates/socialaccount/connections.html:110
 msgid "Connect Discord"
-msgstr "Conectar o Discord"
+msgstr "Conectar Discord"
 
 #: templates/socialaccount/connections.html:117
 msgid "Back to profile"
-msgstr "Voltar ao perfil"
+msgstr "Volver al perfil"
 
 #: templates/talks/chair_grid.html:8
 msgid "Session chairs"
-msgstr "Moderadores das sessões"
+msgstr "Moderadores de sesión"
 
 #: templates/talks/chair_grid.html:16
 msgid ""
 "Pick a day to see who is chairing each session. Open a talk to volunteer or "
 "step down."
 msgstr ""
-"Escolha um dia para ver quem está moderando cada sessão. Abra uma palestra "
-"para se voluntariar ou desistir."
+"Elija un día para ver quién modera cada sesión. Abra una charla para "
+"ofrecerse como voluntario o renunciar."
 
 #: templates/talks/chair_grid.html:30 templates/talks/schedule.html:29
 msgid "No scheduled days found."
-msgstr "Nenhum dia agendado encontrado."
+msgstr "No se encontraron días programados."
 
 #: templates/talks/chair_grid.html:36 templates/talks/schedule.html:35
 #: templates/talks/talk_list.html:82
 msgid "All Events"
-msgstr "Todos os eventos"
+msgstr "Todos los eventos"
 
 #: templates/talks/partials/chair_grid_table.html:70
 msgid "-- none --"
-msgstr "-- nenhum --"
+msgstr "-- ninguno --"
 
 #: templates/talks/partials/chair_grid_table.html:76
 msgid "(me)"
-msgstr "(eu)"
+msgstr "(yo)"
 
 #: templates/talks/partials/chair_grid_table.html:88
 msgid "Step down"
-msgstr "Desistir"
+msgstr "Renunciar"
 
 #: templates/talks/partials/chair_grid_table.html:105
 msgid "Chair this talk"
-msgstr "Moderar esta palestra"
+msgstr "Moderar esta charla"
 
 #: templates/talks/partials/chair_grid_table.html:114
 msgid "Chair"
@@ -1568,36 +1582,36 @@ msgstr "Moderar"
 #: templates/talks/partials/chair_grid_table.html:127
 #, python-format
 msgid "No sessions scheduled for %(the_date)s."
-msgstr "Nenhuma sessão agendada para %(the_date)s."
+msgstr "No hay sesiones programadas para %(the_date)s."
 
 #: templates/talks/partials/chair_grid_table.html:129
 msgid "No sessions scheduled."
-msgstr "Nenhuma sessão agendada."
+msgstr "No hay sesiones programadas."
 
 #: templates/talks/partials/dashboard_stats.html:8
 msgid "Total Talks"
-msgstr "Total de palestras"
+msgstr "Total de charlas"
 
 #: templates/talks/partials/dashboard_stats.html:10
 msgid "Today's Talks"
-msgstr "Palestras de hoje"
+msgstr "Charlas de hoy"
 
 #: templates/talks/partials/dashboard_stats.html:12
 msgid "Available Recordings"
-msgstr "Gravações disponíveis"
+msgstr "Grabaciones disponibles"
 
 #: templates/talks/partials/dashboard_stats.html:18
 msgid "Stats by Event"
-msgstr "Estatísticas por evento"
+msgstr "Estadísticas por evento"
 
 #: templates/talks/partials/dashboard_stats.html:25
 #: templates/talks/partials/upcoming_talks.html:26
 msgid "Today"
-msgstr "Hoje"
+msgstr "Hoy"
 
 #: templates/talks/partials/dashboard_stats.html:26
 msgid "Recordings"
-msgstr "Gravações"
+msgstr "Grabaciones"
 
 #: templates/talks/partials/dashboard_stats.html:41
 msgid "Total"
@@ -1605,25 +1619,25 @@ msgstr "Total"
 
 #: templates/talks/partials/dashboard_stats.html:50
 msgid "No events available."
-msgstr "Nenhum evento disponível."
+msgstr "No hay eventos disponibles."
 
 #: templates/talks/partials/rating_widget.html:5
 #: templates/talks/partials/rating_widget.html:7
 msgid "Rate this talk"
-msgstr "Avalie esta palestra"
+msgstr "Valorar esta charla"
 
 #: templates/talks/partials/rating_widget.html:9
 #, python-format
 msgid "Rate %(n)s out of 5"
-msgstr "Avaliar %(n)s de 5"
+msgstr "Valorar con %(n)s de 5"
 
 #: templates/talks/partials/rating_widget.html:44
 msgid "Remove your rating?"
-msgstr "Remover sua avaliação?"
+msgstr "¿Quitar su valoración?"
 
 #: templates/talks/partials/rating_widget.html:45
 msgid "Remove rating"
-msgstr "Remover avaliação"
+msgstr "Quitar valoración"
 
 #: templates/talks/partials/rating_widget.html:65
 #: templates/talks/questions/question_list_fragment.html:131
@@ -1633,19 +1647,19 @@ msgstr "Editar"
 
 #: templates/talks/partials/rating_widget.html:82
 msgid "Comment"
-msgstr "Comentário"
+msgstr "Comentario"
 
 #: templates/talks/partials/rating_widget.html:82
 msgid "(visible only to organizers)"
-msgstr "(visível apenas para os organizadores)"
+msgstr "(visible solo para organizadores)"
 
 #: templates/talks/partials/rating_widget.html:84
 msgid "Close"
-msgstr "Fechar"
+msgstr "Cerrar"
 
 #: templates/talks/partials/rating_widget.html:98
 msgid "Share your thoughts about this talk..."
-msgstr "Compartilhe sua opinião sobre esta palestra..."
+msgstr "Comparta su opinión sobre esta charla..."
 
 #: templates/talks/partials/rating_widget.html:108
 #, python-format
@@ -1654,36 +1668,36 @@ msgstr "%(n)s / 2000 caracteres"
 
 #: templates/talks/partials/rating_widget.html:115
 msgid "Update Comment"
-msgstr "Atualizar comentário"
+msgstr "Actualizar comentario"
 
 #: templates/talks/partials/rating_widget.html:117
 msgid "Save Comment"
-msgstr "Salvar comentário"
+msgstr "Guardar comentario"
 
 #: templates/talks/partials/save_button.html:5
 msgid "Remove from saved"
-msgstr "Remover dos salvos"
+msgstr "Quitar de guardadas"
 
 #: templates/talks/partials/save_button.html:7
 msgid "Save talk"
-msgstr "Salvar palestra"
+msgstr "Guardar charla"
 
 #: templates/talks/partials/save_button.html:21
 msgid "Saved"
-msgstr "Salva"
+msgstr "Guardado"
 
 #: templates/talks/partials/save_button.html:23
 #: templates/talks/questions/question_edit_form.html:24
 msgid "Save"
-msgstr "Salvar"
+msgstr "Guardar"
 
 #: templates/talks/partials/schedule_save_button.html:4
 msgid "Remove bookmark"
-msgstr "Remover dos favoritos"
+msgstr "Quitar marcador"
 
 #: templates/talks/partials/schedule_save_button.html:6
 msgid "Bookmark talk"
-msgstr "Favoritar palestra"
+msgstr "Marcar charla"
 
 #: templates/talks/partials/upcoming_talks.html:6
 msgid "View All"
@@ -1691,28 +1705,28 @@ msgstr "Ver todas"
 
 #: templates/talks/partials/upcoming_talks.html:31
 msgid "Tomorrow"
-msgstr "Amanhã"
+msgstr "Mañana"
 
 #: templates/talks/partials/upcoming_talks.html:65
 #: templates/talks/talk_list.html:248
 msgid "Details"
-msgstr "Detalhes"
+msgstr "Detalles"
 
 #: templates/talks/partials/upcoming_talks.html:79
 msgid "Q&amp;A"
-msgstr "P&amp;R"
+msgstr "Preguntas y respuestas"
 
 #: templates/talks/partials/upcoming_talks.html:96
 msgid "No upcoming talks scheduled."
-msgstr "Nenhuma palestra futura agendada."
+msgstr "No hay próximas charlas programadas."
 
 #: templates/talks/questions/question_edit_form.html:3
 msgid "Edit your question"
-msgstr "Edite sua pergunta"
+msgstr "Editar su pregunta"
 
 #: templates/talks/questions/question_edit_form.html:12
 msgid "Attention: votes will be reset"
-msgstr "Atenção: os votos serão zerados"
+msgstr "Atención: los votos se restablecerán"
 
 #: templates/talks/questions/question_edit_form.html:34
 #: templates/users/delete_account.html:34
@@ -1722,23 +1736,23 @@ msgstr "Cancelar"
 #: templates/talks/questions/question_list.html:5
 #: templates/talks/questions/question_list.html:25
 msgid "Questions for"
-msgstr "Perguntas sobre"
+msgstr "Preguntas para"
 
 #: templates/talks/questions/question_list.html:30
 msgid "Back to Talk"
-msgstr "Voltar à palestra"
+msgstr "Volver a la charla"
 
 #: templates/talks/questions/question_list.html:34
 msgid "Ask a Question"
-msgstr "Faça uma pergunta"
+msgstr "Hacer una pregunta"
 
 #: templates/talks/questions/question_list.html:48
 msgid "Your Question"
-msgstr "Sua pergunta"
+msgstr "Su pregunta"
 
 #: templates/talks/questions/question_list.html:60
 msgid "Submit Question"
-msgstr "Enviar pergunta"
+msgstr "Enviar pregunta"
 
 #: templates/talks/questions/question_list.html:66
 msgid "Submitting..."
@@ -1746,7 +1760,7 @@ msgstr "Enviando..."
 
 #: templates/talks/questions/question_list_fragment.html:16
 msgid "No questions yet"
-msgstr "Ainda não há perguntas"
+msgstr "Aún no hay preguntas"
 
 #: templates/talks/questions/question_list_fragment.html:22
 msgid "Filter:"
@@ -1758,20 +1772,20 @@ msgstr "Todas"
 
 #: templates/talks/questions/question_list_fragment.html:32
 msgid "My questions"
-msgstr "Minhas perguntas"
+msgstr "Mis preguntas"
 
 #: templates/talks/questions/question_list_fragment.html:34
 msgid "Active"
-msgstr "Ativas"
+msgstr "Activas"
 
 #: templates/talks/questions/question_list_fragment.html:48
 #: templates/talks/questions/question_list_fragment.html:50
 msgid "Refresh"
-msgstr "Atualizar"
+msgstr "Actualizar"
 
 #: templates/talks/questions/question_list_fragment.html:57
 msgid "Moderator View"
-msgstr "Visão do moderador"
+msgstr "Vista de moderador"
 
 #: templates/talks/questions/question_list_fragment.html:59
 msgid ""
@@ -1779,22 +1793,22 @@ msgid ""
 "default. You can reject questions that violate guidelines or are "
 "inappropriate."
 msgstr ""
-"Você está visualizando esta página como moderador. Todas as perguntas ficam "
-"visíveis por padrão. Você pode rejeitar perguntas que violem as diretrizes "
-"ou sejam inapropriadas."
+"Está viendo esta página como moderador. Todas las preguntas son visibles de "
+"forma predeterminada. Puede rechazar las preguntas que infrinjan las normas "
+"o sean inapropiadas."
 
 #: templates/talks/questions/question_list_fragment.html:83
 msgid "Asked"
-msgstr "Perguntada"
+msgstr "Preguntada"
 
 #: templates/talks/questions/question_list_fragment.html:83
 msgid "ago"
-msgstr "atrás"
+msgstr "hace"
 
 #: templates/talks/questions/question_list_fragment.html:96
 #: templates/talks/questions/question_list_fragment.html:113
 msgid "Reject Question"
-msgstr "Rejeitar pergunta"
+msgstr "Rechazar pregunta"
 
 #: templates/talks/questions/question_list_fragment.html:103
 msgid "Mark Answered"
@@ -1802,69 +1816,69 @@ msgstr "Marcar como respondida"
 
 #: templates/talks/questions/question_list_fragment.html:122
 msgid "Approve"
-msgstr "Aprovar"
+msgstr "Aprobar"
 
 #: templates/talks/questions/question_list_fragment.html:150
 msgid "You haven't asked any questions yet."
-msgstr "Você ainda não fez nenhuma pergunta."
+msgstr "Aún no ha hecho ninguna pregunta."
 
 #: templates/talks/questions/question_list_fragment.html:152
 msgid "There are no pending questions right now."
-msgstr "Não há perguntas pendentes no momento."
+msgstr "No hay preguntas pendientes en este momento."
 
 #: templates/talks/questions/question_list_fragment.html:154
 msgid "There are no approved questions right now."
-msgstr "Não há perguntas aprovadas no momento."
+msgstr "No hay preguntas aprobadas en este momento."
 
 #: templates/talks/questions/question_list_fragment.html:156
 msgid "There are no answered questions yet."
-msgstr "Ainda não há perguntas respondidas."
+msgstr "Aún no hay preguntas respondidas."
 
 #: templates/talks/questions/question_list_fragment.html:158
 msgid "There are no rejected questions."
-msgstr "Não há perguntas rejeitadas."
+msgstr "No hay preguntas rechazadas."
 
 #: templates/talks/questions/question_list_fragment.html:160
 msgid "No questions match the selected filter."
-msgstr "Nenhuma pergunta corresponde ao filtro selecionado."
+msgstr "Ninguna pregunta coincide con el filtro seleccionado."
 
 #: templates/talks/questions/question_list_fragment.html:162
 msgid "Try changing the filter or ask a new question above."
-msgstr "Tente alterar o filtro ou faça uma nova pergunta acima."
+msgstr "Pruebe a cambiar el filtro o haga una nueva pregunta arriba."
 
 #: templates/talks/questions/question_success.html:19
 msgid "Your question has been posted and is now visible."
-msgstr "Sua pergunta foi publicada e agora está visível."
+msgstr "Su pregunta se ha publicado y ahora es visible."
 
 #: templates/talks/questions/question_success.html:21
 msgid "Other participants can now see and vote on your question."
-msgstr "Outros participantes agora podem ver e votar na sua pergunta."
+msgstr "Otros participantes ya pueden ver y votar su pregunta."
 
 #: templates/talks/schedule.html:14
 msgid "List view"
-msgstr "Visualização em lista"
+msgstr "Vista de lista"
 
 #: templates/talks/schedule.html:50
 msgid "Search talks…"
-msgstr "Buscar palestras…"
+msgstr "Buscar charlas…"
 
 #: templates/talks/schedule.html:51
 msgid "Search schedule"
-msgstr "Buscar na programação"
+msgstr "Buscar en el programa"
 
 #: templates/talks/schedule.html:61 templates/talks/talk_list.html:109
 #: templates/talks/talk_list.html:170
 msgid "All Types"
-msgstr "Todos os tipos"
+msgstr "Todos los tipos"
 
 #: templates/talks/schedule.html:70 templates/talks/talk_list.html:116
 #: templates/talks/talk_list.html:180
 msgid "All Tracks"
-msgstr "Todas as trilhas"
+msgstr "Todos los Tracks"
 
 #: templates/talks/schedule.html:82 templates/talks/talk_list.html:137
 msgid "Saved only"
-msgstr "Apenas salvas"
+msgstr "Solo guardadas"
 
 #: templates/talks/schedule.html:84
 msgid "Filter"
@@ -1872,7 +1886,7 @@ msgstr "Filtrar"
 
 #: templates/talks/schedule.html:87 templates/talks/talk_list.html:66
 msgid "Clear"
-msgstr "Limpar"
+msgstr "Borrar"
 
 #: templates/talks/schedule.html:134
 #, python-format
@@ -1881,32 +1895,32 @@ msgstr "%(duration)smin"
 
 #: templates/talks/schedule.html:152
 msgid "No talks match your filters."
-msgstr "Nenhuma palestra corresponde aos seus filtros."
+msgstr "Ninguna charla coincide con sus filtros."
 
 #: templates/talks/schedule.html:155
 #, python-format
 msgid "No talks scheduled for %(date)s."
-msgstr "Nenhuma palestra agendada para %(date)s."
+msgstr "No hay charlas programadas para %(date)s."
 
 #: templates/talks/schedule.html:157
 msgid "No talks scheduled."
-msgstr "Nenhuma palestra agendada."
+msgstr "No hay charlas programadas."
 
 #: templates/talks/talk_detail.html:12
 msgid "Back to Talks"
-msgstr "Voltar às palestras"
+msgstr "Volver a las charlas"
 
 #: templates/talks/talk_detail.html:34
 msgid "Session chair:"
-msgstr "Moderador da sessão:"
+msgstr "Moderador de sesión:"
 
 #: templates/talks/talk_detail.html:45
 msgid "Date"
-msgstr "Data"
+msgstr "Fecha"
 
 #: templates/talks/talk_detail.html:49
 msgid "Time"
-msgstr "Horário"
+msgstr "Hora"
 
 #: templates/talks/talk_detail.html:78
 #, python-format
@@ -1919,32 +1933,32 @@ msgid ""
 "This is a live stream. Please skip manually to\n"
 "                  %(start_time)s to see the start of the talk."
 msgstr ""
-"Esta é uma transmissão ao vivo. Avance manualmente até\n"
-"                  %(start_time)s para ver o início da palestra."
+"Esta es una transmisión en directo. Avance manualmente hasta\n"
+"                  %(start_time)s para ver el inicio de la charla."
 
 #: templates/talks/talk_detail.html:98
 #, python-format
 msgid "Jump to %(start_time)s"
-msgstr "Ir para %(start_time)s"
+msgstr "Saltar a %(start_time)s"
 
 #: templates/talks/talk_detail.html:101
 msgid "(Skip to estimated talk start)"
-msgstr "(Pular para o início estimado da palestra)"
+msgstr "(Saltar al inicio estimado de la charla)"
 
 #: templates/talks/talk_detail.html:113
 #, python-format
 msgid "Transcription for %(title)s"
-msgstr "Transcrição de %(title)s"
+msgstr "Transcripción de %(title)s"
 
 #: templates/talks/talk_detail.html:126
 msgid "Attendee rating comments (visible to superusers only)"
 msgstr ""
-"Comentários de avaliação dos participantes (visíveis apenas para "
-"superusuários)"
+"Comentarios de valoración de los asistentes (visibles solo para "
+"superusuarios)"
 
 #: templates/talks/talk_detail.html:132
 msgid "superusers only"
-msgstr "apenas superusuários"
+msgstr "solo superusuarios"
 
 #: templates/talks/talk_detail.html:141
 #, python-format
@@ -1953,23 +1967,23 @@ msgstr "%(score)s/5"
 
 #: templates/talks/talk_detail.html:160
 msgid "View on Pretalx"
-msgstr "Ver no Pretalx"
+msgstr "Ver en Pretalx"
 
 #: templates/talks/talk_detail.html:166
 msgid "Questions & Answers"
-msgstr "Perguntas e Respostas"
+msgstr "Preguntas y respuestas"
 
 #: templates/talks/talk_list.html:15
 msgid "Schedule view"
-msgstr "Visualização da programação"
+msgstr "Vista de programa"
 
 #: templates/talks/talk_list.html:28
 msgid "Search talks"
-msgstr "Buscar palestras"
+msgstr "Buscar charlas"
 
 #: templates/talks/talk_list.html:36
 msgid "Search scope"
-msgstr "Escopo da busca"
+msgstr "Ámbito de búsqueda"
 
 #: templates/talks/talk_list.html:42
 msgid "Title"
@@ -1977,31 +1991,31 @@ msgstr "Título"
 
 #: templates/talks/talk_list.html:49
 msgid "Description"
-msgstr "Descrição"
+msgstr "Descripción"
 
 #: templates/talks/talk_list.html:89 templates/talks/talk_list.html:147
 msgid "All Days"
-msgstr "Todos os dias"
+msgstr "Todos los días"
 
 #: templates/talks/talk_list.html:102 templates/talks/talk_list.html:160
 msgid "All Rooms"
-msgstr "Todas as salas"
+msgstr "Todas las salas"
 
 #: templates/talks/talk_list.html:123 templates/talks/talk_list.html:190
 msgid "All Statuses"
-msgstr "Todos os status"
+msgstr "Todos los estados"
 
 #: templates/talks/talk_list.html:211
 msgid "HAPPENING NOW"
-msgstr "ACONTECENDO AGORA"
+msgstr "AHORA MISMO"
 
 #: templates/talks/talk_list.html:216
 msgid "UPCOMING"
-msgstr "EM BREVE"
+msgstr "PRÓXIMA"
 
 #: templates/talks/talk_list.html:221
 msgid "COMPLETED"
-msgstr "CONCLUÍDA"
+msgstr "FINALIZADA"
 
 #: templates/talks/talk_list.html:256
 msgid "Video"
@@ -2009,46 +2023,46 @@ msgstr "Vídeo"
 
 #: templates/talks/talk_list.html:262
 msgid "Q&A"
-msgstr "P&R"
+msgstr "Preguntas y respuestas"
 
 #: templates/talks/talk_list.html:277
 msgid "No talks found"
-msgstr "Nenhuma palestra encontrada"
+msgstr "No se encontraron charlas"
 
 #: templates/users/add_email.html:5 templates/users/add_email.html:10
 msgid "Add Email Address"
-msgstr "Adicionar endereço de e-mail"
+msgstr "Añadir dirección de correo electrónico"
 
 #: templates/users/add_email.html:35
 msgid "We will send a verification code to this address."
-msgstr "Enviaremos um código de verificação para este endereço."
+msgstr "Enviaremos un código de verificación a esta dirección."
 
 #: templates/users/add_email.html:37
 msgid "Send Verification Code"
-msgstr "Enviar código de verificação"
+msgstr "Enviar código de verificación"
 
 #: templates/users/add_email.html:42
 msgid "Back to Connected Accounts"
-msgstr "Voltar às contas conectadas"
+msgstr "Volver a cuentas conectadas"
 
 #: templates/users/confirm_add_email.html:5
 msgid "Verify Email"
-msgstr "Verificar e-mail"
+msgstr "Verificar correo electrónico"
 
 #: templates/users/confirm_add_email.html:10
 msgid "Enter Verification Code"
-msgstr "Digite o código de verificação"
+msgstr "Introduzca el código de verificación"
 
 #: templates/users/confirm_add_email.html:15
 msgid "Verification Code"
-msgstr "Código de verificação"
+msgstr "Código de verificación"
 
 #: templates/users/confirm_add_email.html:25
 #, python-format
 msgid "We sent a code to %(email)s. Enter it above to verify your address."
 msgstr ""
-"Enviamos um código para %(email)s. Digite-o acima para verificar seu "
-"endereço."
+"Enviamos un código a %(email)s. Introdúzcalo arriba para verificar su "
+"dirección."
 
 #: templates/users/confirm_add_email.html:28
 msgid "Verify"
@@ -2056,60 +2070,60 @@ msgstr "Verificar"
 
 #: templates/users/confirm_add_email.html:33
 msgid "Use a different email"
-msgstr "Usar outro e-mail"
+msgstr "Usar otro correo electrónico"
 
 #: templates/users/delete_account.html:4 templates/users/delete_account.html:8
 #: templates/users/profile.html:63 templates/users/profile.html:66
 msgid "Delete Account"
-msgstr "Excluir conta"
+msgstr "Eliminar cuenta"
 
 #: templates/users/delete_account.html:11
 msgid ""
 "This will permanently delete your account and all associated data. This "
 "action cannot be undone."
 msgstr ""
-"Isto excluirá permanentemente sua conta e todos os dados associados. Esta "
-"ação não pode ser desfeita."
+"Esto eliminará de forma permanente su cuenta y todos los datos asociados. "
+"Esta acción no se puede deshacer."
 
 #: templates/users/delete_account.html:14
 msgid "Your profile and login credentials will be removed."
-msgstr "Seu perfil e suas credenciais de acesso serão removidos."
+msgstr "Se eliminarán su perfil y sus credenciales de acceso."
 
 #: templates/users/delete_account.html:15
 msgid "Any connected social accounts (e.g. Discord) will be unlinked."
-msgstr ""
-"Quaisquer contas sociais conectadas (ex.: Discord) serão desvinculadas."
+msgstr "Se desvinculará cualquier cuenta social conectada (p. ej., Discord)."
 
 #: templates/users/delete_account.html:16
 msgid ""
 "Questions and answers you posted will remain but will no longer be "
 "attributed to you."
 msgstr ""
-"As perguntas e respostas que você publicou permanecerão, mas não serão mais "
-"atribuídas a você."
+"Las preguntas y respuestas que publicó permanecerán, pero ya no se le "
+"atribuirán."
 
 #: templates/users/delete_account.html:32
 msgid "Delete my account"
-msgstr "Excluir minha conta"
+msgstr "Eliminar mi cuenta"
 
 #: templates/users/email/add_email_code.html:3
 #, python-format
 msgid "%(event_name)s Verification Code"
-msgstr "Código de verificação do %(event_name)s"
+msgstr "Código de verificación de %(event_name)s"
 
 #: templates/users/email/add_email_code.html:5
 msgid "Your verification code is:"
-msgstr "Seu código de verificação é:"
+msgstr "Su código de verificación es:"
 
 #: templates/users/email/add_email_code.html:8
 #: templates/users/email/add_email_code.txt:5
 msgid "If you did not request this, you can safely ignore this email."
-msgstr "Se você não solicitou isto, pode ignorar este e-mail com segurança."
+msgstr ""
+"Si no solicitó esto, puede ignorar este correo electrónico con seguridad."
 
 #: templates/users/email/add_email_code.txt:1
 #, python-format
 msgid "Your %(event_name)s verification code is: %(code)s"
-msgstr "Seu código de verificação do %(event_name)s é: %(code)s"
+msgstr "Su código de verificación de %(event_name)s es: %(code)s"
 
 #: templates/users/profile.html:5
 msgid "Edit Profile"
@@ -2117,64 +2131,68 @@ msgstr "Editar perfil"
 
 #: templates/users/profile.html:18
 msgid "First name"
-msgstr "Nome"
+msgstr "Nombre"
 
 #: templates/users/profile.html:27
 msgid "Last name"
-msgstr "Sobrenome"
+msgstr "Apellidos"
 
 #: templates/users/profile.html:36
 msgid "Display name"
-msgstr "Nome de exibição"
+msgstr "Nombre visible"
 
 #: templates/users/profile.html:46
 msgid "Save changes"
-msgstr "Salvar alterações"
+msgstr "Guardar cambios"
 
 #: templates/users/profile.html:50
 msgid "Q&A display preview"
-msgstr "Pré-visualização da exibição em P&R"
+msgstr "Vista previa de preguntas y respuestas"
 
 #: templates/users/profile.html:51
 msgid "This is how your name will appear when you ask questions:"
-msgstr "É assim que seu nome aparecerá quando você fizer perguntas:"
+msgstr "Así aparecerá su nombre cuando haga preguntas:"
 
 #: templates/users/profile.html:57
 msgid "Link your Discord account to sign in with either method."
-msgstr "Vincule sua conta do Discord para entrar por qualquer um dos métodos."
+msgstr ""
+"Vincule su cuenta de Discord para iniciar sesión con cualquiera de los dos "
+"métodos."
 
 #: templates/users/profile.html:60
 msgid "Manage Connected Accounts"
-msgstr "Gerenciar contas conectadas"
+msgstr "Gestionar cuentas conectadas"
 
 #: templates/users/profile.html:64
 msgid "Permanently delete your account and all associated data."
-msgstr "Excluir permanentemente sua conta e todos os dados associados."
+msgstr "Elimine de forma permanente su cuenta y todos los datos asociados."
 
 #: users/adapters_social.py:83
 msgid ""
 "You cannot remove Discord without a verified email address. Please add and "
 "verify an email first."
 msgstr ""
-"Você não pode remover o Discord sem um endereço de e-mail verificado. "
-"Adicione e verifique um e-mail primeiro."
+"No puede quitar Discord sin una dirección de correo electrónico verificada. "
+"Añada y verifique un correo electrónico primero."
 
 #: users/adapters_social.py:87
 msgid ""
 "Your email is not authorized for independent login. You can only remove "
 "Discord if your email is associated with a ticket purchase."
 msgstr ""
-"Seu e-mail não está autorizado para login independente. Você só pode remover"
-" o Discord se o seu e-mail estiver associado à compra de um ingresso."
+"Su correo electrónico no está autorizado para el inicio de sesión "
+"independiente. Solo puede quitar Discord si su correo electrónico está "
+"asociado a la compra de una entrada."
 
 #: users/adapters_social.py:234
 msgid ""
 "Your Discord account has been linked and the duplicate account removed."
-msgstr "Sua conta do Discord foi vinculada e a conta duplicada foi removida."
+msgstr ""
+"Su cuenta de Discord se ha vinculado y se ha eliminado la cuenta duplicada."
 
 #: users/admin.py:27
 msgid "Email verification"
-msgstr "Verificação de e-mail"
+msgstr "Verificación de correo electrónico"
 
 #: users/admin.py:37
 msgid "Verified"
@@ -2182,71 +2200,74 @@ msgstr "Verificado"
 
 #: users/admin.py:38
 msgid "Not verified"
-msgstr "Não verificado"
+msgstr "No verificado"
 
 #: users/admin.py:72
 msgid "Email Addresses"
-msgstr "Endereços de e-mail"
+msgstr "Direcciones de correo electrónico"
 
 #: users/admin.py:124
 msgid "Personal info"
-msgstr "Informações pessoais"
+msgstr "Información personal"
 
 #: users/admin.py:129
 msgid "Events this user has access to."
-msgstr "Eventos a que este usuário tem acesso."
+msgstr "Eventos a los que tiene acceso este usuario."
 
 #: users/admin.py:133
 msgid "Permissions"
-msgstr "Permissões"
+msgstr "Permisos"
 
 #: users/admin.py:143
 msgid ""
 "Only superusers and staff members can log in to the admin site. Normal users"
 " login through the passwordless authentication."
 msgstr ""
-"Apenas superusuários e membros da equipe podem acessar o site de "
-"administração. Usuários comuns entram pela autenticação sem senha."
+"Solo los superusuarios y los miembros del personal pueden iniciar sesión en "
+"el sitio de administración. Los usuarios normales inician sesión mediante la"
+" autenticación sin contraseña."
 
 #: users/admin.py:149
 msgid "Important dates"
-msgstr "Datas importantes"
+msgstr "Fechas importantes"
 
 #: users/admin.py:152
 msgid "Shows when the user first registered and last logged in."
-msgstr "Mostra quando o usuário se registrou e fez login pela última vez."
+msgstr ""
+"Muestra cuándo se registró el usuario por primera vez y cuándo inició sesión"
+" por última vez."
 
 #: users/admin.py:204
 msgid "Creating a superuser account with password authentication."
-msgstr "Criando uma conta de superusuário com autenticação por senha."
+msgstr "Creando una cuenta de superusuario con autenticación por contraseña."
 
 #: users/admin.py:216
 msgid "Creating a regular user with passwordless authentication."
-msgstr "Criando um usuário comum com autenticação sem senha."
+msgstr "Creando un usuario normal con autenticación sin contraseña."
 
 #: users/admin.py:292
 msgid "Select user type"
-msgstr "Selecione o tipo de usuário"
+msgstr "Seleccione el tipo de usuario"
 
 #: users/admin.py:325
 msgid "Full Name"
-msgstr "Nome completo"
+msgstr "Nombre completo"
 
 #: users/admin.py:330 users/models.py:275
 msgid "Tickets"
-msgstr "Ingressos"
+msgstr "Entradas"
 
 #: users/admin.py:346
 msgid "Email Verified"
-msgstr "E-mail verificado"
+msgstr "Correo electrónico verificado"
 
 #: users/admin.py:356
 msgid "Joined"
-msgstr "Cadastrado em"
+msgstr "Se unió"
 
 #: users/admin.py:361
 msgid "Last Login"
-msgstr "Último login"
+msgstr "Último inicio de sesión"
 
 #: users/admin.py:366
 msgid "Never"
@@ -2254,82 +2275,85 @@ msgstr "Nunca"
 
 #: users/admin.py:386
 msgid "Mark selected users' emails as verified"
-msgstr "Marcar os e-mails dos usuários selecionados como verificados"
+msgstr ""
+"Marcar los correos electrónicos de los usuarios seleccionados como "
+"verificados"
 
 #: users/admin.py:396
 #, python-format
 msgid "Successfully verified %(count)d email addresses."
-msgstr "%(count)d endereços de e-mail verificados com sucesso."
+msgstr ""
+"Se verificaron correctamente %(count)d direcciones de correo electrónico."
 
 #: users/admin.py:399
 msgid "No unverified email addresses found."
-msgstr "Nenhum endereço de e-mail não verificado encontrado."
+msgstr "No se encontraron direcciones de correo electrónico sin verificar."
 
 #: users/admin.py:401
 msgid "Activate selected users"
-msgstr "Ativar usuários selecionados"
+msgstr "Activar los usuarios seleccionados"
 
 #: users/admin.py:408
 #, python-format
 msgid "Successfully activated %(count)d users."
-msgstr "%(count)d usuários ativados com sucesso."
+msgstr "Se activaron correctamente %(count)d usuarios."
 
 #: users/admin.py:411
 msgid "All selected users were already active."
-msgstr "Todos os usuários selecionados já estavam ativos."
+msgstr "Todos los usuarios seleccionados ya estaban activos."
 
 #: users/admin.py:413
 msgid "Deactivate selected users"
-msgstr "Desativar usuários selecionados"
+msgstr "Desactivar los usuarios seleccionados"
 
 #: users/admin.py:422
 msgid "You cannot deactivate your own account."
-msgstr "Você não pode desativar sua própria conta."
+msgstr "No puede desactivar su propia cuenta."
 
 #: users/admin.py:429
 #, python-format
 msgid "Successfully deactivated %(count)d users."
-msgstr "%(count)d usuários desativados com sucesso."
+msgstr "Se desactivaron correctamente %(count)d usuarios."
 
 #: users/admin.py:432
 msgid "All selected users were already inactive."
-msgstr "Todos os usuários selecionados já estavam inativos."
+msgstr "Todos los usuarios seleccionados ya estaban inactivos."
 
 #: users/admin.py:441
 msgid "Password removed as user is not a superuser."
-msgstr "Senha removida, pois o usuário não é superusuário."
+msgstr "Se quitó la contraseña porque el usuario no es superusuario."
 
 #: users/forms.py:33 users/forms.py:127
 msgid "Password"
-msgstr "Senha"
+msgstr "Contraseña"
 
 #: users/forms.py:36
 msgid "Required for superuser accounts."
-msgstr "Obrigatória para contas de superusuário."
+msgstr "Obligatoria para las cuentas de superusuario."
 
 #: users/forms.py:40
 msgid "Password confirmation"
-msgstr "Confirmação de senha"
+msgstr "Confirmación de contraseña"
 
 #: users/forms.py:43
 msgid "Enter the same password as above, for verification."
-msgstr "Digite a mesma senha acima, para verificação."
+msgstr "Introduzca la misma contraseña que arriba, para verificación."
 
 #: users/forms.py:60
 msgid "Superusers have full access to the admin site."
-msgstr "Superusuários têm acesso total ao site de administração."
+msgstr "Los superusuarios tienen acceso completo al sitio de administración."
 
 #: users/forms.py:70
 msgid "The two password fields didn't match."
-msgstr "Os dois campos de senha não coincidem."
+msgstr "Los dos campos de contraseña no coinciden."
 
 #: users/forms.py:99
 msgid ""
 "Staff users can access the admin site but cannot login without being "
 "superusers."
 msgstr ""
-"Usuários da equipe podem acessar o site de administração, mas não podem "
-"fazer login sem serem superusuários."
+"Los usuarios del personal pueden acceder al sitio de administración, pero no"
+" pueden iniciar sesión sin ser superusuarios."
 
 #: users/forms.py:129
 msgid ""
@@ -2337,41 +2361,41 @@ msgid ""
 "password, but you can change the password using <a "
 "href=\"../password/\">this form</a>."
 msgstr ""
-"As senhas não são armazenadas em texto puro, então não há como ver a senha "
-"deste usuário, mas você pode alterá-la usando <a href=\"../password/\">este "
-"formulário</a>."
+"Las contraseñas sin cifrar no se almacenan, por lo que no hay forma de ver "
+"la contraseña de este usuario, pero puede cambiarla usando <a "
+"href=\"../password/\">este formulario</a>."
 
 #: users/forms.py:174
 msgid ""
 "Name shown publicly when asking questions. If empty, we'll use your full "
 "name or email (masked)."
 msgstr ""
-"Nome exibido publicamente ao fazer perguntas. Se vazio, usaremos seu nome "
-"completo ou e-mail (mascarado)."
+"Nombre que se muestra públicamente al hacer preguntas. Si está vacío, "
+"usaremos su nombre completo o su correo electrónico (enmascarado)."
 
 #: users/forms.py:185
 msgid "I understand this action is permanent and cannot be undone"
-msgstr "Eu entendo que esta ação é permanente e não pode ser desfeita"
+msgstr "Entiendo que esta acción es permanente y no se puede deshacer"
 
 #: users/models.py:154
 msgid "email address"
-msgstr "endereço de e-mail"
+msgstr "dirección de correo electrónico"
 
 #: users/models.py:157
 msgid "A user with that email already exists."
-msgstr "Já existe um usuário com esse e-mail."
+msgstr "Ya existe un usuario con ese correo electrónico."
 
 #: users/models.py:165
 msgid ""
 "Public name shown when asking questions (optional). If blank, we'll use your"
 " full name or email."
 msgstr ""
-"Nome público exibido ao fazer perguntas (opcional). Se vazio, usaremos seu "
-"nome completo ou e-mail."
+"Nombre público que se muestra al hacer preguntas (opcional). Si se deja en "
+"blanco, usaremos su nombre completo o su correo electrónico."
 
 #: users/models.py:174
 msgid "Events the user has access to"
-msgstr "Eventos a que o usuário tem acesso"
+msgstr "Eventos a los que tiene acceso el usuario"
 
 #: users/models.py:178
 msgid "preferred language"
@@ -2382,80 +2406,82 @@ msgid ""
 "Language for the interface and emails. Leave blank to follow the browser or "
 "site default."
 msgstr ""
-"Idioma da interface e dos e-mails. Deixe em branco para seguir o padrão do "
-"navegador ou do site."
+"Idioma de la interfaz y de los correos electrónicos. Deje en blanco para "
+"seguir el del navegador o el predeterminado del sitio."
 
 #: users/models.py:199
 msgid "user"
-msgstr "usuário"
+msgstr "usuario"
 
 #: users/models.py:267
 msgid "Unique ticket identifier for this event."
-msgstr "Identificador único do ingresso para este evento."
+msgstr "Identificador único de la entrada para este evento."
 
 #: users/models.py:274
 msgid "Ticket"
-msgstr "Ingresso"
+msgstr "Entrada"
 
 #: users/validators.py:44
 msgid "Display name must not contain invisible characters."
-msgstr "O nome de exibição não pode conter caracteres invisíveis."
+msgstr "El nombre visible no debe contener caracteres invisibles."
 
 #: users/validators.py:50
 #, python-format
 msgid "Display name must be at least %(min_length)d visible characters."
 msgstr ""
-"O nome de exibição deve ter pelo menos %(min_length)d caracteres visíveis."
+"El nombre visible debe tener al menos %(min_length)d caracteres visibles."
 
 #: users/validators.py:57
 msgid "Display name must contain at least one letter or digit."
-msgstr "O nome de exibição deve conter pelo menos uma letra ou dígito."
+msgstr "El nombre visible debe contener al menos una letra o un dígito."
 
 #: users/views.py:105 users/views_connections.py:191
 msgid "This email is not authorized for access."
-msgstr "Este e-mail não está autorizado para acesso."
+msgstr "Este correo electrónico no está autorizado para el acceso."
 
 #: users/views.py:117
 msgid "Unable to create account. Please ensure your email is valid."
-msgstr "Não foi possível criar a conta. Verifique se o seu e-mail é válido."
+msgstr ""
+"No se puede crear la cuenta. Asegúrese de que su correo electrónico sea "
+"válido."
 
 #: users/views.py:124
 msgid "System error while creating account. Please try again later."
-msgstr "Erro do sistema ao criar a conta. Tente novamente mais tarde."
+msgstr "Error del sistema al crear la cuenta. Inténtelo de nuevo más tarde."
 
 #: users/views.py:129
 msgid "Error creating user. Please try again later."
-msgstr "Erro ao criar o usuário. Tente novamente mais tarde."
+msgstr "Error al crear el usuario. Inténtelo de nuevo más tarde."
 
 #: users/views.py:193
 msgid "Your profile has been updated."
-msgstr "Seu perfil foi atualizado."
+msgstr "Su perfil se ha actualizado."
 
 #: users/views.py:239
 msgid "Your account has been deleted."
-msgstr "Sua conta foi excluída."
+msgstr "Su cuenta se ha eliminado."
 
 #: users/views_connections.py:174
 msgid "Please enter a valid email address."
-msgstr "Digite um endereço de e-mail válido."
+msgstr "Introduzca una dirección de correo electrónico válida."
 
 #: users/views_connections.py:180
 msgid "This email address is already in use by another account."
-msgstr "Este endereço de e-mail já está em uso por outra conta."
+msgstr "Esta dirección de correo electrónico ya está en uso por otra cuenta."
 
 #: users/views_connections.py:241
 msgid "The verification code has expired. Please request a new one."
-msgstr "O código de verificação expirou. Solicite um novo."
+msgstr "El código de verificación ha caducado. Solicite uno nuevo."
 
 #: users/views_connections.py:254
 msgid "Too many incorrect attempts. Please request a new code."
-msgstr "Tentativas incorretas em excesso. Solicite um novo código."
+msgstr "Demasiados intentos incorrectos. Solicite un código nuevo."
 
 #: users/views_connections.py:277
 msgid "Your email address has been verified successfully."
-msgstr "Seu endereço de e-mail foi verificado com sucesso."
+msgstr "Su dirección de correo electrónico se ha verificado correctamente."
 
 #: users/views_connections.py:300
 #, python-format
 msgid "%sEmail Verification Code"
-msgstr "%sCódigo de verificação de e-mail"
+msgstr "%sCódigo de verificación de correo electrónico"

@@ -1,7 +1,7 @@
 """Tests for internationalization: the language switcher, persistence, middleware, and emails."""
 
-# Portuguese strings asserted in the tests below are intentional, not typos.
-# cspell:ignore código acesso entrar direitos reservados
+# Non-English strings asserted in the tests below are intentional, not typos.
+# cspell:ignore código acesso entrar direitos reservados Alle Rechte vorbehalten Todos los derechos
 
 from http import HTTPStatus
 from typing import TYPE_CHECKING
@@ -190,19 +190,34 @@ class TestEmailLanguage:
 # --------------------------------------------------------------------------------------------------
 # End-to-end rendering
 # --------------------------------------------------------------------------------------------------
+# (language cookie, expected <html lang> value, an always-present translated footer string)
+LANGUAGE_RENDER_CASES = [
+    ("en", "en", "All rights reserved"),
+    ("pt-br", "pt-br", "Todos os direitos reservados"),
+    ("de", "de", "Alle Rechte vorbehalten"),
+    ("es", "es", "Todos los derechos reservados"),
+]
+
+
 @pytest.mark.django_db
 class TestRendering:
     """Pages render in the language selected via the cookie."""
 
-    def test_login_page_renders_in_portuguese(self, client: Client) -> None:
-        """The login page (login_not_required) renders translated chrome when cookie is pt-br."""
-        client.cookies[LANGUAGE_COOKIE] = "pt-br"
+    @pytest.mark.parametrize(("cookie", "lang_attr", "footer"), LANGUAGE_RENDER_CASES)
+    def test_login_page_renders_in_selected_language(
+        self,
+        client: Client,
+        cookie: str,
+        lang_attr: str,
+        footer: str,
+    ) -> None:
+        """The login page (login_not_required) renders translated chrome per the cookie."""
+        client.cookies[LANGUAGE_COOKIE] = cookie
         response = client.get(reverse("account_login"))
         assert response.status_code == HTTPStatus.OK
         content = response.content.decode()
-        assert '<html lang="pt-br">' in content
-        # "Sign In" -> "Entrar" and the always-present footer line.
-        assert "Todos os direitos reservados" in content
+        assert f'<html lang="{lang_attr}">' in content
+        assert footer in content
 
     def test_login_page_renders_in_english_by_default(self, client: Client) -> None:
         """Without a language cookie the default English chrome is served."""

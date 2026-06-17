@@ -63,6 +63,8 @@ USE_TZ = env.bool("USE_TZ", default=True)
 LANGUAGES = [
     ("en", _("English")),
     ("pt-br", _("Portuguese (Brazil)")),
+    ("de", _("German")),
+    ("es", _("Spanish")),
 ]
 
 # Where Django looks for (and writes) translation catalogs.
