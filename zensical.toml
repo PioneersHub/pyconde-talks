@@ -47,6 +47,7 @@ nav = [
     { "Docker full stack" = "development/docker-local.md" },
     { "Testing" = "development/testing.md" },
     { "Code quality" = "development/code-quality.md" },
+    { "Translations" = "development/translations.md" },
     { "Documentation" = "development/documentation.md" },
   ] },
   { "Reference" = [

@@ -100,6 +100,8 @@ only when relevant; they are not auto-imported.
   [docs/reference/pretalx-sync.md](docs/reference/pretalx-sync.md)
 - Management command reference:
   [docs/reference/management-commands.md](docs/reference/management-commands.md)
+- Translations / i18n (makemessages, compilemessages, adding a language):
+  [docs/development/translations.md](docs/development/translations.md)
 - Env var reference: [docs/getting-started/configuration.md](docs/getting-started/configuration.md)
   and [django-vars.env](django-vars.env)
 - Editing the docs site: [docs/development/documentation.md](docs/development/documentation.md)
