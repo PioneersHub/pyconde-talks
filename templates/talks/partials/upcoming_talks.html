@@ -1,8 +1,9 @@
 {% load svg_tags rating_tags saved_tags %}
+{% load i18n %}
 <div class="card">
   <div class="flex justify-between items-center mb-4">
-    <h2 class="text-xl font-bold">Coming Up Next</h2>
-    <a href="{% url 'talk_list' %}" class="link-primary text-sm">View All</a>
+    <h2 class="text-xl font-bold">{% trans "Coming Up Next" %}</h2>
+    <a href="{% url 'talk_list' %}" class="link-primary text-sm">{% trans "View All" %}</a>
   </div>
   {% if upcoming_talks %}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -22,12 +23,12 @@
               {% if talk_date == today %}
                 <span class="badge badge-green text-xs font-semibold">
                   {% svg 'calendar' "h-3 w-3 mr-1" %}
-                  Today
+                  {% trans "Today" %}
                 </span>
               {% elif talk_date == tomorrow %}
                 <span class="badge badge-orange text-xs font-semibold">
                   {% svg 'calendar' "h-3 w-3 mr-1" %}
-                  Tomorrow
+                  {% trans "Tomorrow" %}
                 </span>
               {% else %}
                 <span class="badge badge-purple text-xs font-semibold">
@@ -61,7 +62,7 @@
                  rel="noopener noreferrer"
                  class="btn-outline-primary inline-flex items-center px-2 py-1 text-xs rounded">
                 {% svg 'information-circle' "h-3 w-3 mr-1" %}
-                Details
+                {% trans "Details" %}
               </a>
               {% if talk.get_slido_link %}
                 <a href="{{ talk.get_slido_link }}"
@@ -75,7 +76,7 @@
               <a href="{% url 'talk_questions' talk.pk %}"
                  class="btn-secondary inline-flex items-center px-3 py-1 rounded">
                 {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-1" %}
-                Q&amp;A
+                {% trans "Q&amp;A" %}
               </a>
               {% if talk.get_transcription_url %}
                 <a href="{{ talk.get_transcription_url }}"
@@ -83,7 +84,7 @@
                    rel="noopener noreferrer"
                    class="btn-secondary inline-flex items-center px-3 py-1 rounded">
                   {% svg 'language' "h-4 w-4 mr-1" %}
-                  Transcription
+                  {% trans "Transcription" %}
                 </a>
               {% endif %}
             </div>
@@ -92,6 +93,6 @@
       {% endfor %}
     </div>
   {% else %}
-    <p class="text-subtle">No upcoming talks scheduled.</p>
+    <p class="text-subtle">{% trans "No upcoming talks scheduled." %}</p>
   {% endif %}
 </div>

@@ -1,4 +1,5 @@
 {% load svg_tags %}
+{% load i18n %}
 {# Moderator-only chair grid. Swapped in place on every assign/remove via HTMX. #}
 <div id="chair-grid-table">
   {% if chair_error %}
@@ -66,12 +67,14 @@
                             hx-swap="outerHTML show:none"
                             hx-trigger="change"
                             class="mt-1 w-full rounded border border-gray-300 py-0.5 pl-1 pr-6 text-xs">
-                      <option value="">-- none --</option>
+                      <option value="">{% trans "-- none --" %}</option>
                       {% for chair in available_chairs %}
                         <option value="{{ chair.pk }}"
                                 {% if chair.pk == talk.session_chair_id %}selected{% endif %}>
                           {{ chair.display_name|default:chair.email }}
-                          {% if chair.pk == current_user_id %}(me){% endif %}
+                          {% if chair.pk == current_user_id %}
+                            {% trans "(me)" %}
+                          {% endif %}
                         </option>
                       {% endfor %}
                     </select>
@@ -82,13 +85,14 @@
                         {% svg 'check-circle' "h-3 w-3" %}
                         {{ talk.chair_display_name }}
                       </span>
+                      {% translate "Step down" as step_down_title %}
                       <button hx-post="{% url 'toggle_session_chair' talk.pk %}"
                               hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                               hx-vals='{"event": "{{ selected_event }}"}'
                               hx-target="#chair-grid-table"
                               hx-swap="outerHTML show:none"
                               class="text-subtle hover:text-red-600"
-                              title="Step down">{% svg 'x-mark' "h-3 w-3" %}</button>
+                              title="{{ step_down_title }}">{% svg 'x-mark' "h-3 w-3" %}</button>
                     </span>
                   {% elif talk.session_chair_id %}
                     {# Someone else's talk, non-admin: read-only. #}
@@ -98,15 +102,16 @@
                     </span>
                   {% else %}
                     {# Unassigned, non-admin moderator: claim for self. #}
+                    {% translate "Chair this talk" as chair_title %}
                     <button hx-post="{% url 'toggle_session_chair' talk.pk %}"
                             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                             hx-vals='{"event": "{{ selected_event }}"}'
                             hx-target="#chair-grid-table"
                             hx-swap="outerHTML show:none"
                             class="inline-flex items-center gap-1 text-subtle hover:text-brand-blue"
-                            title="Chair this talk">
+                            title="{{ chair_title }}">
                       <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-current text-xs leading-none font-bold">+</span>
-                      Chair
+                      {% trans "Chair" %}
                     </button>
                   {% endif %}
                 </div>
@@ -118,9 +123,11 @@
     </div>
   {% else %}
     <div class="bg-surface p-6 rounded text-center text-subtle">
-      No sessions scheduled
-      {% if selected_date %}for {{ selected_date|date:"l, F j, Y" }}{% endif %}
-      .
+      {% if selected_date %}
+        {% blocktrans with the_date=selected_date|date:"l, F j, Y" %}No sessions scheduled for {{ the_date }}.{% endblocktrans %}
+      {% else %}
+        {% trans "No sessions scheduled." %}
+      {% endif %}
     </div>
   {% endif %}
 </div>

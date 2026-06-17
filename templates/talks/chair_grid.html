@@ -1,18 +1,19 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load svg_tags %}
 {% block content %}
   <div class="w-full mx-auto p-4">
     {# ── Header ────────────────────────────────────────────── #}
     <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-      <h1 class="text-2xl font-bold text-heading">Session chairs</h1>
+      <h1 class="text-2xl font-bold text-heading">{% trans "Session chairs" %}</h1>
       <a href="{% url 'schedule' %}"
          class="btn-secondary inline-flex items-center px-3 py-1 rounded">
         {% svg 'calendar' "h-4 w-4 mr-1" %}
-        Schedule
+        {% trans "Schedule" %}
       </a>
     </div>
     <p class="text-sm text-muted mb-4">
-      Pick a day to see who is chairing each session. Open a talk to volunteer or step down.
+      {% trans "Pick a day to see who is chairing each session. Open a talk to volunteer or step down." %}
     </p>
     {# ── Day picker ────────────────────────────────────────── #}
     <div class="flex flex-wrap gap-2 mb-4">
@@ -26,13 +27,13 @@
           {% endif %}
         </a>
       {% empty %}
-        <span class="text-subtle">No scheduled days found.</span>
+        <span class="text-subtle">{% trans "No scheduled days found." %}</span>
       {% endfor %}
     </div>
     {# ── Event filter ──────────────────────────────────────── #}
     <form method="get" class="mb-4 card-compact inline-flex">
       <select name="event" class="form-select" onchange="this.form.submit()">
-        <option value="">All Events</option>
+        <option value="">{% trans "All Events" %}</option>
         {% for event in events %}
           <option value="{{ event.id }}"
                   {% if event.id|stringformat:"s" == selected_event %}selected{% endif %}>{{ event.name }}</option>

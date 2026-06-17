@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% block title %}
-  Page Not Found - {{ brand_title }}
+  {% blocktrans with title=brand_title %}Page Not Found - {{ title }}{% endblocktrans %}
 {% endblock title %}
 {% block meta_description %}
-  Page not found - {{ brand_meta_description }}
+  {% blocktrans with description=brand_meta_description %}Page not found - {{ description }}{% endblocktrans %}
 {% endblock meta_description %}
 {% block content %}
   <div class="flex flex-col items-center justify-center py-12">
@@ -17,35 +18,35 @@
         </div>
       </div>
     </div>
-    <h2 class="text-3xl font-semibold text-heading mb-8">Page Not Found</h2>
+    <h2 class="text-3xl font-semibold text-heading mb-8">{% trans "Page Not Found" %}</h2>
     <div class="mb-8 text-center max-w-2xl">
-      <p class="text-xl text-muted mb-4">Oops! Looks like this page has slithered away.</p>
-      <p class="text-lg text-subtle">It might have been moved or deleted, or perhaps there was a typo in the URL.</p>
+      <p class="text-xl text-muted mb-4">{% trans "Oops! Looks like this page has slithered away." %}</p>
+      <p class="text-lg text-subtle">{% trans "It might have been moved or deleted, or perhaps there was a typo in the URL." %}</p>
     </div>
     <div class="flex flex-col sm:flex-row gap-4 mb-12">
-      <a href="{% url 'home' %}" class="btn-primary">Return to Homepage</a>
+      <a href="{% url 'home' %}" class="btn-primary">{% trans "Return to Homepage" %}</a>
       <button class="go-back-button btn-outline-primary"
-              onclick="window.history.back();">Go Back</button>
+              onclick="window.history.back();">{% trans "Go Back" %}</button>
     </div>
     <div class="mt-8 border-t border-weak pt-8 w-full max-w-2xl">
-      <h3 class="text-xl font-semibold text-label mb-4 text-center">You might be looking for:</h3>
+      <h3 class="text-xl font-semibold text-label mb-4 text-center">{% trans "You might be looking for:" %}</h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         {% url 'talk_list' as talk_list_url %}
-        {% include "partials/useful_link_card.html" with url=talk_list_url icon="📝" label="List of Talks" %}
+        {% include "partials/useful_link_card.html" with url=talk_list_url icon="📝" label=_("List of Talks") %}
         {% if user.is_authenticated %}
           {% url 'account_logout' as auth_url %}
-          {% include "partials/useful_link_card.html" with url=auth_url icon="🚪" label="Logout" %}
+          {% include "partials/useful_link_card.html" with url=auth_url icon="🚪" label=_("Logout") %}
         {% else %}
           {% url 'account_login' as auth_url %}
-          {% include "partials/useful_link_card.html" with url=auth_url icon="🔑" label="Login" %}
+          {% include "partials/useful_link_card.html" with url=auth_url icon="🔑" label=_("Login") %}
         {% endif %}
-        {% include "partials/useful_link_card.html" with url=pretalx_schedule_url icon="📅" label="Event Schedule" %}
-        {% include "partials/useful_link_card.html" with url=pretalx_speakers_url icon="🎤" label="Speakers" %}
-        {% include "partials/useful_link_card.html" with url=brand_venue_url icon="🏢" label="Venue Information" %}
-        {% include "partials/useful_link_card.html" with url=brand_main_website_url icon="🌐" label="Main Website" %}
-        {% include "partials/useful_link_card.html" with url=brand_imprint_url icon="📄" label="Imprint" %}
-        {% include "partials/useful_link_card.html" with url=brand_code_of_conduct_url icon="🤝" label="Code of Conduct" %}
-        {% include "partials/useful_link_card.html" with url=brand_privacy_policy_url icon="🔒" label="Privacy Policy" %}
+        {% include "partials/useful_link_card.html" with url=pretalx_schedule_url icon="📅" label=_("Event Schedule") %}
+        {% include "partials/useful_link_card.html" with url=pretalx_speakers_url icon="🎤" label=_("Speakers") %}
+        {% include "partials/useful_link_card.html" with url=brand_venue_url icon="🏢" label=_("Venue Information") %}
+        {% include "partials/useful_link_card.html" with url=brand_main_website_url icon="🌐" label=_("Main Website") %}
+        {% include "partials/useful_link_card.html" with url=brand_imprint_url icon="📄" label=_("Imprint") %}
+        {% include "partials/useful_link_card.html" with url=brand_code_of_conduct_url icon="🤝" label=_("Code of Conduct") %}
+        {% include "partials/useful_link_card.html" with url=brand_privacy_policy_url icon="🔒" label=_("Privacy Policy") %}
       </div>
     </div>
   </div>

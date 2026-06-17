@@ -1,3 +1,4 @@
+{% load i18n %}
 {# This template is returned when a question is successfully created via HTMX #}
 <div class="alert-success">
   <script>
@@ -15,10 +16,7 @@
        hx-swap="outerHTML"
        aria-hidden="true"
        class="hidden"></div>
-  <p class="text-brand-green">
-    {% load i18n %}
-    {% translate "Your question has been posted and is now visible." %}
-  </p>
+  <p class="text-brand-green">{% translate "Your question has been posted and is now visible." %}</p>
   <p class="text-sm text-brand-green mt-2">
     {% translate "Other participants can now see and vote on your question." %}
   </p>

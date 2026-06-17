@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
+from django.utils.translation import gettext as _
 
 from events.models import Event
 from events.session import get_selected_event_slug
@@ -65,8 +66,8 @@ def branding(request: HttpRequest) -> dict[str, Any]:
         return {
             "brand_event_name": "",
             "brand_event_year": "",
-            "brand_title": "Talks",
-            "brand_meta_description": "Talks and Schedule",
+            "brand_title": _("Talks"),
+            "brand_meta_description": _("Talks and Schedule"),
             "brand_main_website_url": "",
             "brand_imprint_url": "",
             "brand_code_of_conduct_url": "",
@@ -88,8 +89,8 @@ def branding(request: HttpRequest) -> dict[str, Any]:
     return {
         "brand_event_name": event_name,
         "brand_event_year": event_year,
-        "brand_title": f"{prefix}Talks",
-        "brand_meta_description": f"{prefix}Talks and Schedule",
+        "brand_title": f"{prefix}{_('Talks')}",
+        "brand_meta_description": f"{prefix}{_('Talks and Schedule')}",
         "brand_main_website_url": event.main_website_url,
         "brand_imprint_url": event.imprint_url,
         "brand_code_of_conduct_url": event.code_of_conduct_url,

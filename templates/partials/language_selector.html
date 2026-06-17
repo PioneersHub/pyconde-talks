@@ -1,0 +1,28 @@
+{% load i18n %}
+{% get_current_language as CURRENT_LANGUAGE %}
+{% get_available_languages as AVAILABLE_LANGUAGES %}
+{% get_language_info_list for AVAILABLE_LANGUAGES as languages %}
+{% comment %}
+Language switcher. Posts to the custom set_language view, which sets the language cookie and (for
+authenticated users) persists the choice on their profile. Falls back to a submit button when
+JavaScript is disabled.
+{% endcomment %}
+<form action="{% url 'set_language' %}"
+      method="post"
+      class="flex items-center gap-1">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.path }}" />
+  <label for="language-select" class="sr-only">{% trans "Language" %}</label>
+  <select id="language-select"
+          name="language"
+          onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()"
+          class="bg-transparent border border-white/40 rounded-md px-2 py-1 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/50">
+    {% for language in languages %}
+      <option value="{{ language.code }}"
+              {% if language.code == CURRENT_LANGUAGE %}selected{% endif %}>{{ language.name_local|capfirst }}</option>
+    {% endfor %}
+  </select>
+  <noscript>
+    <button type="submit" class="text-sm underline">{% trans "Go" %}</button>
+  </noscript>
+</form>

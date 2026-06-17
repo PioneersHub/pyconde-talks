@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load svg_tags %}
 {% load highlight %}
 {% load rating_tags %}
@@ -7,11 +8,11 @@
   <div class="max-w-4xl mx-auto p-4">
     <!-- Header with schedule link -->
     <div class="flex items-center justify-between mb-4">
-      <h1 class="text-2xl font-bold text-heading">Talks</h1>
+      <h1 class="text-2xl font-bold text-heading">{% trans "Talks" %}</h1>
       <a href="{% url 'schedule' %}"
          class="btn-secondary inline-flex items-center px-3 py-1 rounded">
         {% svg 'calendar' "h-4 w-4 mr-1" %}
-        Schedule view
+        {% trans "Schedule view" %}
       </a>
     </div>
     <!-- Search -->
@@ -24,34 +25,35 @@
             hx-include="#filters-form, #search-form"
             hx-indicator="#loading-indicator"
             class="flex flex-wrap gap-3 items-center">
+        {% translate "Search talks" as search_talks_label %}
         <input type="search"
                name="q"
                value="{{ search_query }}"
-               placeholder="Search talks"
+               placeholder="{{ search_talks_label }}"
                class="form-input w-72"
-               aria-label="Search talks" />
+               aria-label="{{ search_talks_label }}" />
         <fieldset class="flex flex-wrap gap-3 items-center">
-          <legend class="sr-only">Search scope</legend>
+          <legend class="sr-only">{% trans "Search scope" %}</legend>
           <label class="inline-flex items-center gap-1">
             <input type="checkbox"
                    name="search_in"
                    value="title"
                    {% if 'all' in search_in or 'title' in search_in %}checked{% endif %} />
-            <span>Title</span>
+            <span>{% trans "Title" %}</span>
           </label>
           <label class="inline-flex items-center gap-1">
             <input type="checkbox"
                    name="search_in"
                    value="description"
                    {% if 'all' in search_in or 'description' in search_in %}checked{% endif %} />
-            <span>Description</span>
+            <span>{% trans "Description" %}</span>
           </label>
           <label class="inline-flex items-center gap-1">
             <input type="checkbox"
                    name="search_in"
                    value="author"
                    {% if 'all' in search_in or 'author' in search_in %}checked{% endif %} />
-            <span>Author</span>
+            <span>{% trans "Author" %}</span>
           </label>
         </fieldset>
         <button type="button"
@@ -61,7 +63,7 @@
                 hx-push-url="true"
                 hx-indicator="#loading-indicator"
                 hx-include="#filters-form"
-                hx-vals='{"q":"","search_in":["title","description","author"]}'>Clear</button>
+                hx-vals='{"q":"","search_in":["title","description","author"]}'>{% trans "Clear" %}</button>
         <!-- spinner -->
         <div id="loading-indicator" class="htmx-indicator">{% svg 'spinner' "animate-spin h-5 w-5 text-brand-blue" %}</div>
       </form>
@@ -77,14 +79,14 @@
             hx-indicator="#loading-indicator"
             class="flex flex-wrap gap-4 items-center">
         <select name="event" class="form-select">
-          <option value="all">All Events</option>
+          <option value="all">{% trans "All Events" %}</option>
           {% for event in events %}
             <option value="{{ event.id }}"
                     {% if event.id|stringformat:"s" == selected_event %}selected{% endif %}>{{ event.name }}</option>
           {% endfor %}
         </select>
         <select id="date-filter" name="date" class="form-select">
-          <option value="">All Days</option>
+          <option value="">{% trans "All Days" %}</option>
           {% for date in dates %}
             <option value="{{ date|date:'Y-m-d' }}"
                     {% if date|date:'Y-m-d' == selected_date %}selected{% endif %}>
@@ -97,28 +99,28 @@
           {% endfor %}
         </select>
         <select id="room-filter" name="room" class="form-select">
-          <option value="">All Rooms</option>
+          <option value="">{% trans "All Rooms" %}</option>
           {% for room in rooms %}
             <option value="{{ room.id }}"
                     {% if room.id|stringformat:"s" == selected_room %}selected{% endif %}>{{ room.name }}</option>
           {% endfor %}
         </select>
         <select id="type-filter" name="presentation_type" class="form-select">
-          <option value="">All Types</option>
+          <option value="">{% trans "All Types" %}</option>
           {% for type_value, type_label in presentation_types %}
             <option value="{{ type_value }}"
                     {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
           {% endfor %}
         </select>
         <select id="track-filter" name="track" class="form-select truncate w-60">
-          <option value="">All Tracks</option>
+          <option value="">{% trans "All Tracks" %}</option>
           {% for track in tracks %}
             <option value="{{ track }}"
                     {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
           {% endfor %}
         </select>
         <select id="status-filter" name="status" class="form-select">
-          <option value="">All Statuses</option>
+          <option value="">{% trans "All Statuses" %}</option>
           {% for status_value, status_label in status_choices %}
             <option value="{{ status_value }}"
                     {% if status_value == selected_status %}selected{% endif %}>{{ status_label }}</option>
@@ -132,7 +134,7 @@
           <span>
             {% load svg_tags %}
           {% svg 'bookmark-solid' "h-4 w-4 text-yellow-500" %}</span>
-          <span>Saved only</span>
+          <span>{% trans "Saved only" %}</span>
         </label>
       </form>
     </div>
@@ -142,7 +144,7 @@
         {# OOB-swap all filter dropdowns so they stay in sync with the selected event. #}
         {# djlint:off H025 #}
         <select id="date-filter" name="date" class="form-select" hx-swap-oob="true">
-          <option value="">All Days</option>
+          <option value="">{% trans "All Days" %}</option>
           {% for date in dates %}
             <option value="{{ date|date:'Y-m-d' }}"
                     {% if date|date:'Y-m-d' == selected_date %}selected{% endif %}>
@@ -155,7 +157,7 @@
           {% endfor %}
         </select>
         <select id="room-filter" name="room" class="form-select" hx-swap-oob="true">
-          <option value="">All Rooms</option>
+          <option value="">{% trans "All Rooms" %}</option>
           {% for room in rooms %}
             <option value="{{ room.id }}"
                     {% if room.id|stringformat:"s" == selected_room %}selected{% endif %}>{{ room.name }}</option>
@@ -165,7 +167,7 @@
                 name="presentation_type"
                 class="form-select"
                 hx-swap-oob="true">
-          <option value="">All Types</option>
+          <option value="">{% trans "All Types" %}</option>
           {% for type_value, type_label in presentation_types %}
             <option value="{{ type_value }}"
                     {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
@@ -175,7 +177,7 @@
                 name="track"
                 class="form-select truncate w-60"
                 hx-swap-oob="true">
-          <option value="">All Tracks</option>
+          <option value="">{% trans "All Tracks" %}</option>
           {% for track in tracks %}
             <option value="{{ track }}"
                     {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
@@ -185,7 +187,7 @@
                 name="status"
                 class="form-select"
                 hx-swap-oob="true">
-          <option value="">All Statuses</option>
+          <option value="">{% trans "All Statuses" %}</option>
           {% for status_value, status_label in status_choices %}
             <option value="{{ status_value }}"
                     {% if status_value == selected_status %}selected{% endif %}>{{ status_label }}</option>
@@ -206,17 +208,17 @@
                 {% if talk.is_current %}
                   <span class="badge badge-orange px-2 py-0.5 text-xs font-medium flex items-center flex-shrink-0 whitespace-nowrap">
                     {% svg 'clock' "h-3 w-3 mr-1" %}
-                    HAPPENING NOW
+                    {% trans "HAPPENING NOW" %}
                   </span>
                 {% elif talk.is_upcoming %}
                   <span class="badge badge-blue text-xs font-medium flex items-center flex-shrink-0 whitespace-nowrap">
                     {% svg 'calendar' "h-3 w-3 mr-1" %}
-                    UPCOMING
+                    {% trans "UPCOMING" %}
                   </span>
                 {% else %}
                   <span class="badge badge-gray text-xs font-medium flex items-center flex-shrink-0 whitespace-nowrap">
                     {% svg 'check-circle' "h-3 w-3 mr-1" %}
-                    COMPLETED
+                    {% trans "COMPLETED" %}
                   </span>
                 {% endif %}
               </div>
@@ -243,7 +245,7 @@
                    rel="noopener noreferrer"
                    class="btn-outline-primary inline-flex items-center px-3 py-1 rounded">
                   {% svg 'information-circle' "h-4 w-4 mr-1" %}
-                  Details
+                  {% trans "Details" %}
                 </a>
                 {% if talk.get_video_link %}
                   <a href="{% url 'talk_detail' talk.pk %}"
@@ -251,13 +253,13 @@
                      rel="noopener noreferrer"
                      class="btn-danger inline-flex items-center px-3 py-1 rounded">
                     {% svg 'play-circle' "h-4 w-4 mr-1" %}
-                    Video
+                    {% trans "Video" %}
                   </a>
                 {% endif %}
                 <a href="{% url 'talk_questions' talk.pk %}"
                    class="btn-secondary inline-flex items-center px-3 py-1 rounded">
                   {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-1" %}
-                  Q&amp;A
+                  {% trans "Q&A" %}
                 </a>
                 {% if talk.get_transcription_url %}
                   <a href="{{ talk.get_transcription_url }}"
@@ -265,14 +267,14 @@
                      rel="noopener noreferrer"
                      class="btn-secondary inline-flex items-center px-3 py-1 rounded">
                     {% svg 'language' "h-4 w-4 mr-1" %}
-                    Transcription
+                    {% trans "Transcription" %}
                   </a>
                 {% endif %}
               </div>
             </div>
           </div>
         {% empty %}
-          <div class="bg-surface p-4 rounded text-center text-subtle">No talks found</div>
+          <div class="bg-surface p-4 rounded text-center text-subtle">{% trans "No talks found" %}</div>
         {% endfor %}
       </div>
     {% endpartialdef %}

@@ -13,6 +13,7 @@ from django.db.models.functions import TruncDate
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_safe
 from django.views.decorators.vary import vary_on_cookie
@@ -290,9 +291,9 @@ class TalkListView(ListView[Talk]):
         # Status filter
         context["selected_status"] = self.request.GET.get("status", "")
         context["status_choices"] = [
-            ("current", "Happening Now"),
-            ("upcoming", "Upcoming"),
-            ("completed", "Completed"),
+            ("current", _("Happening Now")),
+            ("upcoming", _("Upcoming")),
+            ("completed", _("Completed")),
         ]
 
         # Build a set of saved talk IDs for the current user. LoginRequiredMiddleware ensures

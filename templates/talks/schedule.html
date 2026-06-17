@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load svg_tags %}
 {% load saved_tags %}
 {% load rating_tags %}
@@ -6,11 +7,11 @@
   <div class="w-full mx-auto p-4">
     {# ── Header ────────────────────────────────────────────── #}
     <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-      <h1 class="text-2xl font-bold text-heading">Schedule</h1>
+      <h1 class="text-2xl font-bold text-heading">{% trans "Schedule" %}</h1>
       <a href="{% url 'talk_list' %}"
          class="btn-secondary inline-flex items-center px-3 py-1 rounded">
         {% svg 'rectangle-stack' "h-4 w-4 mr-1" %}
-        List view
+        {% trans "List view" %}
       </a>
     </div>
     {# ── Day picker ────────────────────────────────────────── #}
@@ -25,13 +26,13 @@
           {% endif %}
         </a>
       {% empty %}
-        <span class="text-subtle">No scheduled days found.</span>
+        <span class="text-subtle">{% trans "No scheduled days found." %}</span>
       {% endfor %}
     </div>
     {# ── Event filter (always visible) ─────────────────────── #}
     <form method="get" class="mb-4 card-compact inline-flex">
       <select name="event" class="form-select" onchange="this.form.submit()">
-        <option value="all">All Events</option>
+        <option value="all">{% trans "All Events" %}</option>
         {% for event in events %}
           <option value="{{ event.id }}"
                   {% if event.id|stringformat:"s" == selected_event %}selected{% endif %}>{{ event.name }}</option>
@@ -46,16 +47,18 @@
         {# preserve selected date and event #}
         {% if selected_date %}<input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}" />{% endif %}
         {% if selected_event %}<input type="hidden" name="event" value="{{ selected_event }}" />{% endif %}
+        {% translate "Search talks…" as search_placeholder %}
+        {% translate "Search schedule" as search_label %}
         <input type="search"
                name="q"
                value="{{ search_query }}"
-               placeholder="Search talks…"
+               placeholder="{{ search_placeholder }}"
                class="form-input w-60"
-               aria-label="Search schedule" />
+               aria-label="{{ search_label }}" />
         <select name="presentation_type"
                 class="form-select"
                 onchange="this.form.submit()">
-          <option value="">All Types</option>
+          <option value="">{% trans "All Types" %}</option>
           {% for type_value, type_label in presentation_types %}
             <option value="{{ type_value }}"
                     {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
@@ -64,7 +67,7 @@
         <select name="track"
                 class="form-select truncate w-60"
                 onchange="this.form.submit()">
-          <option value="">All Tracks</option>
+          <option value="">{% trans "All Tracks" %}</option>
           {% for track in tracks %}
             <option value="{{ track }}"
                     {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
@@ -76,12 +79,12 @@
                  value="1"
                  {% if filter_saved == "1" %}checked{% endif %}
                  onchange="this.form.submit()" />
-          <span>{% svg 'bookmark-solid' "h-4 w-4 inline text-yellow-500" %} Saved only</span>
+          <span>{% svg 'bookmark-solid' "h-4 w-4 inline text-yellow-500" %} {% trans "Saved only" %}</span>
         </label>
-        <button type="submit" class="btn-secondary px-3 py-1 rounded text-sm">Filter</button>
+        <button type="submit" class="btn-secondary px-3 py-1 rounded text-sm">{% trans "Filter" %}</button>
         {% if search_query or filter_saved or selected_track or selected_type %}
           <a href="?date={{ selected_date|date:'Y-m-d' }}{% if selected_event %}&amp;event={{ selected_event }}{% endif %}"
-             class="text-sm text-brand-blue hover:underline">Clear</a>
+             class="text-sm text-brand-blue hover:underline">{% trans "Clear" %}</a>
         {% endif %}
       </form>
     {% endif %}
@@ -127,7 +130,9 @@
                   <div class="text-xs text-muted mb-1">{{ talk.speaker_names }}</div>
                   <div class="flex flex-wrap gap-1 mt-1">
                     <span class="badge badge-green text-[10px]">{{ talk.get_presentation_type_display }}</span>
-                    {% if item.duration_min %}<span class="badge badge-gray text-[10px]">{{ item.duration_min }}min</span>{% endif %}
+                    {% if item.duration_min %}
+                      <span class="badge badge-gray text-[10px]">{% blocktrans with duration=item.duration_min %}{{ duration }}min{% endblocktrans %}</span>
+                    {% endif %}
                   </div>
                 </a>
                 {# ── Bookmark toggle button ──────── #}
@@ -144,11 +149,13 @@
     {% else %}
       <div class="bg-surface p-6 rounded text-center text-subtle">
         {% if has_schedule %}
-          No talks match your filters.
+          {% trans "No talks match your filters." %}
         {% else %}
-          No talks scheduled
-          {% if selected_date %}for {{ selected_date|date:"l, F j, Y" }}{% endif %}
-          .
+          {% if selected_date %}
+            {% blocktrans with date=selected_date|date:"l, F j, Y" %}No talks scheduled for {{ date }}.{% endblocktrans %}
+          {% else %}
+            {% trans "No talks scheduled." %}
+          {% endif %}
         {% endif %}
       </div>
     {% endif %}

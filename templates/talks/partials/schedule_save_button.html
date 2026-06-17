@@ -1,10 +1,16 @@
 {% load svg_tags %}
+{% load i18n %}
+{% if is_saved %}
+  {% translate "Remove bookmark" as bookmark_title %}
+{% else %}
+  {% translate "Bookmark talk" as bookmark_title %}
+{% endif %}
 <button hx-post="{% url 'toggle_save_talk' talk.pk %}"
         hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
         hx-target="#sched-save-{{ talk.pk }}"
         hx-swap="innerHTML"
         class="p-1 rounded hover:bg-black/10 transition-colors {% if is_saved %}text-yellow-500{% else %}text-gray-400{% endif %}"
-        title="{% if is_saved %}Remove bookmark{% else %}Bookmark talk{% endif %}">
+        title="{{ bookmark_title }}">
   {% if is_saved %}
     {% svg 'bookmark-solid' "h-4 w-4" %}
   {% else %}

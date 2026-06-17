@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% block title %}
-  Server Error - {{ brand_title }}
+  {% blocktrans with title=brand_title %}Server Error - {{ title }}{% endblocktrans %}
 {% endblock title %}
 {% block meta_description %}
-  Server error - {{ brand_meta_description }}
+  {% blocktrans with description=brand_meta_description %}Server error - {{ description }}{% endblocktrans %}
 {% endblock meta_description %}
 {% block content %}
   <div class="flex flex-col items-center justify-center py-12">
@@ -17,28 +18,28 @@
         </div>
       </div>
     </div>
-    <h2 class="text-3xl font-semibold text-heading mb-8">Server Error</h2>
+    <h2 class="text-3xl font-semibold text-heading mb-8">{% trans "Server Error" %}</h2>
     <div class="mb-8 text-center max-w-2xl">
-      <p class="text-xl text-muted mb-4">Oops! Something went wrong on our end.</p>
-      <p class="text-lg text-subtle mb-4">Our team has been notified of this issue and we're working to fix it.</p>
-      <p class="text-lg text-subtle">Please try again later or navigate to a different page.</p>
+      <p class="text-xl text-muted mb-4">{% trans "Oops! Something went wrong on our end." %}</p>
+      <p class="text-lg text-subtle mb-4">{% trans "Our team has been notified of this issue and we're working to fix it." %}</p>
+      <p class="text-lg text-subtle">{% trans "Please try again later or navigate to a different page." %}</p>
     </div>
     <div class="flex flex-col sm:flex-row gap-4 mb-12">
-      <a href="{% url 'home' %}" class="btn-primary">Return to Homepage</a>
+      <a href="{% url 'home' %}" class="btn-primary">{% trans "Return to Homepage" %}</a>
       <button class="try-again-button btn-outline-primary"
-              onclick="window.location.reload();">Try Again</button>
+              onclick="window.location.reload();">{% trans "Try Again" %}</button>
     </div>
     <div class="mt-8 border-t border-weak pt-8 w-full max-w-2xl">
-      <h3 class="text-xl font-semibold text-label mb-4 text-center">You can still visit:</h3>
+      <h3 class="text-xl font-semibold text-label mb-4 text-center">{% trans "You can still visit:" %}</h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         {% url 'talk_list' as talk_list_url %}
-        {% include "partials/useful_link_card.html" with url=talk_list_url icon="📝" label="List of Talks" %}
-        {% include "partials/useful_link_card.html" with url=brand_main_website_url icon="🌐" label="Main Website" %}
-        {% include "partials/useful_link_card.html" with url=brand_venue_url icon="🏢" label="Venue Information" %}
-        {% include "partials/useful_link_card.html" with url=pretalx_schedule_url icon="📅" label="Event Schedule" %}
-        {% include "partials/useful_link_card.html" with url=brand_imprint_url icon="📄" label="Imprint" %}
-        {% include "partials/useful_link_card.html" with url=brand_code_of_conduct_url icon="🤝" label="Code of Conduct" %}
-        {% include "partials/useful_link_card.html" with url=brand_privacy_policy_url icon="🔒" label="Privacy Policy" %}
+        {% include "partials/useful_link_card.html" with url=talk_list_url icon="📝" label=_("List of Talks") %}
+        {% include "partials/useful_link_card.html" with url=brand_main_website_url icon="🌐" label=_("Main Website") %}
+        {% include "partials/useful_link_card.html" with url=brand_venue_url icon="🏢" label=_("Venue Information") %}
+        {% include "partials/useful_link_card.html" with url=pretalx_schedule_url icon="📅" label=_("Event Schedule") %}
+        {% include "partials/useful_link_card.html" with url=brand_imprint_url icon="📄" label=_("Imprint") %}
+        {% include "partials/useful_link_card.html" with url=brand_code_of_conduct_url icon="🤝" label=_("Code of Conduct") %}
+        {% include "partials/useful_link_card.html" with url=brand_privacy_policy_url icon="🔒" label=_("Privacy Policy") %}
       </div>
     </div>
   </div>

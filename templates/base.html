@@ -1,7 +1,9 @@
 {% load static %}
 {% load svg_tags %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -52,24 +54,26 @@
   <body class="app-body">
     <nav class="app-nav">
       <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
-        <a href="{% url 'home' %}"><span class="sr-only">Home</span>{% svg brand_logo_svg_name "w-25 h-20 header-logo" %}</a>
+        <a href="{% url 'home' %}"><span class="sr-only">{% trans "Home" %}</span>{% svg brand_logo_svg_name "w-25 h-20 header-logo" %}</a>
         <div class="flex items-center gap-4">
           {% if user.is_authenticated %}
-            <a href="{% url 'talk_list' %}" class="hover:underline">Talks</a>
-            <a href="{% url 'schedule' %}" class="hover:underline">Schedule</a>
+            <a href="{% url 'talk_list' %}" class="hover:underline">{% trans "Talks" %}</a>
+            <a href="{% url 'schedule' %}" class="hover:underline">{% trans "Schedule" %}</a>
             {% if user.is_staff or user.is_superuser %}
-              <a href="{% url 'chair_grid' %}" class="hover:underline">Chairs</a>
+              <a href="{% url 'chair_grid' %}" class="hover:underline">{% trans "Chairs" %}</a>
             {% endif %}
             <span>
-              <a href="{% url 'user_profile' %}" class="hover:underline">Profile</a> |
-              <a href="{% url 'account_logout' %}" class="hover:underline">Logout</a>
+              <a href="{% url 'user_profile' %}" class="hover:underline">{% trans "Profile" %}</a> |
+              <a href="{% url 'account_logout' %}" class="hover:underline">{% trans "Logout" %}</a>
             </span>
           {% endif %}
+          {% include "partials/language_selector.html" %}
+          {% translate "Toggle dark mode" as toggle_dark_mode_label %}
           <button id="theme-toggle"
                   type="button"
                   class="p-2 rounded-lg hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
-                  title="Toggle dark mode"
-                  aria-label="Toggle dark mode">
+                  title="{{ toggle_dark_mode_label }}"
+                  aria-label="{{ toggle_dark_mode_label }}">
             <!-- Sun icon (shown in dark mode) -->
             <svg id="theme-icon-light"
                  class="hidden w-5 h-5"
@@ -100,55 +104,56 @@
             <h2 class="text-xl font-bold mb-4">{{ brand_title }}</h2>
             {% if brand_made_by_url %}
               <p>
-                Made with ❤️ by the <a href="{{ brand_made_by_url }}">{{ brand_made_by_name }}</a>
+                {% blocktrans with made_by_url=brand_made_by_url made_by_name=brand_made_by_name %}Made with ❤️ by the <a href="{{ made_by_url }}">{{ made_by_name }}</a>{% endblocktrans %}
               </p>
             {% endif %}
             <ul class="mt-4 flex flex-wrap items-center justify-center divide-x divide-strong list-none p-0 m-0">
               {% if brand_main_website_url %}
                 <li class="whitespace-nowrap pr-3 first:pl-0">
-                  <a href="{{ brand_main_website_url }}" class="hover:underline">Main website</a>
+                  <a href="{{ brand_main_website_url }}" class="hover:underline">{% trans "Main website" %}</a>
                 </li>
               {% endif %}
               {% if pretalx_schedule_url %}
                 <li class="whitespace-nowrap px-3">
-                  <a href="{{ pretalx_schedule_url }}" class="hover:underline">Schedule</a>
+                  <a href="{{ pretalx_schedule_url }}" class="hover:underline">{% trans "Schedule" %}</a>
                 </li>
               {% endif %}
               {% if pretalx_speakers_url %}
                 <li class="whitespace-nowrap px-3">
-                  <a href="{{ pretalx_speakers_url }}" class="hover:underline">Speakers</a>
+                  <a href="{{ pretalx_speakers_url }}" class="hover:underline">{% trans "Speakers" %}</a>
                 </li>
               {% endif %}
               {% if brand_venue_url %}
                 <li class="whitespace-nowrap px-3">
-                  <a href="{{ brand_venue_url }}" class="hover:underline">Venue</a>
+                  <a href="{{ brand_venue_url }}" class="hover:underline">{% trans "Venue" %}</a>
                 </li>
               {% endif %}
               {% if brand_transcriptions_url %}
                 <li class="whitespace-nowrap px-3">
-                  <a href="{{ brand_transcriptions_url }}" class="hover:underline">Transcriptions</a>
+                  <a href="{{ brand_transcriptions_url }}" class="hover:underline">{% trans "Transcriptions" %}</a>
                 </li>
               {% endif %}
               {% if brand_imprint_url %}
                 <li class="whitespace-nowrap px-3">
-                  <a href="{{ brand_imprint_url }}" class="hover:underline">Imprint</a>
+                  <a href="{{ brand_imprint_url }}" class="hover:underline">{% trans "Imprint" %}</a>
                 </li>
               {% endif %}
               {% if brand_code_of_conduct_url %}
                 <li class="whitespace-nowrap px-3">
-                  <a href="{{ brand_code_of_conduct_url }}" class="hover:underline">Code of Conduct</a>
+                  <a href="{{ brand_code_of_conduct_url }}" class="hover:underline">{% trans "Code of Conduct" %}</a>
                 </li>
               {% endif %}
               {% if brand_privacy_policy_url %}
                 <li class="whitespace-nowrap pl-3 last:pr-0">
-                  <a href="{{ brand_privacy_policy_url }}" class="hover:underline">Privacy Policy</a>
+                  <a href="{{ brand_privacy_policy_url }}" class="hover:underline">{% trans "Privacy Policy" %}</a>
                 </li>
               {% endif %}
             </ul>
           </div>
         </div>
         <div class="mt-8 pt-4 border-t border-strong text-sm text-subtle">
-          © {% now "Y" %} {{ brand_event_name }}. All rights reserved.
+          {% now "Y" as current_year %}
+          {% blocktrans with year=current_year event_name=brand_event_name %}© {{ year }} {{ event_name }}. All rights reserved.{% endblocktrans %}
         </div>
       </div>
     </footer>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load time_filters %}
 {% load svg_tags %}
 {% load markdownify %}
@@ -8,7 +9,7 @@
     <!-- Back button -->
     <a href="{% url 'talk_list' %}" class="link-muted mb-6">
       {% svg 'chevron-left' "h-4 w-4 mr-2" %}
-      Back to Talks
+      {% trans "Back to Talks" %}
     </a>
     <article class="panel">
       {% if talk.get_image_url %}
@@ -30,7 +31,7 @@
           <p class="text-xl text-muted mt-2">{{ talk.speaker_names }}</p>
           {% if user_can_moderate and talk.session_chair_id %}
             <p class="text-sm text-muted mt-1">
-              Session chair: <span class="font-medium text-heading">{{ talk.chair_display_name }}</span>
+              {% trans "Session chair:" %} <span class="font-medium text-heading">{{ talk.chair_display_name }}</span>
             </p>
           {% endif %}
           {% if show_rating_summary %}
@@ -41,15 +42,15 @@
         <div class="box-muted mb-8">
           <div class="grid sm:grid-cols-3 gap-4 text-muted mb-3">
             <div>
-              <div class="text-sm text-subtle">Date</div>
+              <div class="text-sm text-subtle">{% trans "Date" %}</div>
               <div>{{ talk.start_time|date:"l, F j, Y" }}</div>
             </div>
             <div>
-              <div class="text-sm text-subtle">Time</div>
+              <div class="text-sm text-subtle">{% trans "Time" %}</div>
               <div>{{ talk.start_time|date:"g:i A" }} - {{ talk.end_time|date:"g:i A" }}</div>
             </div>
             <div>
-              <div class="text-sm text-subtle">Room</div>
+              <div class="text-sm text-subtle">{% trans "Room" %}</div>
               <div>{{ talk.room }}</div>
             </div>
           </div>
@@ -74,7 +75,7 @@
                class="mb-8 rounded-lg overflow-hidden shadow-lg">
             <iframe src="{{ talk.get_video_link }}"
                     id="video-iframe"
-                    title="Video for {{ talk.title }}"
+                    title="{% blocktrans with title=talk.title %}Video for {{ title }}{% endblocktrans %}"
                     allow="autoplay; fullscreen; picture-in-picture"
                     style="position: absolute;
                            top: 0;
@@ -89,15 +90,15 @@
             <div class="mb-8 flex items-center">
               {% if talk.has_active_streaming %}
                 <div class="text-sm text-muted">
-                  This is a live stream. Please skip manually to
-                  {{ talk.get_video_start_time|format_seconds }} to see the start of the talk.
+                  {% blocktrans with start_time=talk.get_video_start_time|format_seconds %}This is a live stream. Please skip manually to
+                  {{ start_time }} to see the start of the talk.{% endblocktrans %}
                 </div>
               {% else %}
                 <button id="jump-to-time" class="btn-secondary btn-neutral">
-                  Jump to {{ talk.get_video_start_time|format_seconds }}
+                  {% blocktrans with start_time=talk.get_video_start_time|format_seconds %}Jump to {{ start_time }}{% endblocktrans %}
                 </button>
               {% endif %}
-              <span class="ml-3 text-sm text-subtle">(Skip to estimated talk start)</span>
+              <span class="ml-3 text-sm text-subtle">{% trans "(Skip to estimated talk start)" %}</span>
             </div>
           {% endif %}
         {% endif %}
@@ -106,10 +107,10 @@
           <details class="mb-8 rounded-lg border border-default overflow-hidden">
             <summary class="cursor-pointer px-4 py-3 font-medium text-muted hover:bg-subtle flex items-center gap-2">
               {% svg 'language' "h-4 w-4" %}
-              Transcription
+              {% trans "Transcription" %}
             </summary>
             <iframe src="{{ talk.get_transcription_url }}"
-                    title="Transcription for {{ talk.title }}"
+                    title="{% blocktrans with title=talk.title %}Transcription for {{ title }}{% endblocktrans %}"
                     class="w-full"
                     style="height: 500px;
                            border: 0">
@@ -122,13 +123,13 @@
         <div class="box-muted mb-8">{% include "talks/partials/rating_widget.html" %}</div>
         {% if rating_comments %}
           <!-- Rating comments (superusers only) -->
-          <section class="box-muted mb-8"
-                   aria-label="Attendee rating comments (visible to superusers only)">
+          {% translate "Attendee rating comments (visible to superusers only)" as rating_comments_label %}
+          <section class="box-muted mb-8" aria-label="{{ rating_comments_label }}">
             <div class="flex items-center gap-2 mb-4">
               {% svg 'chat-bubble-left-ellipsis' "h-5 w-5 text-muted" %}
               <h2 class="text-lg font-semibold text-heading">
-                Rating comments
-                <span class="badge badge-gray ml-2 text-xs">superusers only</span>
+                {% trans "Rating comments" %}
+                <span class="badge badge-gray ml-2 text-xs">{% trans "superusers only" %}</span>
               </h2>
             </div>
             <ul class="space-y-4">
@@ -137,7 +138,7 @@
                   <div class="flex flex-wrap items-center gap-2 text-sm text-subtle mb-1">
                     <span class="font-medium text-muted">{{ rating.user.email }}</span>
                     <span>·</span>
-                    <span>{{ rating.score }}/5</span>
+                    <span>{% blocktrans with score=rating.score %}{{ score }}/5{% endblocktrans %}</span>
                     <span>·</span>
                     <time datetime="{{ rating.created_at|date:'c' }}">
                       {{ rating.created_at|date:"M j, Y g:i A" }}
@@ -156,13 +157,13 @@
              rel="noopener noreferrer"
              class="btn-primary inline-flex items-center px-4 py-2 rounded-lg">
             {% svg 'information-circle' "h-4 w-4 mr-2" %}
-            View on Pretalx
+            {% trans "View on Pretalx" %}
           </a>
           <!-- Our Q&A section link -->
           <a href="{% url 'talk_questions' talk.id %}"
              class="btn-secondary inline-flex items-center px-4 py-2 rounded-lg">
             {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-2" %}
-            Questions & Answers
+            {% trans "Questions & Answers" %}
           </a>
           {% if talk.get_transcription_url %}
             <a href="{{ talk.get_transcription_url }}"
@@ -170,7 +171,7 @@
                rel="noopener noreferrer"
                class="btn-secondary inline-flex items-center px-4 py-2 rounded-lg">
               {% svg 'language' "h-4 w-4 mr-2" %}
-              Transcription
+              {% trans "Transcription" %}
             </a>
           {% endif %}
         </div>

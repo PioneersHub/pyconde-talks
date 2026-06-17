@@ -19,6 +19,7 @@ from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST, require_safe
 
 from events.session import resolve_default_event
@@ -115,8 +116,12 @@ def _conflict_message(label: str, conflicts: list[Talk]) -> str:
     for c in conflicts[:_MAX_CONFLICT_TITLES]:
         room = c.room.name if c.room else "?"
         parts.append(f"{c.title} ({room})")
-    suffix = " and more" if len(conflicts) > _MAX_CONFLICT_TITLES else ""
-    return f"{label} already chairs a session at the same time: {', '.join(parts)}{suffix}"
+    suffix = _(" and more") if len(conflicts) > _MAX_CONFLICT_TITLES else ""
+    return _("%(label)s already chairs a session at the same time: %(talks)s%(suffix)s") % {
+        "label": label,
+        "talks": ", ".join(parts),
+        "suffix": suffix,
+    }
 
 
 def _find_tight_transitions(
@@ -164,9 +169,16 @@ def _tight_transition_warning(
     for t in tight[:_MAX_CONFLICT_TITLES]:
         room = t.room.name if t.room else "?"
         parts.append(f"{t.title} ({room})")
-    suffix = " and more" if len(tight) > _MAX_CONFLICT_TITLES else ""
+    suffix = _(" and more") if len(tight) > _MAX_CONFLICT_TITLES else ""
     minutes = settings.CHAIR_ROOM_TRANSITION_MINUTES
-    return f"{label} will have under {minutes} minutes to change rooms: {', '.join(parts)}{suffix}"
+    return _(
+        "%(label)s will have under %(minutes)s minutes to change rooms: %(talks)s%(suffix)s",
+    ) % {
+        "label": label,
+        "minutes": minutes,
+        "talks": ", ".join(parts),
+        "suffix": suffix,
+    }
 
 
 def _admin_assign(talk: Talk, raw_id: str) -> tuple[str | None, str | None]:
@@ -206,10 +218,10 @@ def _mod_toggle(user: CustomUser, talk: Talk) -> tuple[str | None, str | None]:
     if new_chair is not None:
         conflicts = _find_chair_conflicts(new_chair, [talk])
         if conflicts:
-            return _conflict_message("You", conflicts), None
+            return _conflict_message(_("You"), conflicts), None
     talk.session_chair = new_chair
     talk.save(update_fields=["session_chair", "updated_at"])
-    warning = _tight_transition_warning("You", user, talk) if new_chair else None
+    warning = _tight_transition_warning(_("You"), user, talk) if new_chair else None
     return None, warning
 
 

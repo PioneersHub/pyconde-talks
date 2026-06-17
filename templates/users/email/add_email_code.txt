@@ -1,5 +1,5 @@
-Your {{ brand_event_name }} verification code is: {{ code }}
+{% load i18n %}{% blocktrans with event_name=brand_event_name %}Your {{ event_name }} verification code is: {{ code }}{% endblocktrans %}
 
-This code will expire in {{ timeout_minutes }} minutes.
+{% blocktrans with minutes=timeout_minutes %}This code will expire in {{ minutes }} minutes.{% endblocktrans %}
 
-If you did not request this, you can safely ignore this email.
+{% trans "If you did not request this, you can safely ignore this email." %}
