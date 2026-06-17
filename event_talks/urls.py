@@ -8,10 +8,15 @@ from django.views.generic import TemplateView
 from django.views.static import serve
 from health_check.views import HealthCheckView
 
+from users.views import set_language
+
 
 urlpatterns = [
     # Honor DJANGO_ADMIN_URL so operators can relocate the admin off the well-known /admin/ path.
     path(settings.ADMIN_URL, admin.site.urls),
+    # Language switcher endpoint. Wrapped in ``login_not_required`` so anonymous visitors on the
+    # login page can switch language too (LoginRequiredMiddleware would otherwise block it).
+    path("i18n/setlang/", set_language, name="set_language"),
     path("accounts/", include("users.urls")),
     path("talks/", include("talks.urls")),
     path(

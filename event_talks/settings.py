@@ -8,6 +8,7 @@ import django_stubs_ext
 import environ
 import sentry_sdk
 import structlog
+from django.utils.translation import gettext_lazy as _
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 
@@ -47,13 +48,36 @@ SITE_ID = env.int("SITE_ID", default=1)
 # https://docs.djangoproject.com/en/dev/topics/i18n/
 # --------------------------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#language-code
-LANGUAGE_CODE = env("LANGUAGE_CODE", default="en-us")
+LANGUAGE_CODE = env("LANGUAGE_CODE", default="en")
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 TIME_ZONE = env("TIME_ZONE", default="Europe/Berlin")
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
 USE_I18N = env.bool("USE_I18N", default=True)
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-tz
 USE_TZ = env.bool("USE_TZ", default=True)
+
+# Languages offered in the UI language switcher. The first entry is the source language; the rest
+# need a compiled catalog under ``locale/<locale>/LC_MESSAGES/``. Codes are lowercase, hyphenated
+# (e.g. ``pt-br``), while the on-disk locale dir uses Django's locale name (``pt_BR``).
+# https://docs.djangoproject.com/en/dev/ref/settings/#languages
+LANGUAGES = [
+    ("en", _("English")),
+    ("pt-br", _("Portuguese (Brazil)")),
+]
+
+# Where Django looks for (and writes) translation catalogs.
+# https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
+LOCALE_PATHS = [BASE_DIR / "locale"]
+
+# Language cookie hardening, kept in line with the session/CSRF cookie policy above. The cookie is
+# the fallback the LocaleMiddleware reads for anonymous visitors (after the session, before
+# Accept-Language); ``set_language`` writes it. Secure defaults to on and can be relaxed in dev.
+# https://docs.djangoproject.com/en/dev/ref/settings/#language-cookie-samesite
+LANGUAGE_COOKIE_SAMESITE = "Lax"
+# https://docs.djangoproject.com/en/dev/ref/settings/#language-cookie-secure
+LANGUAGE_COOKIE_SECURE = env.bool("LANGUAGE_COOKIE_SECURE", default=True)
+# https://docs.djangoproject.com/en/dev/ref/settings/#language-cookie-httponly
+# Left readable by JS (default False): no sensitive data, just the active locale.
 
 
 # --------------------------------------------------------------------------------------------------
@@ -359,9 +383,15 @@ AUTH_PASSWORD_VALIDATORS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    # Per the Django docs, sits after SessionMiddleware and before CommonMiddleware. Picks the
+    # active language from the language cookie, then the Accept-Language header.
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # After AuthenticationMiddleware: overrides the LocaleMiddleware's language choice with the
+    # logged-in user's saved preference (request.user must be available).
+    "users.middleware.UserLanguageMiddleware",
     "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "allauth.account.middleware.AccountMiddleware",

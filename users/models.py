@@ -10,6 +10,7 @@ This module provides:
 from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, Unpack
 
 from allauth.account.models import EmailAddress
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -171,6 +172,17 @@ class CustomUser(AbstractUser):
         related_name="users",
         blank=True,
         help_text=_("Events the user has access to"),
+    )
+
+    preferred_language = models.CharField(
+        _("preferred language"),
+        max_length=10,
+        choices=settings.LANGUAGES,
+        blank=True,
+        help_text=_(
+            "Language for the interface and emails. Leave blank to follow the browser or site "
+            "default.",
+        ),
     )
 
     USERNAME_FIELD = "email"

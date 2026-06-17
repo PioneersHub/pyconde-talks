@@ -21,7 +21,8 @@ from django.db import DatabaseError, IntegrityError
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.utils.translation import gettext as _
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
+from django.views.i18n import set_language as django_set_language
 
 from events.models import Event
 from events.session import set_selected_event_slug
@@ -155,6 +156,30 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
         context["events"] = Event.objects.filter(is_active=True).order_by("name")
         context["default_event_slug"] = getattr(settings, "DEFAULT_EVENT", "")
         return context
+
+
+@login_not_required
+@require_POST
+def set_language(request: HttpRequest) -> HttpResponse:
+    """
+    Switch the active language and remember the choice.
+
+    Thin wrapper over Django's ``set_language`` view. Django handles the session, the language
+    cookie, and the safe redirect; on top of that we persist the selection on the authenticated
+    user's profile so it follows them across devices and drives the language of transactional
+    emails. Anonymous visitors (e.g. on the login page) just get the session/cookie Django sets.
+    """
+    response = django_set_language(request)
+
+    language = request.POST.get("language", "")
+    user = request.user
+    if language and language in dict(settings.LANGUAGES) and user.is_authenticated:
+        user = cast("CustomUser", user)
+        if user.preferred_language != language:
+            user.preferred_language = language
+            user.save(update_fields=["preferred_language"])
+
+    return response
 
 
 @require_http_methods(["GET", "POST"])

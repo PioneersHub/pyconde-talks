@@ -140,6 +140,9 @@ COPY --from=builder --chown=root:root --chmod=0555 /app/talks /app/talks/
 COPY --from=builder --chown=root:root --chmod=0555 /app/templates /app/templates/
 COPY --from=builder --chown=root:root --chmod=0555 /app/users /app/users/
 COPY --from=builder --chown=root:root --chmod=0555 /app/utils /app/utils/
+# Compiled translation catalogs (LOCALE_PATHS = BASE_DIR / "locale"). The committed django.mo is
+# read at request time by the i18n machinery; without it the UI silently falls back to English.
+COPY --from=builder --chown=root:root --chmod=0555 /app/locale /app/locale/
 
 # Staticfiles manifest only (NOT the assets, which nginx serves from its own synced copy).
 # ManifestStaticFilesStorage reads staticfiles.json at request time to map each asset to its

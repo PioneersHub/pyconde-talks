@@ -17,6 +17,9 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db import DatabaseError
+from django.utils import translation
+from django.utils.text import format_lazy
+from django.utils.translation import gettext_lazy
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from events.models import Event
@@ -31,6 +34,12 @@ from .adapters_social import SocialAccountAdapter  # noqa: F401
 
 
 logger = structlog.get_logger(__name__)
+
+
+def _user_model() -> type[CustomUser]:
+    """Return the active user model, narrowed to ``CustomUser`` for type-checkers."""
+    return cast("type[CustomUser]", get_user_model())
+
 
 # Safety margin (seconds) subtracted from the token's expires_in so we refresh before expiry.
 _TOKEN_EXPIRY_MARGIN = 30
@@ -147,7 +156,7 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
         event = self._selected_event
 
         # Look up the user (may not exist yet)
-        UserModel = cast("type[CustomUser]", get_user_model())  # noqa: N806  # NOSONAR(S117)
+        UserModel = _user_model()  # noqa: N806  # NOSONAR(S117)
         user: CustomUser | None = None
         try:
             user = UserModel.objects.get(email=email)
@@ -200,7 +209,7 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
             logger.info("Email found in whitelist", email=email_hash)
             return True
 
-        UserModel = cast("type[CustomUser]", get_user_model())  # noqa: N806  # NOSONAR(S117)
+        UserModel = _user_model()  # noqa: N806  # NOSONAR(S117)
         try:
             user = UserModel.objects.get(email=email)
             if user.is_superuser:
@@ -346,9 +355,19 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
 
         return False
 
+    @staticmethod
+    def _preferred_language_for(email: str) -> str:
+        """Return the recipient's saved language preference, or "" if none/unknown."""
+        UserModel = _user_model()  # noqa: N806  # NOSONAR(S117)
+        try:
+            user = UserModel.objects.get(email=email.lower().strip())
+        except UserModel.DoesNotExist, DatabaseError:
+            return ""
+        return getattr(user, "preferred_language", "") or ""
+
     @override
     def send_mail(self, template_prefix: str, email: str, context: dict[str, Any]) -> None:
-        """Add custom variables to the email context before sending."""
+        """Add custom variables to the email context, then send in the recipient's language."""
         timeout_seconds = getattr(settings, "ACCOUNT_LOGIN_BY_CODE_TIMEOUT", 180)
         timeout_minutes = round(timeout_seconds / 60, 1)
         context["login_code_timeout_minutes"] = (
@@ -363,7 +382,19 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
             {
                 "brand_event_name": event_name,
                 "brand_event_year": event_year,
-                "brand_title": f"{prefix}Talks",
+                # Lazy so "Talks" resolves at template-render time, i.e. inside the language
+                # override below, instead of in the request's current language.
+                "brand_title": format_lazy(
+                    "{prefix}{talks}", prefix=prefix, talks=gettext_lazy("Talks")
+                ),
             },
         )
-        super().send_mail(template_prefix, email, context)
+        # Render the email in the recipient's saved language when they have one. New users with no
+        # preference fall back to the language already active for the request (set on the login
+        # page via the switcher), so ``override`` is only forced when a stored preference exists.
+        language = self._preferred_language_for(email)
+        if language:
+            with translation.override(language):
+                super().send_mail(template_prefix, email, context)
+        else:
+            super().send_mail(template_prefix, email, context)
