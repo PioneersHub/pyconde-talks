@@ -226,3 +226,21 @@ class TestRendering:
         content = response.content.decode()
         assert '<html lang="en">' in content
         assert "All rights reserved" in content
+
+
+# --------------------------------------------------------------------------------------------------
+# Cross-test isolation
+# --------------------------------------------------------------------------------------------------
+class TestLanguageIsolation:
+    """
+    The autouse ``_reset_active_language`` fixture in the root conftest.
+
+    ``LocaleMiddleware`` activates a language and never restores it, so without the fixture the
+    tests above would leave German (or Portuguese) active for whatever runs next.
+    """
+
+    @pytest.mark.parametrize("_run", [1, 2])
+    def test_activated_language_does_not_leak_between_tests(self, _run: int) -> None:
+        """Both runs activate German, and both still start on the default language."""
+        assert translation.get_language() == settings.LANGUAGE_CODE
+        translation.activate("de")
