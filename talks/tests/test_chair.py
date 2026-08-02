@@ -28,13 +28,13 @@ def _morning() -> datetime:
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-@pytest.fixture()
+@pytest.fixture
 def event() -> Event:
     """Return the single active event the chair fixtures share (talks/rooms are event-scoped)."""
     return Event.objects.create(slug="chair", name="Chair", year=2099)
 
 
-@pytest.fixture()
+@pytest.fixture
 def moderator(event: Event) -> CustomUser:
     """Create a moderator (staff) user with access to the chair event."""
     user = baker.make(CustomUser, email="mod@example.com", is_staff=True)
@@ -42,7 +42,7 @@ def moderator(event: Event) -> CustomUser:
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def other_moderator(event: Event) -> CustomUser:
     """Create a second moderator with access to the chair event."""
     user = baker.make(CustomUser, email="mod2@example.com", is_staff=True)
@@ -50,7 +50,7 @@ def other_moderator(event: Event) -> CustomUser:
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def admin_user(event: Event) -> CustomUser:
     """Create a superuser with access to the chair event."""
     user = CustomUser.objects.create_superuser(
@@ -61,7 +61,7 @@ def admin_user(event: Event) -> CustomUser:
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def regular_user(event: Event) -> CustomUser:
     """Create a non-moderator user with access to the chair event."""
     user = baker.make(CustomUser, email="user@example.com", is_staff=False)
@@ -69,13 +69,13 @@ def regular_user(event: Event) -> CustomUser:
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def room(event: Event) -> Room:
     """Create a room in the chair event."""
     return baker.make(Room, name="Main Hall", event=event)
 
 
-@pytest.fixture()
+@pytest.fixture
 def talk(room: Room, event: Event) -> Talk:
     """Create a single talk in the shared event."""
     return baker.make(

@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 LANGUAGE_COOKIE = settings.LANGUAGE_COOKIE_NAME
 
 
-@pytest.fixture()
+@pytest.fixture
 def user(db: None) -> CustomUser:
     """Create a regular (passwordless) user."""
     return CustomUser.objects.create_user(email="attendee@example.com", is_active=True)

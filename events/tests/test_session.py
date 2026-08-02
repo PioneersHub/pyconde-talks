@@ -15,7 +15,7 @@ from events.session import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def rf() -> RequestFactory:
     """Return a RequestFactory for building test requests."""
     return RequestFactory()

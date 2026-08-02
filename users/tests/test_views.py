@@ -20,19 +20,19 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-@pytest.fixture()
+@pytest.fixture
 def request_factory() -> RequestFactory:
     """Return a RequestFactory instance for creating test requests."""
     return RequestFactory()
 
 
-@pytest.fixture()
+@pytest.fixture
 def login_form_data() -> dict[str, str]:
     """Return test data for the login form with email only (for passwordless login)."""
     return {"email": "test@example.com"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def view() -> CustomRequestLoginCodeView:
     """Return an instance of the CustomRequestLoginCodeView."""
     return CustomRequestLoginCodeView()

@@ -16,19 +16,19 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-@pytest.fixture()
+@pytest.fixture
 def request_factory() -> RequestFactory:
     """Return a RequestFactory instance."""
     return RequestFactory()
 
 
-@pytest.fixture()
+@pytest.fixture
 def view() -> CustomRequestLoginCodeView:
     """Return a CustomRequestLoginCodeView instance."""
     return CustomRequestLoginCodeView()
 
 
-@pytest.fixture()
+@pytest.fixture
 def event() -> Event:
     """Create an active test event."""
     return Event.objects.create(

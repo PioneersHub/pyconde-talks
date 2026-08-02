@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from django.test.client import Client
 
 
-@pytest.fixture()
+@pytest.fixture
 def superuser() -> CustomUser:
     """Create a superuser for admin access."""
     return CustomUser.objects.create_superuser(

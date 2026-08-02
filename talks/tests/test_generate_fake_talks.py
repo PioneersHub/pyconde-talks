@@ -26,7 +26,7 @@ from talks.management.commands.generate_fake_talks import Command
 from talks.models import Room, Speaker, Streaming, Talk
 
 
-@pytest.fixture()
+@pytest.fixture
 def command() -> Command:
     """Create a Command instance with mocked stdout/stderr."""
     cmd = Command()
@@ -35,7 +35,7 @@ def command() -> Command:
     return cmd
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake() -> Faker:
     """Return a seeded Faker instance."""
     f = Faker()

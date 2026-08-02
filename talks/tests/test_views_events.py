@@ -16,19 +16,19 @@ if TYPE_CHECKING:
     from django.test.client import Client
 
 
-@pytest.fixture()
+@pytest.fixture
 def event_a() -> Event:
     """Create Event A."""
     return Event.objects.create(name="Event A", slug="event-a", year=2025)
 
 
-@pytest.fixture()
+@pytest.fixture
 def event_b() -> Event:
     """Create Event B."""
     return Event.objects.create(name="Event B", slug="event-b", year=2025)
 
 
-@pytest.fixture()
+@pytest.fixture
 def user_event_a(event_a: Event) -> CustomUser:
     """Create a regular user linked to Event A only."""
     user = baker.make(CustomUser, email="user-a@example.com")
@@ -36,7 +36,7 @@ def user_event_a(event_a: Event) -> CustomUser:
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def superuser() -> CustomUser:
     """Create a superuser (sees all events)."""
     return CustomUser.objects.create_superuser(

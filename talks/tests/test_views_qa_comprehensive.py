@@ -20,13 +20,13 @@ if TYPE_CHECKING:
     from django.test.client import Client
 
 
-@pytest.fixture()
+@pytest.fixture
 def event() -> Event:
     """Return the event the test talk and users share (talks are event-scoped)."""
     return Event.objects.create(slug="qa", name="QA", year=2099)
 
 
-@pytest.fixture()
+@pytest.fixture
 def user(event: Event) -> CustomUser:
     """Return a regular test user with access to the test event."""
     user = baker.make(CustomUser, email="qauser@example.com")
@@ -34,7 +34,7 @@ def user(event: Event) -> CustomUser:
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def staff_user(event: Event) -> CustomUser:
     """Return a staff user (moderator) with access to the test event."""
     user = baker.make(CustomUser, email="qastaff@example.com", is_staff=True)
@@ -42,13 +42,13 @@ def staff_user(event: Event) -> CustomUser:
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def talk(event: Event) -> Talk:
     """Return a talk in the test event for attaching questions."""
     return baker.make(Talk, title="QA Talk", event=event)
 
 
-@pytest.fixture()
+@pytest.fixture
 def question(talk: Talk, user: CustomUser) -> Question:
     """Return a question owned by the test user."""
     return baker.make(Question, talk=talk, user=user, content="Test Q")

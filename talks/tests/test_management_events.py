@@ -78,7 +78,7 @@ class TestGenerateFakeTalksEvent:
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture()
+@pytest.fixture
 def import_command() -> ImportCommand:
     """Create an ImportCommand instance with mocked stdout/stderr."""
     cmd = ImportCommand()

@@ -14,7 +14,7 @@ from talks.management.commands.update_video_links import Command
 from talks.models import Talk
 
 
-@pytest.fixture()
+@pytest.fixture
 def command() -> Command:
     """Create a Command instance with mocked stdout/stderr."""
     cmd = Command()

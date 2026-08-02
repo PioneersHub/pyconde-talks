@@ -18,7 +18,7 @@ from talks.management.commands.import_livestream_urls import Command
 from talks.models import Room, Streaming
 
 
-@pytest.fixture()
+@pytest.fixture
 def command() -> Command:
     """Create a Command instance with mocked stdout/stderr."""
     cmd = Command()
@@ -27,7 +27,7 @@ def command() -> Command:
     return cmd
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_dataframe() -> pd.DataFrame:
     """Create a sample DataFrame matching spreadsheet format."""
     return pd.DataFrame(

@@ -18,13 +18,13 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.httpx2(assert_all_called=False)
 
 
-@pytest.fixture()
+@pytest.fixture
 def adapter() -> AccountAdapter:
     """Return an AccountAdapter instance."""
     return AccountAdapter()
 
 
-@pytest.fixture()
+@pytest.fixture
 def event_with_api() -> Event:
     """Return an active Event with a validation API URL."""
     return Event.objects.create(
@@ -36,7 +36,7 @@ def event_with_api() -> Event:
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def event_without_api() -> Event:
     """Return an active Event without a validation API URL."""
     return Event.objects.create(

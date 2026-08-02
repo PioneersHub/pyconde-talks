@@ -24,7 +24,7 @@ _EXPECTED_RATING_COUNT = 2
 _EXPECTED_AVERAGE = 4.0
 
 
-@pytest.fixture()
+@pytest.fixture
 def event() -> Event:
     """Return the event the searched talks and logged-in user share (event-scoped)."""
     return Event.objects.create(slug="search", name="Search", year=2099)

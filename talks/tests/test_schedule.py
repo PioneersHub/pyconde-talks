@@ -19,13 +19,13 @@ from utils.test_perf import assert_no_n_plus_one
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-@pytest.fixture()
+@pytest.fixture
 def event() -> Event:
     """Return the single event all schedule fixtures share (rooms are event-scoped)."""
     return Event.objects.create(slug="sched", name="Sched", year=2099)
 
 
-@pytest.fixture()
+@pytest.fixture
 def user(event: Event) -> CustomUser:
     """Create a regular user with access to the schedule event."""
     user = baker.make(CustomUser, email="schedule@example.com")
@@ -33,7 +33,7 @@ def user(event: Event) -> CustomUser:
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def rooms(event: Event) -> list[Room]:
     """Create two rooms in the shared event."""
     return [
@@ -42,7 +42,7 @@ def rooms(event: Event) -> list[Room]:
     ]
 
 
-@pytest.fixture()
+@pytest.fixture
 def today_talks(rooms: list[Room], event: Event) -> list[Talk]:
     """Create talks for today spread across two rooms and two time slots."""
     now = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0)

@@ -25,13 +25,13 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-@pytest.fixture()
+@pytest.fixture
 def event() -> Event:
     """Return the event the test talks and users share (talks are event-scoped)."""
     return Event.objects.create(slug="saved", name="Saved", year=2099)
 
 
-@pytest.fixture()
+@pytest.fixture
 def user(event: Event) -> CustomUser:
     """Create a regular user with access to the test event."""
     user = baker.make(CustomUser, email="saver@example.com")
@@ -39,7 +39,7 @@ def user(event: Event) -> CustomUser:
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def other_user(event: Event) -> CustomUser:
     """Create another user with access to the test event."""
     user = baker.make(CustomUser, email="other@example.com")
@@ -47,7 +47,7 @@ def other_user(event: Event) -> CustomUser:
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def talk(event: Event) -> Talk:
     """Create a talk in the test event."""
     return baker.make(Talk, title="Saved Test Talk", event=event, start_time=timezone.now())

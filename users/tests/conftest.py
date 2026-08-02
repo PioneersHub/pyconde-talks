@@ -21,13 +21,13 @@ def _reset_oauth_token_cache() -> None:
     cache.delete(OAUTH_BEARER_CACHE_KEY)
 
 
-@pytest.fixture()
+@pytest.fixture
 def user_model() -> type[Any]:
     """Return the user model being used by the application."""
     return get_user_model()
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_email_api_base(settings: SettingsWrapper) -> str:
     """
     Define base fixture that sets up the mock email validation API infrastructure.
@@ -52,7 +52,7 @@ def mock_email_api_base(settings: SettingsWrapper) -> str:
     return fake_api_url
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_email_api_valid(mock_email_api_base: str, httpx2_mock: respx.Router) -> str:
     """
     Mock the email validation API to return valid=True for all emails.
@@ -72,7 +72,7 @@ def mock_email_api_valid(mock_email_api_base: str, httpx2_mock: respx.Router) ->
     return api_url
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_email_api_invalid(mock_email_api_base: str, httpx2_mock: respx.Router) -> str:
     """
     Mock the email validation API to return 404 (email not found in the system).
@@ -95,7 +95,7 @@ def mock_email_api_invalid(mock_email_api_base: str, httpx2_mock: respx.Router) 
     return api_url
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_email_api_error(mock_email_api_base: str, httpx2_mock: respx.Router) -> str:
     """
     Mock the email validation API to return a 422 validation error.
@@ -137,7 +137,7 @@ def mock_email_api_error(mock_email_api_base: str, httpx2_mock: respx.Router) ->
     return api_url
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_email_api_exception(mock_email_api_base: str, httpx2_mock: respx.Router) -> str:
     """
     Mock the email validation API to raise an exception during the request.
@@ -159,7 +159,7 @@ def mock_email_api_exception(mock_email_api_base: str, httpx2_mock: respx.Router
     return api_url
 
 
-@pytest.fixture()
+@pytest.fixture
 def allauth_settings(settings: SettingsWrapper) -> None:
     """Configure Allauth settings for passwordless login."""
     settings.ACCOUNT_ADAPTER = "users.adapters.AccountAdapter"

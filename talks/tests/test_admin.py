@@ -28,13 +28,13 @@ from users.models import CustomUser
 site = AdminSite()
 
 
-@pytest.fixture()
+@pytest.fixture
 def rf() -> RequestFactory:
     """Return a Django RequestFactory for building test requests."""
     return RequestFactory()
 
 
-@pytest.fixture()
+@pytest.fixture
 def admin_user() -> CustomUser:
     """Return a superuser required to access admin views."""
     return CustomUser.objects.create_superuser(

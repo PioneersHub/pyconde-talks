@@ -59,19 +59,19 @@ def _make_sociallogin(
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture()
+@pytest.fixture
 def adapter() -> SocialAccountAdapter:
     """Return a fresh SocialAccountAdapter instance."""
     return SocialAccountAdapter()
 
 
-@pytest.fixture()
+@pytest.fixture
 def rf() -> RequestFactory:
     """Return a Django RequestFactory."""
     return RequestFactory()
 
 
-@pytest.fixture()
+@pytest.fixture
 def discord_settings(settings: Any) -> Any:
     """Configure the standard Discord settings for tests."""
     settings.DISCORD_GUILD_ID = "999"

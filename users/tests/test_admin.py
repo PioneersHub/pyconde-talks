@@ -25,13 +25,13 @@ ADMIN_LOGIN_SECRET = "admin" + "123!"
 SUPERUSER_FORM_SECRET = "securePass" + "456!"
 
 
-@pytest.fixture()
+@pytest.fixture
 def rf() -> RequestFactory:
     """Return a Django RequestFactory for building test requests."""
     return RequestFactory()
 
 
-@pytest.fixture()
+@pytest.fixture
 def superuser() -> CustomUser:
     """Return a superuser required to access admin views."""
     return CustomUser.objects.create_superuser(

@@ -65,7 +65,7 @@ def _ctx(log_fn: LogFn = _noop, **overrides: Any) -> ImportContext:
 # ---------------------- Fixtures ----------------------
 
 
-@pytest.fixture()
+@pytest.fixture
 def command() -> Command:
     """Create a Command instance with mocked stdout/stderr."""
     cmd = Command()
@@ -74,7 +74,7 @@ def command() -> Command:
     return cmd
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_submission() -> Submission:
     """Build a real Submission with minimal valid data."""
     return make_submission(
@@ -95,14 +95,14 @@ def mock_submission() -> Submission:
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_submission_no_speakers(mock_submission: Submission) -> Submission:
     """Build a Submission with no speakers."""
     mock_submission.speakers = []
     return mock_submission
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_submission_lightning() -> Submission:
     """Build a lightning-talk Submission (by submission type) with no speakers."""
     return make_submission(

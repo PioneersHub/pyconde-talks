@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from django.test.client import Client
 
 
-@pytest.fixture()
+@pytest.fixture
 def user() -> CustomUser:
     """Return a test user for profile view tests."""
     return baker.make(CustomUser, email="profile@example.com")

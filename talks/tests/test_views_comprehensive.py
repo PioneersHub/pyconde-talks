@@ -25,13 +25,13 @@ if TYPE_CHECKING:
     from django.test.client import Client
 
 
-@pytest.fixture()
+@pytest.fixture
 def event() -> Event:
     """Return a shared event most view tests put their talks in (talks are event-scoped)."""
     return Event.objects.create(slug="view", name="View", year=2099)
 
 
-@pytest.fixture()
+@pytest.fixture
 def user(event: Event) -> CustomUser:
     """Create a regular user with access to the shared event."""
     user = baker.make(CustomUser, email="viewer@example.com")

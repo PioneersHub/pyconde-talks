@@ -30,7 +30,7 @@ pytestmark = pytest.mark.django_db
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture()
+@pytest.fixture
 def discord_user() -> CustomUser:
     """Return a user who signed up via Discord (no verified email, no password)."""
     user = baker.make(CustomUser, email="discord-user@example.com")
@@ -39,7 +39,7 @@ def discord_user() -> CustomUser:
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def email_user() -> CustomUser:
     """Return a user who signed up via email (has verified email, no password)."""
     user = baker.make(CustomUser, email="email-user@example.com")
@@ -49,7 +49,7 @@ def email_user() -> CustomUser:
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def discord_social_account(discord_user: CustomUser) -> SocialAccount:
     """Link a Discord social account to the discord_user."""
     return SocialAccount.objects.create(
@@ -60,7 +60,7 @@ def discord_social_account(discord_user: CustomUser) -> SocialAccount:
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def discord_user_with_verified_email(
     discord_user: CustomUser,
     discord_social_account: SocialAccount,
@@ -75,7 +75,7 @@ def discord_user_with_verified_email(
     return discord_user
 
 
-@pytest.fixture()
+@pytest.fixture
 def email_user_with_discord(email_user: CustomUser) -> SocialAccount:
     """Link a Discord social account to the email_user (has both login methods)."""
     return SocialAccount.objects.create(

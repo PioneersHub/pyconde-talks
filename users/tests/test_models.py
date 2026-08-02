@@ -16,7 +16,7 @@ class UserTestData(CreateUserExtraFields, total=False):
     password: str
 
 
-@pytest.fixture()
+@pytest.fixture
 def user_data() -> UserTestData:
     """Return test data for creating a regular user."""
     return {
@@ -24,7 +24,7 @@ def user_data() -> UserTestData:
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def superuser_data() -> UserTestData:
     """Return test data for creating a superuser."""
     return {

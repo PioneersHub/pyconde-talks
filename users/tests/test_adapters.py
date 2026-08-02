@@ -22,13 +22,13 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.httpx2(assert_all_called=False)
 
 
-@pytest.fixture()
+@pytest.fixture
 def adapter() -> AccountAdapter:
     """Return an instance of the AccountAdapter for testing."""
     return AccountAdapter()
 
 
-@pytest.fixture()
+@pytest.fixture
 def event() -> Event:
     """Return an active Event for testing."""
     return Event.objects.create(
@@ -288,7 +288,7 @@ def test_inactive_user_denied_without_api_call(
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture()
+@pytest.fixture
 def oauth2_settings(settings: SettingsWrapper) -> dict[str, str]:
     """Configure OAuth2 client-credentials settings and return the URLs."""
     token_url = "https://keycloak.example.com/realms/test/protocol/openid-connect/token"

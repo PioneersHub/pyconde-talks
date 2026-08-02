@@ -33,19 +33,19 @@ site = AdminSite()
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-@pytest.fixture()
+@pytest.fixture
 def user() -> CustomUser:
     """Create a regular user for testing."""
     return baker.make(CustomUser, email="rater@example.com")
 
 
-@pytest.fixture()
+@pytest.fixture
 def other_user() -> CustomUser:
     """Create another user for testing."""
     return baker.make(CustomUser, email="other@example.com")
 
 
-@pytest.fixture()
+@pytest.fixture
 def admin_user() -> CustomUser:
     """Create a superuser for admin testing."""
     return CustomUser.objects.create_superuser(
@@ -54,7 +54,7 @@ def admin_user() -> CustomUser:
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def talk(user: CustomUser, other_user: CustomUser) -> Talk:
     """Create a talk for testing, with both test users granted event access."""
     event: Event = baker.make("events.Event", show_rating_summary=True, is_active=True)
@@ -64,7 +64,7 @@ def talk(user: CustomUser, other_user: CustomUser) -> Talk:
     return t
 
 
-@pytest.fixture()
+@pytest.fixture
 def rf() -> RequestFactory:
     """Return a Django RequestFactory for building test requests."""
     return RequestFactory()
@@ -709,19 +709,19 @@ class TestStarRatingTag:
 # ---------------------------------------------------------------------------
 # Rating Visibility Tests (show_rating_summary)
 # ---------------------------------------------------------------------------
-@pytest.fixture()
+@pytest.fixture
 def event_hidden_ratings() -> Event:
     """Create an event with rating summaries hidden."""
     return baker.make(Event, show_rating_summary=False, is_active=True)
 
 
-@pytest.fixture()
+@pytest.fixture
 def event_visible_ratings() -> Event:
     """Create an event with rating summaries visible."""
     return baker.make(Event, show_rating_summary=True, is_active=True)
 
 
-@pytest.fixture()
+@pytest.fixture
 def staff_user() -> CustomUser:
     """Create a staff (non-superuser) user."""
     return baker.make(CustomUser, email="staff@example.com", is_staff=True, is_superuser=False)
