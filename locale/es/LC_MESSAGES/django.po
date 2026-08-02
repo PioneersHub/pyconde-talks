@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyconde-talks\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 21:28+0200\n"
+"POT-Creation-Date: 2026-08-02 18:01+0200\n"
 "PO-Revision-Date: 2026-06-17 21:03+0200\n"
 "Last-Translator: Julio Batista Silva <python@juliobs.com>\n"
 "Language-Team: Julio Batista Silva <python@juliobs.com>\n"
@@ -207,7 +207,7 @@ msgstr "Enlace al vídeo"
 #: talks/admin.py:200 talks/admin.py:207
 #: templates/talks/partials/upcoming_talks.html:87
 #: templates/talks/talk_detail.html:110 templates/talks/talk_detail.html:174
-#: templates/talks/talk_list.html:270
+#: templates/talks/talk_list.html:277
 msgid "Transcription"
 msgstr "Transcripción"
 
@@ -1559,37 +1559,47 @@ msgstr ""
 msgid "No scheduled days found."
 msgstr "No se encontraron días programados."
 
-#: templates/talks/chair_grid.html:36 templates/talks/schedule.html:35
-#: templates/talks/talk_list.html:82
+#: templates/talks/chair_grid.html:35 templates/talks/schedule.html:34
+#: templates/talks/talk_list.html:81
+msgid "Filter by event"
+msgstr "Filtrar por evento"
+
+#: templates/talks/chair_grid.html:40 templates/talks/schedule.html:39
+#: templates/talks/talk_list.html:83
 msgid "All Events"
 msgstr "Todos los eventos"
 
-#: templates/talks/partials/chair_grid_table.html:70
+#: templates/talks/partials/chair_grid_table.html:63
+#, python-format
+msgid "Session chair for %(title)s"
+msgstr "Moderación de la sesión %(title)s"
+
+#: templates/talks/partials/chair_grid_table.html:74
 msgid "-- none --"
 msgstr "-- ninguno --"
 
-#: templates/talks/partials/chair_grid_table.html:76
+#: templates/talks/partials/chair_grid_table.html:80
 msgid "(me)"
 msgstr "(yo)"
 
-#: templates/talks/partials/chair_grid_table.html:88
+#: templates/talks/partials/chair_grid_table.html:92
 msgid "Step down"
 msgstr "Renunciar"
 
-#: templates/talks/partials/chair_grid_table.html:105
+#: templates/talks/partials/chair_grid_table.html:109
 msgid "Chair this talk"
 msgstr "Moderar esta charla"
 
-#: templates/talks/partials/chair_grid_table.html:114
+#: templates/talks/partials/chair_grid_table.html:118
 msgid "Chair"
 msgstr "Moderar"
 
-#: templates/talks/partials/chair_grid_table.html:127
+#: templates/talks/partials/chair_grid_table.html:131
 #, python-format
 msgid "No sessions scheduled for %(the_date)s."
 msgstr "No hay sesiones programadas para %(the_date)s."
 
-#: templates/talks/partials/chair_grid_table.html:129
+#: templates/talks/partials/chair_grid_table.html:133
 msgid "No sessions scheduled."
 msgstr "No hay sesiones programadas."
 
@@ -1713,7 +1723,7 @@ msgid "Tomorrow"
 msgstr "Mañana"
 
 #: templates/talks/partials/upcoming_talks.html:65
-#: templates/talks/talk_list.html:248
+#: templates/talks/talk_list.html:255
 msgid "Details"
 msgstr "Detalles"
 
@@ -1863,51 +1873,59 @@ msgstr "Otros participantes ya pueden ver y votar su pregunta."
 msgid "List view"
 msgstr "Vista de lista"
 
-#: templates/talks/schedule.html:50
+#: templates/talks/schedule.html:54
 msgid "Search talks…"
 msgstr "Buscar charlas…"
 
-#: templates/talks/schedule.html:51
+#: templates/talks/schedule.html:55
 msgid "Search schedule"
 msgstr "Buscar en el programa"
 
-#: templates/talks/schedule.html:61 templates/talks/talk_list.html:109
-#: templates/talks/talk_list.html:170
+#: templates/talks/schedule.html:62 templates/talks/talk_list.html:111
+msgid "Filter by presentation type"
+msgstr "Filtrar por tipo de presentación"
+
+#: templates/talks/schedule.html:67 templates/talks/talk_list.html:113
+#: templates/talks/talk_list.html:177
 msgid "All Types"
 msgstr "Todos los tipos"
 
-#: templates/talks/schedule.html:70 templates/talks/talk_list.html:116
-#: templates/talks/talk_list.html:180
+#: templates/talks/schedule.html:73 templates/talks/talk_list.html:119
+msgid "Filter by track"
+msgstr "Filtrar por track"
+
+#: templates/talks/schedule.html:78 templates/talks/talk_list.html:121
+#: templates/talks/talk_list.html:187
 msgid "All Tracks"
 msgstr "Todos los Tracks"
 
-#: templates/talks/schedule.html:82 templates/talks/talk_list.html:137
+#: templates/talks/schedule.html:90 templates/talks/talk_list.html:143
 msgid "Saved only"
 msgstr "Solo guardadas"
 
-#: templates/talks/schedule.html:84
+#: templates/talks/schedule.html:92
 msgid "Filter"
 msgstr "Filtrar"
 
-#: templates/talks/schedule.html:87 templates/talks/talk_list.html:66
+#: templates/talks/schedule.html:95 templates/talks/talk_list.html:66
 msgid "Clear"
 msgstr "Borrar"
 
-#: templates/talks/schedule.html:134
+#: templates/talks/schedule.html:142
 #, python-format
 msgid "%(duration)smin"
 msgstr "%(duration)smin"
 
-#: templates/talks/schedule.html:152
+#: templates/talks/schedule.html:160
 msgid "No talks match your filters."
 msgstr "Ninguna charla coincide con sus filtros."
 
-#: templates/talks/schedule.html:155
+#: templates/talks/schedule.html:163
 #, python-format
 msgid "No talks scheduled for %(date)s."
 msgstr "No hay charlas programadas para %(date)s."
 
-#: templates/talks/schedule.html:157
+#: templates/talks/schedule.html:165
 msgid "No talks scheduled."
 msgstr "No hay charlas programadas."
 
@@ -1998,39 +2016,51 @@ msgstr "Título"
 msgid "Description"
 msgstr "Descripción"
 
-#: templates/talks/talk_list.html:89 templates/talks/talk_list.html:147
+#: templates/talks/talk_list.html:89
+msgid "Filter by day"
+msgstr "Filtrar por día"
+
+#: templates/talks/talk_list.html:91 templates/talks/talk_list.html:154
 msgid "All Days"
 msgstr "Todos los días"
 
-#: templates/talks/talk_list.html:102 templates/talks/talk_list.html:160
+#: templates/talks/talk_list.html:103
+msgid "Filter by room"
+msgstr "Filtrar por sala"
+
+#: templates/talks/talk_list.html:105 templates/talks/talk_list.html:167
 msgid "All Rooms"
 msgstr "Todas las salas"
 
-#: templates/talks/talk_list.html:123 templates/talks/talk_list.html:190
+#: templates/talks/talk_list.html:127
+msgid "Filter by status"
+msgstr "Filtrar por estado"
+
+#: templates/talks/talk_list.html:129 templates/talks/talk_list.html:197
 msgid "All Statuses"
 msgstr "Todos los estados"
 
-#: templates/talks/talk_list.html:211
+#: templates/talks/talk_list.html:218
 msgid "HAPPENING NOW"
 msgstr "AHORA MISMO"
 
-#: templates/talks/talk_list.html:216
+#: templates/talks/talk_list.html:223
 msgid "UPCOMING"
 msgstr "PRÓXIMA"
 
-#: templates/talks/talk_list.html:221
+#: templates/talks/talk_list.html:228
 msgid "COMPLETED"
 msgstr "FINALIZADA"
 
-#: templates/talks/talk_list.html:256
+#: templates/talks/talk_list.html:263
 msgid "Video"
 msgstr "Vídeo"
 
-#: templates/talks/talk_list.html:262
+#: templates/talks/talk_list.html:269
 msgid "Q&A"
 msgstr "Preguntas y respuestas"
 
-#: templates/talks/talk_list.html:277
+#: templates/talks/talk_list.html:284
 msgid "No talks found"
 msgstr "No se encontraron charlas"
 

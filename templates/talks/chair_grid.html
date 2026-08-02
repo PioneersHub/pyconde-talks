@@ -32,7 +32,11 @@
     </div>
     {# ── Event filter ──────────────────────────────────────── #}
     <form method="get" class="mb-4 card-compact inline-flex">
-      <select name="event" class="form-select" onchange="this.form.submit()">
+      <label class="sr-only" for="event-filter">{% translate "Filter by event" %}</label>
+      <select id="event-filter"
+              name="event"
+              class="form-select"
+              onchange="this.form.submit()">
         <option value="">{% trans "All Events" %}</option>
         {% for event in events %}
           <option value="{{ event.id }}"

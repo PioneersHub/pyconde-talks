@@ -59,7 +59,11 @@
                 <div class="text-xs">
                   {% if is_admin %}
                     {# Admin view: dropdown always shown so they can reassign or clear. #}
-                    <select name="chair_user_id"
+                    <label class="sr-only" for="chair-select-{{ talk.pk }}">
+                      {% blocktranslate with title=talk.title %}Session chair for {{ title }}{% endblocktranslate %}
+                    </label>
+                    <select id="chair-select-{{ talk.pk }}"
+                            name="chair_user_id"
                             hx-post="{% url 'toggle_session_chair' talk.pk %}"
                             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                             hx-vals='{"event": "{{ selected_event }}"}'

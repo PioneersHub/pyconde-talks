@@ -78,13 +78,15 @@
             hx-include="#filters-form, #search-form"
             hx-indicator="#loading-indicator"
             class="flex flex-wrap gap-4 items-center">
-        <select name="event" class="form-select">
+        <label class="sr-only" for="event-filter">{% translate "Filter by event" %}</label>
+        <select id="event-filter" name="event" class="form-select">
           <option value="all">{% trans "All Events" %}</option>
           {% for event in events %}
             <option value="{{ event.id }}"
                     {% if event.id|stringformat:"s" == selected_event %}selected{% endif %}>{{ event.name }}</option>
           {% endfor %}
         </select>
+        <label class="sr-only" for="date-filter">{% translate "Filter by day" %}</label>
         <select id="date-filter" name="date" class="form-select">
           <option value="">{% trans "All Days" %}</option>
           {% for date in dates %}
@@ -98,6 +100,7 @@
             </option>
           {% endfor %}
         </select>
+        <label class="sr-only" for="room-filter">{% translate "Filter by room" %}</label>
         <select id="room-filter" name="room" class="form-select">
           <option value="">{% trans "All Rooms" %}</option>
           {% for room in rooms %}
@@ -105,6 +108,7 @@
                     {% if room.id|stringformat:"s" == selected_room %}selected{% endif %}>{{ room.name }}</option>
           {% endfor %}
         </select>
+        <label class="sr-only" for="type-filter">{% translate "Filter by presentation type" %}</label>
         <select id="type-filter" name="presentation_type" class="form-select">
           <option value="">{% trans "All Types" %}</option>
           {% for type_value, type_label in presentation_types %}
@@ -112,6 +116,7 @@
                     {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
           {% endfor %}
         </select>
+        <label class="sr-only" for="track-filter">{% translate "Filter by track" %}</label>
         <select id="track-filter" name="track" class="form-select truncate w-60">
           <option value="">{% trans "All Tracks" %}</option>
           {% for track in tracks %}
@@ -119,6 +124,7 @@
                     {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
           {% endfor %}
         </select>
+        <label class="sr-only" for="status-filter">{% translate "Filter by status" %}</label>
         <select id="status-filter" name="status" class="form-select">
           <option value="">{% trans "All Statuses" %}</option>
           {% for status_value, status_label in status_choices %}
@@ -142,6 +148,7 @@
     {% partialdef talk-list %}
       {% if is_htmx_request %}
         {# OOB-swap all filter dropdowns so they stay in sync with the selected event. #}
+        {# Each keeps the id of the select it replaces, so the sr-only labels above still apply. #}
         {# djlint:off H025 #}
         <select id="date-filter" name="date" class="form-select" hx-swap-oob="true">
           <option value="">{% trans "All Days" %}</option>

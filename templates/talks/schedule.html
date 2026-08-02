@@ -31,7 +31,11 @@
     </div>
     {# ── Event filter (always visible) ─────────────────────── #}
     <form method="get" class="mb-4 card-compact inline-flex">
-      <select name="event" class="form-select" onchange="this.form.submit()">
+      <label class="sr-only" for="event-filter">{% translate "Filter by event" %}</label>
+      <select id="event-filter"
+              name="event"
+              class="form-select"
+              onchange="this.form.submit()">
         <option value="all">{% trans "All Events" %}</option>
         {% for event in events %}
           <option value="{{ event.id }}"
@@ -55,7 +59,9 @@
                placeholder="{{ search_placeholder }}"
                class="form-input w-60"
                aria-label="{{ search_label }}" />
-        <select name="presentation_type"
+        <label class="sr-only" for="type-filter">{% translate "Filter by presentation type" %}</label>
+        <select id="type-filter"
+                name="presentation_type"
                 class="form-select"
                 onchange="this.form.submit()">
           <option value="">{% trans "All Types" %}</option>
@@ -64,7 +70,9 @@
                     {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
           {% endfor %}
         </select>
-        <select name="track"
+        <label class="sr-only" for="track-filter">{% translate "Filter by track" %}</label>
+        <select id="track-filter"
+                name="track"
                 class="form-select truncate w-60"
                 onchange="this.form.submit()">
           <option value="">{% trans "All Tracks" %}</option>
