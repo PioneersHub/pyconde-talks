@@ -110,6 +110,7 @@ inlinehilite
 ipython
 isort
 isready
+JGit
 keepalive
 keyup
 Kuppelsaal
