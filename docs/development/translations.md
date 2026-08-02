@@ -1,4 +1,5 @@
 ---
+icon: lucide/languages
 description: How internationalization (i18n) works and how to translate the UI.
 ---
 
