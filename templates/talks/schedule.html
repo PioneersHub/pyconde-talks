@@ -15,20 +15,7 @@
       </a>
     </div>
     {# ── Day picker ────────────────────────────────────────── #}
-    <div class="flex flex-wrap gap-2 mb-4">
-      {% for d in available_dates %}
-        <a href="{% querystring date=d|date:'Y-m-d' %}"
-           class="px-4 py-2 rounded-lg font-medium text-sm transition-colors {% if d == selected_date %}bg-brand-blue text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-          {% if has_multiple_years %}
-            {{ d|date:"D, M j, Y" }}
-          {% else %}
-            {{ d|date:"D, M j" }}
-          {% endif %}
-        </a>
-      {% empty %}
-        <span class="text-subtle">{% trans "No scheduled days found." %}</span>
-      {% endfor %}
-    </div>
+    {% include "talks/partials/day_picker.html" %}
     {# ── Event filter (always visible) ─────────────────────── #}
     <form method="get" class="mb-4 card-compact inline-flex">
       <label class="sr-only" for="event-filter">{% translate "Filter by event" %}</label>
