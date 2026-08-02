@@ -32,27 +32,27 @@ classifiers = [
 ]
 dependencies = [
     "argon2-cffi>=25.1.0",
-    "daphne>=4.2.2",
+    "daphne>=4.2.3",
     "django-allauth[socialaccount]>=65.18.0",
-    "django-anymail[mailgun]>=15.0",
-    "django-environ>=0.13.0",
-    "django-health-check[psutil]>=4.4.2",
-    "django-htmx>=1.27.0",
+    "django-anymail[mailgun]>=15.1",
+    "django-environ>=0.14.0",
+    "django-health-check[psutil]>=4.4.4",
+    "django-htmx>=1.28.0",
     "django-markdownify>=0.9.7",
     "django-structlog>=10.1.0",
-    "django-stubs-ext>=6.0.5",
-    "django>=6.0.6",
+    "django-stubs-ext>=6.0.7",
+    "django>=6.0.7",
     "emoji>=2.15.0",
     "furl>=2.1.4",
-    "httpx2>=2.4.0",
-    "matplotlib>=3.11.0",
-    "model-bakery>=1.23.5",
+    "httpx2>=2.9.1",
+    "matplotlib>=3.11.1",
+    "model-bakery>=1.24.0",
     "openpyxl>=3.1.5",
-    "pandas>=3.0.3",
-    "pillow>=12.2.0",
+    "pandas>=3.0.5",
+    "pillow>=12.3.0",
     "pilmoji>=2.0.5",
     "pydantic>=2.13.4",
-    "sentry-sdk[django]>=2.63.0",
+    "sentry-sdk[django]>=2.66.1",
     "structlog>=26.1.0",
     "tenacity>=9.1.4",
 ]
@@ -60,20 +60,20 @@ dependencies = [
 [dependency-groups]
 dev = [
     "bandit[sarif]>=1.9.4",
-    "django-stubs[compatible-mypy]>=6.0.5",
-    "djlint>=1.39.2",
-    "faker>=40.23.0",
-    "ipython>=9.14.1",
-    "mypy>=2.1.0",
-    "pandas-stubs>=3.0.3.260530",
-    "prek>=0.4.5",
-    "ruff>=0.15.17",
-    "zuban>=0.8.2",
+    "django-stubs[compatible-mypy]>=6.0.7",
+    "djlint>=1.43.1",
+    "faker>=40.36.0",
+    "ipython>=9.16.0",
+    "mypy>=2.3.0",
+    "pandas-stubs>=3.0.5.260730",
+    "prek>=0.4.11",
+    "ruff>=0.16.1",
+    "zuban>=0.9.1",
 ]
 test = [
-    "hypothesis>=6.155.3",
-    "inline-snapshot>=0.34.1",
-    "pytest>=9.1.0",
+    "hypothesis>=6.164.0",
+    "inline-snapshot>=0.35.3",
+    "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "pytest-django>=4.12.0",
     "pytest-httpx2>=1.0.0",
@@ -87,7 +87,7 @@ prod = [
     "psycopg[binary]>=3.3.4",
 ]
 docs = [
-    "zensical>=0.0.45",
+    "zensical>=0.0.52",
 ]
 
 [project.urls]
@@ -151,6 +151,9 @@ ignore = [
     "D212",   # multi-line-summary-first-line
     "ANN401", # Allow Any type annotations in certain cases
     "COM812", # Conflicts with the formatter
+    # The MIT license lives in LICENSE at the repo root and is declared in [project]; this project
+    # deliberately does not repeat a copyright header in every source file.
+    "CPY001", # missing-copyright-notice
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -158,6 +161,7 @@ ignore = [
     "ARG001",  # Allow unused arguments in tests (for pytest fixtures)
     "ARG002",  # Allow unused method arguments in tests (for pytest fixtures)
     "PLR0913", # Allow many arguments in test helpers
+    "PLR0917", # Same, counted positionally: pytest injects fixtures as positional parameters
     "S101",    # Allow assert in tests
     "S105",    # Allow hardcoded password in strings tests
     "S106",    # Allow hardcoded password in function calls in tests

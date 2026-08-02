@@ -472,6 +472,7 @@ class TalkImageGenerator:
 
     def _draw_title_block(  # noqa: PLR0913
         self,
+        *,
         canvas: Image.Image,
         title: str,
         fonts: dict[str, ImageFont.FreeTypeFont],
