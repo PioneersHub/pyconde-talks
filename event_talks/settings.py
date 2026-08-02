@@ -324,7 +324,7 @@ ACCOUNT_EMAIL_SUBJECT_PREFIX = env(
 # Social accounts (Discord)
 # https://docs.allauth.org/en/latest/socialaccount/configuration.html
 # --------------------------
-SOCIALACCOUNT_ADAPTER = "users.adapters.SocialAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "users.adapters_social.SocialAccountAdapter"
 SOCIALACCOUNT_STORE_TOKENS = True
 SOCIALACCOUNT_FORMS = {"disconnect": "users.forms.PasswordlessDisconnectForm"}
 

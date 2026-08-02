@@ -29,9 +29,6 @@ from utils.email_utils import hash_email
 if TYPE_CHECKING:
     from users.models import CustomUser
 
-# Re-export so settings.py's "users.adapters.SocialAccountAdapter" still resolves.
-from .adapters_social import SocialAccountAdapter  # noqa: F401
-
 
 logger = structlog.get_logger(__name__)
 
