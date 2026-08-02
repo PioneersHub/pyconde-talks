@@ -27,17 +27,18 @@ jobs:
         # --no-build: every dependency must ship a prebuilt wheel.
         run: uv sync --all-groups --locked --no-build
 
+      # Every "uv run" below repeats --no-build so a re-sync can never build from source.
       - name: Lint (ruff)
-        run: uv run ruff check --output-format=github .
+        run: uv run --no-build ruff check --output-format=github .
 
       - name: Format check (ruff)
-        run: uv run ruff format --check .
+        run: uv run --no-build ruff format --check .
 
       - name: Type check (zuban)
-        run: uv run zuban check
+        run: uv run --no-build zuban check
 
       - name: Tests (pytest)
         # Defaults are CI-safe: SQLite DB, plain StaticFilesStorage, unsafe-secret-key.
         run: |
           mkdir -p reports
-          uv run pytest
+          uv run --no-build pytest
