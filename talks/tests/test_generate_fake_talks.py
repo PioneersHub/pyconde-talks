@@ -1,5 +1,5 @@
 """Tests for the generate_fake_talks management command."""
-# ruff: noqa: PLR2004, PT018
+# ruff: noqa: PLR2004
 
 import random
 from datetime import datetime, time, timedelta
@@ -189,7 +189,8 @@ class TestGenerateTitle:
     def test_ml_track(self, command: Command, fake: Faker) -> None:
         """Generate a non-empty title for the Machine Learning track."""
         result = command._generate_title("Machine Learning", fake)
-        assert isinstance(result, str) and len(result) > 0
+        assert isinstance(result, str)
+        assert len(result) > 0
 
     def test_security_track(self, command: Command, fake: Faker) -> None:
         """Include 'Securing' in titles for the Security track."""
@@ -214,7 +215,8 @@ class TestGenerateTitle:
     def test_nlp_track(self, command: Command, fake: Faker) -> None:
         """Generate a non-empty title for the NLP track."""
         result = command._generate_title("Natural Language Processing", fake)
-        assert isinstance(result, str) and len(result) > 0
+        assert isinstance(result, str)
+        assert len(result) > 0
 
     def test_mlops_track_matches_ml_branch_first(self, command: Command, fake: Faker) -> None:
         """'MLOps' is matched by the 'ML' branch, not the DevOps one."""

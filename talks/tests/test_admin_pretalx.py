@@ -216,12 +216,13 @@ class TestCheckPretalxNow:
         request = rf.post(url)
         request.user = staff
         _attach_messages(request)
+        model_admin = PendingPretalxChangeAdmin(PendingPretalxChange, site)
 
         with (
             patch("talks.admin_pretalx.settings", DEFAULT_EVENT="evt"),
             pytest.raises(PermissionDenied),
         ):
-            PendingPretalxChangeAdmin(PendingPretalxChange, site).check_pretalx_now(request)
+            model_admin.check_pretalx_now(request)
 
         mock_call.assert_not_called()
 

@@ -193,9 +193,11 @@ def test_fetch_submissions_retries_on_http_status_error(httpx2_mock: respx.Route
 def test_fetch_submissions_reraises_after_exhaustion(httpx2_mock: respx.Router) -> None:
     """When retries are exhausted the original transport error propagates (reraise=True)."""
     httpx2_mock.get(host=_HOST, path=_SUBS_PATH).mock(side_effect=httpx2.ConnectError("boom"))
+    client = _client()
+    ctx = _ctx(use_cache=False, max_retries=2)
 
     with pytest.raises(httpx2.ConnectError):
-        fetch_submissions(_client(), "evt", _ctx(use_cache=False, max_retries=2))
+        fetch_submissions(client, "evt", ctx)
 
 
 def _use_tmp_cache(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

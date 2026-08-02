@@ -108,7 +108,9 @@ class TestHashEmailProperties:
     @given(st.emails())
     def test_deterministic(self, email: str) -> None:
         """Same input always gives same hash."""
-        assert hash_email(email) == hash_email(email)
+        first = hash_email(email)
+        second = hash_email(email)
+        assert first == second
 
     @given(st.emails())
     def test_fixed_length_hex(self, email: str) -> None:

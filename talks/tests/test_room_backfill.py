@@ -123,8 +123,9 @@ class TestBackfillRoomEvents:
     def test_cross_event_room_raises(self) -> None:
         """A room shared across events fails loud instead of guessing."""
         room = _FakeRoom(1, "Shared")
+        newest = _FakeEvent(9, "newest")
         with pytest.raises(RuntimeError, match="multiple events"):
-            _run([room], {1: [1, 2]}, _FakeEvent(9, "newest"))
+            _run([room], {1: [1, 2]}, newest)
 
     def test_no_rooms_is_noop(self) -> None:
         """No null-event rooms means nothing to do and no error."""
