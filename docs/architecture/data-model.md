@@ -188,6 +188,11 @@ Key fields: `talk` (`on_delete=CASCADE`), `content` (max 2000 characters), `user
 and `not_rejected()`. The `display_name` property obfuscates the author's email for the public
 author line.
 
+The `status` is driven by **moderators** (staff or superusers; session chairs are staff via
+`DISCORD_STAFF_ROLES`). On the Q&A page they approve, reject, or mark a question answered, which
+calls `approve()`, `reject()`, or `mark_as_answered()` to flip `status`. This is how a question
+becomes "answered" in normal use, not the [`Answer`](#answer) model below.
+
 ### QuestionVote
 
 An upvote on a question.
@@ -197,7 +202,11 @@ Key fields: `question` (`on_delete=CASCADE`), `user` (`on_delete=CASCADE`), `cre
 
 ### Answer
 
-An answer to a question, typically from a speaker or moderator.
+The written text of an answer to a question. This is an **admin-only** model: there is no public
+page that creates an `Answer`, so most questions are resolved by a moderator flipping
+[`Question.status`](#question) to `answered` rather than by storing answer text here. Rows are
+created through the Django admin (an inline on the question), where an organizer can record the
+actual reply.
 
 Key fields: `question` (`on_delete=CASCADE`), `content` (max 2000 characters), `user`
 (`on_delete=SET_NULL`), `is_official` (flags a speaker or organizer answer), `created_at`,
