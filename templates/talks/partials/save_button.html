@@ -1,26 +1,31 @@
 {% load svg_tags %}
 {% load i18n %}
-<div id="save-btn-{{ talk.pk }}" class="inline-flex">
-  {% if is_saved %}
-    {% translate "Remove from saved" as save_title %}
-  {% else %}
-    {% translate "Save talk" as save_title %}
-  {% endif %}
-  <button hx-post="{% url 'toggle_save_talk' talk.pk %}"
-          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-          hx-target="#save-btn-{{ talk.pk }}"
-          hx-swap="outerHTML"
-          class="btn-secondary inline-flex items-center px-3 py-1 rounded gap-1 {% if is_saved %}text-yellow-500{% endif %}"
-          title="{{ save_title }}">
+{# Saving writes a SavedTalk row against the user, so there is nothing to toggle for an
+   anonymous visitor. Guarded here rather than at each include so every caller (talk list,
+   detail, schedule, upcoming) is covered by one check. #}
+{% if user.is_authenticated %}
+  <div id="save-btn-{{ talk.pk }}" class="inline-flex">
     {% if is_saved %}
-      {% svg 'bookmark-solid' "h-4 w-4" %}
+      {% translate "Remove from saved" as save_title %}
     {% else %}
-      {% svg 'bookmark' "h-4 w-4" %}
+      {% translate "Save talk" as save_title %}
     {% endif %}
-    {% if is_saved %}
-      {% trans "Saved" %}
-    {% else %}
-      {% trans "Save" %}
-    {% endif %}
-  </button>
-</div>
+    <button hx-post="{% url 'toggle_save_talk' talk.pk %}"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-target="#save-btn-{{ talk.pk }}"
+            hx-swap="outerHTML"
+            class="btn-secondary inline-flex items-center px-3 py-1 rounded gap-1 {% if is_saved %}text-yellow-500{% endif %}"
+            title="{{ save_title }}">
+      {% if is_saved %}
+        {% svg 'bookmark-solid' "h-4 w-4" %}
+      {% else %}
+        {% svg 'bookmark' "h-4 w-4" %}
+      {% endif %}
+      {% if is_saved %}
+        {% trans "Saved" %}
+      {% else %}
+        {% trans "Save" %}
+      {% endif %}
+    </button>
+  </div>
+{% endif %}

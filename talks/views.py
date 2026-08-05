@@ -8,6 +8,8 @@ live in ``talks.views_rating`` and the bookmark toggle in ``talks.views_saved``.
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, cast
 
+from django.conf import settings
+from django.contrib.auth.views import redirect_to_login
 from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.http import Http404, HttpRequest, HttpResponse
@@ -56,12 +58,28 @@ class TalkDetailView(DetailView[Talk]):
     """
     Display detailed information about a specific Talk.
 
-    Requires user authentication to access the view.
+    Open to anonymous visitors; what they see is scoped by ``accessible_to`` and the video gate.
     """
 
     model = Talk
     template_name = "talks/talk_detail.html"
     context_object_name = "talk"
+
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        """
+        Render the talk, sending anonymous visitors to log in rather than showing a bare 404.
+
+        A talk on a hidden event is not in ``accessible_to`` for a logged-out visitor, so the
+        default would be a 404. That is right for a logged-in non-member (saying "no such
+        talk" avoids confirming it exists) but wrong for a member who simply has no session
+        yet, who should be asked to sign in. Only anonymous visitors get the redirect.
+        """
+        try:
+            return super().get(request, *args, **kwargs)
+        except Http404:
+            if not request.user.is_authenticated:
+                return redirect_to_login(request.get_full_path(), str(settings.LOGIN_URL))
+            raise
 
     def get_queryset(self) -> QuerySet[Talk]:
         """Optimize query with related data."""
@@ -470,10 +488,18 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
 
 @require_safe
 def talk_redirect_view(request: HttpRequest, talk_id: str) -> HttpResponse:
-    """Get talk detail view by Talk ID or Pretalx ID."""
+    """
+    Get talk detail view by Talk ID or Pretalx ID.
+
+    Mirrors ``TalkDetailView.get``: an anonymous visitor following a link to a talk they
+    cannot currently see is asked to log in, while a logged-in non-member gets a 404 so the
+    response does not confirm the talk exists.
+    """
     talk = get_talk_by_id_or_pretalx(talk_id, user=request.user)
     if talk:
         return redirect("talk_detail", pk=talk.pk)
+    if not request.user.is_authenticated:
+        return redirect_to_login(request.get_full_path(), str(settings.LOGIN_URL))
     raise Http404
 
 

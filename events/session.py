@@ -65,12 +65,16 @@ def events_visible_to(user: AbstractBaseUser | AnonymousUser | None) -> QuerySet
 
 def resolve_default_event(request: HttpRequest) -> Event | None:
     """
-    Resolve the current event without scoping to a specific user.
+    Resolve the current event for the requesting visitor.
 
     The resolution order is:
     1. The active event whose slug matches ``SESSION_EVENT_SLUG_KEY`` in the session.
     2. The active event whose slug matches the ``DEFAULT_EVENT`` setting.
     3. Any active event, as a last-resort fallback.
+
+    Candidates are restricted to the events the visitor may browse. Without that, an anonymous
+    visitor would be defaulted onto a hidden event (``DEFAULT_EVENT`` names the current one,
+    which is hidden for most of its life) and shown an empty talk list with no hint why.
 
     This is the version used for list views and other places that treat "the current event"
     as a site-wide default. The ``branding`` context processor has its own user-scoped
@@ -85,15 +89,16 @@ def resolve_default_event(request: HttpRequest) -> Event | None:
 
     session_slug = get_selected_event_slug(request)
     default_slug: str = getattr(settings, "DEFAULT_EVENT", "")
+    candidates = events_visible_to(getattr(request, "user", None))
 
     event: Event | None = None
     for slug in (session_slug, default_slug):
         if slug:
-            event = Event.objects.filter(slug=slug, is_active=True).first()
+            event = candidates.filter(slug=slug).first()
             if event:
                 break
     else:
-        event = Event.objects.filter(is_active=True).first()
+        event = candidates.first()
 
     # Some test shims build a frozen request; tolerate either outcome.
     with contextlib.suppress(AttributeError, TypeError):  # pragma: no cover

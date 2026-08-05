@@ -81,12 +81,28 @@ def today_talks(rooms: list[Room], event: Event) -> list[Talk]:
 class TestScheduleView:
     """Tests for the schedule_view function."""
 
-    def test_requires_login(self, client: pytest.fixture) -> None:  # type: ignore[type-arg,valid-type]
-        """Unauthenticated users are redirected to login."""
-        url = reverse("schedule")
-        response = client.get(url)
-        assert response.status_code == HTTPStatus.FOUND
-        assert "/accounts/login/" in response.url  # type: ignore[attr-defined]
+    def test_open_to_anonymous_visitors(self, client: pytest.fixture) -> None:  # type: ignore[type-arg,valid-type]
+        """
+        The schedule renders without a login.
+
+        It used to redirect. The programme is public information already published on
+        Pretalx, so the page itself is open and ``accessible_to`` decides per row which
+        events' talks actually appear.
+        """
+        response = client.get(reverse("schedule"))
+        assert response.status_code == HTTPStatus.OK
+
+    def test_anonymous_visitors_do_not_see_a_hidden_event(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        today_talks: list[Talk],
+    ) -> None:
+        """A talk on a hidden event stays out of the anonymous schedule."""
+        date = today_talks[0].start_time.date().isoformat()
+        response = client.get(reverse("schedule"), {"date": date})
+        assert response.status_code == HTTPStatus.OK
+        for talk in today_talks:
+            assert talk.title.encode() not in response.content
 
     def test_empty_schedule(self, client: pytest.fixture, user: CustomUser) -> None:  # type: ignore[type-arg,valid-type]
         """Schedule page renders when there are no talks."""

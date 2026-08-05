@@ -26,7 +26,9 @@
         <div class="mb-6">
           <div class="flex justify-between items-start">
             <h1 class="text-3xl font-bold text-heading">{{ talk.title }}</h1>
-            {% include "talks/partials/save_button.html" %}
+            {% if user.is_authenticated %}
+              {% include "talks/partials/save_button.html" %}
+            {% endif %}
           </div>
           <p class="text-xl text-muted mt-2">{{ talk.speaker_names }}</p>
           {% if user_can_moderate and talk.session_chair_id %}
@@ -101,6 +103,14 @@
               <span class="ml-3 text-sm text-subtle">{% trans "(Skip to estimated talk start)" %}</span>
             </div>
           {% endif %}
+        {% elif talk.has_recording and not user.is_authenticated %}
+          {# A recording exists but this visitor may not watch it. Say so, rather than leaving
+             a blank space that reads as "this talk was never recorded". #}
+          <div class="box-muted mb-8 text-center">
+            <p class="text-muted mb-3">{% trans "A recording of this talk is available to ticket holders." %}</p>
+            <a href="{% url 'account_login' %}?next={{ request.path|urlencode }}"
+               class="btn-primary inline-flex items-center px-4 py-2 rounded-lg">{% trans "Sign in to watch" %}</a>
+          </div>
         {% endif %}
         <!-- Transcription -->
         {% if talk.get_transcription_url %}
@@ -119,8 +129,11 @@
         {% endif %}
         <!-- Description -->
         <div class="prose max-w-none mb-8">{{ talk.description|markdownify }}</div>
-        <!-- Rating Section -->
-        <div class="box-muted mb-8">{% include "talks/partials/rating_widget.html" %}</div>
+        <!-- Rating Section. Rating always needs an account, so do not show the widget to
+             anonymous visitors: every star would bounce them to the login page. -->
+        {% if user.is_authenticated %}
+          <div class="box-muted mb-8">{% include "talks/partials/rating_widget.html" %}</div>
+        {% endif %}
         {% if rating_comments %}
           <!-- Rating comments (superusers only) -->
           {% translate "Attendee rating comments (visible to superusers only)" as rating_comments_label %}
@@ -159,12 +172,21 @@
             {% svg 'information-circle' "h-4 w-4 mr-2" %}
             {% trans "View on Pretalx" %}
           </a>
-          <!-- Our Q&A section link -->
-          <a href="{% url 'talk_questions' talk.id %}"
-             class="btn-secondary inline-flex items-center px-4 py-2 rounded-lg">
-            {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-2" %}
-            {% trans "Questions & Answers" %}
-          </a>
+          <!-- Our Q&A section link. Q&A needs an account at every event visibility, so point
+               logged-out visitors at the login page rather than at a redirect. -->
+          {% if user.is_authenticated %}
+            <a href="{% url 'talk_questions' talk.id %}"
+               class="btn-secondary inline-flex items-center px-4 py-2 rounded-lg">
+              {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-2" %}
+              {% trans "Questions & Answers" %}
+            </a>
+          {% else %}
+            <a href="{% url 'account_login' %}?next={% url 'talk_questions' talk.id %}"
+               class="btn-secondary inline-flex items-center px-4 py-2 rounded-lg">
+              {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-2" %}
+              {% trans "Sign in for Q&A" %}
+            </a>
+          {% endif %}
           {% if talk.get_transcription_url %}
             <a href="{{ talk.get_transcription_url }}"
                target="_blank"
