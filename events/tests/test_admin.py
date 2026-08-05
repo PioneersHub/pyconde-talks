@@ -37,6 +37,7 @@ class TestEventAdmin:
             "slug",
             "year",
             "is_active",
+            "visibility",
             "show_rating_summary",
             "validation_api_url_set",
         )
@@ -99,6 +100,7 @@ class TestEventAdmin:
                 "year": 2026,
                 "validation_api_url": "",
                 "is_active": True,
+                "visibility": Event.Visibility.HIDDEN,
             },
         )
         assert response.status_code == HTTPStatus.FOUND
@@ -157,6 +159,7 @@ class TestEventAdmin:
                 "year": event.year,
                 "validation_api_url": "",
                 "is_active": "on",
+                "visibility": Event.Visibility.HIDDEN,
                 "show_rating_summary": "on",
                 "users": [str(keep.pk), str(add.pk)],
             },

@@ -17,9 +17,21 @@ MAX_EVENT_NAME_LENGTH = 200
 MAX_EVENT_SLUG_LENGTH = 100
 MAX_FIELD_LENGTH = 200
 
+# Visibility values an anonymous visitor may browse. Defined at module level rather than as a
+# classmethod on the enum so it can be dropped straight into a queryset filter, and because a
+# classmethod inside a TextChoices body reads as the raw member tuples to type checkers.
+PUBLICLY_LISTED_VISIBILITIES = ("schedule_only", "public")
+
 
 class Event(models.Model):
     """Represents a conference event (e.g., PyConDE & PyData 2026)."""
+
+    class Visibility(models.TextChoices):
+        """How much of an event is reachable without logging in."""
+
+        HIDDEN = "hidden", _("Hidden (login required for everything)")
+        SCHEDULE_ONLY = "schedule_only", _("Schedule only (recordings require login)")
+        PUBLIC = "public", _("Public (everything, including recordings)")
 
     name = models.CharField(
         unique=True,
@@ -60,6 +72,19 @@ class Event(models.Model):
     is_active = models.BooleanField(
         default=True,
         help_text=_("Whether this event is currently active and visible on the site"),
+    )
+
+    visibility = models.CharField(
+        max_length=20,
+        choices=Visibility.choices,
+        default=Visibility.HIDDEN,
+        db_index=True,
+        help_text=_(
+            "What visitors can see without logging in. Hidden keeps the whole event behind the "
+            "login wall. Schedule only publishes titles, abstracts and speakers but keeps "
+            "recordings for ticket holders. Public opens recordings too, and lets anyone "
+            "register without a ticket check. Q&A and ratings always require a login.",
+        ),
     )
 
     show_rating_summary = models.BooleanField(
@@ -156,6 +181,16 @@ class Event(models.Model):
     # ------------------------------------------------------------------
     # Derived helpers
     # ------------------------------------------------------------------
+
+    @property
+    def is_publicly_listed(self) -> bool:
+        """Return whether anonymous visitors may browse this event's talks at all."""
+        return self.visibility in PUBLICLY_LISTED_VISIBILITIES
+
+    @property
+    def videos_are_public(self) -> bool:
+        """Return whether anonymous visitors may watch this event's recordings."""
+        return self.visibility == self.Visibility.PUBLIC
 
     @property
     def pretalx_schedule_url(self) -> str:

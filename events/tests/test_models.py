@@ -8,6 +8,7 @@ from events.models import (
     MAX_EVENT_NAME_LENGTH,
     MAX_EVENT_SLUG_LENGTH,
     MAX_FIELD_LENGTH,
+    PUBLICLY_LISTED_VISIBILITIES,
     Event,
 )
 from talks.models import Talk
@@ -125,3 +126,45 @@ class TestEventBrandingProperties:
         assert event.logo_svg_name == ""
         assert event.made_by_name == ""
         assert event.made_by_url == ""
+
+
+@pytest.mark.django_db
+class TestEventVisibility:
+    """Tests for the ``visibility`` field and the helpers derived from it."""
+
+    def test_defaults_to_hidden(self) -> None:
+        """A new event keeps the whole login wall until someone opens it deliberately."""
+        event = Event.objects.create(name="E", slug="e")
+        assert event.visibility == Event.Visibility.HIDDEN
+
+    def test_publicly_listed_visibilities_matches_the_enum(self) -> None:
+        """
+        The queryset constant stays in step with the enum.
+
+        ``PUBLICLY_LISTED_VISIBILITIES`` holds plain strings so it can go straight into a
+        filter, which means a renamed or added choice would otherwise drift from it silently.
+        """
+        assert set(PUBLICLY_LISTED_VISIBILITIES) == {
+            str(Event.Visibility.SCHEDULE_ONLY),
+            str(Event.Visibility.PUBLIC),
+        }
+        assert str(Event.Visibility.HIDDEN) not in PUBLICLY_LISTED_VISIBILITIES
+
+    @pytest.mark.parametrize(
+        ("visibility", "listed", "videos"),
+        [
+            (Event.Visibility.HIDDEN, False, False),
+            (Event.Visibility.SCHEDULE_ONLY, True, False),
+            (Event.Visibility.PUBLIC, True, True),
+        ],
+    )
+    def test_derived_flags(
+        self,
+        visibility: str,
+        listed: bool,  # noqa: FBT001
+        videos: bool,  # noqa: FBT001
+    ) -> None:
+        """Listing and recording access follow the visibility state independently."""
+        event = baker.make(Event, visibility=visibility)
+        assert event.is_publicly_listed is listed
+        assert event.videos_are_public is videos
