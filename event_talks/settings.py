@@ -805,6 +805,23 @@ IMPORT_TALKS_WITHOUT_SPEAKERS = env.bool("IMPORT_TALKS_WITHOUT_SPEAKERS", defaul
 SENTRY_DSN = env("SENTRY_DSN", default="")
 
 # --------------------------------------------------------------------------------------------------
+# Q&A ANTI-SPAM
+# --------------------------------------------------------------------------------------------------
+# How many questions one account may ask, per talk and overall. Keyed per account, never per IP
+# (see ACCOUNT_RATE_LIMITS for why). Generous on purpose: an engaged attendee asks one to three
+# questions during a talk, so these only catch flooding. Env-configurable so an organizer can
+# loosen them during the conference without a redeploy.
+QA_QUESTION_RATE_LIMIT_PER_TALK = env.int("QA_QUESTION_RATE_LIMIT_PER_TALK", default=5)
+QA_QUESTION_RATE_WINDOW_PER_TALK = env.int("QA_QUESTION_RATE_WINDOW_PER_TALK", default=600)
+QA_QUESTION_RATE_LIMIT_OVERALL = env.int("QA_QUESTION_RATE_LIMIT_OVERALL", default=20)
+QA_QUESTION_RATE_WINDOW_OVERALL = env.int("QA_QUESTION_RATE_WINDOW_OVERALL", default=3600)
+
+# Extra words that send a question to the moderation queue. Empty by default: keyword lists
+# date badly, so this exists for a conference under a specific ongoing spam campaign.
+QA_SPAM_KEYWORDS = env.list("QA_SPAM_KEYWORDS", default=[])
+
+
+# --------------------------------------------------------------------------------------------------
 # SESSION CHAIRING
 # --------------------------------------------------------------------------------------------------
 # Minutes threshold for warning moderators about tight room transitions.

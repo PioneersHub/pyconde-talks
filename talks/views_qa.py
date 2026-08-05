@@ -22,12 +22,16 @@ from django.db.models import Q
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBase, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import (
+    gettext_lazy as _,
+    ngettext,
+)
 from django.views.decorators.http import require_POST, require_safe
 from django.views.generic import CreateView, ListView, UpdateView
 
 from .models import Talk
 from .models_qa import Question, QuestionQuerySet, QuestionVote
+from .ratelimit import consume, is_rate_limited, question_limits, seconds_until_reset
 from .spam import spam_flag_reason
 from .utils import get_talk_by_id_or_pretalx, is_htmx_request
 
@@ -38,6 +42,9 @@ if TYPE_CHECKING:
 
     from users.models import CustomUser
 
+
+# Scope name for the question-asking allowance, shared by the check and the consume.
+_QA_QUESTION_SCOPE = "qa_question"
 
 # The status filters the Q&A views understand. Anything else collapses to "all" so an attacker
 # cannot reflect arbitrary text into the hx-vals JSON / hx-get URL the list fragment builds.
@@ -186,7 +193,44 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
                     HTTPStatus.CONFLICT,
                     self.kwargs["talk_id"],
                 )
+            limited = self._rate_limit_response(request)
+            if limited is not None:
+                return limited
         return super().dispatch(request, *args, **kwargs)
+
+    def _rate_limit_response(self, request: HttpRequest) -> HttpResponse | None:
+        """
+        Return an error response when this account has asked too many questions, else None.
+
+        Checked before the form is bound, so someone flooding the endpoint does not also get
+        free content validation. Moderators are exempt: they are the people expected to post
+        repeatedly, and they are the ones who would have to unpick a limit that caught them.
+        """
+        if is_moderator(request.user):
+            return None
+
+        per_talk, overall = question_limits()
+        checks = (
+            (_QA_QUESTION_SCOPE, f"{request.user.pk}:{self.talk.pk}", per_talk),
+            (_QA_QUESTION_SCOPE, str(request.user.pk), overall),
+        )
+        for scope, identity, rule in checks:
+            if is_rate_limited(scope, identity, rule):
+                minutes = max(round(seconds_until_reset(rule) / 60), 1)
+                return _qa_error_response(
+                    request,
+                    ngettext(
+                        "You have asked several questions recently. Please wait about "
+                        "%(minutes)d minute before asking another.",
+                        "You have asked several questions recently. Please wait about "
+                        "%(minutes)d minutes before asking another.",
+                        minutes,
+                    )
+                    % {"minutes": minutes},
+                    HTTPStatus.TOO_MANY_REQUESTS,
+                    self.kwargs["talk_id"],
+                )
+        return None
 
     def form_valid(self, form: forms.ModelForm[Question]) -> HttpResponse:
         """Process the form submission."""
@@ -206,6 +250,13 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
 
         # Save the question
         response = super().form_valid(form)
+
+        # Count the question against the allowance only now that it has actually been stored,
+        # so a rejected draft (too long, failed captcha) does not eat into it.
+        if not is_moderator(self.request.user):
+            per_talk, overall = question_limits()
+            consume(_QA_QUESTION_SCOPE, f"{self.request.user.pk}:{self.talk.pk}", per_talk)
+            consume(_QA_QUESTION_SCOPE, str(self.request.user.pk), overall)
 
         # Auto vote your own question. Worth doing even while it is held for review, so the
         # count is right the moment a moderator approves it.
