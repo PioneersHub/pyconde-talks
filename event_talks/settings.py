@@ -118,6 +118,19 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # --------------------------------------------------------------------------------------------------
+# CACHES
+# https://docs.djangoproject.com/en/dev/ref/settings/#caches
+# --------------------------------------------------------------------------------------------------
+# Set explicitly rather than relying on Django's implicit local-memory default, because two
+# features depend on the backend being shared between workers: the allauth OAuth bearer token
+# (see ``users.adapters``) and the Q&A rate limiter. ``locmemcache://`` is per process, so with
+# more than one worker a "5 per 10 minutes" limit really allows 5 per worker. That is fine for
+# the current single-Daphne deployment and for dev/tests, but point ``DJANGO_CACHE_URL`` at
+# Redis before scaling out. Django ships a Redis backend, so only the ``redis`` client is needed.
+CACHES = {"default": env.cache("DJANGO_CACHE_URL", default="locmemcache://")}
+
+
+# --------------------------------------------------------------------------------------------------
 # URLS
 # --------------------------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#root-urlconf

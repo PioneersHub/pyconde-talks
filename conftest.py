@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING
 
 import pytest
+from django.core.cache import cache
 from django.utils import translation
 
 
@@ -24,3 +25,18 @@ def _reset_active_language() -> Generator[None]:
     translation.deactivate()
     yield
     translation.deactivate()
+
+
+@pytest.fixture(autouse=True)
+def _clear_cache() -> Generator[None]:
+    """
+    Start and end every test with an empty cache.
+
+    The default backend is local memory, which lives in the test process and is therefore shared
+    by every test in the run. Anything counter-like (the Q&A rate limiter) or token-like (the
+    allauth OAuth bearer) would otherwise leak across tests, and with ``--random-order`` the
+    resulting failure only appears under some seeds.
+    """
+    cache.clear()
+    yield
+    cache.clear()

@@ -124,6 +124,7 @@ linecap
 linejoin
 linenums
 livestreams
+locmemcache
 lucide
 magiclink
 mailgun
