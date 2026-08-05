@@ -18,16 +18,18 @@ from django.db.models import Avg, Count, Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from events.models import PUBLICLY_LISTED_VISIBILITIES
 from talks.types import RatingStats, VideoProvider
 from talks.validators import validate_video_link
 from utils.url import add_query_param
 
 
 if TYPE_CHECKING:
+    from django.contrib.auth.base_user import AbstractBaseUser
+    from django.contrib.auth.models import AnonymousUser
     from django_stubs_ext.db.models.manager import RelatedManager
 
     from events.models import Event
-    from users.models import CustomUser
 
 
 # Constants
@@ -319,17 +321,34 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
         """
         return self.exclude(start_time__year=FAR_FUTURE.year)
 
-    def accessible_to(self, user: CustomUser) -> Self:
+    def accessible_to(self, user: AbstractBaseUser | AnonymousUser | None) -> Self:
         """
-        Return talks the given user is allowed to see.
+        Return talks the given user is allowed to see listed.
 
-        Superusers see every talk. Any other user only sees talks whose event they have access
-        to. Every talk belongs to an event (``Talk.event`` is required), so there is no
-        event-less escape hatch.
+        Superusers see every talk. Everyone else sees the union of two sets: talks belonging to
+        an event they are a member of, and talks belonging to an event that is not hidden. A
+        logged-in visitor browsing an event they hold no ticket for therefore sees exactly what
+        an anonymous visitor sees, plus their own events.
+
+        Anonymous users have no ``events`` relation, so membership is skipped rather than
+        dereferenced. ``None`` is treated as anonymous. Every talk belongs to an event
+        (``Talk.event`` is required), so there is no event-less escape hatch.
+
+        This decides *listing* only. Whether the recording can be played is a separate
+        question: a schedule-only event lists its talks to everyone but withholds the video.
         """
-        if user.is_superuser:
+        if getattr(user, "is_superuser", False):
             return self
-        return self.filter(event__in=user.events.all())
+
+        visible = Q(event__visibility__in=PUBLICLY_LISTED_VISIBILITIES)
+        if user is not None and user.is_authenticated:
+            # ``events`` only exists on CustomUser. Degrade to the public set for anything else
+            # (an alternative auth backend, a test double) instead of raising.
+            member_events = getattr(user, "events", None)
+            if member_events is not None:
+                visible |= Q(event__in=member_events.all())
+
+        return self.filter(visible)
 
     def with_streamings(self) -> list[Talk]:
         """

@@ -16,6 +16,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from events.models import PUBLICLY_LISTED_VISIBILITIES
 from users.validators import validate_display_name
 from utils.email_utils import obfuscate_email
 
@@ -228,12 +229,18 @@ class CustomUser(AbstractUser):
         """
         Return active events visible to this user, ordered by name.
 
-        Superusers see all active events; regular users see only their linked events.
+        Superusers see all active events. Everyone else sees their own events plus every event
+        that is not hidden, mirroring ``TalkQuerySet.accessible_to`` so the event picker never
+        offers an event whose talk list would then come back empty.
         """
-        # Resolve the Event model from the M2M descriptor so we don't need a
-        # runtime import of events.models (which would be circular).
         event_model = self.events.model
-        base = event_model.objects.all() if self.is_superuser else self.events.all()
+        if self.is_superuser:
+            base = event_model.objects.all()
+        else:
+            base = event_model.objects.filter(
+                models.Q(pk__in=self.events.values("pk"))
+                | models.Q(visibility__in=PUBLICLY_LISTED_VISIBILITIES),
+            )
         return base.filter(is_active=True).order_by("name")
 
     def save(self, *args: Any, **kwargs: Any) -> None:

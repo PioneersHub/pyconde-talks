@@ -12,11 +12,15 @@ import contextlib
 from typing import TYPE_CHECKING, cast
 
 from django.conf import settings
+from django.db.models import Q
 
-from events.models import Event
+from events.models import PUBLICLY_LISTED_VISIBILITIES, Event
 
 
 if TYPE_CHECKING:
+    from django.contrib.auth.base_user import AbstractBaseUser
+    from django.contrib.auth.models import AnonymousUser
+    from django.db.models import QuerySet
     from django.http import HttpRequest
 
 
@@ -40,6 +44,23 @@ def set_selected_event_slug(request: HttpRequest, slug: str) -> None:
     # Invalidate the per-request resolution cache so subsequent calls see the new slug.
     if hasattr(request, _CACHE_ATTR):
         delattr(request, _CACHE_ATTR)
+
+
+def events_visible_to(user: AbstractBaseUser | AnonymousUser | None) -> QuerySet[Event]:
+    """
+    Return the active events this user may browse, for any user including anonymous ones.
+
+    ``CustomUser.visible_events`` covers the authenticated case but does not exist on
+    ``AnonymousUser``, so views would otherwise have to branch on ``is_authenticated`` before
+    every call. Anonymous visitors get the events that are not hidden, which is the same set
+    ``TalkQuerySet.accessible_to`` uses for them.
+    """
+    visible_events = getattr(user, "visible_events", None)
+    if visible_events is not None:
+        return cast("QuerySet[Event]", visible_events())
+    return Event.objects.filter(
+        Q(is_active=True) & Q(visibility__in=PUBLICLY_LISTED_VISIBILITIES),
+    ).order_by("name")
 
 
 def resolve_default_event(request: HttpRequest) -> Event | None:
