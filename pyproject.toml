@@ -61,17 +61,17 @@ dependencies = [
 dev = [
     "bandit[sarif]>=1.9.4",
     "django-stubs[compatible-mypy]>=6.0.7",
-    "djlint>=1.43.1",
+    "djlint>=1.43.2",
     "faker>=40.36.0",
-    "ipython>=9.16.0",
+    "ipython>=9.16.1",
     "mypy>=2.3.0",
     "pandas-stubs>=3.0.5.260730",
-    "prek>=0.4.11",
+    "prek>=0.4.12",
     "ruff>=0.16.1",
     "zuban>=0.9.1",
 ]
 test = [
-    "hypothesis>=6.164.0",
+    "hypothesis>=6.165.0",
     "inline-snapshot>=0.35.3",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
@@ -87,7 +87,7 @@ prod = [
     "psycopg[binary]>=3.3.4",
 ]
 docs = [
-    "zensical>=0.0.52",
+    "zensical>=0.0.53",
 ]
 
 [project.urls]

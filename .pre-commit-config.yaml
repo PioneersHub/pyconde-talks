@@ -23,7 +23,7 @@ repos:
       - id: ruff-format
 
   - repo: https://github.com/djlint/djLint
-    rev: v1.43.2
+    rev: v1.44.0
     hooks:
       - id: djlint-reformat-django
       - id: djlint-django
@@ -75,7 +75,7 @@ repos:
   # rev is Renovate's bare semver with NO "v" prefix; Renovate keeps it bumped via the pre-commit
   # manager (it lands in the "pre-commit hooks" group).
   - repo: https://github.com/renovatebot/pre-commit-hooks
-    rev: 44.7.1
+    rev: 44.13.2
     hooks:
       - id: renovate-config-validator
         args: [--strict]
