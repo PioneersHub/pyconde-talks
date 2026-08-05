@@ -3,6 +3,11 @@ Views for managing and displaying Question and Answer objects.
 
 This module provides class-based and function-based views for handling Question and Answer including
 listing, creating, voting, and moderation actions.
+
+Every view here requires a login, at every event visibility including public. Moderating Q&A is
+volunteer work, so opening an event's recordings does not also open its Q&A. The requirement is
+declared per view rather than left to ``LoginRequiredMiddleware``: browsing URLs are becoming
+public, and a stray ``login_not_required`` on a URL would otherwise quietly expose these too.
 """
 
 from http import HTTPStatus
@@ -10,7 +15,8 @@ from typing import TYPE_CHECKING, Any, cast
 
 from django import forms
 from django.contrib import messages
-from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
@@ -52,7 +58,7 @@ def _get_accessible_question(user: AbstractBaseUser | AnonymousUser, question_id
     return question
 
 
-class QuestionListView(ListView[Question]):
+class QuestionListView(LoginRequiredMixin, ListView[Question]):
     """
     Display a list of questions for a specific talk.
 
@@ -113,7 +119,7 @@ class QuestionListView(ListView[Question]):
         return context
 
 
-class QuestionCreateView(CreateView[Question, forms.ModelForm[Question]]):
+class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelForm[Question]]):
     """
     Create a new question for a talk.
 
@@ -265,6 +271,7 @@ def render_question_list_fragment(
     )
 
 
+@login_required
 @require_POST
 def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """
@@ -299,6 +306,7 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
     )
 
 
+@login_required
 @require_POST
 def delete_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """Allow a user to delete their own question."""
@@ -326,10 +334,16 @@ class QuestionOwnerRequiredMixin(UserPassesTestMixin):
 
 
 class QuestionUpdateView(
+    LoginRequiredMixin,
     QuestionOwnerRequiredMixin,
     UpdateView[Question, forms.ModelForm[Question]],
 ):
-    """Allow a question owner to edit content; clears votes upon successful update."""
+    """
+    Allow a question owner to edit content; clears votes upon successful update.
+
+    ``LoginRequiredMixin`` comes first so an anonymous visitor is redirected to log in rather
+    than getting the 403 that ``UserPassesTestMixin`` raises when its test fails.
+    """
 
     model = Question
     fields = ("content",)
@@ -421,6 +435,7 @@ def _moderate_question(
     return redirect("talk_questions", talk_id=question.talk.pk)
 
 
+@login_required
 @require_POST
 def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """Reject a question."""
@@ -432,6 +447,7 @@ def reject_question(request: HttpRequest, question_id: int) -> HttpResponse:
     )
 
 
+@login_required
 @require_POST
 def mark_question_answered(request: HttpRequest, question_id: int) -> HttpResponse:
     """Mark a question as answered."""
@@ -443,6 +459,7 @@ def mark_question_answered(request: HttpRequest, question_id: int) -> HttpRespon
     )
 
 
+@login_required
 @require_POST
 def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """Approve a question."""
@@ -454,6 +471,7 @@ def approve_question(request: HttpRequest, question_id: int) -> HttpResponse:
     )
 
 
+@login_required
 @require_safe
 def question_redirect_view(request: HttpRequest, talk_id: str) -> HttpResponse:
     """Get talk question view by Talk ID or pretalx_id."""

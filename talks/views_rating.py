@@ -3,12 +3,17 @@ Rating-related views for Talk objects.
 
 Split out from ``talks.views`` so the rating submission / deletion / stats endpoints live next to
 each other without pulling the core Talk list/detail views along with them.
+
+A rating belongs to a user (one per talk, by unique constraint), so all three endpoints require a
+login at every event visibility. Declared per view rather than left to ``LoginRequiredMiddleware``
+because the browsing URLs around them are public.
 """
 
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -68,6 +73,7 @@ def _render_rating_htmx_response(
     return HttpResponse(widget_html + oob_html)
 
 
+@login_required
 @require_POST
 def rate_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     """
@@ -131,6 +137,7 @@ def rate_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     return redirect("talk_detail", pk=talk_id)
 
 
+@login_required
 @require_POST
 def delete_rating(request: HttpRequest, talk_id: int) -> HttpResponse:
     """
@@ -153,6 +160,7 @@ def delete_rating(request: HttpRequest, talk_id: int) -> HttpResponse:
     return _render_rating_htmx_response(request, talk, is_comment_save=False)
 
 
+@login_required
 @require_safe
 def get_talk_rating_stats(request: HttpRequest, talk_id: int) -> JsonResponse:
     """
