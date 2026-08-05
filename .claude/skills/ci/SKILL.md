@@ -4,7 +4,7 @@ description: Run the local CI pipeline (ruff, bandit, pytest, sonar-scanner) and
 disable-model-invocation: true
 ---
 
-# /ci — Full local CI + SonarQube refresh
+# /ci: full local CI + SonarQube refresh
 
 Run this before opening a PR, or whenever the `mcp__sonarqube__*` findings look stale. The scanner
 uploads the JSON reports that ruff, bandit, and pytest produce, so those have to run first.

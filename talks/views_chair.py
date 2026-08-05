@@ -67,8 +67,8 @@ def _find_chair_conflicts(target_user: CustomUser, block: list[Talk]) -> list[Ta
     """
     Return talks already chaired by target_user that would overlap in time with the block.
 
-    Any overlap (even partial) is a conflict. Talks already in the block are excluded - they will be
-    reassigned and therefore cannot conflict with themselves.
+    Any overlap (even partial) is a conflict. Talks already in the block are excluded, since they
+    will be reassigned and therefore cannot conflict with themselves.
     """
     dates = {t.start_time.date() for t in block if t.start_time}
     if not dates:
@@ -95,7 +95,7 @@ def _get_available_chairs(user: CustomUser, event_id: int | None) -> list[Custom
     Return users eligible to chair sessions for the given event scope.
 
     Superusers are always included (they have implicit access to all events). Regular staff must be
-    members of the specific event - or, when no event is selected, members of any event visible to
+    members of the specific event, or, when no event is selected, members of any event visible to
     the requesting admin.
     """
     UserModel = cast("type[CustomUser]", get_user_model())  # noqa: N806  # NOSONAR(S117)
@@ -132,8 +132,8 @@ def _find_tight_transitions(
     Find talks with tight room transitions relative to ``talk``.
 
     Return talks chaired by target_user in a different room whose gap to ``talk`` is within
-    ``BLOCK_GAP_TOLERANCE`` (but not overlapping). These are not conflicts - the moderator can chair
-    both - but switching rooms in under 5 minutes is worth a heads-up.
+    ``BLOCK_GAP_TOLERANCE`` (but not overlapping). These are not conflicts, since the moderator can
+    chair both, but switching rooms in under 5 minutes is worth a heads-up.
     """
     if not talk.start_time or not talk.room:
         return []
@@ -185,7 +185,7 @@ def _admin_assign(talk: Talk, raw_id: str) -> tuple[str | None, str | None]:
     """
     Execute the admin assignment path: assign a specific user or clear the talk.
 
-    Returns ``(error, warning)`` - error is set when the assignment is blocked by a time conflict,
+    Returns ``(error, warning)``: error is set when the assignment is blocked by a time conflict,
     warning is set when the assignment succeeds but the user has a tight room change.
     """
     if not (raw_id and raw_id.isdigit()):
@@ -209,7 +209,7 @@ def _mod_toggle(user: CustomUser, talk: Talk) -> tuple[str | None, str | None]:
     """
     Execute the moderator self-toggle: claim or release a single talk.
 
-    Returns ``(error, warning)`` - error is set when claiming is blocked, warning when a tight room
+    Returns ``(error, warning)``: error is set when claiming is blocked, warning when a tight room
     change is detected after a successful claim.
     """
     if talk.session_chair_id not in (None, user.pk):

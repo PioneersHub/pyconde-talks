@@ -6,8 +6,8 @@ the command completes without a fetch failure and, if any talks are created, tha
 links are built from the provided base URL.
 
 Requires environment variables:
-    TEST_PRETALX_EVENT_URL - e.g. https://pretalx.com/pyconde-pydata-2026
-    PRETALX_API_TOKEN - a valid API token
+    TEST_PRETALX_EVENT_URL: e.g. https://pretalx.com/pyconde-pydata-2026
+    PRETALX_API_TOKEN: a valid API token
 """
 
 import os

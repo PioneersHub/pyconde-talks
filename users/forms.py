@@ -53,7 +53,7 @@ class SuperUserCreationForm(forms.ModelForm[CustomUser]):
         """Initialize form and set initial values for superuser fields."""
         super().__init__(*args, **kwargs)
         # In the first step of user creation, this field might not be present yet
-        if "is_superuser" in self.fields:  # pragma: no cover - only via admin fieldsets
+        if "is_superuser" in self.fields:  # pragma: no cover (only via admin fieldsets)
             self.fields["is_superuser"].initial = True
             self.fields["is_superuser"].widget.attrs["disabled"] = True
             self.fields["is_superuser"].help_text = _(
@@ -219,7 +219,7 @@ class PasswordlessDisconnectForm(DisconnectForm):  # type: ignore[misc]
         if has_other_accounts:
             return
 
-        # Last social account - verify the user can still log in without it.
+        # Last social account: verify the user can still log in without it.
         social_adapter = get_adapter()  # type: ignore[no-untyped-call]
         verified_email = (
             EmailAddress.objects.filter(user=account.user, verified=True)

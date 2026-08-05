@@ -1,7 +1,7 @@
 """
 Tests for the pending (pre-moderation) question state.
 
-Nothing produces a pending question yet - the per-event Q&A modes and the spam heuristics do that -
+Nothing produces a pending question yet (the per-event Q&A modes and the spam heuristics do that),
 so these cover the state itself: who can see one, and how it moves out again.
 """
 

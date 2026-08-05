@@ -45,7 +45,7 @@ A Django application to publish talks, schedules, and live Q&A for conference ev
 
 ```
 pyconde-talks/
-├── event_talks/            # Django project - settings, URLs, ASGI/WSGI
+├── event_talks/            # Django project: settings, URLs, ASGI/WSGI
 ├── events/                 # Event model and admin
 ├── talks/                  # Talks, speakers, rooms, ratings, Q&A, streaming
 │   ├── management/commands/  # import_pretalx_talks, import_livestream_urls,
@@ -213,11 +213,11 @@ docker buildx bake --allow=fs.read=..
 
 This builds two targets:
 
-1. **django** - multi-stage image built on [Chainguard's](https://www.chainguard.dev/) hardened,
+1. **django**: multi-stage image built on [Chainguard's](https://www.chainguard.dev/) hardened,
    minimal `wolfi-base` (no shell tooling like `curl`/`vim`; Python comes from Wolfi's `apk`
    package, not a download). Runs as a non-root user (UID 65532), with a pure-Python health check on
    `/ht/` and Daphne as the ASGI server
-2. **staticfiles** - exports compiled static files to `docker/staticfiles/` for serving with Nginx
+2. **staticfiles**: exports compiled static files to `docker/staticfiles/` for serving with Nginx
 
 ### Run
 

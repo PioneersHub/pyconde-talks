@@ -206,7 +206,7 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
         if not self._validate_email_for_event(email, email_hash, event):
             return False
 
-        # Validation passed - associate the existing user with the event
+        # Validation passed: associate the existing user with the event
         # (new users are handled later when the user is created in the view).
         if user and event:
             grant_event_access(user, event, EventAccessGrant.Source.TICKET)

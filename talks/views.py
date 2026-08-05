@@ -302,7 +302,7 @@ class TalkListView(ListView[Talk]):
             (ptype, Talk.PresentationType(ptype).label) for ptype in existing_types
         ]
 
-        # Selected values - clear stale selections that no longer match the event
+        # Selected values: clear stale selections that no longer match the event
         selected_room = self.request.GET.get("room", "")
         room_ids = {str(room.pk) for room in context["rooms"]}
         context["selected_room"] = selected_room if selected_room in room_ids else ""

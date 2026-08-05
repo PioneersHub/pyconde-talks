@@ -612,7 +612,7 @@ class TestTightTransitionWarning:
             start_time=start,
             duration=timedelta(minutes=30),
         )
-        # Starts exactly when the other ends - 0-minute gap.
+        # Starts exactly when the other ends: a 0-minute gap.
         adjacent = baker.make(
             Talk,
             room=room,

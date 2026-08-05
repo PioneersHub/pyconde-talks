@@ -214,7 +214,7 @@ class TestScaleAwareLayout:
                 sizes[name] = int(base * scale)
             return sizes
 
-        # Just verify the math - actual font loading is tested elsewhere.
+        # Just verify the math; actual font loading is tested elsewhere.
         _patched_load(2.0)
         assert sizes["title"] == _FONT_SIZE_TITLE * 2
         assert sizes["subtitle"] == _FONT_SIZE_SUBTITLE * 2

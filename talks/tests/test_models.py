@@ -434,7 +434,7 @@ class TestPrefetchStreamings:
             for t in talks:
                 t.get_video_link()
 
-        # One SELECT for talks, one for streamings - never per-row.
+        # One SELECT for talks, one for streamings, never per-row.
         max_expected_queries = 2
         assert len(ctx.captured_queries) <= max_expected_queries
         assert isinstance(talks, list)
@@ -450,7 +450,7 @@ class TestPrefetchStreamings:
             duration=timedelta(minutes=30),
             video_link="",
         )
-        # Streaming that ends before the talk starts - must not match.
+        # Streaming that ends before the talk starts, so it must not match.
         baker.make(
             Streaming,
             room=room,

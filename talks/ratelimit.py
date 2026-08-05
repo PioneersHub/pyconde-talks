@@ -31,7 +31,7 @@ logger = structlog.get_logger(__name__)
 
 # Why the handlers below catch ``Exception`` rather than something specific: Django's cache API
 # does not define its own error type and does not wrap the driver's, so what a failing backend
-# raises depends entirely on which backend it is - ``redis.exceptions.RedisError`` here, something
+# raises depends entirely on which backend it is: ``redis.exceptions.RedisError`` here, something
 # else under memcached. Naming them would mean importing drivers this module has no other use for,
 # and a miss would reintroduce exactly the 500 this exists to prevent.
 _UNREACHABLE_CACHE = "cache backend errors are driver-specific; see the module docstring"
@@ -153,7 +153,7 @@ def question_limits() -> tuple[RateLimit, RateLimit]:
     Return the (per-talk, overall) allowances for asking questions.
 
     Read from settings on each call rather than captured at import, so an operator can loosen them
-    mid-conference without a redeploy - which is exactly when that is needed.
+    mid-conference without a redeploy, which is exactly when that is needed.
     """
     return (
         RateLimit(

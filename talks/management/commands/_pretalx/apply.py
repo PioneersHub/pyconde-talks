@@ -106,7 +106,7 @@ def _apply_update(change: PendingPretalxChange) -> Talk:
     """
     Apply ``field_diffs`` and ``speaker_diffs`` onto *change.talk*.
 
-    Only fields recorded in ``field_diffs`` are touched - any manual local edits to *other* fields
+    Only fields recorded in ``field_diffs`` are touched, so any manual local edits to *other* fields
     are preserved.
     """
     talk: Talk | None = change.talk
@@ -243,8 +243,8 @@ def _resolve_room(
     on a miss. Empty *room_name* returns ``None``.
 
     Backward-compatible: pending rows recorded before id-keying pass ``pretalx_id=None`` and resolve
-    purely by ``(event, name)`` - identical to the old name-only behavior, now correctly scoped to
-    the event.
+    purely by ``(event, name)``. That is identical to the old name-only behavior, now correctly
+    scoped to the event.
     """
     if not room_name:
         return None

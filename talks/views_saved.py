@@ -101,7 +101,7 @@ def merge_saved_talks(request: HttpRequest) -> JsonResponse:
 
     Ids are scoped through ``accessible_to``, so a hand-crafted payload cannot be used to probe
     which talk ids exist on an event the user cannot see. The merge is a union and never deletes, so
-    an account's own bookmarks always win, and it is idempotent - the client clears its copy only on
+    an account's own bookmarks always win, and it is idempotent: the client clears its copy only on
     a 200, and retries on the next page view otherwise.
     """
     talk_ids = _parse_merge_ids(request.body)

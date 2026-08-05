@@ -2,7 +2,7 @@
 Tests for the Room.event backfill logic used by data migration 0025.
 
 ``Room.event`` is NOT NULL on the current schema, so event-less rooms can't be created through the
-ORM anymore - but the backfill runs during migration 0025, while the column is still nullable. To
+ORM anymore. But the backfill runs during migration 0025, while the column is still nullable. To
 exercise every branch we drive ``backfill_room_events`` with small duck-typed fakes that stand in
 for the historical (nullable) Room/Event/Talk models. A final real-model test confirms it stays a
 safe no-op against the live schema (where no null-event rooms exist), and migration 0025 applying

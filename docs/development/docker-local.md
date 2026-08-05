@@ -24,8 +24,8 @@ file live.
     A bare `docker compose` (without `-f compose.local.yaml`) uses the production paths from
     `compose.yaml`: `/var/log/talks.pycon.de` and `/var/opt/talks.pycon.de/media`. On Docker Desktop or
     Colima those live inside the Linux VM, not on your Mac, so Docker creates them there owned by `root`
-    and the container - which runs as UID 65532 - cannot write its log files. Django then dies on
-    startup with:
+    and the container (which runs as UID 65532) cannot write its log files. Django then dies on startup
+    with:
 
     ```
     PermissionError: [Errno 13] Permission denied: '/logs/auth.log'
@@ -58,7 +58,7 @@ the app image and a `staticfiles-export` target that dumps the collected, conten
 `docker/staticfiles`. Building both with the same tag guarantees the `staticfiles.json` manifest
 baked into the image matches the exported files.
 
-!!! danger "Bake does not read `.env` - export the image name first"
+!!! danger "Bake does not read `.env`, so export the image name first"
 
     `docker compose` interpolates `${IMAGE_NAME}` and `${IMAGE_TAG}` from `docker/.env`, so it runs
     `talks.pycon.de-django:latest`. **Bake does not read `.env` at all**: its variables come only from
@@ -66,8 +66,8 @@ baked into the image matches the exported files.
     image `event-talks:latest`.
 
     Build without exporting anything and the two names never meet. Bake succeeds, `dcl up -d` starts the
-    *previous* `talks.pycon.de-django:latest`, and your changes appear to have been ignored - which
-    looks exactly like a stale build cache but is not. Check with
+    *previous* `talks.pycon.de-django:latest`, and your changes appear to have been ignored, which looks
+    exactly like a stale build cache but is not. Check with
     `docker images | grep -E 'event-talks|talks.pycon.de-django'`: two images, two timestamps.
 
     Bake and compose read the same two variable *names* (`IMAGE_NAME`, `IMAGE_TAG`), so exporting them

@@ -300,7 +300,7 @@ class Speaker(models.Model):
 def _talk_image_upload_path(instance: Talk, filename: str) -> str:
     """Return the upload path for a talk image, using the event's assets sub-directory."""
     # Guard on event_id (no query, no RelatedObjectDoesNotExist): Talk.event is required,
-    # so its accessor raises when unset - which can happen for an unsaved talk mid-creation.
+    # so its accessor raises when unset, which can happen for an unsaved talk mid-creation.
     subdir = instance.event.slug if instance.event_id else ""
     if subdir:
         return f"talk_images/{subdir}/{filename}"
@@ -316,7 +316,7 @@ def user_can_watch_videos(
 
     Superusers always may. Everyone else needs the event to be active first: deactivating an event
     takes it off the site for everyone, so there is nothing left to play. Given an active event,
-    ticket holders may, and everyone else only once it is public - a schedule-only event publishes
+    ticket holders may, and everyone else only once it is public. A schedule-only event publishes
     its programme but keeps the recordings for ticket holders.
 
     Kept separate from ``TalkQuerySet.accessible_to``, which decides whether a talk is *listed*. A
@@ -444,7 +444,7 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
         ``is_active`` binds both halves, membership included. Deactivating an event is how an
         organizer takes it off the site, and ``events_visible_to`` / ``visible_events`` already drop
         inactive events from the event picker, so anything still reachable here would only be
-        reachable by direct URL - visible to whoever kept a link, invisible to everyone navigating
+        reachable by direct URL: visible to whoever kept a link, invisible to everyone navigating
         normally. Holding a ticket does not change that: the event is gone.
 
         This decides *listing* only. Whether the recording can be played is a separate question: a
@@ -468,9 +468,9 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
         Evaluate the queryset and batch-load the ``streaming`` cache on every row.
 
         Returns a list (not a queryset): like Django's own ``prefetch_related`` chain, this is a
-        terminal operation - further filtering would invalidate the cache.  Use it in views where
-        you would otherwise call ``list(qs)`` and then iterate each talk's ``get_video_link`` /
-        ``get_transcription_url`` / ``streaming``.
+        terminal operation, because further filtering would invalidate the cache.  Use it in views
+        where you would otherwise call ``list(qs)`` and then iterate each talk's ``get_video_link``
+        / ``get_transcription_url`` / ``streaming``.
         """
         talks = list(self)
         prefetch_streamings(talks)
@@ -1146,7 +1146,7 @@ def prefetch_streamings(talks: list[Talk]) -> None:
 
 
 # Rating + SavedTalk models live in talks.models_rating. Import them here so that importing
-# talks.models always registers every Talk-related model with Django - migrations, admin
+# talks.models always registers every Talk-related model with Django. Migrations, admin
 # autodiscovery, and model_bakery all rely on that side effect.
 from talks.models_pretalx import (  # noqa: E402
     MAX_PRETALX_CODE_LENGTH,

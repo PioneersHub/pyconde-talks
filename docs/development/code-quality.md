@@ -120,12 +120,12 @@ workflow before it builds or deploys any image, so nothing ships that has not pa
 `checks.yml` runs one `quality` job on `ubuntu-latest`:
 
 1. Install `uv`, set up the Python version from `pyproject.toml`.
-2. `uv sync --all-groups --locked --no-build` - install every dependency group from the locked
+2. `uv sync --all-groups --locked --no-build`: install every dependency group from the locked
     versions, requiring prebuilt wheels.
-3. `uv run ruff check --output-format=github .` - lint, with annotations inline on the PR.
-4. `uv run ruff format --check .` - fail if anything is unformatted.
-5. `uv run zuban check` - strict type check.
-6. `uv run pytest` - the full test suite (see [Testing](testing.md)).
+3. `uv run ruff check --output-format=github .`: lint, with annotations inline on the PR.
+4. `uv run ruff format --check .`: fail if anything is unformatted.
+5. `uv run zuban check`: strict type check.
+6. `uv run pytest`: the full test suite (see [Testing](testing.md)).
 
 Because the workflow installs from `uv.lock`, keep the lockfile committed and up to date (the
 `uv-lock` pre-commit hook does this for you).

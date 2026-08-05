@@ -1,4 +1,4 @@
-"""Typed import context - Parameter Object for the Pretalx importer."""
+"""Typed import context: the Parameter Object for the Pretalx importer."""
 
 import dataclasses
 from dataclasses import dataclass

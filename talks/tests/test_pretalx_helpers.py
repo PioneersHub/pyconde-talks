@@ -284,7 +284,7 @@ class TestEventHelpers:
 
 
 # ---------------------------------------------------------------------------
-# rooms.py - get_or_create_room single helper
+# The get_or_create_room single helper from rooms.py
 # ---------------------------------------------------------------------------
 @pytest.mark.django_db
 class TestGetOrCreateRoom:
@@ -494,7 +494,7 @@ class TestSpeakerHelpers:
 
 
 # ---------------------------------------------------------------------------
-# talks.py - create_talk / update_talk / add_speakers_to_talk / update_talk_speakers
+# The create_talk, update_talk, add_speakers_to_talk and update_talk_speakers helpers
 # ---------------------------------------------------------------------------
 @pytest.mark.django_db
 class TestCreateAndUpdateTalk:
@@ -652,7 +652,7 @@ class TestCreateAndUpdateTalk:
 
 
 # ---------------------------------------------------------------------------
-# validation.py - long title + missing room warnings
+# Long title and missing room warnings from validation.py
 # ---------------------------------------------------------------------------
 @pytest.mark.django_db
 class TestValidation:

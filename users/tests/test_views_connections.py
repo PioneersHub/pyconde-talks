@@ -216,7 +216,7 @@ class TestConnectionsView:
         client: Any,
         discord_user_with_verified_email: CustomUser,
     ) -> None:
-        """After connecting a ticket email, primary email is authorized - can disconnect."""
+        """After connecting a ticket email, the primary email is authorized and can disconnect."""
         user = discord_user_with_verified_email
         # Old Discord email (non-primary, still verified)
         old = EmailAddress.objects.get(user=user, email=user.email)

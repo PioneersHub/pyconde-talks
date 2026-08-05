@@ -121,7 +121,7 @@ def test_api_authorization_success(
     # Make sure we're testing the API path by clearing the whitelist
     settings.AUTHORIZED_EMAILS_WHITELIST = []
 
-    # Test authorization - should succeed because we've mocked the API to return valid=True
+    # Test authorization: should succeed because we've mocked the API to return valid=True
     assert adapter.is_email_authorized("user@example.com") is True
 
     # Check request was properly formed
@@ -141,7 +141,7 @@ def test_api_authorization_failure(
     # Make sure we're testing the API path by clearing the whitelist
     settings.AUTHORIZED_EMAILS_WHITELIST = []
 
-    # Test authorization - should fail because we've mocked the API to return valid=False
+    # Test authorization: should fail because we've mocked the API to return valid=False
     assert adapter.is_email_authorized("user@example.com") is False
 
     # Check request was properly formed
@@ -243,7 +243,7 @@ def test_api_authorization_valid_false(
     settings: SettingsWrapper,
     httpx2_mock: respx.Router,
 ) -> None:
-    """Test API returns valid=false — hits the warning branch."""
+    """Test API returns valid=false, hitting the warning branch."""
     api_url = "https://fake-api.example.com/validate"
     settings.EMAIL_VALIDATION_API_URL_FALLBACK = api_url
     settings.AUTHORIZED_EMAILS_WHITELIST = []

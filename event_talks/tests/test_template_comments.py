@@ -4,7 +4,7 @@ Guards against Django template comments leaking into rendered pages.
 ``{# ... #}`` is a *single-line* comment: Django's lexer matches it with ``{#.*?#}`` and ``.`` does
 not match a newline, so a comment spanning two lines is never recognized as a token and is emitted
 as literal text. The page still renders, nothing errors, and the prose ends up on screen for
-visitors to read - which is exactly what happened on this branch, in eleven files.
+visitors to read, which is exactly what happened on this branch, in eleven files.
 
 ``{% comment %} ... {% endcomment %}`` is the multi-line form and is stripped at compile time.
 """

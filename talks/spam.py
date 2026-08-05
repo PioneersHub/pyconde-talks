@@ -7,8 +7,10 @@ a queue nobody reads carefully is worse than no queue at all. So every rule here
 that essentially never appears in a real conference question.
 
 The clearest example is links. Advertising is full of them, but so is a good question: "how does
-this compare to https://scikit-learn.org?" is entirely normal. A single link therefore never flags
-on its own - it takes a second signal, or several links, to look like an advert.
+this compare to
+https://scikit-learn.org?"
+is entirely normal. A single link therefore never flags
+on its own. It takes a second signal, or several links, to look like an advert.
 
 Not a library. The usual candidate is Akismet, which means an API key, a per-request round trip to a
 third party on a path that must not block the Q&A, and sending attendees' question text off site.
@@ -73,7 +75,7 @@ _CONTACT_HANDLE_RE: Final = re.compile(
 # a Python conference is full of alone: API, GPU, SQL, PEP, ORM, ASGI all pass.
 _SHOUTING_RE: Final = re.compile(r"\b[A-Z]{8,}\b")
 
-# Shouting spread over several short words - "FREE MONEY CLICK HERE NOW" - which the run rule
+# Shouting spread over several short words ("FREE MONEY CLICK HERE NOW"), which the run rule
 # above misses because no single word is long enough. Measured as a ratio so a question that just
 # happens to be acronym-heavy stays clear: "I use GPU, SQL and the ORM API daily" is about 40%.
 _SHOUTING_RATIO: Final = 0.7
@@ -166,8 +168,8 @@ def _is_shouting(content: str) -> bool:
     is long enough for the first, without touching a question that is merely acronym-heavy.
 
     URLs are removed before either test. They are not prose, and their lowercase characters dragged
-    the ratio down far enough that "SHOUTING plus a link" - the exact pairing the caller is looking
-    for - stopped registering as shouting at all.
+    the ratio down far enough that "SHOUTING plus a link", the exact pairing the caller is looking
+    for, stopped registering as shouting at all.
     """
     prose = _URL_RE.sub(" ", content)
     if _SHOUTING_RE.search(prose):

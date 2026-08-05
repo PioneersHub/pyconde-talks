@@ -365,7 +365,7 @@ class ProcessingMixin(LoggingMixin):
         Image regeneration is triggered when *any* of these is true (and ``--skip-images`` is not
         set): the talk data or speaker set changed, ``--force-images`` was passed, a still-attached
         speaker's name/avatar changed earlier in this run, or a social-card template is newer than
-        the current image. The return status reflects the data diff only - force-regen does not
+        the current image. The return status reflects the data diff only: force-regen does not
         promote ``"unchanged"`` to ``"updated"``.
         """
         if ctx.no_update:

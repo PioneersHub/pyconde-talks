@@ -305,7 +305,7 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
     ) -> type[ModelForm[CustomUser]]:
         """Return the appropriate form class based on user type."""
         if obj is None:
-            # Creating a new user — pick form based on the query parameter
+            # Creating a new user: pick the form based on the query parameter
             user_type = request.GET.get("user_type")
             if user_type == "regular":
                 kwargs["form"] = RegularUserCreationForm
@@ -337,7 +337,7 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
     def get_queryset(self, request: HttpRequest) -> QuerySet[CustomUser]:
         """Optimize query by prefetching relations used in the changelist."""
         queryset = super().get_queryset(request)
-        # ``events`` is hit per-row by the ``event_names`` column - without the prefetch
+        # ``events`` is hit per-row by the ``event_names`` column. Without the prefetch
         # the changelist runs one query per user.
         return queryset.prefetch_related(
             "emailaddress_set",
@@ -399,7 +399,7 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
     ) -> Any:
         """Use different fieldsets for regular users vs superusers."""
         if not obj:
-            # Creating a new user — pick fieldsets based on the query parameter
+            # Creating a new user: pick the fieldsets based on the query parameter
             user_type = request.GET.get("user_type")
             if user_type == "regular":
                 return self.regular_user_add_fieldsets

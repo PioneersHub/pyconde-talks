@@ -54,9 +54,10 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
     at least one role listed in ``settings.DISCORD_ALLOWED_ROLES``. If the list is empty, all
     Discord logins are rejected.
 
-    Role-to-Django permission mapping (applied when a Discord account is connected - on brand-new
+    Role-to-Django permission mapping, applied when a Discord account is connected (on brand-new
     signups via ``save_user``, when linking to an existing email-based account, and when merging an
     orphan Discord account into an authenticated user):
+
     - ``DISCORD_ADMIN_ROLES``: grants ``is_superuser = True`` and ``is_staff = True``
     - ``DISCORD_STAFF_ROLES``: grants ``is_staff = True``
     - all others / empty lists: no elevated permissions
@@ -156,7 +157,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
             self._add_default_event(cast("CustomUser", sociallogin.user))
             return
 
-        # Step 3: new social login - connect to existing email account if possible
+        # Step 3: new social login, connect to an existing email account if possible
         self._connect_to_existing_account(request, sociallogin)
 
     @override
@@ -267,7 +268,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
         try:
             existing_email = EmailAddress.objects.get(email__iexact=email)
         except EmailAddress.DoesNotExist:
-            return  # No existing account - allauth will call save_user for a new signup
+            return  # No existing account, so allauth will call save_user for a new signup
 
         existing_user = existing_email.user
 

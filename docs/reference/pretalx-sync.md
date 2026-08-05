@@ -98,15 +98,15 @@ within one event by construction.
     nullable only during the backfill window). On a production database, snapshot the DB before applying
     migration `0025`, and verify no `Room.event IS NULL` rows remain before `0027` runs.
 
-1. `0024_room_event_pretalx_id` - additive, adds nullable `event` + `pretalx_id` (zero-downtime).
-2. `0025_backfill_room_event` - assigns each existing room its event from its talks (a room with no
+1. `0024_room_event_pretalx_id`: additive, adds nullable `event` + `pretalx_id` (zero-downtime).
+2. `0025_backfill_room_event`: assigns each existing room its event from its talks (a room with no
     talks falls back to the newest event; a room whose talks span multiple events aborts the
     migration loudly rather than guessing, since rooms are expected to be per-event).
-3. `0026_room_event_scoped_constraints` - drops the global unique on `name` and adds the per-event
+3. `0026_room_event_scoped_constraints`: drops the global unique on `name` and adds the per-event
     `(event, name)` and partial `(event, pretalx_id)` constraints.
-4. `0027_room_event_required` - tightens `Room.event` to NOT NULL once the backfill has populated
+4. `0027_room_event_required`: tightens `Room.event` to NOT NULL once the backfill has populated
     every row.
-5. `0028_backfill_talk_event` - assigns each event-less talk its room's event (or the newest event
+5. `0028_backfill_talk_event`: assigns each event-less talk its room's event (or the newest event
     when it has no room), then `0029_talk_event_required` tightens `Talk.event` to NOT NULL.
 
 `pretalx_id` for existing rooms is **not** backfilled by a migration (there is nothing local to map

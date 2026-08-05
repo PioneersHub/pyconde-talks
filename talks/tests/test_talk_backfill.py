@@ -2,7 +2,7 @@
 Tests for the Talk.event backfill logic used by data migration 0028.
 
 ``Talk.event`` is NOT NULL on the current schema, so event-less talks can't be created through the
-ORM anymore - but the backfill runs during migration 0028, while the column is still nullable. We
+ORM anymore. But the backfill runs during migration 0028, while the column is still nullable. We
 drive ``backfill_talk_events`` with small duck-typed fakes standing in for the historical (nullable)
 models, plus a real-model no-op test against the live schema. Migration 0028 applying during test-DB
 setup validates the query chain itself.

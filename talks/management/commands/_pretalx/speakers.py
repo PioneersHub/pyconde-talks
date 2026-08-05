@@ -1,4 +1,4 @@
-"""Speaker create/update helpers - single lookup and batch bulk operations."""
+"""Speaker create/update helpers: single lookup and batch bulk operations."""
 
 from typing import TYPE_CHECKING
 
@@ -139,7 +139,7 @@ def batch_create_or_update_speakers(
     Upsert all speakers from confirmed/accepted *submissions* in a single statement.
 
     Uses Django 4.1+ ``bulk_create(update_conflicts=True)`` so the database performs an ``INSERT ...
-    ON CONFLICT DO UPDATE`` keyed on ``pretalx_id`` - one round-trip whether the speaker is new or
+    ON CONFLICT DO UPDATE`` keyed on ``pretalx_id``: one round-trip whether the speaker is new or
     already present. With ``--no-update`` the call falls back to ``ignore_conflicts=True`` so
     existing rows are left untouched.
 

@@ -92,12 +92,12 @@ Superseded runs on the same PR are cancelled automatically to save minutes.
 
 The quality gate runs, in order:
 
-1. `uv sync --all-groups --locked --no-build` - install dev, test, and prod dependencies from the
+1. `uv sync --all-groups --locked --no-build`: install dev, test, and prod dependencies from the
     lockfile; every dependency must ship a prebuilt wheel
-2. `uv run ruff check` - lint
-3. `uv run ruff format --check` - formatting check
-4. `uv run zuban check` - strict type check
-5. `uv run pytest` - test suite (CI-safe defaults: SQLite, plain static files storage)
+2. `uv run ruff check`: lint
+3. `uv run ruff format --check`: formatting check
+4. `uv run zuban check`: strict type check
+5. `uv run pytest`: test suite (CI-safe defaults: SQLite, plain static files storage)
 
 Deploys never run from pull requests. The same `checks` workflow is also called by the deploy
 pipeline before any image is built, so only green code reaches production. See

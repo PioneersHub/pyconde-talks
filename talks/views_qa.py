@@ -250,11 +250,11 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
         Checked before the form is even bound, so a closed Q&A costs nothing to reject and cannot be
         talked into storing a question by a well-formed POST.
 
-        A safe method never reaches those checks. There is no standalone create template - the form
-        is embedded in the question list, and ``template_name`` used to name a file that does not
-        exist, so a GET here was a 500. It redirects to the page that has the form, and it does so
-        before the rate limit is claimed, or simply opening the URL would spend a question from the
-        author's allowance.
+        A safe method never reaches those checks. There is no standalone create template, because
+        the form is embedded in the question list, and ``template_name`` used to name a file that
+        does not exist, so a GET here was a 500. It redirects to the page that has the form, and it
+        does so before the rate limit is claimed, or simply opening the URL would spend a question
+        from the author's allowance.
         """
         if request.method in SAFE_METHODS:
             return redirect("talk_questions", talk_id=self.kwargs["talk_id"])
@@ -277,7 +277,7 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
 
         Order matters: the cheap, permanent reasons come before the rate limit, so a visitor who may
         not post here at all is told that rather than being counted against an allowance they were
-        never going to use. ``GET`` never reaches this - it redirects above - so nothing here can be
+        never going to use. ``GET`` never reaches this (it redirects above), so nothing here can be
         triggered by merely opening the page.
         """
         if not self.talk.event.qa_accepts_questions:
@@ -643,7 +643,7 @@ class QuestionUpdateView(
         Turn the edit away once the event's Q&A stops accepting questions.
 
         An edit replaces the body wholesale, so leaving this open would make editing the way to post
-        new content after a freeze - the one thing freezing is for. A disabled Q&A 404s through
+        new content after a freeze, the one thing freezing is for. A disabled Q&A 404s through
         ``_get_accessible_question``, like every other entry point.
 
         Checked before the form is bound, and only for the author: ``test_func`` is

@@ -18,7 +18,9 @@ HTMX, SQLite (dev) / PostgreSQL 18 (prod), `uv` for packages.
   Qualify it (`PretalxClient.event() returns ...`) or wrap it in double backticks.
 - A function whose body is only a docstring needs a trailing comment, or docformatter and
   ruff-format will fight over the blank line after it.
-- Never use em-dash (`—`). Use a regular hyphen or rephrase.
+- Never use em-dash (`—`) or en-dash (`–`). Rephrase instead: a colon, a semicolon, parentheses, or
+  two sentences. A spaced hyphen is not a substitute, it means something else. Hyphens are for
+  compound words (`event-scoped`) and ranges (`09:00 - 17:30`).
 
 ### What docformatter does not catch
 

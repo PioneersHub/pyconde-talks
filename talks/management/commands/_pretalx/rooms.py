@@ -1,4 +1,4 @@
-"""Room creation helpers - single lookup and batch bulk-create."""
+"""Room creation helpers: single lookup and batch bulk-create."""
 
 from typing import TYPE_CHECKING
 
@@ -35,7 +35,7 @@ def get_or_create_room(
     ``pretalx_id`` is stamped on first sight. Returns ``None`` when *room_name* is empty.
 
     In ``--dry-run`` and ``--detect-only`` modes nothing is written: the matched row is returned
-    UNCHANGED (no rename/stamp - the rename is surfaced as a reviewable diff instead) or, for a
+    UNCHANGED (no rename or stamp, since the rename is surfaced as a reviewable diff instead) or,
     brand-new room, an unsaved instance is returned.
     """
     if not room_name:
@@ -89,7 +89,7 @@ def _reconcile_existing_room(
 
     Stamping the id is collision-free without an extra check: we only reach the stamp branch when
     ``resolve_for_event`` matched by name, which only happens after its ``(event, pretalx_id)``
-    lookup missed - i.e. no other room in this event holds the id.
+    lookup missed, so no other room in this event holds the id.
     """
     update_fields: list[str] = []
     if room.name != name:

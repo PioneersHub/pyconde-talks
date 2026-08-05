@@ -44,7 +44,7 @@ Image.MAX_IMAGE_PIXELS = 50_000_000
 type _ImageFormat = Literal["webp", "jpeg"]
 
 # ------------------------------------------------------------------
-# Layout constants - defined at a "design" resolution of 1920 x 1080.
+# Layout constants, defined at a "design" resolution of 1920 x 1080.
 # When the template is larger the generator scales every value
 # proportionally so the final card looks identical at any size.
 # ------------------------------------------------------------------
@@ -138,7 +138,7 @@ def latest_template_mtime(ctx: ImportContext) -> float | None:
     """
     Return the most recent mtime across the event's social-card templates.
 
-    ``None`` means there is nothing to compare against - either no event is bound to the context yet
+    ``None`` means there is nothing to compare against: either no event is bound to the context yet,
     or the template directory has no PNGs. Used by the importer to decide when previously-generated
     talk images are stale.
     """
@@ -406,8 +406,8 @@ class TalkImageGenerator:
 
         Resolution order:
 
-        1. ``settings.TALK_CARD_FONT`` - explicit path to a ``.ttf`` / ``.otf`` file.
-        2. ``settings.TALK_CARD_FONT_NAME`` (default ``"Noto Sans"``) - looked
+        1. ``settings.TALK_CARD_FONT``: explicit path to a ``.ttf`` / ``.otf`` file.
+        2. ``settings.TALK_CARD_FONT_NAME`` (default ``"Noto Sans"``): looked
            up via :func:`matplotlib.font_manager.findfont`.
 
         Raises

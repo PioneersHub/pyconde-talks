@@ -268,7 +268,7 @@ def confirm_add_email_view(request: HttpRequest) -> HttpResponse:
                 },
             )
 
-        # Code is valid - create the verified EmailAddress
+        # Code is valid: create the verified EmailAddress
         _finalize_add_email(user, email, session_data.get("event_slug", ""))
         del request.session[_ADD_EMAIL_SESSION_KEY]
 

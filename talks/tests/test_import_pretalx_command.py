@@ -504,7 +504,7 @@ class TestBatchCreateOrUpdateSpeakers:
             avatar="https://example.com/old-avatar.jpg",
             pretalx_id="SPK001",
         )
-        # SPK002 is brand new - new speakers are not "visually changed".
+        # SPK002 is brand new, and new speakers are not "visually changed".
         mock_submission.state = State.confirmed
         mock_submission.speakers[0].avatar_url = "https://example.com/NEW-avatar.jpg"
 

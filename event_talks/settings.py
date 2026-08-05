@@ -96,11 +96,11 @@ DATABASES["default"]["ATOMIC_REQUESTS"] = True
 DATABASES["default"]["CONN_HEALTH_CHECKS"] = env.bool("DJANGO_CONN_HEALTH_CHECKS", default=True)
 
 # Connection management. Two mutually exclusive strategies:
-#   1. ``DJANGO_DB_POOL=True`` (Postgres + psycopg3 only) - use Django's native connection pool so a
+#   1. ``DJANGO_DB_POOL=True`` (Postgres + psycopg3 only) uses Django's native connection pool, so a
 #      per-worker pool of warm connections is reused across requests. Requires ``psycopg[pool]``.
 #      Not recommended under Daphne/ASGI: the in-process pool can exhaust its fixed connection slots
 #      and never free them, causing PoolTimeout 500s.
-#   2. ``DJANGO_DB_POOL=False`` (default) - use ``CONN_MAX_AGE`` to keep a single connection open
+#   2. ``DJANGO_DB_POOL=False`` (default) uses ``CONN_MAX_AGE`` to keep a single connection open
 #      for up to N seconds per worker. Works on any backend including SQLite.
 # https://docs.djangoproject.com/en/dev/ref/settings/#std-setting-DATABASE-OPTIONS-postgresql
 _USE_DB_POOL = (
@@ -888,7 +888,7 @@ if SENTRY_DSN:
             # Capture warnings+ as breadcrumbs; errors+ are sent as events.
             LoggingIntegration(level=None, event_level=logging.ERROR),
         ],
-        # Never include email/user identifiers unless explicitly opted in - matches the
+        # Never include email/user identifiers unless explicitly opted in. Matches the
         # existing LOG_EMAIL_HASH policy elsewhere in the project.
         send_default_pii=SENTRY_SEND_DEFAULT_PII,
     )

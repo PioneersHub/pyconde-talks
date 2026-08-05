@@ -141,12 +141,12 @@ inputs).
 The custom tags and filters live in
 [`talks/templatetags/`](https://github.com/PioneersHub/pyconde-talks/tree/main/talks/templatetags):
 
-| Module             | Provides                                                                                    |
-| ------------------ | ------------------------------------------------------------------------------------------- |
-| `svg_tags.py`      | `{% svg name css_class %}` - inline an SVG icon (see above).                                |
-| `rating_tags.py`   | `{% star_rating average count %}` - render filled, half, and empty stars from the star SVG. |
-| `saved_tags.py`    | `{{ talk.pk\|is_in:saved_talk_ids }}` - set-membership filter for the saved-talk highlight. |
-| `schedule_tags.py` | `{% schedule_cell grid slot room_id as talk %}` - look up a talk in the schedule grid.      |
-| `stat_tags.py`     | `{% stat_card title value %}` - an inclusion tag rendering a dashboard stat card.           |
-| `highlight.py`     | `{{ value\|highlight:query }}` - wrap matched search terms in `<mark>`.                     |
-| `time_filters.py`  | `{{ seconds\|format_seconds }}` - format a second count as `H:MM:SS` or `MM:SS`.            |
+| Module             | Provides                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------ |
+| `svg_tags.py`      | `{% svg name css_class %}`: inline an SVG icon (see above).                                |
+| `rating_tags.py`   | `{% star_rating average count %}`: render filled, half, and empty stars from the star SVG. |
+| `saved_tags.py`    | `{{ talk.pk\|is_in:saved_talk_ids }}`: set-membership filter for the saved-talk highlight. |
+| `schedule_tags.py` | `{% schedule_cell grid slot room_id as talk %}`: look up a talk in the schedule grid.      |
+| `stat_tags.py`     | `{% stat_card title value %}`: an inclusion tag rendering a dashboard stat card.           |
+| `highlight.py`     | `{{ value\|highlight:query }}`: wrap matched search terms in `<mark>`.                     |
+| `time_filters.py`  | `{{ seconds\|format_seconds }}`: format a second count as `H:MM:SS` or `MM:SS`.            |

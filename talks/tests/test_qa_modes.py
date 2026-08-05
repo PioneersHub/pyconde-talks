@@ -536,7 +536,7 @@ class TestQaErrorsAreDeliveredSafely:
     A Q&A error has to be identifiable, or the swap opt-in cannot be scoped.
 
     ``base.html`` keys its 4xx swap on the header these responses carry. Keyed on the status code
-    instead, every HTMX control on the site would swap whatever a 4xx returned - Django's 404 page
+    instead, every HTMX control on the site would swap whatever a 4xx returned: Django's 404 page
     into a bookmark button, the CSRF failure page into the rating widget.
     """
 

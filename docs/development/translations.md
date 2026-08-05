@@ -44,7 +44,7 @@ persist the choice on the user's profile.
 
 ## Marking strings for translation
 
-**Templates** - load the tag library once per file and wrap visible text:
+**Templates**: load the tag library once per file and wrap visible text:
 
 ```django
 {% load i18n %}
@@ -55,7 +55,7 @@ persist the choice on the user's profile.
 Use `{% blocktrans %}` whenever the string contains a variable. Do not wrap dynamic data (talk
 titles, speaker names) or markup attributes that are not user-visible text.
 
-**Python** - use `gettext_lazy` for module/class-level strings (model fields, form fields, admin
+**Python**: use `gettext_lazy` for module/class-level strings (model fields, form fields, admin
 labels) and `gettext` for per-request strings (messages in views). Use printf placeholders, never
 f-strings, when a translatable string interpolates a value:
 

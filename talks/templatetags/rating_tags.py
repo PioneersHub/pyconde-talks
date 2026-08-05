@@ -80,7 +80,7 @@ def star_rating(average_rating: float | None, rating_count: int = 0) -> SafeStri
         "{}"
         '<span class="text-sm text-muted ml-1">{} ({})</span>'
         "</div>",
-        SafeString(stars_html),  # nosec: B703 - SVGs loaded from static files
+        SafeString(stars_html),  # nosec: B703 (SVGs loaded from static files)
         formatted_rating,
         rating_count,
     )

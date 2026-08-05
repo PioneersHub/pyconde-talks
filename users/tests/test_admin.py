@@ -515,7 +515,7 @@ class TestCustomUserAdminViews:
         event_queries = [q for q in ctx.captured_queries if '"events_event"' in q["sql"]]
         n_queries_with_5 = len(event_queries)
 
-        # Now test with 10 users - query count should NOT grow proportionally
+        # Now test with 10 users: the query count should NOT grow proportionally
         for i in range(5, 10):
             u = baker.make(CustomUser, email=f"changelist-{i}@example.com")
             u.events.add(event_a, event_b)

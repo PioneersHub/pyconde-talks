@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 
 class PendingStatusFilter(admin.SimpleListFilter):
-    """Pending / applied / dismissed - the natural way to triage the queue."""
+    """Pending / applied / dismissed: the natural way to triage the queue."""
 
     title = _("status")
     parameter_name = "status"

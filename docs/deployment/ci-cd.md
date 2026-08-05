@@ -161,7 +161,7 @@ ______________________________________________________________________
     Create the protected GitHub Environment (step 6) **before** adding the target to the allowlist. If a
     tag names an allowlisted target whose Environment does not yet exist, GitHub auto-creates it
     **without any protection rules**, so the approval gate would not apply. (In practice the deploy then
-    fails anyway, because the environment also has no `SSH_*` secrets - it fails closed - but do not
+    fails anyway, because the environment also has no `SSH_*` secrets, so it fails closed, but do not
     rely on that: set up the environment first.)
 
 1. Run the one-time setup steps 1-6 above for the new domain, ending with the protected Environment
