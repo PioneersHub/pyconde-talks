@@ -145,6 +145,52 @@ class TestAccessibleToVisibility:
 
 
 @pytest.mark.django_db
+class TestAccessibleToHide:
+    """``Talk.hide`` withholds a single talk regardless of its event's visibility."""
+
+    @pytest.mark.parametrize(
+        "visibility",
+        [Event.Visibility.HIDDEN, Event.Visibility.SCHEDULE_ONLY, Event.Visibility.PUBLIC],
+    )
+    def test_hidden_talk_is_withheld_at_every_visibility(self, visibility: str) -> None:
+        """Opening an event up does not publish a talk that was explicitly held back."""
+        event = baker.make(Event, visibility=visibility)
+        hidden_talk = baker.make(Talk, event=event, title="Embargoed", hide=True)
+        shown_talk = baker.make(Talk, event=event, title="Announced", hide=False)
+
+        member = baker.make(CustomUser, email="member@example.com")
+        member.events.add(event)
+
+        # The member can reach the event whatever its visibility, so they are the strongest
+        # non-superuser case: the announced talk is there, the embargoed one is not.
+        member_visible = set(Talk.objects.accessible_to(member))
+        assert shown_talk in member_visible
+        assert hidden_talk not in member_visible
+
+        assert hidden_talk not in set(Talk.objects.accessible_to(AnonymousUser()))
+
+    def test_ticket_holders_do_not_see_hidden_talks(self, public_event: Event) -> None:
+        """
+        ``hide`` outranks membership.
+
+        The field is for embargoed or cancelled sessions, so holding a ticket is not enough.
+        """
+        talk = baker.make(Talk, event=public_event, hide=True)
+        member = baker.make(CustomUser, email="member@example.com")
+        member.events.add(public_event)
+        assert talk not in Talk.objects.accessible_to(member)
+
+    def test_superusers_still_see_hidden_talks(self, public_event: Event) -> None:
+        """Administrators need to find a hidden talk in order to unhide it."""
+        talk = baker.make(Talk, event=public_event, hide=True)
+        superuser = CustomUser.objects.create_superuser(
+            email="admin@example.com",
+            password="password",
+        )
+        assert talk in Talk.objects.accessible_to(superuser)
+
+
+@pytest.mark.django_db
 class TestEventsVisibleTo:
     """``visible_events`` and ``events_visible_to`` must agree with ``accessible_to``."""
 

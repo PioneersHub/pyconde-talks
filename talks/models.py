@@ -334,6 +334,9 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
         dereferenced. ``None`` is treated as anonymous. Every talk belongs to an event
         (``Talk.event`` is required), so there is no event-less escape hatch.
 
+        ``hide`` takes a talk out of every non-superuser view whatever its event's visibility,
+        so an embargoed session can be held back even on an otherwise public event.
+
         This decides *listing* only. Whether the recording can be played is a separate
         question: a schedule-only event lists its talks to everyone but withholds the video.
         """
@@ -348,7 +351,7 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
             if member_events is not None:
                 visible |= Q(event__in=member_events.all())
 
-        return self.filter(visible)
+        return self.filter(visible).exclude(hide=True)
 
     def with_streamings(self) -> list[Talk]:
         """
@@ -516,7 +519,11 @@ class Talk(models.Model):
     )
     hide = models.BooleanField(
         default=False,
-        help_text=_("Hide this talk from the public"),
+        help_text=_(
+            "Hide this talk from everyone except administrators, whatever the event's "
+            "visibility and even for ticket holders. Use it for an embargoed or cancelled "
+            "session.",
+        ),
     )
     created_at = models.DateTimeField(
         default=timezone.now,
