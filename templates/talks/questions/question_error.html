@@ -1,8 +1,13 @@
 {% load svg_tags %}
-{# Shared error fragment for the Q&A form: closed Q&A, rate limit, failed captcha, invalid
-   content. Swapped into #question-success, which is why it has to be markup rather than a
-   bare string. #}
-<div class="alert-error flex items-start gap-2" role="alert">
+{# Shared error fragment for the Q&A: closed or frozen Q&A, no ticket for the event, rate limit,
+   failed captcha, invalid content.
+
+   ``_qa_error_response`` sends HX-Retarget / HX-Reswap / HX-Reselect alongside this, so the id
+   below is part of that contract: it is what HX-Reselect names, and naming it is what stops the
+   inherited ``hx-select="#question-list"`` from filtering this body down to nothing. #}
+<div id="qa-error-body"
+     class="alert-error flex items-start gap-2"
+     role="alert">
   {% svg 'exclamation-circle' "h-5 w-5 shrink-0" %}
   <p class="text-sm">{{ message }}</p>
 </div>

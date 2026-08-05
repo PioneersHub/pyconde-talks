@@ -194,14 +194,24 @@
       </div>
     </footer>
     <script>
-      // HTMX discards the body of a 4xx response by default, so a server-rendered error
-      // message never reaches the page and the form appears to do nothing. Opt into swapping
-      // them, and mark them handled so HTMX does not also treat them as transport errors.
+      // HTMX discards the body of a 4xx response by default, so a server-rendered error message
+      // never reaches the page and the form appears to do nothing. Opt into swapping the ones
+      // that carry a fragment meant for the page, and mark them handled so HTMX does not also
+      // treat them as transport errors.
+      //
+      // Keyed on the header rather than on the status code. Keyed on the code, EVERY htmx
+      // control on the site would swap whatever a 4xx happened to return: Django's full 404
+      // page into a bookmark button, the CSRF failure page into the rating widget after a
+      // token rotation, a bare 403 into the chair grid. Only views that send this header have
+      // built a body worth showing, and they send HX-Retarget/HX-Reswap/HX-Reselect with it so
+      // it lands somewhere sensible.
+      //
       // Registered on document.body, so load order relative to the deferred htmx script does
       // not matter.
       document.body.addEventListener('htmx:beforeSwap', function(evt) {
-        var status = evt.detail.xhr.status;
-        if (status >= 400 && status < 500) {
+        var xhr = evt.detail.xhr;
+        var status = xhr.status;
+        if (status >= 400 && status < 500 && xhr.getResponseHeader('HX-Qa-Error')) {
           evt.detail.shouldSwap = true;
           evt.detail.isError = false;
         }

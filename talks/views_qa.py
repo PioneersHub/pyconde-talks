@@ -31,9 +31,9 @@ from django.views.decorators.http import require_POST, require_safe
 from django.views.generic import CreateView, ListView, UpdateView
 
 from .forms_qa import QuestionForm
-from .models import Talk
+from .models import Talk, is_qa_moderator, user_can_join_qa
 from .models_qa import Question, QuestionQuerySet, QuestionVote
-from .ratelimit import consume, is_rate_limited, question_limits, seconds_until_reset
+from .ratelimit import RateLimit, claim, question_limits, refund, seconds_until_reset
 from .spam import spam_flag_reason
 from .utils import get_talk_by_id_or_pretalx, is_htmx_request
 
@@ -45,8 +45,11 @@ if TYPE_CHECKING:
     from users.models import CustomUser
 
 
-# Scope name for the question-asking allowance, shared by the check and the consume.
+# Scope name for the question-asking allowance, shared by the claim and the refund.
 _QA_QUESTION_SCOPE = "qa_question"
+
+# Methods that only read. They never claim an allowance and never store anything.
+SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 # The status filters the Q&A views understand. Anything else collapses to "all" so an attacker
 # cannot reflect arbitrary text into the hx-vals JSON / hx-get URL the list fragment builds.
@@ -61,6 +64,20 @@ def _get_status_filter(request: HttpRequest) -> str:
     return raw if raw in _VALID_STATUS_FILTERS else "all"
 
 
+# Marks a response as a Q&A error that HTMX should swap despite its 4xx status. The listener in
+# ``base.html`` keys on this header rather than on the status code alone: keyed on the code, every
+# HTMX control on the site would swap Django's 404 page, the bare 403 page or the CSRF failure
+# page into whatever small div happened to fire the request.
+QA_ERROR_HEADER = "HX-Qa-Error"
+
+# Where a Q&A error is delivered, whatever element triggered the request. The moderation and vote
+# buttons target ``#question-list`` with ``outerHTML``, and they inherit ``hx-select`` from the
+# fragment root, so without redirecting all three of those the error body would be filtered to
+# nothing and the swap would delete the whole thread along with its ten-second poller.
+_QA_ERROR_TARGET = "#question-error"
+_QA_ERROR_SELECT = "#qa-error-body"
+
+
 def _qa_error_response(
     request: HttpRequest,
     message: str | StrOrPromise,
@@ -71,25 +88,72 @@ def _qa_error_response(
     Return a Q&A error as an HTMX fragment, or flash it and redirect for a plain request.
 
     The Q&A form posts into a small target div, so the error has to arrive as markup that can
-    be swapped in. HTMX does not swap 4xx bodies by default; ``base.html`` opts into that, so
-    an honest status code can be used here instead of a misleading 200.
+    be swapped in. HTMX does not swap 4xx bodies by default; ``base.html`` opts into that for
+    responses carrying ``QA_ERROR_HEADER``, so an honest status code can be used here instead of
+    a misleading 200.
+
+    The retarget/reswap/reselect headers put the message in the page's dedicated error region
+    regardless of which control was clicked, rather than in whatever that control happened to
+    target.
     """
     if is_htmx_request(request):
-        return render(
+        response = render(
             request,
             "talks/questions/question_error.html",
             {"message": message},
             status=status,
         )
+        response[QA_ERROR_HEADER] = "1"
+        response["HX-Retarget"] = _QA_ERROR_TARGET
+        response["HX-Reswap"] = "innerHTML"
+        response["HX-Reselect"] = _QA_ERROR_SELECT
+        return response
     messages.error(request, message)
     return redirect("talk_questions", talk_id=talk_id)
 
 
-def _get_accessible_question(user: AbstractBaseUser | AnonymousUser, question_id: int) -> Question:
-    """Return the question if the user has access to its talk's event, or raise Http404."""
-    question = get_object_or_404(Question.objects.select_related("talk"), pk=question_id)
-    accessible = Talk.objects.accessible_to(cast("CustomUser", user))
+def _question_is_visible_to(question: Question, user: AbstractBaseUser | AnonymousUser) -> bool:
+    """
+    Return whether *user* is shown *question* in the Q&A thread.
+
+    The same rule ``_regular_user_questions`` applies to the list: the published thread is for
+    everyone, while a held or rejected question belongs to its author and to moderators.
+    """
+    if question.status in _PUBLIC_STATUSES:
+        return True
+    return question.user_id == user.pk or is_moderator(user)
+
+
+def _get_accessible_question(
+    user: AbstractBaseUser | AnonymousUser,
+    question_id: int,
+    *,
+    visible_only: bool = False,
+) -> Question:
+    """
+    Return the question if the user has access to its talk's event, or raise Http404.
+
+    A talk whose event has the Q&A disabled yields a 404 for every caller, not just the list
+    view: switching an event off has to close the write endpoints too, or votes and moderation
+    would keep landing on a Q&A that no longer exists as far as the site is concerned.
+
+    *visible_only* additionally withholds questions the requester is not entitled to see. Only
+    voting needs it, and it needs it badly: without it a 200 confirms that a question exists at
+    an id whose content the requester is never shown, and the vote itself reorders the
+    vote-sorted moderator queue.
+
+    ``select_related("talk__event")`` because every caller now reads the event's Q&A mode.
+    """
+    question = get_object_or_404(
+        Question.objects.select_related("talk", "talk__event"),
+        pk=question_id,
+    )
+    accessible = Talk.objects.accessible_to(user)
     if not accessible.filter(pk=question.talk_id).exists():
+        raise Http404
+    if not question.talk.event.qa_visible:
+        raise Http404
+    if visible_only and not _question_is_visible_to(question, user):
         raise Http404
     return question
 
@@ -159,6 +223,9 @@ class QuestionListView(LoginRequiredMixin, ListView[Question]):
 
         context["talk"] = self.talk
         context["user_can_moderate"] = is_moderator(self.request.user)
+        # Reading the thread is open to anyone who can see the talk; taking part is not. Without
+        # this the form would be offered to a visitor whose submission is then refused.
+        context["user_can_join_qa"] = user_can_join_qa(self.request.user, self.talk.event)
         context["status_filter"] = self.status_filter
         # Only this page needs the key, so it goes in the view rather than a context processor
         # that would run on every request including the ten-second poll.
@@ -174,16 +241,24 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
     """
 
     model = Question
-    template_name = "talks/questions/question_form.html"
     form_class = QuestionForm
 
     def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         """
-        Turn the submission away when the event's Q&A is frozen or disabled.
+        Turn the submission away when the visitor or the event's Q&A mode does not allow it.
 
         Checked before the form is even bound, so a closed Q&A costs nothing to reject and
         cannot be talked into storing a question by a well-formed POST.
+
+        A safe method never reaches those checks. There is no standalone create template - the
+        form is embedded in the question list, and ``template_name`` used to name a file that
+        does not exist, so a GET here was a 500. It redirects to the page that has the form, and
+        it does so before the rate limit is claimed, or simply opening the URL would spend a
+        question from the author's allowance.
         """
+        if request.method in SAFE_METHODS:
+            return redirect("talk_questions", talk_id=self.kwargs["talk_id"])
+
         if request.user.is_authenticated:
             self.talk = get_object_or_404(
                 Talk.objects.accessible_to(request.user).select_related("event"),
@@ -191,36 +266,52 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
             )
             if not self.talk.event.qa_visible:
                 raise Http404
-            if not self.talk.event.qa_accepts_questions:
-                return _qa_error_response(
-                    request,
-                    _("Questions are closed for this talk."),
-                    HTTPStatus.CONFLICT,
-                    self.kwargs["talk_id"],
-                )
-            limited = self._rate_limit_response(request)
-            if limited is not None:
-                return limited
+            refusal = self._refusal(request)
+            if refusal is not None:
+                return refusal
         return super().dispatch(request, *args, **kwargs)
+
+    def _refusal(self, request: HttpRequest) -> HttpResponse | None:
+        """
+        Return the reason this submission cannot be accepted, or None to let it through.
+
+        Order matters: the cheap, permanent reasons come before the rate limit, so a visitor who
+        may not post here at all is told that rather than being counted against an allowance
+        they were never going to use. ``GET`` never reaches this - it redirects above - so
+        nothing here can be triggered by merely opening the page.
+        """
+        if not self.talk.event.qa_accepts_questions:
+            return _qa_error_response(
+                request,
+                _("Questions are closed for this talk."),
+                HTTPStatus.CONFLICT,
+                self.talk.pk,
+            )
+        if not user_can_join_qa(request.user, self.talk.event):
+            return _qa_error_response(
+                request,
+                _("Only ticket holders can ask questions about this event."),
+                HTTPStatus.FORBIDDEN,
+                self.talk.pk,
+            )
+        return self._rate_limit_response(request)
 
     def _rate_limit_response(self, request: HttpRequest) -> HttpResponse | None:
         """
-        Return an error response when this account has asked too many questions, else None.
+        Claim one question against this account's allowance, or return an error response.
 
-        Checked before the form is bound, so someone flooding the endpoint does not also get
-        free content validation. Moderators are exempt: they are the people expected to post
-        repeatedly, and they are the ones who would have to unpick a limit that caught them.
+        Claiming rather than peeking, so a burst of concurrent POSTs cannot all pass a check
+        that none of them had counted yet. The claim is refunded in ``form_invalid`` when the
+        submission turns out not to be storable, so a rejected draft costs nothing.
+
+        Moderators are exempt: they are the people expected to post repeatedly, and they are the
+        ones who would have to unpick a limit that caught them.
         """
         if is_moderator(request.user):
             return None
 
-        per_talk, overall = question_limits()
-        checks = (
-            (_QA_QUESTION_SCOPE, f"{request.user.pk}:{self.talk.pk}", per_talk),
-            (_QA_QUESTION_SCOPE, str(request.user.pk), overall),
-        )
-        for scope, identity, rule in checks:
-            if is_rate_limited(scope, identity, rule):
+        for scope, identity, rule in self._allowances():
+            if not claim(scope, identity, rule):
                 minutes = max(round(seconds_until_reset(rule) / 60), 1)
                 return _qa_error_response(
                     request,
@@ -233,9 +324,23 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
                     )
                     % {"minutes": minutes},
                     HTTPStatus.TOO_MANY_REQUESTS,
-                    self.kwargs["talk_id"],
+                    self.talk.pk,
                 )
         return None
+
+    def _allowances(self) -> tuple[tuple[str, str, RateLimit], ...]:
+        """
+        Return the (scope, identity, rule) triples this account is measured against.
+
+        One shared definition, because the claim and the refund have to key on exactly the same
+        buckets. Getting that wrong would leak allowance in one direction or the other.
+        """
+        per_talk, overall = question_limits()
+        user_pk = self.request.user.pk
+        return (
+            (_QA_QUESTION_SCOPE, f"{user_pk}:{self.talk.pk}", per_talk),
+            (_QA_QUESTION_SCOPE, str(user_pk), overall),
+        )
 
     def form_valid(self, form: forms.ModelForm[Question]) -> HttpResponse:
         """Process the form submission."""
@@ -253,15 +358,9 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
             question.status = Question.Status.PENDING
             question.flag_reason = reason
 
-        # Save the question
+        # Save the question. The allowance was already claimed in ``dispatch``, atomically, and
+        # is refunded in ``form_invalid`` if we never get here.
         response = super().form_valid(form)
-
-        # Count the question against the allowance only now that it has actually been stored,
-        # so a rejected draft (too long, failed captcha) does not eat into it.
-        if not is_moderator(self.request.user):
-            per_talk, overall = question_limits()
-            consume(_QA_QUESTION_SCOPE, f"{self.request.user.pk}:{self.talk.pk}", per_talk)
-            consume(_QA_QUESTION_SCOPE, str(self.request.user.pk), overall)
 
         # Auto vote your own question. Worth doing even while it is held for review, so the
         # count is right the moment a moderator approves it.
@@ -305,7 +404,15 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
 
         Collects errors from every field rather than only ``content``: the captcha check adds
         its own, and those would otherwise fall through to the generic fallback message.
+
+        Refunds the allowance claimed in ``dispatch``. The claim has to happen before the content
+        is validated for the limit to be atomic, but nothing was posted, so nothing should be
+        charged for.
         """
+        if not is_moderator(self.request.user):
+            for scope, identity, rule in self._allowances():
+                refund(scope, identity, rule)
+
         errors = [str(error) for field_errors in form.errors.values() for error in field_errors]
         message = "; ".join(errors) if errors else str(_("Your question could not be posted."))
         return _qa_error_response(
@@ -445,8 +552,23 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
 
     If the user has already voted, the vote is removed (toggle behavior).
     Returns HTML for HTMX to replace the voting div.
+
+    ``visible_only``: you may only vote on a question you can actually read. Otherwise a
+    bystander could walk the id space, and a 200 would tell them a held question exists there
+    while the JSON body handed back its vote count.
+
+    Voting also needs a relationship with the event, like asking does. A vote is what orders the
+    thread and the moderator queue, so an outsider with no ticket for the event running now
+    should not be steering either.
     """
-    question = _get_accessible_question(request.user, question_id)
+    question = _get_accessible_question(request.user, question_id, visible_only=True)
+    if not user_can_join_qa(request.user, question.talk.event):
+        return _qa_error_response(
+            request,
+            _("Only ticket holders can vote on questions about this event."),
+            HTTPStatus.FORBIDDEN,
+            question.talk_id,
+        )
 
     # Atomic toggle: rely on the (question, user) unique constraint so two concurrent
     # clicks can't both insert a vote (which previously caused an IntegrityError 500).
@@ -516,6 +638,29 @@ class QuestionUpdateView(
     template_name = "talks/questions/question_edit_form.html"
     pk_url_kwarg = "question_id"
 
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
+        """
+        Turn the edit away once the event's Q&A stops accepting questions.
+
+        An edit replaces the body wholesale, so leaving this open would make editing the way to
+        post new content after a freeze - the one thing freezing is for. A disabled Q&A 404s
+        through ``_get_accessible_question``, like every other entry point.
+
+        Checked before the form is bound, and only for the author: ``test_func`` is
+        ``QuestionOwnerRequiredMixin``'s, and deferring to it for everyone else preserves a
+        non-owner's 403, which the access lookup here would otherwise turn into a 404.
+        """
+        if request.user.is_authenticated and self.test_func():
+            question = _get_accessible_question(request.user, self.kwargs["question_id"])
+            if not question.talk.event.qa_accepts_questions:
+                return _qa_error_response(
+                    request,
+                    _("Questions are closed for this talk."),
+                    HTTPStatus.CONFLICT,
+                    question.talk_id,
+                )
+        return super().dispatch(request, *args, **kwargs)
+
     def get_queryset(self) -> QuestionQuerySet:
         """
         Scope editable questions to talks the user can still access.
@@ -538,25 +683,42 @@ class QuestionUpdateView(
         self,
         form: forms.ModelForm[Question],
     ) -> HttpResponse:
-        """Persist changes and clear all existing votes, notifying the user."""
-        # Re-run the spam heuristics. Otherwise the way past them is obvious: post something
-        # innocuous, wait for it to publish, then edit the links in.
-        reason = spam_flag_reason(form.instance.content)
-        sent_back = reason and form.instance.status == Question.Status.APPROVED
-        if sent_back:
-            form.instance.status = Question.Status.PENDING
-            form.instance.flag_reason = reason
+        """Persist changes, reset the votes, and re-decide the status as if newly asked."""
+        question: Question = form.instance
+        was_published = question.status in _PUBLIC_STATUSES
 
-        # Save updated content
-        response = super().form_valid(form)
-        # Clear all votes (except your own) after content change
-        QuestionVote.objects.filter(question=self.object).exclude(user=self.request.user).delete()
+        # An edit replaces the body, so the old approval no longer applies to what is there now.
+        # Re-decide exactly as ``QuestionCreateView`` would for new content: held on a moderated
+        # event, held if it looks like spam, published otherwise. Without this, the way past both
+        # is the same one: post something innocuous, wait for it to publish, then edit.
+        reason = spam_flag_reason(question.content)
+        holds = question.talk.event.qa_holds_for_review or bool(reason)
+        sent_back = holds and was_published
         if sent_back:
+            question.status = Question.Status.PENDING
+            question.flag_reason = reason
+
+        response = super().form_valid(form)
+
+        # Reset the count. Votes were cast on the previous wording, so they say nothing about
+        # this one. The author's own vote stays, which leaves the question exactly where a newly
+        # asked one starts, rather than below it.
+        QuestionVote.objects.filter(question=self.object).exclude(user=self.request.user).delete()
+
+        if sent_back and reason:
             messages.warning(
                 self.request,
                 _(
-                    "Your question was updated and sent back for review. Previous votes were "
-                    "cleared.",
+                    "Your question was updated. It needs another look from a moderator before it "
+                    "reappears, and its votes were reset.",
+                ),
+            )
+        elif sent_back:
+            messages.warning(
+                self.request,
+                _(
+                    "Your question was updated and is waiting for a moderator to approve it "
+                    "again. Its votes were reset.",
                 ),
             )
         else:
@@ -580,10 +742,13 @@ class QuestionUpdateView(
 
 # Moderator views
 def is_moderator(user: AbstractBaseUser | AnonymousUser) -> bool:
-    """Check if the user is a moderator (staff or superuser)."""
-    if not getattr(user, "is_authenticated", False):
-        return False
-    return getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)
+    """
+    Check if the user is a moderator (staff or superuser).
+
+    Delegates to ``talks.models.is_qa_moderator``, which is the same rule spelled where the
+    access predicates can reach it without importing the view layer.
+    """
+    return is_qa_moderator(user)
 
 
 class ModeratorRequiredMixin(UserPassesTestMixin):  # pragma: no cover

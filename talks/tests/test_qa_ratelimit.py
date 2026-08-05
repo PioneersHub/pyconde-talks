@@ -16,7 +16,14 @@ from model_bakery import baker
 from events.models import Event
 from talks.models import Talk
 from talks.models_qa import Question
-from talks.ratelimit import RateLimit, consume, is_rate_limited, seconds_until_reset
+from talks.ratelimit import (
+    RateLimit,
+    claim,
+    consume,
+    is_rate_limited,
+    refund,
+    seconds_until_reset,
+)
 from users.models import CustomUser
 
 
@@ -24,6 +31,10 @@ if TYPE_CHECKING:
     from django.test import Client
     from django.test.client import _MonkeyPatchedWSGIResponse
     from pytest_django.fixtures import SettingsWrapper
+
+
+# A small allowance so the tests can reach it in a couple of requests.
+ALLOWANCE = 2
 
 
 @pytest.fixture
@@ -256,3 +267,102 @@ class TestQuestionRateLimit:
         _ask(client, talk, "Second")
 
         assert Question.objects.filter(talk=talk).count() == 2  # noqa: PLR2004
+
+
+@pytest.mark.django_db
+class TestClaimIsAtomic:
+    """The allowance is counted before the content is checked, then given back if unused."""
+
+    def test_a_rejected_draft_is_refunded(
+        self,
+        client: Client,
+        talk: Talk,
+        asker: CustomUser,
+        settings: SettingsWrapper,
+    ) -> None:
+        """
+        A question that never got stored must not cost part of the allowance.
+
+        The claim has to happen before validation for the limit to be atomic, so the refund is
+        what keeps an over-long or captcha-failing draft from quietly eating a slot.
+        """
+        settings.QA_QUESTION_RATE_LIMIT_PER_TALK = ALLOWANCE
+        client.force_login(asker)
+        url = reverse("question_create", kwargs={"talk_id": talk.pk})
+
+        # Two rejected drafts: over the content limit, so they are refused and refunded.
+        for _ in range(2):
+            rejected = client.post(url, {"content": "x" * 5000}, HTTP_HX_REQUEST="true")
+            assert rejected.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+        # The full allowance is still there.
+        for index in range(ALLOWANCE):
+            accepted = client.post(url, {"content": f"A real question {index}"})
+            assert accepted.status_code == HTTPStatus.FOUND
+
+        assert Question.objects.filter(talk=talk).count() == ALLOWANCE
+
+    def test_the_limit_still_bites_after_refunds(
+        self,
+        client: Client,
+        talk: Talk,
+        asker: CustomUser,
+        settings: SettingsWrapper,
+    ) -> None:
+        """Refunding must not turn the limit off: the third real question is still refused."""
+        settings.QA_QUESTION_RATE_LIMIT_PER_TALK = ALLOWANCE
+        client.force_login(asker)
+        url = reverse("question_create", kwargs={"talk_id": talk.pk})
+
+        client.post(url, {"content": "x" * 5000}, HTTP_HX_REQUEST="true")
+        client.post(url, {"content": "First real question"})
+        client.post(url, {"content": "Second real question"})
+        third = client.post(url, {"content": "Third real question"}, HTTP_HX_REQUEST="true")
+
+        assert third.status_code == HTTPStatus.TOO_MANY_REQUESTS
+        assert Question.objects.filter(talk=talk).count() == ALLOWANCE
+
+
+class TestClaimSemantics:
+    """``claim`` counts first and judges the result, so a burst cannot slip past a peek."""
+
+    def test_claim_allows_exactly_the_allowance(self) -> None:
+        """Three claims against a limit of three all pass; the fourth does not."""
+        rule = RateLimit(limit=3, window_seconds=600)
+        results = [claim("test_scope", "someone", rule) for _ in range(4)]
+        assert results == [True, True, True, False]
+
+    def test_an_over_limit_claim_keeps_the_window_shut(self) -> None:
+        """
+        A refused attempt still counts.
+
+        Otherwise hammering the endpoint would reset the allowance on every refusal, which is
+        the opposite of what a rate limit is for.
+        """
+        rule = RateLimit(limit=1, window_seconds=600)
+        assert claim("test_scope", "hammerer", rule) is True
+        for _ in range(5):
+            assert claim("test_scope", "hammerer", rule) is False
+        assert claim("test_scope", "hammerer", rule) is False
+
+    def test_refund_gives_back_exactly_one(self) -> None:
+        """A refund restores one slot, not the whole window."""
+        rule = RateLimit(limit=2, window_seconds=600)
+        assert claim("test_scope", "refunded", rule) is True
+        assert claim("test_scope", "refunded", rule) is True
+        assert claim("test_scope", "refunded", rule) is False
+
+        refund("test_scope", "refunded", rule)
+        assert claim("test_scope", "refunded", rule) is False
+
+    def test_refund_on_an_expired_window_is_a_no_op(self) -> None:
+        """
+        Refunding into a window that has rolled over must not seed it below zero.
+
+        A negative count would hand the next caller a free extra question.
+        """
+        rule = RateLimit(limit=2, window_seconds=600)
+        refund("test_scope", "never-claimed", rule)
+        assert claim("test_scope", "never-claimed", rule) is True
+        assert claim("test_scope", "never-claimed", rule) is True
+        assert claim("test_scope", "never-claimed", rule) is False

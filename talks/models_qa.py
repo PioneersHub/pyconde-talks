@@ -306,12 +306,15 @@ class Answer(models.Model):
         """
         Save the answer and update the question status if needed.
 
-        When an answer is saved, the related question's status is updated to "answered" if it's not
-        already rejected.
+        When an answer is saved, the related question's status is updated to "answered" if it was
+        already published.
         """
         super().save(*args, **kwargs)
 
-        # Update question status to "answered" if not rejected
-        if self.question.status != Question.Status.REJECTED:
+        # Only a question that is already published moves to "answered". A pending one is still
+        # waiting for a moderator, and promoting it here would publish it without the review it
+        # was held for, leaving its ``flag_reason`` in place so it reads as flagged and approved
+        # at the same time. Rejected questions stay rejected, as before.
+        if self.question.status in (Question.Status.APPROVED, Question.Status.ANSWERED):
             self.question.status = Question.Status.ANSWERED
             self.question.save(update_fields=["status", "updated_at"])

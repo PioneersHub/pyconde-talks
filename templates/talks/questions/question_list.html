@@ -47,11 +47,32 @@
         <span>{% translate "Back to Talk" %}</span>
       </a>
     </div>
+    {# The one place Q&A errors are delivered, whichever control produced them.
+       ``_qa_error_response`` points its HTMX fragment here, and the same view's non-HTMX
+       branch flashes a message and redirects back to this page - which showed nothing at all
+       before, because no template in this render path iterated ``messages``. So a question
+       rejected without JavaScript simply vanished. #}
+    <div id="question-error" class="mb-6">
+      {% for message in messages %}
+        <div class="alert-error flex items-start gap-2" role="alert">
+          {% svg 'exclamation-circle' "h-5 w-5 shrink-0" %}
+          <p class="text-sm">{{ message }}</p>
+        </div>
+      {% endfor %}
+    </div>
     {% if not talk.event.qa_accepts_questions %}
       {# Frozen: the archive stays readable and votable, but the form goes away. #}
       <div class="box-muted mb-8 text-center">
         <p class="text-muted">
           {% translate "Questions are closed for this talk. You can still read and vote on the ones below." %}
+        </p>
+      </div>
+    {% elif not user_can_join_qa %}
+      {# Taking part needs a ticket for this event, so say that instead of offering a form whose
+         submission would be refused. Reading the thread stays open. #}
+      <div class="box-muted mb-8 text-center">
+        <p class="text-muted">
+          {% translate "Only ticket holders can ask and vote on questions for this event. You can still read the ones below." %}
         </p>
       </div>
     {% else %}

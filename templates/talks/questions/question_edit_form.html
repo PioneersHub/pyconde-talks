@@ -8,8 +8,22 @@
         hx-target="#question-list"
         hx-swap="outerHTML">
     {% csrf_token %}
+    {# Spell out both consequences before they commit, not after. An edit resets the votes and
+       re-opens the moderation decision, and on a moderated event that means the question
+       disappears from the public thread until someone approves it again. #}
+    {# No live-region role: this text is static and read in document order, unlike the notices
+       in base.html that JS reveals. #}
+    <div class="alert-warning mb-4">
+      <p class="text-sm">
+        {% if object.talk.event.qa_holds_for_review %}
+          {% translate "Editing resets the votes on your question and sends it back to a moderator, so it will be hidden from others until it is approved again." %}
+        {% else %}
+          {% translate "Editing resets the votes on your question. If the new wording is caught by the spam checks it will also wait for a moderator before reappearing." %}
+        {% endif %}
+      </p>
+    </div>
     <div class="mb-4">
-      <label for="id_content" class="block text-label mb-2">{% translate "Attention: votes will be reset" %}</label>
+      <label for="id_content" class="block text-label mb-2">{% translate "Your question" %}</label>
       <textarea name="content"
                 id="id_content"
                 rows="3"

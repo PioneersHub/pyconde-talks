@@ -73,7 +73,8 @@
                   Slido
                 </a>
               {% endif %}
-              {% if user.is_authenticated %}
+              {# ``qa_visible`` too, or a disabled event still offers a button that 404s. #}
+              {% if user.is_authenticated and talk.event.qa_visible %}
                 <a href="{% url 'talk_questions' talk.pk %}"
                    class="btn-secondary inline-flex items-center px-3 py-1 rounded">
                   {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-1" %}
