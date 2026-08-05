@@ -184,7 +184,8 @@ that is Redis; on the per-process default the allowance is really per worker. Se
 
 ## Turning an event public
 
-1. Update the video links, usually with `update_video_links`.
+1. Update the video links, with `update_video_links` (Vimeo) or `update_youtube_links` (a JSON map
+    of Pretalx codes to YouTube IDs).
 2. Set **Visibility** to *Public* in the event admin.
 3. Consider the Q&A. If nobody is watching the queue any more, set **Q&A mode** to *Frozen*, which
     keeps the thread readable, or *Moderated* if you want to keep taking questions.

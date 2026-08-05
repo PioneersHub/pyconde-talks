@@ -84,7 +84,12 @@ Pass `--dry-run` to preview without writing.
 **YouTube** videos are embedded directly. When a YouTube link is saved on a talk, the model appends
 `enablejsapi=1` to the URL (idempotently) so the embedded player can be controlled from JavaScript.
 The `video_provider` property normalizes both `youtube.com` and `youtu.be` links to the single name
-"Youtube" for templates.
+"Youtube" for templates. There is no YouTube API client: links are set in bulk by the
+`update_youtube_links` command
+([source](https://github.com/PioneersHub/pyconde-talks/blob/main/talks/management/commands/update_youtube_links.py)),
+which reads a local JSON file mapping Pretalx codes to video IDs and builds the URL itself. Only
+`https://www.youtube.com/embed/<id>` may be framed by the detail page, so `--url-format embed` is
+the form to store when the recording must play on the site.
 
 ## Google Sheets livestream import
 

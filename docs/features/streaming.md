@@ -106,6 +106,15 @@ an ambiguous match is skipped rather than overwriting an arbitrary talk. When a 
 `video_link` is set and `video_start_time` is reset to 0 (the recording is already trimmed to the
 talk). `--dry-run` reports the counts without writing.
 
+`update_youtube_links` does the same job for recordings published on YouTube, but reads a local JSON
+file mapping each Pretalx code to a YouTube video ID instead of calling an API. It matches on
+`Talk.pretalx_code` too, skips codes that match more than one talk, and re-running it changes
+nothing because a link already pointing at the mapped video counts as unchanged. Note that the
+detail page frames `video_link` directly, and YouTube only allows framing of
+`https://www.youtube.com/embed/<id>`, so pass `--url-format embed` when the stored link has to play
+in the on-site player. See
+[Management commands](../reference/management-commands.md#update_youtube_links) for the flags.
+
 ## Transcriptions
 
 Transcriptions follow the same fallback shape as video: `get_transcription_url()` returns the talk's

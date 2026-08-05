@@ -49,7 +49,8 @@ pyconde-talks/
 ├── events/                 # Event model and admin
 ├── talks/                  # Talks, speakers, rooms, ratings, Q&A, streaming
 │   ├── management/commands/  # import_pretalx_talks, import_livestream_urls,
-│   │                         # update_video_links, generate_fake_talks
+│   │                         # update_video_links, update_youtube_links,
+│   │                         # generate_fake_talks
 │   ├── templatetags/         # highlight, ratings, schedule, SVG, time filters
 │   └── tests/
 ├── users/                  # Custom user model, passwordless login, Discord adapter
@@ -150,6 +151,9 @@ uv run python manage.py import_livestream_urls \
 uv run python manage.py update_video_links \
   --vimeo-access-token TOKEN \
   --vimeo-project-ids 123,456
+
+# Update video links from a JSON map of Pretalx codes to YouTube IDs
+uv run python manage.py update_youtube_links map.json
 
 # Generate fake data for development
 uv run python manage.py generate_fake_talks

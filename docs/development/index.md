@@ -106,7 +106,8 @@ Custom commands live in `talks/management/commands/` and `users/management/comma
 
 - `import_pretalx_talks` - sync talks, speakers, and rooms from Pretalx
 - `import_livestream_urls` - import livestream URLs from Google Sheets
-- `update_video_links` - update recorded-video links
+- `update_video_links` - update recorded-video links from Vimeo
+- `update_youtube_links` - update recorded-video links from a Pretalx code to YouTube ID JSON map
 - `generate_fake_talks` - generate fake talks for development
 - `createuser` - create a passwordless user
 
