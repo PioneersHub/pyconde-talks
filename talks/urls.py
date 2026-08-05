@@ -42,7 +42,7 @@ urlpatterns = [
     path("schedule/", login_not_required(schedule_view), name="schedule"),
     path("chairs/", chair_grid_view, name="chair_grid"),
     path("<int:pk>/", login_not_required(TalkDetailView.as_view()), name="talk_detail"),
-    path("dashboard-stats/", dashboard_stats, name="dashboard_stats"),
+    path("dashboard-stats/", login_not_required(dashboard_stats), name="dashboard_stats"),
     path("upcoming-talks/", login_not_required(upcoming_talks), name="upcoming_talks"),
     # Rating URLs
     path("<int:talk_id>/rate/", rate_talk, name="rate_talk"),

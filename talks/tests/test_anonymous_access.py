@@ -156,6 +156,60 @@ class TestAnonymousSchedule:
 
 
 @pytest.mark.django_db
+class TestAnonymousDashboardStats:
+    """The stats widget is public, and counts only what the viewer could reach."""
+
+    def test_counts_only_publicly_listed_events(self, client: Client) -> None:
+        """A hidden event contributes nothing to the anonymous totals."""
+        _talk_on(Event.Visibility.HIDDEN, slug="hidden", title="Secret Talk")
+        public = _talk_on(Event.Visibility.PUBLIC, slug="public", title="Open Talk")
+
+        response = client.get(reverse("dashboard_stats"))
+        body = response.content.decode()
+
+        assert response.status_code == HTTPStatus.OK
+        assert public.event.name in body
+        assert "hidden" not in body
+
+    def test_hidden_talks_are_not_counted(self, client: Client) -> None:
+        """
+        ``hide`` keeps a talk out of the totals as well as out of the list.
+
+        The counts sit next to the list they describe, so counting a talk the visitor cannot
+        see would make the two disagree.
+        """
+        talk = _talk_on(Event.Visibility.PUBLIC, slug="public", title="Shown")
+        baker.make(Talk, event=talk.event, title="Embargoed", hide=True)
+
+        response = client.get(reverse("dashboard_stats"))
+        body = response.content.decode()
+
+        # The widget renders each figure as a styled div, so match the total precisely:
+        # a loose ">1<" would also match unrelated markup and pass either way.
+        total_markup = '<div class="text-2xl font-bold">{}</div>'
+        assert total_markup.format(1) in body
+        assert total_markup.format(2) not in body
+
+    def test_member_and_anonymous_totals_differ(self, client: Client) -> None:
+        """
+        The response is not shared between viewers.
+
+        It used to be cached on the cookie header, which cannot distinguish two anonymous
+        visitors from each other or from a member whose cookies happen to match.
+        """
+        talk = _talk_on(Event.Visibility.HIDDEN, slug="hidden", title="Members Only")
+        member = baker.make(CustomUser, email="member@example.com")
+        member.events.add(talk.event)
+
+        anonymous_body = client.get(reverse("dashboard_stats")).content.decode()
+        assert talk.event.name not in anonymous_body
+
+        client.force_login(member)
+        member_body = client.get(reverse("dashboard_stats")).content.decode()
+        assert talk.event.name in member_body
+
+
+@pytest.mark.django_db
 class TestAnonymousUpcomingTalks:
     """The upcoming-talks fragment is open and no longer cached."""
 

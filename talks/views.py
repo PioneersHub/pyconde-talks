@@ -16,9 +16,7 @@ from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_safe
-from django.views.decorators.vary import vary_on_cookie
 from django.views.generic import DetailView, ListView
 
 from events.models import Event
@@ -368,11 +366,19 @@ class TalkListView(ListView[Talk]):
 
 
 @require_safe
-@cache_page(60)  # Cache for 60 seconds to reduce database queries
-@vary_on_cookie
 def dashboard_stats(request: HttpRequest) -> HttpResponse:
-    """Generate per-event statistics for the dashboard, respecting user access."""
-    user = cast("CustomUser", request.user)
+    """
+    Generate per-event statistics for the dashboard, respecting what the viewer may see.
+
+    Open to anonymous visitors, who get the figures for publicly listed events only.
+
+    Deliberately uncached. ``cache_page`` keyed on the cookie header (via ``vary_on_cookie``)
+    was safe only while every visitor was authenticated and so carried a distinct session
+    cookie; anonymous visitors can share a cookie header, or have none, and would then be
+    served a member's totals. The counts are three aggregate queries, so caching them bought
+    little against that.
+    """
+    user = request.user
     current_date = timezone.now().date()
 
     # Determine which events the user may see. Materialize once so we iterate the
@@ -380,12 +386,16 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
     events = list(events_visible_to(user))
     event_ids = [event.id for event in events]  # type: ignore[attr-defined]
 
-    # Fetch only the fields needed for has_recording() - scoped to user events.
+    # Count only the talks this viewer could actually reach. Filtering on event alone would
+    # include talks held back with ``hide``, so the totals would not match the list they are
+    # shown next to.
+    countable = Talk.objects.accessible_to(user).filter(event_id__in=event_ids)
+
+    # Fetch only the fields needed for has_recording().
     # ``with_streamings`` batch-loads the streaming cache to avoid an N+1 in the
     # ``has_recording`` loop below (each unrecorded talk would otherwise re-query).
     talks_for_video = (
-        Talk.objects.filter(event_id__in=event_ids)
-        .select_related("room")
+        countable.select_related("room")
         .only("id", "video_link", "start_time", "duration", "room", "room__id", "event")
         .with_streamings()
     )
@@ -399,13 +409,10 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
 
     # Aggregate counts per event in two queries
     total_by_event = dict(
-        Talk.objects.filter(event_id__in=event_ids)
-        .values_list("event_id")
-        .annotate(cnt=Count("id"))
-        .values_list("event_id", "cnt"),
+        countable.values_list("event_id").annotate(cnt=Count("id")).values_list("event_id", "cnt"),
     )
     today_by_event = dict(
-        Talk.objects.filter(event_id__in=event_ids, start_time__date=current_date)
+        countable.filter(start_time__date=current_date)
         .values_list("event_id")
         .annotate(cnt=Count("id"))
         .values_list("event_id", "cnt"),

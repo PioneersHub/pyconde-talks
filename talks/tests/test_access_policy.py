@@ -41,7 +41,16 @@ CLOSED_ENDPOINTS = [
     ("toggle_save_talk", "talk", "post"),
     ("toggle_session_chair", "talk", "post"),
     ("chair_grid", "none", "get"),
-    ("dashboard_stats", "none", "get"),
+]
+
+# Read-only browsing, reachable without an account. Each one scopes its own contents, so the
+# check here is only that the door is open; the leak tests live in test_anonymous_access.py.
+OPEN_ENDPOINTS = [
+    ("talk_list", "none"),
+    ("schedule", "none"),
+    ("upcoming_talks", "none"),
+    ("dashboard_stats", "none"),
+    ("talk_detail", "pk"),
 ]
 
 
@@ -84,6 +93,26 @@ def test_endpoint_stays_closed_to_anonymous(
     assert "/accounts/login/" in response.headers.get("Location", ""), (
         f"{url_name} redirected somewhere other than the login page"
     )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(("url_name", "kwarg_kind"), OPEN_ENDPOINTS)
+def test_endpoint_is_open_to_anonymous(
+    client: Client,
+    public_talk: Talk,
+    url_name: str,
+    kwarg_kind: str,
+) -> None:
+    """Browsing endpoints answer anonymous visitors directly instead of redirecting."""
+    url = (
+        reverse(url_name, kwargs={"pk": public_talk.pk})
+        if kwarg_kind == "pk"
+        else reverse(url_name)
+    )
+
+    response = client.get(url)
+
+    assert response.status_code == HTTPStatus.OK, f"{url_name} did not answer an anonymous request"
 
 
 @pytest.mark.django_db

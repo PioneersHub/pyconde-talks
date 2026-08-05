@@ -204,3 +204,47 @@ class TestBrandingEventResolution:
         request.user = AnonymousUser()
         ctx = branding(request)
         assert ctx["brand_event_name"] == active.name
+
+    def test_has_public_event_is_false_when_everything_is_hidden(self) -> None:
+        """
+        With no browsable event, the flag is False.
+
+        The anonymous home page uses it to drop the Browse Talks link and the stats widget,
+        which would otherwise lead to an empty page and a panel of zeroes.
+        """
+        Event.objects.create(
+            name="Hidden",
+            slug="hidden-event",
+            is_active=True,
+            visibility=Event.Visibility.HIDDEN,
+        )
+
+        request = RequestFactory().get("/")
+        request.user = AnonymousUser()
+        assert branding(request)["has_public_event"] is False
+
+    def test_has_public_event_is_true_once_an_event_opens(self) -> None:
+        """A schedule-only event is enough: the programme is browsable even if videos are not."""
+        Event.objects.create(
+            name="Programme",
+            slug="programme-event",
+            is_active=True,
+            visibility=Event.Visibility.SCHEDULE_ONLY,
+        )
+
+        request = RequestFactory().get("/")
+        request.user = AnonymousUser()
+        assert branding(request)["has_public_event"] is True
+
+    def test_has_public_event_ignores_inactive_events(self) -> None:
+        """Deactivating an event takes it off the site even if it was left public."""
+        Event.objects.create(
+            name="Retired",
+            slug="retired-event",
+            is_active=False,
+            visibility=Event.Visibility.PUBLIC,
+        )
+
+        request = RequestFactory().get("/")
+        request.user = AnonymousUser()
+        assert branding(request)["has_public_event"] is False

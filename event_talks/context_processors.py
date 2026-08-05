@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 from django.conf import settings
 from django.utils.translation import gettext as _
 
-from events.models import Event
+from events.models import PUBLICLY_LISTED_VISIBILITIES, Event
 from events.session import get_selected_event_slug
 from users.models import CustomUser
 
@@ -58,12 +58,29 @@ def _get_current_event(request: HttpRequest) -> Event | None:
     return Event.objects.filter(is_active=True).first()
 
 
+def _has_publicly_listed_event() -> bool:
+    """
+    Return whether any active event is browsable without logging in.
+
+    The anonymous home page uses this to decide whether to offer the talks and stats widgets
+    at all: with every event hidden there is nothing behind those links, and a stats panel
+    reading "0 talks" is worse than no panel.
+    """
+    return Event.objects.filter(
+        is_active=True,
+        visibility__in=PUBLICLY_LISTED_VISIBILITIES,
+    ).exists()
+
+
 def branding(request: HttpRequest) -> dict[str, Any]:
     """Inject branding and event-related variables into all templates."""
     event = _get_current_event(request)
 
+    has_public_event = _has_publicly_listed_event()
+
     if event is None:
         return {
+            "has_public_event": has_public_event,
             "brand_event_name": "",
             "brand_event_year": "",
             "brand_title": _("Talks"),
@@ -87,6 +104,7 @@ def branding(request: HttpRequest) -> dict[str, Any]:
     prefix = f"{event_name} " if event_name else ""
 
     return {
+        "has_public_event": has_public_event,
         "brand_event_name": event_name,
         "brand_event_year": event_year,
         "brand_title": f"{prefix}{_('Talks')}",

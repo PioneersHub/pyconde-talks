@@ -56,9 +56,13 @@
       <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
         <a href="{% url 'home' %}"><span class="sr-only">{% trans "Home" %}</span>{% svg brand_logo_svg_name "w-25 h-20 header-logo" %}</a>
         <div class="flex items-center gap-4">
-          {# Browsing is open to everyone; the talk list and schedule scope themselves per row. #}
-          <a href="{% url 'talk_list' %}" class="hover:underline">{% trans "Talks" %}</a>
-          <a href="{% url 'schedule' %}" class="hover:underline">{% trans "Schedule" %}</a>
+          {# Browsing is open to everyone; the talk list and schedule scope themselves per row.
+             Hidden from logged-out visitors when no event is public, since both links would
+             then lead to an empty page. #}
+          {% if user.is_authenticated or has_public_event %}
+            <a href="{% url 'talk_list' %}" class="hover:underline">{% trans "Talks" %}</a>
+            <a href="{% url 'schedule' %}" class="hover:underline">{% trans "Schedule" %}</a>
+          {% endif %}
           {% if user.is_authenticated %}
             {% if user.is_staff or user.is_superuser %}
               <a href="{% url 'chair_grid' %}" class="hover:underline">{% trans "Chairs" %}</a>

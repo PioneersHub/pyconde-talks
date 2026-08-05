@@ -46,22 +46,51 @@
     {% else %}
       <div class="card mb-6">
         <h1 class="text-2xl font-bold mb-2">{% blocktrans with event_name=brand_event_name %}Welcome to {{ event_name }}{% endblocktrans %}</h1>
-        <p class="text-muted mb-4">
-          {% trans "Browse the talks and the schedule without an account. Sign in to watch recordings, ask questions and save talks." %}
-        </p>
+        {% if has_public_event %}
+          <p class="text-muted mb-4">
+            {% trans "Browse the talks and the schedule without an account. Sign in to watch recordings, ask questions and save talks." %}
+          </p>
+        {% else %}
+          <p class="text-muted mb-4">{% trans "Please sign in to access the conference talks." %}</p>
+        {% endif %}
         <div class="flex flex-wrap gap-4">
-          <a href="{% url 'talk_list' %}"
-             class="btn-primary inline-flex items-center px-4 py-2 rounded-lg">
-            {% svg 'rectangle-stack' "w-4 h-4 mr-2" %} {% trans "Browse Talks" %}
-          </a>
-          <a href="{% url 'schedule' %}"
-             class="btn-secondary inline-flex items-center px-4 py-2 rounded-lg">
-            {% svg 'calendar' "w-4 h-4 mr-2" %} {% trans "Schedule" %}
-          </a>
+          {% if has_public_event %}
+            <a href="{% url 'talk_list' %}"
+               class="btn-primary inline-flex items-center px-4 py-2 rounded-lg">
+              {% svg 'rectangle-stack' "w-4 h-4 mr-2" %} {% trans "Browse Talks" %}
+            </a>
+            <a href="{% url 'schedule' %}"
+               class="btn-secondary inline-flex items-center px-4 py-2 rounded-lg">
+              {% svg 'calendar' "w-4 h-4 mr-2" %} {% trans "Schedule" %}
+            </a>
+          {% endif %}
           <a href="{% url 'account_request_login_code' %}"
              class="btn-outline-primary">{% trans "Sign In" %}</a>
         </div>
       </div>
+      {# Stats and upcoming talks are worth showing to a logged-out visitor, but only once
+         there is a public event to count: otherwise both widgets render an empty shell. #}
+      {% if has_public_event %}
+        <div class="card mb-6">
+          <div hx-get="{% url 'dashboard_stats' %}"
+               hx-trigger="load, every 300s"
+               hx-swap="innerHTML">
+            <p class="text-subtle text-sm">{% trans "Loading stats..." %}</p>
+          </div>
+        </div>
+        <div class="mb-6">
+          <div hx-get="{% url 'upcoming_talks' %}"
+               hx-trigger="load, every 300s"
+               hx-swap="innerHTML">
+            <div class="card">
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">{% trans "Coming Up Next" %}</h2>
+              </div>
+              <p class="text-subtle">{% trans "Loading upcoming talks..." %}</p>
+            </div>
+          </div>
+        </div>
+      {% endif %}
     {% endif %}
   </div>
 {% endblock content %}
