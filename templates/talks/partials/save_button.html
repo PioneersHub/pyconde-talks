@@ -2,10 +2,12 @@
 {% load i18n %}
 {% translate "Remove from saved" as remove_title %}
 {% translate "Save talk" as save_title %}
-{# Two variants of the same control. Signed in, HTMX posts to the server and swaps this markup
-   back. Signed out there is no row to write, so the button carries data-save-toggle and
-   saved-talks.js keeps the state in localStorage. The translated labels ride along in data
-   attributes so the script never has to hardcode English. #}
+{% comment %}
+  Two variants of the same control. Signed in, HTMX posts to the server and swaps this markup
+  back. Signed out there is no row to write, so the button carries data-save-toggle and
+  saved-talks.js keeps the state in localStorage. The translated labels ride along in data
+  attributes so the script never has to hardcode English.
+{% endcomment %}
 <div id="save-btn-{{ talk.pk }}"
      class="inline-flex"
      data-save-talk="{{ talk.pk }}"

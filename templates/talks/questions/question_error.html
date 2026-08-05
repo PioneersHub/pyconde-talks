@@ -1,10 +1,12 @@
 {% load svg_tags %}
-{# Shared error fragment for the Q&A: closed or frozen Q&A, no ticket for the event, rate limit,
-   failed captcha, invalid content.
+{% comment %}
+  Shared error fragment for the Q&A: closed or frozen Q&A, no ticket for the event, rate limit,
+  failed captcha, invalid content.
 
-   ``_qa_error_response`` sends HX-Retarget / HX-Reswap / HX-Reselect alongside this, so the id
-   below is part of that contract: it is what HX-Reselect names, and naming it is what stops the
-   inherited ``hx-select="#question-list"`` from filtering this body down to nothing. #}
+  ``_qa_error_response`` sends HX-Retarget / HX-Reswap / HX-Reselect alongside this, so the id
+  below is part of that contract: it is what HX-Reselect names, and naming it is what stops the
+  inherited ``hx-select="#question-list"`` from filtering this body down to nothing.
+{% endcomment %}
 <div id="qa-error-body"
      class="alert-error flex items-start gap-2"
      role="alert">

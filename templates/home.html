@@ -68,8 +68,10 @@
              class="btn-outline-primary">{% trans "Sign In" %}</a>
         </div>
       </div>
-      {# Stats and upcoming talks are worth showing to a logged-out visitor, but only once
-         there is a public event to count: otherwise both widgets render an empty shell. #}
+      {% comment %}
+        Stats and upcoming talks are worth showing to a logged-out visitor, but only once
+        there is a public event to count: otherwise both widgets render an empty shell.
+      {% endcomment %}
       {% if has_public_event %}
         <div class="card mb-6">
           <div hx-get="{% url 'dashboard_stats' %}"

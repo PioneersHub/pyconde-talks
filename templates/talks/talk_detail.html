@@ -102,13 +102,15 @@
             </div>
           {% endif %}
         {% elif talk.has_recording %}
-          {# A recording exists but this visitor may not watch it. Say so, rather than leaving a
-             blank space that reads as "this talk was never recorded".
+          {% comment %}
+            A recording exists but this visitor may not watch it. Say so, rather than leaving a
+            blank space that reads as "this talk was never recorded".
 
-             Not gated on being logged out: a signed-in visitor holding no ticket for a
-             schedule-only event cannot watch either, and used to get exactly the blank gap this
-             notice exists to prevent. Signing in is only the answer for the first group, so the
-             button is the only part that depends on it. #}
+            Not gated on being logged out: a signed-in visitor holding no ticket for a
+            schedule-only event cannot watch either, and used to get exactly the blank gap this
+            notice exists to prevent. Signing in is only the answer for the first group, so the
+            button is the only part that depends on it.
+          {% endcomment %}
           <div class="box-muted mb-8 text-center">
             <p class="text-muted mb-3">{% trans "A recording of this talk is available to ticket holders." %}</p>
             {% if not user.is_authenticated %}

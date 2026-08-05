@@ -132,9 +132,11 @@
                     {% if status_value == selected_status %}selected{% endif %}>{{ status_label }}</option>
           {% endfor %}
         </select>
-        {# Saved talks live against the user account, so the filter has nothing to match on
-           for an anonymous visitor and the view ignores it. Hide it rather than offer a
-           control that silently does nothing. #}
+        {% comment %}
+          Saved talks live against the user account, so the filter has nothing to match on
+          for an anonymous visitor and the view ignores it. Hide it rather than offer a
+          control that silently does nothing.
+        {% endcomment %}
         {% if user.is_authenticated %}
           <label class="inline-flex items-center gap-1 cursor-pointer select-none">
             <input type="checkbox"
@@ -268,9 +270,11 @@
                     {% trans "Video" %}
                   </a>
                 {% endif %}
-                {# Q&A always needs an account. The detail page offers a "sign in for Q&A"
-                   link; on a dense list row that would just be noise, so hide it.
-                   ``qa_visible`` too, or a disabled event still offers a button that 404s. #}
+                {% comment %}
+                  Q&A always needs an account. The detail page offers a "sign in for Q&A"
+                  link; on a dense list row that would just be noise, so hide it.
+                  ``qa_visible`` too, or a disabled event still offers a button that 404s.
+                {% endcomment %}
                 {% if user.is_authenticated and talk.event.qa_visible %}
                   <a href="{% url 'talk_questions' talk.pk %}"
                      class="btn-secondary inline-flex items-center px-3 py-1 rounded">

@@ -8,11 +8,15 @@
         hx-target="#question-list"
         hx-swap="outerHTML">
     {% csrf_token %}
-    {# Spell out both consequences before they commit, not after. An edit resets the votes and
-       re-opens the moderation decision, and on a moderated event that means the question
-       disappears from the public thread until someone approves it again. #}
-    {# No live-region role: this text is static and read in document order, unlike the notices
-       in base.html that JS reveals. #}
+    {% comment %}
+      Spell out both consequences before they commit, not after. An edit resets the votes and
+      re-opens the moderation decision, and on a moderated event that means the question
+      disappears from the public thread until someone approves it again.
+    {% endcomment %}
+    {% comment %}
+      No live-region role: this text is static and read in document order, unlike the notices
+      in base.html that JS reveals.
+    {% endcomment %}
     <div class="alert-warning mb-4">
       <p class="text-sm">
         {% if object.talk.event.qa_holds_for_review %}

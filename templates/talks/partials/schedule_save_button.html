@@ -2,9 +2,11 @@
 {% load i18n %}
 {% translate "Remove bookmark" as remove_title %}
 {% translate "Bookmark talk" as save_title %}
-{# Icon-only variant for schedule cards. See save_button.html for how the signed-out path
-   works; the wrapper here is the surrounding #sched-save-<pk> element, which the schedule
-   template provides, so this partial is only the button itself. #}
+{% comment %}
+  Icon-only variant for schedule cards. See save_button.html for how the signed-out path
+  works; the wrapper here is the surrounding #sched-save-<pk> element, which the schedule
+  template provides, so this partial is only the button itself.
+{% endcomment %}
 <button {% if user.is_authenticated %} hx-post="{% url 'toggle_save_talk' talk.pk %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' hx-target="#sched-save-{{ talk.pk }}" hx-swap="innerHTML" {% else %} type="button" data-save-toggle="{{ talk.pk }}" {% endif %}
         data-save-talk="{{ talk.pk }}"
         data-saved="{% if is_saved %}1{% else %}0{% endif %}"

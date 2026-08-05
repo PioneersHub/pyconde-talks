@@ -116,8 +116,10 @@
                           hx-target="#question-list"
                           hx-swap="outerHTML">{% svg 'x-mark' "h-4 w-4" %} {% translate "Reject Question" %}</button>
                 {% endif %}
-                {# Rejected: can move to approved (eg.: misclick).
-                   Pending: the moderation queue, same decision to make. #}
+                {% comment %}
+                  Rejected: can move to approved (eg.: misclick).
+                  Pending: the moderation queue, same decision to make.
+                {% endcomment %}
                 {% if question.status == 'rejected' or question.status == 'pending' %}
                   <button class="text-sm inline-flex items-center gap-1 badge badge-green hover:bg-green-200 px-2 py-1"
                           hx-post="{% url 'question_approve' question.id %}"

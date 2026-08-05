@@ -4,6 +4,8 @@
 # cspell:ignore código acesso entrar direitos reservados Alle Rechte vorbehalten Todos los derechos
 # cspell:ignore msgids
 
+import gettext
+from dataclasses import dataclass
 from http import HTTPStatus
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -261,57 +263,92 @@ def _catalog_path(language_code: str) -> Path:
     return Path(settings.LOCALE_PATHS[0]) / locale_name / "LC_MESSAGES" / "django.po"
 
 
-def _read_po_entry(block: str) -> tuple[str, bool, bool]:
+def _join_literals(literals: list[str]) -> str:
     """
-    Return ``(msgid, is_fuzzy, is_translated)`` for one blank-line-separated .po entry.
+    Join a run of .po string literals into the text they denote.
 
-    A minimal reader rather than a dependency. ``msgid`` and ``msgstr`` values can be split over
-    several quoted lines, so each continuation line is appended to whichever key was last seen;
-    ``msgid_plural`` is skipped because its text is not what identifies the entry.
+    Both keys and values can be split over several quoted lines, and both use C-style escapes, so
+    the quotes come off and the escapes are resolved in one place. Without the unescaping, a msgid
+    holding an escaped quote (any of the strings with an inline link) never matches the same
+    string as read back from a compiled catalogue.
     """
-    msgid_parts: list[str] = []
-    msgstr_parts: list[str] = []
+    body = "".join(literal[1:-1] for literal in literals)
+    return body.replace('\\"', '"').replace("\\n", "\n").replace("\\t", "\t").replace("\\\\", "\\")
+
+
+@dataclass(frozen=True)
+class PoEntry:
+    """One blank-line-separated entry of a .po file, as far as these tests care about it."""
+
+    msgid: str
+    msgstr: str
+    fuzzy: bool
+    has_plural: bool
+
+    @property
+    def is_translated(self) -> bool:
+        """Whether gettext would serve a translation for this entry rather than the source."""
+        return bool(self.msgstr) and not self.fuzzy
+
+
+def _read_po_entry(block: str) -> PoEntry:
+    """
+    Parse one .po entry. A minimal reader, to avoid a dependency for two tests.
+
+    ``msgid_plural`` and the ``msgstr[n]`` forms are noted but not collected: their runtime lookup
+    goes through ``ngettext`` and the catalogue's plural rule, which is a different question from
+    the two asked here.
+    """
+    msgid_literals: list[str] = []
+    msgstr_literals: list[str] = []
     fuzzy = False
+    has_plural = False
     target: list[str] | None = None
 
     for line in block.splitlines():
         if line.startswith("#,") and "fuzzy" in line:
             fuzzy = True
         elif line.startswith("msgid_plural "):
+            has_plural = True
             target = None
         elif line.startswith("msgid "):
-            target = msgid_parts
-            msgid_parts.append(line.removeprefix("msgid ").strip())
-        elif line.startswith("msgstr"):
-            target = msgstr_parts
-            msgstr_parts.append(line.split(" ", 1)[1].strip() if " " in line else '""')
+            target = msgid_literals
+            target.append(line.removeprefix("msgid ").strip())
+        elif line.startswith("msgstr "):
+            target = msgstr_literals
+            target.append(line.removeprefix("msgstr ").strip())
+        elif line.startswith("msgstr["):
+            # A plural form. Enough to know it is translated; the text is not compared.
+            target = None
+            if line.split("]", 1)[-1].strip() not in ('""', ""):
+                msgstr_literals.append(line.split("]", 1)[-1].strip())
         elif line.startswith('"') and target is not None:
             target.append(line.strip())
         elif not line.startswith(("#", '"')):
             target = None
 
-    msgid = "".join(part[1:-1] for part in msgid_parts)
-    translated = any(part.strip('"') for part in msgstr_parts)
-    return msgid, fuzzy, translated
+    return PoEntry(
+        msgid=_join_literals(msgid_literals),
+        msgstr=_join_literals(msgstr_literals),
+        fuzzy=fuzzy,
+        has_plural=has_plural,
+    )
+
+
+def _read_po(po_text: str) -> list[PoEntry]:
+    """Return every entry of *po_text*, skipping the header (whose msgid is empty)."""
+    entries = (_read_po_entry(block) for block in po_text.split("\n\n"))
+    return [entry for entry in entries if entry.msgid]
 
 
 def _entries_missing_a_translation(po_text: str) -> list[str]:
     """
-    Return the msgids in *po_text* that are untranslated or still marked fuzzy.
+    Return the msgids that are untranslated or still marked fuzzy.
 
-    A translation counts as missing when every ``msgstr`` literal it has is empty, or when the
-    entry carries the ``fuzzy`` flag: gettext ignores fuzzy entries at runtime, so they render in
-    English exactly as if they were absent.
+    Fuzzy counts as missing: gettext ignores fuzzy entries at runtime, so they render in English
+    exactly as if they were absent.
     """
-    missing = []
-    for block in po_text.split("\n\n"):
-        msgid, fuzzy, translated = _read_po_entry(block)
-        if not msgid:
-            # The header entry, which has an empty msgid.
-            continue
-        if fuzzy or not translated:
-            missing.append(msgid)
-    return missing
+    return [entry.msgid for entry in _read_po(po_text) if not entry.is_translated]
 
 
 @pytest.mark.parametrize(
@@ -346,15 +383,32 @@ def test_every_offered_language_is_fully_translated(language_code: str) -> None:
 )
 def test_every_catalogue_is_compiled_and_current(language_code: str) -> None:
     """
-    The compiled ``.mo`` exists and is not older than its ``.po``.
+    The compiled ``.mo`` actually serves what the ``.po`` says.
 
     Django reads the ``.mo``, so editing the ``.po`` without running ``compilemessages`` changes
     nothing at runtime while looking done in review. Both files are committed.
+
+    Compared by content, not by modification time. mtimes are not meaningful in a git working
+    tree: a clone, a checkout or a stash writes files in whatever order it likes, so an
+    mtime comparison fails at random on CI while saying nothing about the actual contents.
     """
     po = _catalog_path(language_code)
     mo = po.with_suffix(".mo")
 
     assert mo.exists(), f"{language_code}: {mo} missing, run compilemessages"
-    assert mo.stat().st_mtime >= po.stat().st_mtime, (
-        f"{language_code}: {mo.name} is older than {po.name}, run compilemessages"
+
+    with mo.open("rb") as fh:
+        compiled = gettext.GNUTranslations(fh)
+
+    stale = [
+        entry.msgid
+        for entry in _read_po(po.read_text(encoding="utf-8"))
+        if entry.is_translated
+        and not entry.has_plural
+        and compiled.gettext(entry.msgid) != entry.msgstr
+    ]
+
+    assert not stale, (
+        f"{language_code}: {len(stale)} translation(s) in {po.name} are not in {mo.name}, "
+        f"run compilemessages. First: {stale[:3]}"
     )
