@@ -52,12 +52,18 @@ class QuestionAdmin(admin.ModelAdmin[Question]):
         "display_name",
         "vote_count",
         "status",
+        "flag_reason",
         "has_answers",
         "created_at",
     )
     list_filter = ("status", "created_at", "talk__title")
     search_fields = ("content", "user__email", "user__first_name", "user__last_name", "talk__title")
-    actions = ("approve_questions", "reject_questions", "mark_as_answered")
+    actions = (
+        "approve_questions",
+        "mark_as_pending",
+        "reject_questions",
+        "mark_as_answered",
+    )
     readonly_fields = ("vote_count", "created_at", "updated_at")
     inlines = (AnswerInline,)
     list_select_related = ("talk", "user")
@@ -119,6 +125,16 @@ class QuestionAdmin(admin.ModelAdmin[Question]):
         """Update *queryset*'s status and notify the admin user."""
         updated = queryset.update(status=status, updated_at=timezone.now())
         self.message_user(request, message_template % {"count": updated})
+
+    @admin.action(description=_("Send selected questions back for review"))
+    def mark_as_pending(self, request: HttpRequest, queryset: QuerySet[Question]) -> None:
+        """Move selected questions back into the moderation queue."""
+        self._bulk_set_status(
+            request,
+            queryset,
+            Question.Status.PENDING,
+            _("%(count)d question(s) are now pending review."),
+        )
 
     @admin.action(description=_("Reject selected questions (hide from public)"))
     def reject_questions(self, request: HttpRequest, queryset: QuerySet[Question]) -> None:

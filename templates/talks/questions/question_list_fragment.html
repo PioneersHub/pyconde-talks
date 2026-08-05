@@ -35,6 +35,8 @@
           <option value="answered"
                   {% if status_filter == 'answered' %}selected{% endif %}>{% translate "Answered" %}</option>
           {% if user_can_moderate %}
+            <option value="pending"
+                    {% if status_filter == 'pending' %}selected{% endif %}>{% translate "Pending review" %}</option>
             <option value="rejected"
                     {% if status_filter == 'rejected' %}selected{% endif %}>{% translate "Rejected" %}</option>
           {% endif %}
@@ -75,6 +77,8 @@
               <span class="badge badge-blue text-xs px-2 py-1">{% translate "Answered" %}</span>
             {% elif question.status == 'rejected' %}
               <span class="badge badge-red text-xs px-2 py-1">{% translate "Rejected" %}</span>
+            {% elif question.status == 'pending' %}
+              <span class="badge badge-yellow text-xs px-2 py-1">{% translate "Awaiting review" %}</span>
             {% endif %}
           </div>
           <p class="text-strong mb-4">{{ question.content|linebreaksbr }}</p>
@@ -112,14 +116,23 @@
                           hx-target="#question-list"
                           hx-swap="outerHTML">{% svg 'x-mark' "h-4 w-4" %} {% translate "Reject Question" %}</button>
                 {% endif %}
-                {# Rejected: can move to approved (eg.: misclick) #}
-                {% if question.status == 'rejected' %}
+                {# Rejected: can move to approved (eg.: misclick).
+                   Pending: the moderation queue, same decision to make. #}
+                {% if question.status == 'rejected' or question.status == 'pending' %}
                   <button class="text-sm inline-flex items-center gap-1 badge badge-green hover:bg-green-200 px-2 py-1"
                           hx-post="{% url 'question_approve' question.id %}"
                           hx-vals='{"status_filter":"{{ status_filter }}"}'
                           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                           hx-target="#question-list"
                           hx-swap="outerHTML">{% svg 'check-circle' "h-4 w-4" %} {% translate "Approve" %}</button>
+                {% endif %}
+                {% if question.status == 'pending' %}
+                  <button class="text-sm inline-flex items-center gap-1 badge badge-red hover:bg-red-200 px-2 py-1"
+                          hx-post="{% url 'question_reject' question.id %}"
+                          hx-vals='{"status_filter":"{{ status_filter }}"}'
+                          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                          hx-target="#question-list"
+                          hx-swap="outerHTML">{% svg 'x-mark' "h-4 w-4" %} {% translate "Reject Question" %}</button>
                 {% endif %}
               {% endif %}
               {% if question.user_id == request.user.id %}

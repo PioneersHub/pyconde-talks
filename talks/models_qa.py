@@ -47,6 +47,10 @@ class QuestionQuerySet(models.QuerySet["Question"]):  # type: ignore[call-arg]
         """Return questions sorted by vote count (descending)."""
         return self.with_vote_count().order_by("-votes_count", "-created_at")
 
+    def pending(self) -> Self:
+        """Return only questions waiting for a moderator."""
+        return self.filter(status=Question.Status.PENDING)
+
     def approved(self) -> Self:
         """Return only approved questions."""
         return self.filter(status=Question.Status.APPROVED)
@@ -66,6 +70,7 @@ class Question(models.Model):
     class Status(models.TextChoices):
         """Status of a question."""
 
+        PENDING = "pending", _("Pending review")
         APPROVED = "approved", _("Approved")
         ANSWERED = "answered", _("Answered")
         REJECTED = "rejected", _("Rejected")
@@ -92,10 +97,23 @@ class Question(models.Model):
     )
 
     status = models.CharField(
-        max_length=10,
+        max_length=20,
         choices=Status.choices,
+        # Stays APPROVED so an event in the default OPEN mode publishes immediately, exactly as
+        # before. Pre-moderation is opted into per event and applied by the view, not by
+        # flipping this default: doing that would also make admin-created questions invisible.
         default=Status.APPROVED,
         help_text=_("Status of the question"),
+    )
+
+    flag_reason = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text=_(
+            "Why this question was held for review, when the spam heuristics caught it. "
+            "Empty means it was not auto-flagged.",
+        ),
     )
 
     created_at = models.DateTimeField(
@@ -163,15 +181,33 @@ class Question(models.Model):
         self.status = self.Status.ANSWERED
         self.save(update_fields=["status", "updated_at"])
 
+    def mark_as_pending(self, reason: str = "") -> None:
+        """
+        Hold the question for moderation, recording why.
+
+        *reason* is stored on ``flag_reason`` so a moderator can see what caught it, and so a
+        heuristic that misfires in production can be identified from the data rather than
+        guessed at.
+        """
+        self.status = self.Status.PENDING
+        self.flag_reason = reason
+        self.save(update_fields=["status", "flag_reason", "updated_at"])
+
     def reject(self) -> None:
         """Reject the question."""
         self.status = self.Status.REJECTED
         self.save(update_fields=["status", "updated_at"])
 
     def approve(self) -> None:
-        """Approve the question."""
+        """
+        Approve the question, clearing any auto-flag.
+
+        A moderator saying yes settles the matter, so the flag should not linger and make the
+        question look suspect in the admin afterwards.
+        """
         self.status = self.Status.APPROVED
-        self.save(update_fields=["status", "updated_at"])
+        self.flag_reason = ""
+        self.save(update_fields=["status", "flag_reason", "updated_at"])
 
 
 class QuestionVote(models.Model):

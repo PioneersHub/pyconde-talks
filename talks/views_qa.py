@@ -40,7 +40,9 @@ if TYPE_CHECKING:
 
 # The status filters the Q&A views understand. Anything else collapses to "all" so an attacker
 # cannot reflect arbitrary text into the hx-vals JSON / hx-get URL the list fragment builds.
-_VALID_STATUS_FILTERS = frozenset({"all", "mine", "approved", "answered", "rejected"})
+_VALID_STATUS_FILTERS = frozenset(
+    {"all", "mine", "pending", "approved", "answered", "rejected"},
+)
 
 
 def _get_status_filter(request: HttpRequest) -> str:
@@ -193,10 +195,16 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
 
 
 _STATUS_Q: dict[str, Q] = {
+    "pending": Q(status=Question.Status.PENDING),
     "approved": Q(status=Question.Status.APPROVED),
     "answered": Q(status=Question.Status.ANSWERED),
     "rejected": Q(status=Question.Status.REJECTED),
 }
+
+# Statuses everyone may see, whoever asked the question.
+_PUBLIC_STATUSES = (Question.Status.APPROVED, Question.Status.ANSWERED)
+# Statuses only the author (and moderators) may see: held back or turned down.
+_AUTHOR_ONLY_STATUSES = (Question.Status.PENDING, Question.Status.REJECTED)
 
 
 def get_filtered_questions(
@@ -208,6 +216,10 @@ def get_filtered_questions(
     Get filtered questions based on user permissions and filter selection.
 
     This function centralizes the filtering logic used in both QuestionListView and vote_question.
+
+    A pending question is visible to its author and to moderators, nobody else: the author needs
+    to see that their question was received rather than silently swallowed, while for everyone
+    else the queue is the whole point of pre-moderation.
     """
     queryset = Question.objects.filter(talk=talk).select_related("user")
 
@@ -218,16 +230,22 @@ def get_filtered_questions(
     if status_filter in ("approved", "answered"):
         return queryset.filter(_STATUS_Q[status_filter]).sorted_by_votes()
 
-    # Moderators can view rejected questions and unfiltered "all"
+    # Moderators can view pending / rejected questions and unfiltered "all"
     if is_moderator(request.user):
-        if status_filter == "rejected":
-            return queryset.filter(_STATUS_Q["rejected"]).sorted_by_votes()
+        if status_filter in ("pending", "rejected"):
+            return queryset.filter(_STATUS_Q[status_filter]).sorted_by_votes()
         return queryset.sorted_by_votes()
 
-    # Default for regular users: approved + answered, plus their own rejected questions
+    # A regular user asking for pending or rejected gets their own, not everyone's.
+    if status_filter in ("pending", "rejected"):
+        return queryset.filter(
+            _STATUS_Q[status_filter],
+            user=request.user,
+        ).sorted_by_votes()
+
+    # Default for regular users: what is public, plus their own held-back questions
     return queryset.filter(
-        Q(status__in=[Question.Status.APPROVED, Question.Status.ANSWERED])
-        | Q(status=Question.Status.REJECTED, user=request.user),
+        Q(status__in=_PUBLIC_STATUSES) | Q(status__in=_AUTHOR_ONLY_STATUSES, user=request.user),
     ).sorted_by_votes()
 
 
