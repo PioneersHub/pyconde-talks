@@ -8,6 +8,7 @@ Defence
 Dynamicum
 EDITMSG
 Ebene
+Errno
 Genderqueer
 HSTS
 HTTPONLY

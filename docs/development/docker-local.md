@@ -19,6 +19,23 @@ alias dcl='docker compose -f compose.yaml -f compose.local.yaml'
 Run all compose commands from the `docker/` directory; that is where `compose.yaml` and the `.env`
 file live.
 
+!!! warning "Always use both compose files"
+
+    A bare `docker compose` (without `-f compose.local.yaml`) uses the production paths from
+    `compose.yaml`: `/var/log/talks.pycon.de` and `/var/opt/talks.pycon.de/media`. On Docker Desktop or
+    Colima those live inside the Linux VM, not on your Mac, so Docker creates them there owned by `root`
+    and the container - which runs as UID 65532 - cannot write its log files. Django then dies on
+    startup with:
+
+    ```
+    PermissionError: [Errno 13] Permission denied: '/logs/auth.log'
+    ValueError: Unable to configure handler 'auth_file'
+    ```
+
+    Changing ownership of the path on the host does not help, because that is not the directory the
+    container sees. Use the `dcl` alias everywhere and the logs go to `.local/logs` in the repository
+    instead.
+
 ## 1. Prepare local folders
 
 From the repository root:
@@ -41,18 +58,65 @@ the app image and a `staticfiles-export` target that dumps the collected, conten
 `docker/staticfiles`. Building both with the same tag guarantees the `staticfiles.json` manifest
 baked into the image matches the exported files.
 
+!!! danger "Bake does not read `.env` - export the image name first"
+
+    `docker compose` interpolates `${IMAGE_NAME}` and `${IMAGE_TAG}` from `docker/.env`, so it runs
+    `talks.pycon.de-django:latest`. **Bake does not read `.env` at all**: its variables come only from
+    the real environment, so it falls back to the defaults in `docker/docker-bake.hcl` and tags the
+    image `event-talks:latest`.
+
+    Build without exporting anything and the two names never meet. Bake succeeds, `dcl up -d` starts the
+    *previous* `talks.pycon.de-django:latest`, and your changes appear to have been ignored - which
+    looks exactly like a stale build cache but is not. Check with
+    `docker images | grep -E 'event-talks|talks.pycon.de-django'`: two images, two timestamps.
+
+    Note also that the two files spell the tag differently: compose reads `IMAGE_TAG`, bake reads `TAG`.
+    Exporting only `IMAGE_TAG` is not enough - bake would still tag `:latest`.
+
+Export both names from `.env`, then build:
+
 ```bash
 cd docker
+
+# Bake reads the environment, not .env. IMAGE_NAME is the same variable compose uses;
+# bake's tag variable is called TAG, while compose calls it IMAGE_TAG.
+export IMAGE_NAME="$(grep -E '^IMAGE_NAME=' .env | cut -d= -f2-)"
+export TAG="$(grep -E '^IMAGE_TAG=' .env | cut -d= -f2-)"
+
 rm -rf staticfiles                       # buildx does not clean stale files
 docker buildx bake --allow=fs.read=..    # builds linux/amd64 by default
 rm -rf ../.local/staticfiles
 mv staticfiles ../.local/staticfiles
 ```
 
+Confirm the tag bake will use before a long build, and that it matches what compose will run:
+
+```bash
+docker buildx bake --allow=fs.read=.. --print | grep -A2 '"tags"'
+dcl config | grep 'image: talks'
+```
+
+!!! warning "Do not `source .env` to do this"
+
+    `set -a; source ./.env; set +a` looks like the obvious shortcut, but it aborts partway:
+    `DJANGO_SECRET_KEY` contains an unquoted `&`, so the shell stops with `parse error near '&'` and
+    every variable *after* that line is silently left unset. The two targeted `export` lines above avoid
+    the problem, and are all bake needs.
+
 !!! note "Why move the export?"
 
     `compose.local.yaml` mounts `../.local/staticfiles` into the container at `DJANGO_STATIC_ROOT`, so
     Django serves exactly the files that were collected during the build.
+
+!!! tip "Rebuilding after a template or static change"
+
+    Templates and the static manifest are baked into the image, so editing a template on the host
+    changes nothing until you rebuild and recreate the container:
+
+    ```bash
+    docker buildx bake --allow=fs.read=..
+    dcl up -d --force-recreate django
+    ```
 
 ## 3. Start Postgres
 
@@ -124,3 +188,47 @@ dcl exec django python manage.py dumpdata talks.Rating --indent 2 > ratings.json
     The Django container runs with a read-only root filesystem, all Linux capabilities dropped, and
     `no-new-privileges`. The app can only write to the mounted media and logs volumes and to a `/tmp`
     tmpfs. If a command needs to write elsewhere, that is a sign it should not run in production either.
+
+## Full rebuild, in one block
+
+The same steps as above, for when you want to paste rather than read. Restoring the backup is the
+only optional part.
+
+```bash
+cd /path/to/pyconde-talks
+mkdir -p .local/media .local/logs .local/staticfiles
+
+cd docker
+alias dcl='docker compose -f compose.yaml -f compose.local.yaml'
+
+# Bake reads the environment, not .env (see step 2). Without these two exports the build is
+# tagged event-talks:latest and compose keeps running the previous image.
+export IMAGE_NAME="$(grep -E '^IMAGE_NAME=' .env | cut -d= -f2-)"
+export TAG="$(grep -E '^IMAGE_TAG=' .env | cut -d= -f2-)"
+
+dcl down
+rm -rf staticfiles
+docker buildx bake --allow=fs.read=..
+rm -rf ../.local/staticfiles
+mv staticfiles ../.local/staticfiles
+
+dcl up -d db
+
+# Optional: start from a backup instead of an empty database.
+dcl exec -T db sh -lc 'psql -U "$POSTGRES_USER" -d postgres \
+  -c "DROP DATABASE IF EXISTS \"$POSTGRES_DB\";"'
+dcl exec -T db sh -lc 'psql -U "$POSTGRES_USER" -d postgres \
+  -c "CREATE DATABASE \"$POSTGRES_DB\";"'
+cat /path/to/backup.sql | dcl exec -T db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+
+dcl up -d
+dcl ps
+curl -fsS "http://127.0.0.1:8000/ht/?format=json"
+dcl logs -f django
+```
+
+A healthy stack answers `/ht/` with every check `OK`, including `Cache` (Redis) and `Database`:
+
+```json
+{"Cache(alias='default')": "OK", "Database(alias='default')": "OK", "Storage(alias='default')": "OK"}
+```
