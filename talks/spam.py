@@ -59,15 +59,14 @@ _CONTACT_RE: Final = re.compile(
 
 # A messaging platform named next to a handle or a phone number. That pairing is what an advert
 # looks like; the platform name on its own is just a topic.
+# Written as concatenated single-line strings rather than one triple-quoted verbose pattern: a
+# tool that walks the token stream cannot tell this apart from a docstring, and reflowing it would
+# silently rewrite the pattern.
 _CONTACT_HANDLE_RE: Final = re.compile(
-    r"""(?ix)
-    \b(?:whats\s?app|telegram|wechat|signal)\b
-    [\s:,-]{0,10}
-    (?:
-        @[a-z0-9_]{3,}
-        | \+?\d[\d\s().-]{6,}
-    )
-    """,
+    r"(?i)"
+    r"\b(?:whats\s?app|telegram|wechat|signal)\b"
+    r"[\s:,-]{0,10}"
+    r"(?:@[a-z0-9_]{3,}|\+?\d[\d\s().-]{6,})",
 )
 
 # A long run of capitals reads as shouting. The threshold is high enough to leave the acronyms
