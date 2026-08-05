@@ -29,12 +29,36 @@ services:
     restart: unless-stopped
     # Cache-only, so persistence is off: losing the contents on restart costs at most a reset
     # rate-limit window and one token refresh, and avoids an RDB dump on a read-only filesystem.
-    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory-policy", "allkeys-lru"]
+    #
+    # ``maxmemory`` is set explicitly: without it ``allkeys-lru`` is inert, because there is no
+    # ceiling for the policy to act on, and the "disposable cache" this is meant to be would grow
+    # until the host ran out of memory. 256mb is far more than the counters and one token need.
+    command:
+      - "redis-server"
+      - "--save"
+      - ""
+      - "--appendonly"
+      - "no"
+      - "--maxmemory"
+      - "256mb"
+      - "--maxmemory-policy"
+      - "allkeys-lru"
     read_only: true
+    # The image's entrypoint drops to the unprivileged ``redis`` user with ``su-exec``, which needs
+    # the capabilities to change user and group. With every capability dropped that step fails
+    # silently and the server keeps running as uid 0, so ask for the unprivileged user directly
+    # instead and keep ``cap_drop: ALL``. Redis needs none of its own once it is not root.
+    user: "redis"
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    # ``read_only`` leaves no writable path, and redis wants one for its working directory even
+    # with persistence off (it still writes a temp file on some admin commands). No uid/gid
+    # options: Docker mounts a tmpfs mode 1777, so it is writable whichever user the image runs
+    # as, and pinning an owner here would mean hardcoding an id the image is free to change.
+    tmpfs:
+      - /data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s

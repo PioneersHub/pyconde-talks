@@ -82,11 +82,14 @@ class Event(models.Model):
         help_text=_("Whether this event is currently active and visible on the site"),
     )
 
+    # No ``db_index``: this is a three-value column on a table with one row per conference, so an
+    # index on it can never help. The planner reads the whole table faster either way, and the
+    # ``event__visibility`` filters in ``accessible_to`` join from Talk on the already-indexed
+    # foreign key.
     visibility = models.CharField(
         max_length=20,
         choices=Visibility.choices,
         default=Visibility.HIDDEN,
-        db_index=True,
         help_text=_(
             "What visitors can see without logging in. Hidden keeps the whole event behind the "
             "login wall. Schedule only publishes titles, abstracts and speakers but keeps "

@@ -1,6 +1,7 @@
 """Django settings for event_talks project."""
 
 import logging
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -8,6 +9,7 @@ import django_stubs_ext
 import environ
 import sentry_sdk
 import structlog
+from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import gettext_lazy as _
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
@@ -128,6 +130,18 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # the current single-Daphne deployment and for dev/tests, but point ``DJANGO_CACHE_URL`` at
 # Redis before scaling out. Django ships a Redis backend, so only the ``redis`` client is needed.
 CACHES = {"default": env.cache("DJANGO_CACHE_URL", default="locmemcache://")}
+
+# LocMemCache holds 300 entries by default and, once full, culls a third of them at random on
+# every write. The rate limiter keeps one key per (account, talk, window), so a busy talk would
+# quietly lose counters mid-conference and hand out fresh allowances. Raise the ceiling so the
+# per-process default behaves the way the limits claim to. Redis has no such cap, so this only
+# applies to the local backend.
+if CACHES["default"]["BACKEND"].endswith("LocMemCache"):
+    CACHES["default"].setdefault("OPTIONS", {})
+    CACHES["default"]["OPTIONS"].setdefault("MAX_ENTRIES", 10_000)
+    # Cull one in fifty rather than one in three, so the eviction that does happen is far less
+    # likely to take a live counter with it.
+    CACHES["default"]["OPTIONS"].setdefault("CULL_FREQUENCY", 50)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -323,12 +337,31 @@ ALLAUTH_TRUSTED_PROXY_COUNT = env.int("ALLAUTH_TRUSTED_PROXY_COUNT", default=0)
 # not trip it during the opening-session rush, low enough to make bulk signup from one host
 # pointless. Both limits apply; whichever is hit first wins.
 # https://docs.allauth.org/en/latest/account/rate_limits.html
+#
+# Joined rather than interpolated: allauth reads several limits from one comma-separated string
+# and raises ValueError on an empty segment, which it does per request, so a trailing comma from
+# an unset LOGIN_CODE_IP_RATE_LIMIT would turn every login-code request into a 500. Blank is the
+# obvious way for an operator to say "no IP ceiling", so it has to mean that.
+# What allauth accepts: "<amount>/<period><unit>/<scope>", e.g. "60/5m/ip". The unit is one of
+# s, m, h or d.
+_LOGIN_CODE_IP_RATE_LIMIT_RE = re.compile(r"^\d+/\d+[a-z]/(?:ip|key|user)$")
+_LOGIN_CODE_IP_RATE_LIMIT = env("LOGIN_CODE_IP_RATE_LIMIT", default="60/5m/ip").strip()
+if _LOGIN_CODE_IP_RATE_LIMIT and not _LOGIN_CODE_IP_RATE_LIMIT_RE.fullmatch(
+    _LOGIN_CODE_IP_RATE_LIMIT,
+):
+    # Fail the deploy, not every sign-in. allauth re-parses this string per request and raises
+    # ValueError on anything it does not understand, so a typo here would otherwise turn the
+    # whole login flow into a 500 that only shows up when someone tries to sign in.
+    msg = (
+        f"LOGIN_CODE_IP_RATE_LIMIT is not a valid allauth rate: {_LOGIN_CODE_IP_RATE_LIMIT!r}. "
+        'Expected something like "60/5m/ip", or empty for no per-IP ceiling.'
+    )
+    raise ImproperlyConfigured(msg)
 ACCOUNT_RATE_LIMITS = {
     # 5 wrong code entries per account / 5 min (key = the targeted account).
     "login_failed": "5/5m/key",
     # 5 login-code requests per email / 5 min, plus a coarse per-IP ceiling (see above).
-    # allauth parses several limits from one comma-separated string, not from a list.
-    "request_login_code": f"5/5m/key,{env('LOGIN_CODE_IP_RATE_LIMIT', default='60/5m/ip')}",
+    "request_login_code": ",".join(filter(None, ["5/5m/key", _LOGIN_CODE_IP_RATE_LIMIT])),
     # 3 email-confirmation requests per account / 3 min.
     "confirm_email": "3/3m/key",
     # Anonymous, no per-account key -> a per-IP limit would lock out the shared venue, so disable.
