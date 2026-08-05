@@ -79,9 +79,8 @@ def rate_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     """
     Handle talk rating submission.
 
-    Users can rate a talk from 1 to 5 stars with an optional comment.
-    If a rating already exists, it is updated.
-    Returns a partial HTML fragment for HTMX requests or redirects otherwise.
+    Users can rate a talk from 1 to 5 stars with an optional comment. If a rating already exists, it
+    is updated. Returns a partial HTML fragment for HTMX requests or redirects otherwise.
     """
     user = cast("CustomUser", request.user)
     talk = get_object_or_404(Talk.objects.accessible_to(user), pk=talk_id)

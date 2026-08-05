@@ -137,8 +137,8 @@ class TestResolveDefaultEvent:
         """
         ``DEFAULT_EVENT`` naming a hidden event does not strand anonymous visitors.
 
-        The setting points at whichever event is current, and an event is hidden for most of
-        its life, so without scoping the default the talk list would come back empty with no
+        The setting points at whichever event is current, and an event is hidden for most of its
+        life, so without scoping the default the talk list would come back empty with no
         explanation. The visible event is chosen instead.
         """
         baker.make(Event, slug="current", is_active=True, visibility=Event.Visibility.HIDDEN)

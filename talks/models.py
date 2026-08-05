@@ -45,11 +45,11 @@ MAX_TRACK_NAME_LENGTH = 100
 class Room(models.Model):
     """Represents a conference room where talks take place."""
 
-    # Rooms are event-scoped: the same physical room reused across events is a separate
-    # Room row per event. on_delete=PROTECT so an event with rooms can't be deleted out
-    # from under its talks/streamings; you reassign or remove rooms explicitly first.
-    # Required: every room belongs to an event (migrations 0024 add it nullable, 0025
-    # backfill existing rows, 0027 tighten to NOT NULL).
+    # Rooms are event-scoped: the same physical room reused across events is a separate Room row per
+    # event. on_delete=PROTECT so an event with rooms can't be deleted out from under its
+    # talks/streamings; you reassign or remove rooms explicitly first.
+    # Required: every room belongs to an event (migrations 0024 add it nullable, 0025 backfill
+    # existing rows, 0027 tighten to NOT NULL).
     event = models.ForeignKey(
         "events.Event",
         on_delete=models.PROTECT,
@@ -57,16 +57,16 @@ class Room(models.Model):
         help_text=_("Event this room belongs to"),
     )
 
-    # Unique per event (see Meta.constraints), not globally: the same room name can exist
-    # under different events.
+    # Unique per event (see Meta.constraints), not globally: the same room name can exist under
+    # different events.
     name = models.CharField(
         max_length=MAX_ROOM_NAME_LENGTH,
         help_text=_("Name of the room"),
     )
 
-    # Stable Pretalx room id (the integer ``slot.room.id``). Null for manually created or
-    # legacy rooms; the importer stamps it lazily on the next sync. This is the match key
-    # that lets a room renamed on Pretalx be renamed in place instead of duplicated.
+    # Stable Pretalx room id (the integer ``slot.room.id``). Null for manually created or legacy
+    # rooms; the importer stamps it lazily on the next sync. This is the match key that lets a room
+    # renamed on Pretalx be renamed in place instead of duplicated.
     pretalx_id = models.PositiveIntegerField(
         null=True,
         blank=True,
@@ -106,8 +106,8 @@ class Room(models.Model):
                 fields=["event", "name"],
                 name="uniq_room_event_name",
             ),
-            # At most one room per Pretalx id per event. Partial so legacy/manual rooms
-            # (pretalx_id IS NULL) don't collide with each other.
+            # At most one room per Pretalx id per event. Partial so legacy/manual rooms (pretalx_id
+            # IS NULL) don't collide with each other.
             models.UniqueConstraint(
                 fields=["event", "pretalx_id"],
                 condition=Q(pretalx_id__isnull=False),
@@ -130,10 +130,10 @@ class Room(models.Model):
         """
         Find the local Room for a Pretalx room within an event, without writing.
 
-        Match order: ``(event, pretalx_id)`` first (the stable key that survives a
-        rename), then ``(event, name)`` for legacy rows that predate id-keying. Returns
-        ``None`` on a miss. This is the single matcher shared by the importer and the
-        apply step so both behave identically; it never creates or mutates a row.
+        Match order: ``(event, pretalx_id)`` first (the stable key that survives a rename), then
+        ``(event, name)`` for legacy rows that predate id-keying. Returns ``None`` on a miss. This
+        is the single matcher shared by the importer and the apply step so both behave identically;
+        it never creates or mutates a row.
         """
         if pretalx_id is not None:
             match = cls.objects.filter(event=event, pretalx_id=pretalx_id).first()
@@ -314,13 +314,13 @@ def user_can_watch_videos(
     """
     Return whether *user* may watch recordings belonging to *event*.
 
-    Superusers always may. Everyone else needs the event to be active first: deactivating an
-    event takes it off the site for everyone, so there is nothing left to play. Given an active
-    event, ticket holders may, and everyone else only once it is public - a schedule-only event
-    publishes its programme but keeps the recordings for ticket holders.
+    Superusers always may. Everyone else needs the event to be active first: deactivating an event
+    takes it off the site for everyone, so there is nothing left to play. Given an active event,
+    ticket holders may, and everyone else only once it is public - a schedule-only event publishes
+    its programme but keeps the recordings for ticket holders.
 
-    Kept separate from ``TalkQuerySet.accessible_to``, which decides whether a talk is *listed*.
-    A schedule-only talk is listed to everyone and playable only by members.
+    Kept separate from ``TalkQuerySet.accessible_to``, which decides whether a talk is *listed*. A
+    schedule-only talk is listed to everyone and playable only by members.
     """
     if getattr(user, "is_superuser", False):
         return True
@@ -341,10 +341,10 @@ def user_can_join_qa(
     """
     Return whether *user* may post or vote in *event*'s Q&A.
 
-    Reading the thread only needs the talk to be listed, but taking part needs a relationship
-    with the event: a ticket, or an event that is public and therefore open to anyone. Without
-    that, holding a ticket for last year's public archive was enough to post into the Q&A of
-    the conference running right now, which is the one place moderator attention is scarcest.
+    Reading the thread only needs the talk to be listed, but taking part needs a relationship with
+    the event: a ticket, or an event that is public and therefore open to anyone. Without that,
+    holding a ticket for last year's public archive was enough to post into the Q&A of the
+    conference running right now, which is the one place moderator attention is scarcest.
 
     Staff and superusers always may, because they are the ones moderating.
     """
@@ -366,9 +366,9 @@ def is_qa_moderator(user: AbstractBaseUser | AnonymousUser | None) -> bool:
     """
     Return whether *user* moderates the Q&A (staff or superuser).
 
-    Lives here rather than in ``talks.views_qa`` so the access predicates above can use it
-    without importing from the view layer. ``views_qa.is_moderator`` is the same check and stays
-    as the name the views and templates already use.
+    Lives here rather than in ``talks.views_qa`` so the access predicates above can use it without
+    importing from the view layer. ``views_qa.is_moderator`` is the same check and stays as the name
+    the views and templates already use.
     """
     if not getattr(user, "is_authenticated", False):
         return False
@@ -430,25 +430,25 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
         Return talks the given user is allowed to see listed.
 
         Superusers see every talk. Everyone else sees talks on *active* events only, and within
-        those the union of two sets: events they are a member of, and events that are not
-        hidden. A logged-in visitor browsing an event they hold no ticket for therefore sees
-        exactly what an anonymous visitor sees, plus their own events.
+        those the union of two sets: events they are a member of, and events that are not hidden. A
+        logged-in visitor browsing an event they hold no ticket for therefore sees exactly what an
+        anonymous visitor sees, plus their own events.
 
         Anonymous users have no ``events`` relation, so membership is skipped rather than
         dereferenced. ``None`` is treated as anonymous. Every talk belongs to an event
         (``Talk.event`` is required), so there is no event-less escape hatch.
 
-        ``hide`` takes a talk out of every non-superuser view whatever its event's visibility,
-        so an embargoed session can be held back even on an otherwise public event.
+        ``hide`` takes a talk out of every non-superuser view whatever its event's visibility, so an
+        embargoed session can be held back even on an otherwise public event.
 
         ``is_active`` binds both halves, membership included. Deactivating an event is how an
-        organizer takes it off the site, and ``events_visible_to`` / ``visible_events`` already
-        drop inactive events from the event picker, so anything still reachable here would only
-        be reachable by direct URL - visible to whoever kept a link, invisible to everyone
-        navigating normally. Holding a ticket does not change that: the event is gone.
+        organizer takes it off the site, and ``events_visible_to`` / ``visible_events`` already drop
+        inactive events from the event picker, so anything still reachable here would only be
+        reachable by direct URL - visible to whoever kept a link, invisible to everyone navigating
+        normally. Holding a ticket does not change that: the event is gone.
 
-        This decides *listing* only. Whether the recording can be played is a separate
-        question: a schedule-only event lists its talks to everyone but withholds the video.
+        This decides *listing* only. Whether the recording can be played is a separate question: a
+        schedule-only event lists its talks to everyone but withholds the video.
         """
         if getattr(user, "is_superuser", False):
             return self
@@ -483,8 +483,8 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
         """
         Evaluate the queryset, batch-load streamings, and resolve the video gate on every row.
 
-        Terminal like ``with_streamings``. Use it wherever a template will call
-        ``get_video_link`` or ``get_transcription_url``, or those will return "" for everyone.
+        Terminal like ``with_streamings``. Use it wherever a template will call ``get_video_link``
+        or ``get_transcription_url``, or those will return "" for everyone.
         """
         talks = self.with_streamings()
         unlock_video_access(talks, user)
@@ -494,16 +494,16 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
         """
         Annotate each talk with ``average_rating`` and ``rating_count``.
 
-        Centralizes the per-row aggregate used by the talk list, upcoming-talks
-        partial, and admin so the annotation lives in one place and templates can
-        rely on the same attribute names everywhere.
+        Centralizes the per-row aggregate used by the talk list, upcoming-talks partial, and admin
+        so the annotation lives in one place and templates can rely on the same attribute names
+        everywhere.
 
-        ``Count`` uses ``distinct=True`` because callers chain this after a search that may
-        join ``speakers`` (the author/all scope adds ``Q(speakers__name__icontains=...)``).
-        That join fans each talk row out once per speaker, and a plain ``Count("ratings")``
-        would then count every rating once per speaker, inflating the displayed total.
-        ``Avg`` needs no ``distinct``: the fan-out duplicates every rating uniformly, so the
-        average is unaffected (and ``distinct`` would wrongly collapse equal scores).
+        ``Count`` uses ``distinct=True`` because callers chain this after a search that may join
+        ``speakers`` (the author/all scope adds ``Q(speakers__name__icontains=...)``). That join
+        fans each talk row out once per speaker, and a plain ``Count("ratings")`` would then count
+        every rating once per speaker, inflating the displayed total. ``Avg`` needs no ``distinct``:
+        the fan-out duplicates every rating uniformly, so the average is unaffected (and
+        ``distinct`` would wrongly collapse equal scores).
         """
         return self.annotate(
             average_rating=Avg("ratings__score"),
@@ -770,9 +770,9 @@ class Talk(models.Model):
         """
         Return True if a talk in ``room`` overlaps the proposed time window.
 
-        Two talks overlap when one starts before the other ends **and** ends
-        after the other starts.  The check is performed against persisted
-        ``Talk`` rows so it is safe to call before ``save()``.
+        Two talks overlap when one starts before the other ends **and** ends after the other starts.
+        The check is performed against persisted ``Talk`` rows so it is safe to call before
+        ``save()``.
         """
         if not room or not start_time or not duration:
             return False
@@ -791,8 +791,8 @@ class Talk(models.Model):
         """
         Add provider-specific query parameters to the video link.
 
-        Only operates on ``self.video_link`` (the stored field), not on streaming fallback URLs.
-        The method is idempotent: the parameter is only added when it is not already present.
+        Only operates on ``self.video_link`` (the stored field), not on streaming fallback URLs. The
+        method is idempotent: the parameter is only added when it is not already present.
         """
         if not self.video_link:
             return ""
@@ -837,9 +837,8 @@ class Talk(models.Model):
         """
         Return the video start time for this talk.
 
-        Returns the talk's stored video_start_time if it exists.
-        Otherwise, calculates the start time based on the corresponding streaming.
-        Returns 0 if no start time can be determined.
+        Returns the talk's stored video_start_time if it exists. Otherwise, calculates the start
+        time based on the corresponding streaming. Returns 0 if no start time can be determined.
         """
         if self.video_start_time is not None:
             return self.video_start_time
@@ -850,7 +849,11 @@ class Talk(models.Model):
         return 0
 
     def allow_videos_for(self, user: AbstractBaseUser | AnonymousUser | None) -> Self:
-        """Resolve and cache whether *user* may watch this talk's recording. Returns self."""
+        """
+        Resolve and cache whether *user* may watch this talk's recording.
+
+        Returns self.
+        """
         self.videos_unlocked = user_can_watch_videos(user, self.event)
         return self
 
@@ -858,9 +861,9 @@ class Talk(models.Model):
         """
         Return whether a recording exists, ignoring who is asking.
 
-        For callers that report on the catalogue rather than render a player: the dashboard
-        counter and the admin column. Those must not change per viewer, so they cannot go
-        through ``get_video_link``.
+        For callers that report on the catalogue rather than render a player: the dashboard counter
+        and the admin column. Those must not change per viewer, so they cannot go through
+        ``get_video_link``.
         """
         if self._upcoming_and_links_hidden():
             return False
@@ -878,19 +881,18 @@ class Talk(models.Model):
         """
         Return the Video link for this talk, or "" when the viewer may not watch it.
 
-        Returns the talk's own video_link if it exists.
-        Otherwise, finds the appropriate streaming for this talk and returns its link with the
-        correct timestamp.
-        Returns an empty string if no link is found or if the talk is in the future.
+        Returns the talk's own video_link if it exists. Otherwise, finds the appropriate streaming
+        for this talk and returns its link with the correct timestamp. Returns an empty string if no
+        link is found or if the talk is in the future.
 
         Also returns "" unless the view layer has unlocked videos for the current viewer via
         ``allow_videos_for`` or ``unlock_video_access``. Templates render this straight into an
-        iframe src, so withholding the URL is what withholds the recording. Callers that want
-        the link regardless of any viewer should use ``has_recording`` or read ``video_link``.
+        iframe src, so withholding the URL is what withholds the recording. Callers that want the
+        link regardless of any viewer should use ``has_recording`` or read ``video_link``.
 
         Whatever form a YouTube link is stored in, what comes out is the embeddable one. A
-        ``youtu.be`` or ``watch?v=`` URL is served with ``X-Frame-Options: SAMEORIGIN`` and shows
-        an empty box inside the player, so the conversion happens here rather than at save time:
+        ``youtu.be`` or ``watch?v=`` URL is served with ``X-Frame-Options: SAMEORIGIN`` and shows an
+        empty box inside the player, so the conversion happens here rather than at save time:
         organizers keep pasting short links, and rows already holding one are fixed on read.
         """
         if not self.videos_unlocked:
@@ -914,9 +916,8 @@ class Talk(models.Model):
         """
         Return the canonical video provider name for the talk's video link.
 
-        Returns "Youtube" for both youtube.com and youtu.be links.
-        Returns "Vimeo" for vimeo.com links.
-        Returns an empty string when no video link is available.
+        Returns "Youtube" for both youtube.com and youtu.be links. Returns "Vimeo" for vimeo.com
+        links. Returns an empty string when no video link is available.
         """
         video_link = self.get_video_link()
         for provider in VideoProvider:
@@ -942,8 +943,8 @@ class Talk(models.Model):
         to avoid N+1 queries in list views.
 
         ``self.speakers.all()`` reuses the ``prefetch_related`` cache when present, but a
-        ``.values_list("name")`` chained on it would issue a fresh query that ignores the
-        cache, so iterate the prefetched objects directly.
+        ``.values_list("name")`` chained on it would issue a fresh query that ignores the cache, so
+        iterate the prefetched objects directly.
         """
         speakers_list: list[str] = [s.name for s in self.speakers.all()]
 
@@ -974,9 +975,9 @@ class Talk(models.Model):
         """
         Represents a talk's timing relative to now.
 
-        PAST (-1): Talk has ended
-        CURRENT (0): Talk is happening now (or very soon)
-        UPCOMING (1): Talk will happen in the future
+        - PAST (-1): Talk has ended
+        - CURRENT (0): Talk is happening now (or very soon)
+        - UPCOMING (1): Talk will happen in the future
         """
 
         PAST = -1
@@ -1013,8 +1014,8 @@ class Talk(models.Model):
         """
         Check if the streaming associated with this talk is still ongoing.
 
-        True: the video is in a live streaming.
-        False: the talk was not streamed or the video is a recording.
+        - True: the video is in a live streaming.
+        - False: the talk was not streamed or the video is a recording.
         """
         streaming = self.streaming
         return bool(streaming and streaming.is_active())
@@ -1023,8 +1024,8 @@ class Talk(models.Model):
         """
         Return the image URL.
 
-        Prefer the image field over the external image URL.
-        Use a default placeholder image if neither is set.
+        Prefer the image field over the external image URL. Use a default placeholder image if
+        neither is set.
         """
         if self.image:
             return self.image.url
@@ -1058,9 +1059,9 @@ class Talk(models.Model):
         transcription_url from the matched streaming session for this talk's room and time slot.
         Returns an empty string if neither source provides a URL.
 
-        Gated on the same flag as ``get_video_link``: a transcription is the recording in text
-        form, so publishing it on a schedule-only event would hand over the content the video
-        gate is there to withhold.
+        Gated on the same flag as ``get_video_link``: a transcription is the recording in text form,
+        so publishing it on a schedule-only event would hand over the content the video gate is
+        there to withhold.
         """
         if not self.videos_unlocked:
             return ""

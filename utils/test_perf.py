@@ -1,12 +1,11 @@
 """
 Test helpers for detecting N+1 query patterns.
 
-The standard ``django.test.TestCase.assertNumQueries`` checks an exact total but
-needs the caller to know the right number, which becomes brittle as views grow.
-``assert_no_n_plus_one`` instead groups captured queries by their normalized
-SQL template and fails if any template runs more than a small threshold. That
-catches "loop calls .filter() per row" patterns regardless of total query
-count, and keeps tests resilient to unrelated query additions.
+The standard ``django.test.TestCase.assertNumQueries`` checks an exact total but needs the caller to
+know the right number, which becomes brittle as views grow. ``assert_no_n_plus_one`` instead groups
+captured queries by their normalized SQL template and fails if any template runs more than a small
+threshold. That catches "loop calls .filter() per row" patterns regardless of total query count, and
+keeps tests resilient to unrelated query additions.
 
 Usage::
 
@@ -62,12 +61,12 @@ def assert_no_n_plus_one(
     """
     Fail if any normalized query template runs more than ``max_repeats`` times.
 
-    ``exempt`` is a tuple of case-insensitive substrings; any template containing one
-    is allowed unbounded repetition (useful for transactional ``SAVEPOINT`` noise or
-    table-creation queries from the test runner).
+    ``exempt`` is a tuple of case-insensitive substrings; any template containing one is allowed
+    unbounded repetition (useful for transactional ``SAVEPOINT`` noise or table-creation queries
+    from the test runner).
 
-    Yields the underlying ``CaptureQueriesContext`` for tests that want to inspect
-    the raw query list as well.
+    Yields the underlying ``CaptureQueriesContext`` for tests that want to inspect the raw query
+    list as well.
     """
     ctx = CaptureQueriesContext(connection)
     with ctx:

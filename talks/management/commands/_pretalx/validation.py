@@ -29,8 +29,8 @@ def is_valid_submission(
     """
     Return ``True`` if *submission* passes all validation checks.
 
-    Runs title, speaker, and room checks; logs warnings for non-fatal
-    issues (long titles, missing rooms).
+    Runs title, speaker, and room checks; logs warnings for non-fatal issues (long titles, missing
+    rooms).
     """
     valid = _validate_title(submission, ctx)
     _warn_long_title(submission, ctx)

@@ -61,7 +61,6 @@ class RatingAdmin(admin.ModelAdmin[Rating]):
         search_fields: Fields to search by in the admin list view.
         readonly_fields: Fields that cannot be edited in the admin.
         list_select_related: Related models to prefetch for list view optimization.
-
     """
 
     list_display = ("talk", "user", "score", "has_comment", "created_at")

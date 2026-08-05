@@ -16,7 +16,6 @@ Usage:
 Notes:
     - SVG files should be stored in static/images/icons/ directory
     - All SVG files are assumed to be safe and will be marked as safe HTML
-
 """
 
 from functools import lru_cache
@@ -62,7 +61,6 @@ def svg(name: str, css_class: str = "") -> SafeString:
     Examples:
         {% svg 'info' %}
         {% svg 'arrow' 'h-4 w-4 text-blue-500' %}
-
     """
     svg_dir = Path(settings.BASE_DIR) / "svg"
     svg_path = (svg_dir / f"{name}.svg").resolve()

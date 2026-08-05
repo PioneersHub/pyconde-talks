@@ -1,8 +1,8 @@
 """
 Unit tests for specific methods of the talks app models.
 
-These tests focus on the _enrich_video_link, video_provider,
-and video_link validation methods of the Talk model.
+These tests focus on the _enrich_video_link, video_provider, and video_link validation methods of
+the Talk model.
 """
 
 from datetime import UTC, datetime, timedelta
@@ -248,12 +248,12 @@ class TestTalkRoomConflict:
         assert not Talk.has_room_conflict(room, now, timedelta())
 
     def test_clean_skips_when_room_is_none(self) -> None:
-        """clean() exits early without error when room is None."""
+        """Talk.clean() exits early without error when room is None."""
         talk = baker.prepare(Talk, room=None, duration=timedelta(minutes=30))
         talk.clean()  # Should not raise
 
     def test_clean_skips_when_duration_is_zero(self) -> None:
-        """clean() exits early without error when duration is zero."""
+        """Talk.clean() exits early without error when duration is zero."""
         room = baker.make(Room)
         talk = baker.prepare(Talk, room=room, duration=timedelta())
         talk.clean()  # Should not raise

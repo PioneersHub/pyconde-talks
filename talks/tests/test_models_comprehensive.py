@@ -1,4 +1,5 @@
 """Comprehensive tests for talks.models covering all uncovered branches."""
+
 # ruff: noqa: PLR2004
 
 from datetime import UTC, datetime, timedelta
@@ -395,8 +396,8 @@ class TestTalkComprehensive:
         """
         Hand the template a URL the iframe may load, whatever form was stored.
 
-        Short and watch URLs come back with X-Frame-Options: SAMEORIGIN, so rendering one
-        straight into the player leaves an empty box.
+        Short and watch URLs come back with X-Frame-Options: SAMEORIGIN, so rendering one straight
+        into the player leaves an empty box.
         """
         talk = baker.make(Talk, video_link=stored_link, room=None)
         talk.videos_unlocked = True

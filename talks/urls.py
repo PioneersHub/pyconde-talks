@@ -1,13 +1,13 @@
 """
 URL configuration for the talks app.
 
-``LoginRequiredMiddleware`` gates everything by default, so a URL is public only if it is
-wrapped in ``login_not_required`` below. That wrapper opens a view completely, for every
-method, so only the read-only browsing views get it: what an anonymous visitor actually sees
-is then decided per row by ``TalkQuerySet.accessible_to`` and, for recordings, by the video
-gate. Q&A, ratings, bookmarks and the chair tooling stay closed, and also carry their own
-``LoginRequiredMixin`` / ``@login_required`` so this file is not the only thing holding them
-shut. ``talks/tests/test_access_policy.py`` pins that split.
+``LoginRequiredMiddleware`` gates everything by default, so a URL is public only if it is wrapped in
+``login_not_required`` below. That wrapper opens a view completely, for every method, so only the
+read-only browsing views get it: what an anonymous visitor actually sees is then decided per row by
+``TalkQuerySet.accessible_to`` and, for recordings, by the video gate. Q&A, ratings, bookmarks and
+the chair tooling stay closed, and also carry their own ``LoginRequiredMixin`` / ``@login_required``
+so this file is not the only thing holding them shut. ``talks/tests/test_access_policy.py`` pins
+that split.
 """
 
 from django.contrib.auth.decorators import login_not_required

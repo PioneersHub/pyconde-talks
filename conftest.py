@@ -35,8 +35,8 @@ def _clear_cache(settings: SettingsWrapper) -> Generator[None]:
     Start and end every test with an empty, in-process cache.
 
     Anything counter-like (the Q&A rate limiter) or token-like (the allauth OAuth bearer) leaks
-    across tests otherwise, because a local-memory cache lives in the test process and is shared
-    by the whole run. With ``--random-order`` the resulting failure only appears under some seeds.
+    across tests otherwise, because a local-memory cache lives in the test process and is shared by
+    the whole run. With ``--random-order`` the resulting failure only appears under some seeds.
 
     The backend is forced to local memory rather than trusting the configured one. ``cache.clear()``
     on Redis is a ``FLUSHDB``, so a developer or CI job that happens to have ``DJANGO_CACHE_URL``

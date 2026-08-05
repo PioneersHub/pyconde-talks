@@ -1,11 +1,10 @@
 """
 Apply a previously detected :class:`~talks.models.PendingPretalxChange`.
 
-Each pending row carries enough information to (re)create the change without
-re-fetching Pretalx: ``field_diffs`` holds the per-field "new" values for an
-UPDATE, ``pretalx_payload`` holds the full snapshot for a CREATE. Applying the
-row mutates the local DB and flips ``applied_at`` so the same change cannot be
-applied twice.
+Each pending row carries enough information to (re)create the change without re-fetching Pretalx:
+``field_diffs`` holds the per-field "new" values for an UPDATE, ``pretalx_payload`` holds the full
+snapshot for a CREATE. Applying the row mutates the local DB and flips ``applied_at`` so the same
+change cannot be applied twice.
 """
 
 import datetime
@@ -50,9 +49,8 @@ def apply_change(
     """
     Apply *change* to the local database and mark it applied.
 
-    Returns the affected :class:`~talks.models.Talk` (or ``None`` for DELETE).
-    Wrapped in a single transaction so a partial failure leaves nothing applied
-    and the pending row untouched.
+    Returns the affected :class:`~talks.models.Talk` (or ``None`` for DELETE). Wrapped in a single
+    transaction so a partial failure leaves nothing applied and the pending row untouched.
     """
     if not change.is_pending:
         msg = f"Pending change {change.pk} is already applied or dismissed."
@@ -108,8 +106,8 @@ def _apply_update(change: PendingPretalxChange) -> Talk:
     """
     Apply ``field_diffs`` and ``speaker_diffs`` onto *change.talk*.
 
-    Only fields recorded in ``field_diffs`` are touched - any manual local edits
-    to *other* fields are preserved.
+    Only fields recorded in ``field_diffs`` are touched - any manual local edits to *other* fields
+    are preserved.
     """
     talk: Talk | None = change.talk
     if talk is None:
@@ -239,14 +237,14 @@ def _resolve_room(
     """
     Resolve (and if needed create) the event-scoped room for an apply step.
 
-    Matches ``(event, pretalx_id)`` then ``(event, name)`` via ``Room.resolve_for_event``.
-    On an id match with a changed name the row is renamed IN PLACE (so its streamings and
-    Talk FKs stay attached); a legacy row matched by name gets its ``pretalx_id`` stamped.
-    Creates a new room only on a miss. Empty *room_name* returns ``None``.
+    Matches ``(event, pretalx_id)`` then ``(event, name)`` via ``Room.resolve_for_event``. On an id
+    match with a changed name the row is renamed IN PLACE (so its streamings and Talk FKs stay
+    attached); a legacy row matched by name gets its ``pretalx_id`` stamped. Creates a new room only
+    on a miss. Empty *room_name* returns ``None``.
 
-    Backward-compatible: pending rows recorded before id-keying pass ``pretalx_id=None``
-    and resolve purely by ``(event, name)`` - identical to the old name-only behavior,
-    now correctly scoped to the event.
+    Backward-compatible: pending rows recorded before id-keying pass ``pretalx_id=None`` and resolve
+    purely by ``(event, name)`` - identical to the old name-only behavior, now correctly scoped to
+    the event.
     """
     if not room_name:
         return None

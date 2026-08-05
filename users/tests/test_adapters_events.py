@@ -264,8 +264,8 @@ class TestPublicEventOpenRegistration:
         """
         Anyone may register for a public event.
 
-        Without this the recordings would be readable but nobody new could ever ask a
-        question, which is the only thing a login still buys on such an event.
+        Without this the recordings would be readable but nobody new could ever ask a question,
+        which is the only thing a login still buys on such an event.
         """
         adapter.set_selected_event(public_event)
         assert adapter.is_email_authorized("stranger@example.com") is True
@@ -344,8 +344,8 @@ class TestPublicEventOpenRegistration:
         """
         Disconnecting a social account is safe when anyone can sign in by email.
 
-        ``can_login_by_email`` guards the Discord disconnect flow; without this a user on a
-        public event would be told they cannot safely disconnect when in fact they can.
+        ``can_login_by_email`` guards the Discord disconnect flow; without this a user on a public
+        event would be told they cannot safely disconnect when in fact they can.
         """
         Event.objects.create(
             name="Public",
@@ -361,9 +361,9 @@ class TestAccessProvenanceIsRecorded:
     """
     Every membership handed out by the login flows records how it was granted.
 
-    Without it an account let in by open registration on a public event is indistinguishable
-    from a ticket holder, so taking that event back off public visibility would silently leave
-    behind members who were never checked, with no way to find them again.
+    Without it an account let in by open registration on a public event is indistinguishable from a
+    ticket holder, so taking that event back off public visibility would silently leave behind
+    members who were never checked, with no way to find them again.
     """
 
     def test_open_registration_is_recorded_as_such(self, adapter: AccountAdapter) -> None:
@@ -387,8 +387,8 @@ class TestAccessProvenanceIsRecorded:
         """
         A second sign-in must not rewrite history.
 
-        Someone ticket-checked last year does not become an open-registration member because
-        they signed in again after the event was made public.
+        Someone ticket-checked last year does not become an open-registration member because they
+        signed in again after the event was made public.
         """
         event = Event.objects.create(
             name="Archive",

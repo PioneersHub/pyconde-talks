@@ -1,12 +1,11 @@
 """
 Pending-change tracking for the Pretalx importer's detect-only mode.
 
-When the importer runs with ``--detect-only`` it records every diff it would have
-applied as a :class:`PendingPretalxChange` row instead of touching the live
-``Talk`` rows. Admins review those rows and apply or dismiss them on their own
-schedule. Split out from ``talks.models`` to keep the rating/talk file focused;
-imported back from ``talks/models.py`` so Django picks it up during migration
-autodiscovery.
+When the importer runs with ``--detect-only`` it records every diff it would have applied as a
+:class:`PendingPretalxChange` row instead of touching the live ``Talk`` rows. Admins review those
+rows and apply or dismiss them on their own schedule. Split out from ``talks.models`` to keep the
+rating/talk file focused; imported back from ``talks/models.py`` so Django picks it up during
+migration autodiscovery.
 """
 
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -31,10 +30,10 @@ class PendingPretalxChange(models.Model):
     """
     A diff detected by the Pretalx importer that has not yet been applied locally.
 
-    One row per ``(event, pretalx_code)`` while still pending. Re-detecting the same
-    submission updates the existing row's diff/payload and bumps
-    :attr:`last_detected_at`. Applying or dismissing the row sets the matching
-    timestamp; a fresh detection after that creates a new pending row.
+    One row per ``(event, pretalx_code)`` while still pending. Re-detecting the same submission
+    updates the existing row's diff/payload and bumps :attr:`last_detected_at`. Applying or
+    dismissing the row sets the matching timestamp; a fresh detection after that creates a new
+    pending row.
     """
 
     class Kind(models.TextChoices):

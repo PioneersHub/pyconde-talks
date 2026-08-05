@@ -1,4 +1,5 @@
 """Unit tests for the update_youtube_links management command."""
+
 # ruff: noqa: PLR2004
 
 import json

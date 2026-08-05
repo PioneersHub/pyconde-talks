@@ -1,8 +1,8 @@
 """
 Social-card image generation for talks (Pillow / Pilmoji).
 
-Each social card is assembled from a per-event template image, the talk
-title, speaker avatar(s), and speaker names.
+Each social card is assembled from a per-event template image, the talk title, speaker avatar(s),
+and speaker names.
 """
 
 # ruff: noqa: BLE001
@@ -138,9 +138,9 @@ def latest_template_mtime(ctx: ImportContext) -> float | None:
     """
     Return the most recent mtime across the event's social-card templates.
 
-    ``None`` means there is nothing to compare against - either no event is bound
-    to the context yet or the template directory has no PNGs. Used by the importer
-    to decide when previously-generated talk images are stale.
+    ``None`` means there is nothing to compare against - either no event is bound to the context yet
+    or the template directory has no PNGs. Used by the importer to decide when previously-generated
+    talk images are stale.
     """
     if ctx.event_obj is None:
         return None
@@ -414,7 +414,6 @@ class TalkImageGenerator:
         ------
         FileNotFoundError
             If neither approach yields a usable font file.
-
         """
         font_path = getattr(settings, "TALK_CARD_FONT", None)
         if font_path and Path(font_path).exists():
@@ -443,11 +442,11 @@ class TalkImageGenerator:
         """
         Load the font family used for social-card rendering.
 
-        Font sizes are multiplied by *scale* so text is proportional to the
-        working resolution of the template.
+        Font sizes are multiplied by *scale* so text is proportional to the working resolution of
+        the template.
 
-        Returns a dict with ``"title"``, ``"subtitle"``, ``"small"``, and
-        ``"event_info"`` keys mapped to pre-sized font instances.
+        Returns a dict with ``"title"``, ``"subtitle"``, ``"small"``, and ``"event_info"`` keys
+        mapped to pre-sized font instances.
         """
         font_path = TalkImageGenerator._resolve_font_path()
         layout = ImageFont.Layout.RAQM if features.check_feature("raqm") else ImageFont.Layout.BASIC

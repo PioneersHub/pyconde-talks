@@ -13,8 +13,8 @@ class Command(BaseCommand):
     """
     Django command to create a regular user.
 
-    This command creates a non-superuser account with the specified email address.
-    The user will not have a password set, following the application's authentication model.
+    This command creates a non-superuser account with the specified email address. The user will not
+    have a password set, following the application's authentication model.
     """
 
     help = "Create a regular user with the specified email address"
@@ -25,7 +25,6 @@ class Command(BaseCommand):
 
         Args:
             parser: The command argument parser
-
         """
         parser.add_argument(
             "--email",
@@ -38,13 +37,12 @@ class Command(BaseCommand):
         """
         Handle the command execution.
 
-        Creates a new user with the specified email address.
-        The user will be created with is_active=True by default.
+        Creates a new user with the specified email address. The user will be created with
+        is_active=True by default.
 
         Args:
             *args: Additional positional arguments
             **options: Command options including the email address
-
         """
         User = cast("type[CustomUser]", get_user_model())  # noqa: N806  # NOSONAR(S117)
         email = options["email"]

@@ -139,8 +139,8 @@ class Command(ProcessingMixin, BaseCommand):
         3. Fetch all submissions from the API.
         4. Process each submission (create / update / delete talks).
 
-        Flags ``--dry-run``, ``--no-update``, ``--skip-images`` are
-        forwarded via the :class:`ImportContext` dataclass.
+        Flags ``--dry-run``, ``--no-update``, ``--skip-images`` are forwarded via the
+        :class:`ImportContext` dataclass.
         """
         ctx = ImportContext.from_options(options, log_fn=self._log)
 

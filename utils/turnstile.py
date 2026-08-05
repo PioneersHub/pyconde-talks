@@ -1,9 +1,9 @@
 """
 Cloudflare Turnstile verification.
 
-Entirely optional. ``is_enabled`` is False whenever either key is unset, and every call site
-skips the check in that case, so local development, CI, and any deployment that would rather
-not involve Cloudflare need no configuration at all.
+Entirely optional. ``is_enabled`` is False whenever either key is unset, and every call site skips
+the check in that case, so local development, CI, and any deployment that would rather not involve
+Cloudflare need no configuration at all.
 
 https://developers.cloudflare.com/turnstile/
 """
@@ -35,16 +35,16 @@ def verify(token: str) -> bool:
 
     Returns True when Turnstile is not configured, so callers do not need to ask first.
 
-    On a network failure the answer follows ``TURNSTILE_FAIL_OPEN``, which defaults to letting
-    the submission through: a Cloudflare outage taking the conference Q&A down with it is a
-    worse outcome than a few minutes without a captcha.
+    On a network failure the answer follows ``TURNSTILE_FAIL_OPEN``, which defaults to letting the
+    submission through: a Cloudflare outage taking the conference Q&A down with it is a worse
+    outcome than a few minutes without a captcha.
 
-    Deliberately not retried. Unlike the ticket-validation API, a Turnstile token is single-use
-    and short-lived, so a retry after a timeout usually fails with ``timeout-or-duplicate`` and
-    just delays the response.
+    Deliberately not retried. Unlike the ticket-validation API, a Turnstile token is single-use and
+    short-lived, so a retry after a timeout usually fails with ``timeout-or-duplicate`` and just
+    delays the response.
 
-    ``remoteip`` is omitted. It is optional, and behind a reverse proxy the wrong address is
-    easy to send and causes false negatives; the token itself is the evidence that matters.
+    ``remoteip`` is omitted. It is optional, and behind a reverse proxy the wrong address is easy to
+    send and causes false negatives; the token itself is the evidence that matters.
     """
     if not is_enabled():
         return True
@@ -62,8 +62,8 @@ def _fetch_verdict(token: str) -> dict[str, Any] | None:
     """
     POST *token* to Cloudflare and return the decoded body, or None if it could not be read.
 
-    None covers both an unreachable endpoint and a body that is not JSON. Both mean the same
-    thing to the caller: there is no verdict, so policy has to decide.
+    None covers both an unreachable endpoint and a body that is not JSON. Both mean the same thing
+    to the caller: there is no verdict, so policy has to decide.
     """
     try:
         response = httpx2.post(
@@ -91,8 +91,8 @@ def _allows(verdict: dict[str, Any]) -> bool:
     """
     Turn Cloudflare's verdict into an allow or a deny.
 
-    A rejected token and a rejected secret come back in the same shape, so they are separated
-    here: the first is the captcha working, the second is our misconfiguration.
+    A rejected token and a rejected secret come back in the same shape, so they are separated here:
+    the first is the captcha working, the second is our misconfiguration.
     """
     if verdict.get("success", False):
         return True

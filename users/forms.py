@@ -1,9 +1,9 @@
 """
 Custom forms for user management.
 
-These forms are used for creating and updating users in the admin interface.
-Regular users do not have password fields, as they authenticate via email codes only.
-Admins can login via email and password, so they have password fields.
+These forms are used for creating and updating users in the admin interface. Regular users do not
+have password fields, as they authenticate via email codes only. Admins can login via email and
+password, so they have password fields.
 """
 
 from typing import TYPE_CHECKING, Any, ClassVar, cast

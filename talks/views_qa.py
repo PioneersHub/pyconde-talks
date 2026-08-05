@@ -87,10 +87,10 @@ def _qa_error_response(
     """
     Return a Q&A error as an HTMX fragment, or flash it and redirect for a plain request.
 
-    The Q&A form posts into a small target div, so the error has to arrive as markup that can
-    be swapped in. HTMX does not swap 4xx bodies by default; ``base.html`` opts into that for
-    responses carrying ``QA_ERROR_HEADER``, so an honest status code can be used here instead of
-    a misleading 200.
+    The Q&A form posts into a small target div, so the error has to arrive as markup that can be
+    swapped in. HTMX does not swap 4xx bodies by default; ``base.html`` opts into that for responses
+    carrying ``QA_ERROR_HEADER``, so an honest status code can be used here instead of a misleading
+    200.
 
     The retarget/reswap/reselect headers put the message in the page's dedicated error region
     regardless of which control was clicked, rather than in whatever that control happened to
@@ -133,14 +133,14 @@ def _get_accessible_question(
     """
     Return the question if the user has access to its talk's event, or raise Http404.
 
-    A talk whose event has the Q&A disabled yields a 404 for every caller, not just the list
-    view: switching an event off has to close the write endpoints too, or votes and moderation
-    would keep landing on a Q&A that no longer exists as far as the site is concerned.
+    A talk whose event has the Q&A disabled yields a 404 for every caller, not just the list view:
+    switching an event off has to close the write endpoints too, or votes and moderation would keep
+    landing on a Q&A that no longer exists as far as the site is concerned.
 
     *visible_only* additionally withholds questions the requester is not entitled to see. Only
-    voting needs it, and it needs it badly: without it a 200 confirms that a question exists at
-    an id whose content the requester is never shown, and the vote itself reorders the
-    vote-sorted moderator queue.
+    voting needs it, and it needs it badly: without it a 200 confirms that a question exists at an
+    id whose content the requester is never shown, and the vote itself reorders the vote-sorted
+    moderator queue.
 
     ``select_related("talk__event")`` because every caller now reads the event's Q&A mode.
     """
@@ -162,9 +162,9 @@ class QuestionListView(LoginRequiredMixin, ListView[Question]):
     """
     Display a list of questions for a specific talk.
 
-    Questions are sorted by vote count, with the most popular at the top.
-    Only approved, answered and their own questions are shown to regular users.
-    Moderators can see all questions including pending ones.
+    Questions are sorted by vote count, with the most popular at the top. Only approved, answered
+    and their own questions are shown to regular users. Moderators can see all questions including
+    pending ones.
     """
 
     model = Question
@@ -247,14 +247,14 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
         """
         Turn the submission away when the visitor or the event's Q&A mode does not allow it.
 
-        Checked before the form is even bound, so a closed Q&A costs nothing to reject and
-        cannot be talked into storing a question by a well-formed POST.
+        Checked before the form is even bound, so a closed Q&A costs nothing to reject and cannot be
+        talked into storing a question by a well-formed POST.
 
-        A safe method never reaches those checks. There is no standalone create template - the
-        form is embedded in the question list, and ``template_name`` used to name a file that
-        does not exist, so a GET here was a 500. It redirects to the page that has the form, and
-        it does so before the rate limit is claimed, or simply opening the URL would spend a
-        question from the author's allowance.
+        A safe method never reaches those checks. There is no standalone create template - the form
+        is embedded in the question list, and ``template_name`` used to name a file that does not
+        exist, so a GET here was a 500. It redirects to the page that has the form, and it does so
+        before the rate limit is claimed, or simply opening the URL would spend a question from the
+        author's allowance.
         """
         if request.method in SAFE_METHODS:
             return redirect("talk_questions", talk_id=self.kwargs["talk_id"])
@@ -275,10 +275,10 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
         """
         Return the reason this submission cannot be accepted, or None to let it through.
 
-        Order matters: the cheap, permanent reasons come before the rate limit, so a visitor who
-        may not post here at all is told that rather than being counted against an allowance
-        they were never going to use. ``GET`` never reaches this - it redirects above - so
-        nothing here can be triggered by merely opening the page.
+        Order matters: the cheap, permanent reasons come before the rate limit, so a visitor who may
+        not post here at all is told that rather than being counted against an allowance they were
+        never going to use. ``GET`` never reaches this - it redirects above - so nothing here can be
+        triggered by merely opening the page.
         """
         if not self.talk.event.qa_accepts_questions:
             return _qa_error_response(
@@ -300,9 +300,9 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
         """
         Claim one question against this account's allowance, or return an error response.
 
-        Claiming rather than peeking, so a burst of concurrent POSTs cannot all pass a check
-        that none of them had counted yet. The claim is refunded in ``form_invalid`` when the
-        submission turns out not to be storable, so a rejected draft costs nothing.
+        Claiming rather than peeking, so a burst of concurrent POSTs cannot all pass a check that
+        none of them had counted yet. The claim is refunded in ``form_invalid`` when the submission
+        turns out not to be storable, so a rejected draft costs nothing.
 
         Moderators are exempt: they are the people expected to post repeatedly, and they are the
         ones who would have to unpick a limit that caught them.
@@ -399,15 +399,15 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
         Reject an invalid submission (e.g. content over CONTENT_MAX_LENGTH) without a 500.
 
         The create form is embedded in the question list page, so there is no standalone form
-        template to re-render. Return a 422 with the error for HTMX (mirroring the rating views),
-        or flash it and redirect back otherwise.
+        template to re-render. Return a 422 with the error for HTMX (mirroring the rating views), or
+        flash it and redirect back otherwise.
 
-        Collects errors from every field rather than only ``content``: the captcha check adds
-        its own, and those would otherwise fall through to the generic fallback message.
+        Collects errors from every field rather than only ``content``: the captcha check adds its
+        own, and those would otherwise fall through to the generic fallback message.
 
-        Refunds the allowance claimed in ``dispatch``. The claim has to happen before the content
-        is validated for the limit to be atomic, but nothing was posted, so nothing should be
-        charged for.
+        Refunds the allowance claimed in ``dispatch``. The claim has to happen before the content is
+        validated for the limit to be atomic, but nothing was posted, so nothing should be charged
+        for.
         """
         if not is_moderator(self.request.user):
             for scope, identity, rule in self._allowances():
@@ -452,12 +452,12 @@ def get_filtered_questions(
 
     This function centralizes the filtering logic used in both QuestionListView and vote_question.
 
-    A pending question is visible to its author and to moderators, nobody else: the author needs
-    to see that their question was received rather than silently swallowed, while for everyone
-    else the queue is the whole point of pre-moderation.
+    A pending question is visible to its author and to moderators, nobody else: the author needs to
+    see that their question was received rather than silently swallowed, while for everyone else the
+    queue is the whole point of pre-moderation.
 
-    A disabled Q&A yields nothing to anyone, moderators included, so switching an event off
-    cannot keep serving content through a stale tab's ten-second poll.
+    A disabled Q&A yields nothing to anyone, moderators included, so switching an event off cannot
+    keep serving content through a stale tab's ten-second poll.
     """
     if not talk.event.qa_visible:
         return Question.objects.none()
@@ -494,8 +494,8 @@ def _regular_user_questions(
     """
     Return what an ordinary attendee sees: the public thread plus their own held questions.
 
-    Asking for "pending" or "rejected" by hand is allowed but not privileged: it narrows to
-    their own, never to everyone's.
+    Asking for "pending" or "rejected" by hand is allowed but not privileged: it narrows to their
+    own, never to everyone's.
     """
     if status_filter in _AUTHOR_ONLY_FILTERS:
         return queryset.filter(_STATUS_Q[status_filter], user=user).sorted_by_votes()
@@ -550,16 +550,16 @@ def vote_question(request: HttpRequest, question_id: int) -> HttpResponse:
     """
     Handle voting for a question.
 
-    If the user has already voted, the vote is removed (toggle behavior).
-    Returns HTML for HTMX to replace the voting div.
+    If the user has already voted, the vote is removed (toggle behavior). Returns HTML for HTMX to
+    replace the voting div.
 
-    ``visible_only``: you may only vote on a question you can actually read. Otherwise a
-    bystander could walk the id space, and a 200 would tell them a held question exists there
-    while the JSON body handed back its vote count.
+    ``visible_only``: you may only vote on a question you can actually read. Otherwise a bystander
+    could walk the id space, and a 200 would tell them a held question exists there while the JSON
+    body handed back its vote count.
 
     Voting also needs a relationship with the event, like asking does. A vote is what orders the
-    thread and the moderator queue, so an outsider with no ticket for the event running now
-    should not be steering either.
+    thread and the moderator queue, so an outsider with no ticket for the event running now should
+    not be steering either.
     """
     question = _get_accessible_question(request.user, question_id, visible_only=True)
     if not user_can_join_qa(request.user, question.talk.event):
@@ -629,8 +629,8 @@ class QuestionUpdateView(
     """
     Allow a question owner to edit content; clears votes upon successful update.
 
-    ``LoginRequiredMixin`` comes first so an anonymous visitor is redirected to log in rather
-    than getting the 403 that ``UserPassesTestMixin`` raises when its test fails.
+    ``LoginRequiredMixin`` comes first so an anonymous visitor is redirected to log in rather than
+    getting the 403 that ``UserPassesTestMixin`` raises when its test fails.
     """
 
     model = Question
@@ -642,13 +642,13 @@ class QuestionUpdateView(
         """
         Turn the edit away once the event's Q&A stops accepting questions.
 
-        An edit replaces the body wholesale, so leaving this open would make editing the way to
-        post new content after a freeze - the one thing freezing is for. A disabled Q&A 404s
-        through ``_get_accessible_question``, like every other entry point.
+        An edit replaces the body wholesale, so leaving this open would make editing the way to post
+        new content after a freeze - the one thing freezing is for. A disabled Q&A 404s through
+        ``_get_accessible_question``, like every other entry point.
 
         Checked before the form is bound, and only for the author: ``test_func`` is
-        ``QuestionOwnerRequiredMixin``'s, and deferring to it for everyone else preserves a
-        non-owner's 403, which the access lookup here would otherwise turn into a 404.
+        ``QuestionOwnerRequiredMixin``'s, and deferring to it for everyone else preserves a non-
+        owner's 403, which the access lookup here would otherwise turn into a 404.
         """
         if request.user.is_authenticated and self.test_func():
             question = _get_accessible_question(request.user, self.kwargs["question_id"])
@@ -665,10 +665,10 @@ class QuestionUpdateView(
         """
         Scope editable questions to talks the user can still access.
 
-        ``QuestionOwnerRequiredMixin`` only checks ownership; without this, a user who lost
-        access to a talk's event (ticket revoked, event deactivated) could still GET/POST the
-        edit form for their old question and the HTMX response would leak that talk's question
-        list. Mirrors the ``accessible_to`` scoping used by every other endpoint in this module.
+        ``QuestionOwnerRequiredMixin`` only checks ownership; without this, a user who lost access
+        to a talk's event (ticket revoked, event deactivated) could still GET/POST the edit form for
+        their old question and the HTMX response would leak that talk's question list. Mirrors the
+        ``accessible_to`` scoping used by every other endpoint in this module.
         """
         user = cast("CustomUser", self.request.user)
         return Question.objects.filter(talk__in=Talk.objects.accessible_to(user))
@@ -745,8 +745,8 @@ def is_moderator(user: AbstractBaseUser | AnonymousUser) -> bool:
     """
     Check if the user is a moderator (staff or superuser).
 
-    Delegates to ``talks.models.is_qa_moderator``, which is the same rule spelled where the
-    access predicates can reach it without importing the view layer.
+    Delegates to ``talks.models.is_qa_moderator``, which is the same rule spelled where the access
+    predicates can reach it without importing the view layer.
     """
     return is_qa_moderator(user)
 

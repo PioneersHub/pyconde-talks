@@ -32,15 +32,14 @@ def mock_email_api_base(settings: SettingsWrapper) -> str:
     """
     Define base fixture that sets up the mock email validation API infrastructure.
 
-    This fixture configures settings but doesn't add any response mocks.
-    It's not meant to be used directly by tests.
+    This fixture configures settings but doesn't add any response mocks. It's not meant to be used
+    directly by tests.
 
     Args:
         settings: Django settings fixture
 
     Returns:
         str: The fake API URL for use by derived fixtures
-
     """
     fake_api_url = "https://fake-api.example.com/validate"
     settings.EMAIL_VALIDATION_API_URL_FALLBACK = fake_api_url
@@ -63,7 +62,6 @@ def mock_email_api_valid(mock_email_api_base: str, httpx2_mock: respx.Router) ->
 
     Returns:
         str: The fake API URL
-
     """
     api_url = mock_email_api_base
 
@@ -86,7 +84,6 @@ def mock_email_api_invalid(mock_email_api_base: str, httpx2_mock: respx.Router) 
 
     Returns:
         str: The fake API URL
-
     """
     api_url = mock_email_api_base
 
@@ -108,7 +105,6 @@ def mock_email_api_error(mock_email_api_base: str, httpx2_mock: respx.Router) ->
 
     Returns:
         str: The fake API URL
-
     """
     api_url = mock_email_api_base
 
@@ -150,7 +146,6 @@ def mock_email_api_exception(mock_email_api_base: str, httpx2_mock: respx.Router
 
     Returns:
         str: The fake API URL
-
     """
     api_url = mock_email_api_base
 

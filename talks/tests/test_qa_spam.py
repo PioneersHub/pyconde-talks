@@ -1,11 +1,10 @@
 """
 Tests for the Q&A spam heuristics.
 
-Most of the value here is in the negative cases. The rules are cheap to make stricter and
-expensive to get wrong: a question wrongly held for review annoys one attendee, but a rule that
-fires on ordinary questions fills the queue with noise until moderators stop reading it. The
-"should not flag" list is therefore written out as real questions people ask at a Python
-conference.
+Most of the value here is in the negative cases. The rules are cheap to make stricter and expensive
+to get wrong: a question wrongly held for review annoys one attendee, but a rule that fires on
+ordinary questions fills the queue with noise until moderators stop reading it. The "should not
+flag" list is therefore written out as real questions people ask at a Python conference.
 """
 
 import string
@@ -167,9 +166,9 @@ def test_plain_ascii_prose_is_never_flagged(content: str) -> None:
     """
     A property check on regex over-reach.
 
-    Plain words and numbers contain no host, URL, handle or shortener, and shouting alone is
-    never enough on its own, so nothing here should ever trip a rule. Guards against a future
-    pattern that is too eager.
+    Plain words and numbers contain no host, URL, handle or shortener, and shouting alone is never
+    enough on its own, so nothing here should ever trip a rule. Guards against a future pattern that
+    is too eager.
     """
     assert spam_flag_reason(content) == ""
 
@@ -247,8 +246,8 @@ class TestSpamHeuristicsInTheViews:
         """
         The obvious bypass, closed.
 
-        Post something innocuous, wait for it to publish, then edit the links in. Re-running
-        the heuristics on edit is what stops that.
+        Post something innocuous, wait for it to publish, then edit the links in. Re-running the
+        heuristics on edit is what stops that.
         """
         question = baker.make(
             Question,
@@ -302,8 +301,8 @@ class TestSpamHeuristicsInTheViews:
         """
         The same bypass, one status along.
 
-        A question a moderator has marked answered is still shown to everyone, so gating the
-        re-check on APPROVED alone left this route open: get answered, then edit the links in.
+        A question a moderator has marked answered is still shown to everyone, so gating the re-
+        check on APPROVED alone left this route open: get answered, then edit the links in.
         """
         question = baker.make(
             Question,
@@ -328,8 +327,8 @@ def test_a_written_out_link_counts_once() -> None:
     """
     A scheme URL must not also be counted as a bare host.
 
-    "https://example.com" contains "example.com", so counting both patterns over the raw text
-    made a single citation look like two links and held an ordinary question for review.
+    "https://example.com" contains "example.com", so counting both patterns over the raw text made a
+    single citation look like two links and held an ordinary question for review.
     """
     assert count_links("See https://example.com for the docs") == 1
     assert spam_flag_reason("See https://example.com for the docs") == ""

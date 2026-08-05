@@ -35,11 +35,11 @@ def test_login_code_requests_carry_a_loose_ip_ceiling() -> None:
     """
     ``request_login_code`` is the one auth action that also needs a per-IP bound.
 
-    Public events accept any address without a ticket check, and each new address creates a user
-    row and sends mail, so a script walking a list of addresses never repeats the per-email key.
-    The IP ceiling closes that, and is deliberately loose: it has to sit well above what the
-    venue's shared NAT produces during the opening-session rush, so it makes bulk signup
-    pointless without throttling real attendees.
+    Public events accept any address without a ticket check, and each new address creates a user row
+    and sends mail, so a script walking a list of addresses never repeats the per-email key. The IP
+    ceiling closes that, and is deliberately loose: it has to sit well above what the venue's shared
+    NAT produces during the opening-session rush, so it makes bulk signup pointless without
+    throttling real attendees.
     """
     limits = settings.ACCOUNT_RATE_LIMITS["request_login_code"]
     rates = {rate.per: rate for rate in parse_rates(limits)}
@@ -51,11 +51,11 @@ def test_login_code_requests_carry_a_loose_ip_ceiling() -> None:
 @pytest.mark.parametrize("action", ["login", "signup"])
 def test_anonymous_ip_only_limits_are_disabled(action: str) -> None:
     """
-    login/signup have no per-account key, so their per-IP default is disabled.
+    The ``login`` and ``signup`` actions have no per-account key, so their per-IP default is off.
 
-    Leaving them per-IP would let one attendee lock the whole venue out of logging in or signing
-    up. Brute force stays bounded by the per-account limits, the passwordless email-code flow, and
-    the email-validation gate.
+    Leaving them per-IP would let one attendee lock the whole venue out of logging in or signing up.
+    Brute force stays bounded by the per-account limits, the passwordless email-code flow, and the
+    email-validation gate.
     """
     assert not parse_rates(settings.ACCOUNT_RATE_LIMITS[action])
 

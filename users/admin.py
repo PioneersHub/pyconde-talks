@@ -65,10 +65,10 @@ class EventAccessGrantInline(admin.TabularInline[EventAccessGrant, CustomUser]):
     """
     Read-only inline showing how this user got access to each of their events.
 
-    The point is to answer "who is here without a ticket check" before an event is taken back
-    off public visibility. Read-only because the record describes something that already
-    happened; editing it would only make it lie. A membership with no row here was added
-    straight through the ``events`` widget above, or predates this record.
+    The point is to answer "who is here without a ticket check" before an event is taken back off
+    public visibility. Read-only because the record describes something that already happened;
+    editing it would only make it lie. A membership with no row here was added straight through the
+    ``events`` widget above, or predates this record.
     """
 
     model = EventAccessGrant
@@ -375,8 +375,8 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
         """
         Return True when the user has at least one verified email address.
 
-        The list view prefetches ``emailaddress_set``; walk the cache instead of
-        re-querying so the column does not add a query per row.
+        The list view prefetches ``emailaddress_set``; walk the cache instead of re-querying so the
+        column does not add a query per row.
         """
         return any(ea.verified for ea in obj.emailaddress_set.all())
 

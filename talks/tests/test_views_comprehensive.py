@@ -1,4 +1,5 @@
 """Tests for talks.views."""
+
 # ruff: noqa: PLR2004
 
 from datetime import timedelta
@@ -353,9 +354,9 @@ class TestTalkListView:
         """
         Switching events via HTMX should OOB-swap all filter dropdowns.
 
-        When a user selects a different event, stale filter values from the
-        previous event (room, date, track, type) must be cleared and the
-        dropdown options must reflect the newly selected event.
+        When a user selects a different event, stale filter values from the previous event (room,
+        date, track, type) must be cleared and the dropdown options must reflect the newly selected
+        event.
         """
         event_a = baker.make(Event, is_active=True)
         event_b = baker.make(Event, is_active=True)
@@ -495,8 +496,8 @@ class TestTalkListView:
         """
         Rendering a busy talk_list page must not fan out to per-row queries.
 
-        Covers the speakers prefetch, the rating-stats annotation, and the
-        per-row ``get_video_link`` / ``get_transcription_url`` template calls.
+        Covers the speakers prefetch, the rating-stats annotation, and the per-row
+        ``get_video_link`` / ``get_transcription_url`` template calls.
         """
         event = baker.make(Event, is_active=True)
         user.events.add(event)

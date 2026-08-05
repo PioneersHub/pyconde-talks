@@ -14,6 +14,5 @@ def stat_card(title: str, value: str | float) -> dict[str, str | float]:
     Args:
         title: Label for the statistic
         value: The value to display
-
     """
     return {"title": title, "value": value}

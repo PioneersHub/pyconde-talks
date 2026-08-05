@@ -14,8 +14,8 @@ class QuestionForm(forms.ModelForm[Question]):
     """
     Create form for a question, with an optional Turnstile challenge.
 
-    The captcha field only exists when Turnstile is configured, so an environment without keys
-    binds and validates exactly as it did before - no hidden field, no verification call.
+    The captcha field only exists when Turnstile is configured, so an environment without keys binds
+    and validates exactly as it did before - no hidden field, no verification call.
     """
 
     class Meta:

@@ -1,9 +1,9 @@
 """
 Tests that ``?next=`` survives the passwordless login-code flow.
 
-The gated-recording journey depends on it: "Sign in to watch" on a schedule-only talk is a
-promise that signing in brings you back to that talk. The login templates are overridden in this
-project, and both of them posted to a bare action URL with no redirect field, so allauth received
+The gated-recording journey depends on it: "Sign in to watch" on a schedule-only talk is a promise
+that signing in brings you back to that talk. The login templates are overridden in this project,
+and both of them posted to a bare action URL with no redirect field, so allauth received
 ``next=None`` and sent everyone to the home page instead. The links looked right and the flow
 quietly ignored them.
 """
@@ -67,8 +67,8 @@ class TestNextSurvivesTheLoginCodeFlow:
         """
         Each template must render the hidden field, or the POST drops the redirect.
 
-        Checked separately from the end-to-end test below because this is the actual regression:
-        a template that stops rendering it fails silently, sending people to the home page. The
+        Checked separately from the end-to-end test below because this is the actual regression: a
+        template that stops rendering it fails silently, sending people to the home page. The
         confirm page is fetched from inside the flow, since it redirects away without a pending
         login in the session.
         """

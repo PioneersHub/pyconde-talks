@@ -202,7 +202,11 @@ class Command(BaseCommand):
 
     @staticmethod
     def _assign_speakers(talk: Talk, speakers_pool: list[Speaker]) -> int:
-        """Attach 1-3 random speakers from the pool to the talk. Return count assigned."""
+        """
+        Attach 1-3 random speakers from the pool to the talk.
+
+        Return count assigned.
+        """
         count = random.choices([1, 2, 3], weights=[70, 25, 5])[0]
         selected = random.sample(speakers_pool, min(count, len(speakers_pool)))
         for speaker in selected:
@@ -761,9 +765,9 @@ class Command(BaseCommand):
         """
         Resolve or create the ``Event`` for the generated data.
 
-        Rooms are event-scoped (required), so fake data always belongs to an event. When
-        no --event-slug is given we fall back to a synthetic event rather than producing
-        event-less rooms/talks.
+        Rooms are event-scoped (required), so fake data always belongs to an event. When no --event-
+        slug is given we fall back to a synthetic event rather than producing event-less
+        rooms/talks.
         """
         event_slug = str(options.get("event_slug", "")).strip()
         event_name = str(options.get("event_name", "")).strip()

@@ -1,8 +1,7 @@
 """
 Talk CRUD and presentation-type mapping.
 
-Delegates room lookups to :mod:`~.rooms` and individual speaker
-operations to :mod:`~.speakers`.
+Delegates room lookups to :mod:`~.rooms` and individual speaker operations to :mod:`~.speakers`.
 """
 
 from typing import TYPE_CHECKING, Any
@@ -54,8 +53,8 @@ def map_presentation_type(
     """
     Map a Pretalx submission type to a ``Talk.PresentationType`` value.
 
-    Falls back to :attr:`~talks.models.Talk.PresentationType.TALK` for
-    unrecognized or empty types and logs a warning.
+    Falls back to :attr:`~talks.models.Talk.PresentationType.TALK` for unrecognized or empty types
+    and logs a warning.
     """
     if not submission_type:
         ctx.log(
@@ -131,10 +130,9 @@ def _diff_talk_fields(
     Return the subset of fields whose new value differs from *talk*'s current value.
 
     Mirrors the assignment rules used by :func:`update_talk`: ``duration`` and
-    ``external_image_url`` are only candidates when the source value is truthy, and
-    ``event`` only when ``ctx.event_obj`` is set. Comparison uses ``!=`` (Django
-    Model equality is PK-based, so two ``Room``/``Event`` instances pointing at the
-    same row compare equal).
+    ``external_image_url`` are only candidates when the source value is truthy, and ``event`` only
+    when ``ctx.event_obj`` is set. Comparison uses ``!=`` (Django Model equality is PK-based, so two
+    ``Room``/``Event`` instances pointing at the same row compare equal).
     """
     candidates: dict[str, Any] = {
         "title": data.title,
@@ -166,13 +164,13 @@ def update_talk(
     """
     Sync *talk* with fresh *data* and update its speakers.
 
-    Only writes fields that actually differ (using ``save(update_fields=...)``),
-    so calling this for a talk whose Pretalx data has not changed is a no-op.
-    Speaker associations are synced via :func:`update_talk_speakers`.
+    Only writes fields that actually differ (using ``save(update_fields=...)``), so calling this for
+    a talk whose Pretalx data has not changed is a no-op. Speaker associations are synced via
+    :func:`update_talk_speakers`.
 
-    Returns ``True`` when at least one field or speaker association changed, ``False``
-    when the talk and its speakers were already in sync. In ``--dry-run`` mode the diff
-    is still computed (so the report is accurate) but no database writes occur.
+    Returns ``True`` when at least one field or speaker association changed, ``False`` when the talk
+    and its speakers were already in sync. In ``--dry-run`` mode the diff is still computed (so the
+    report is accurate) but no database writes occur.
     """
     changed_fields = _diff_talk_fields(talk, data, ctx)
 
@@ -223,12 +221,12 @@ def update_talk_speakers(
     """
     Synchronize *talk*'s M2M speaker set with *submission_speakers*.
 
-    Adds missing speakers and removes those no longer listed in the Pretalx
-    submission. Respects ``--dry-run`` (computes the diff but skips writes) and
-    ``--no-update`` (skips speaker syncing entirely).
+    Adds missing speakers and removes those no longer listed in the Pretalx submission. Respects
+    ``--dry-run`` (computes the diff but skips writes) and ``--no-update`` (skips speaker syncing
+    entirely).
 
-    Returns ``True`` when at least one speaker was added or removed (or *would*
-    be in dry-run mode), ``False`` otherwise.
+    Returns ``True`` when at least one speaker was added or removed (or *would* be in dry-run mode),
+    ``False`` otherwise.
     """
     if ctx.no_update:
         ctx.log(

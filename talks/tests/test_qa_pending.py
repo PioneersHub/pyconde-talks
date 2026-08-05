@@ -1,8 +1,8 @@
 """
 Tests for the pending (pre-moderation) question state.
 
-Nothing produces a pending question yet - the per-event Q&A modes and the spam heuristics do
-that - so these cover the state itself: who can see one, and how it moves out again.
+Nothing produces a pending question yet - the per-event Q&A modes and the spam heuristics do that -
+so these cover the state itself: who can see one, and how it moves out again.
 """
 
 from http import HTTPStatus
@@ -131,8 +131,8 @@ class TestPendingVisibility:
         """
         The filter is offered to moderators, but the value is not privileged.
 
-        A regular user passing ``status_filter=pending`` by hand gets their own held
-        questions, not everyone's.
+        A regular user passing ``status_filter=pending`` by hand gets their own held questions, not
+        everyone's.
         """
         mine = baker.make(
             Question,
@@ -229,9 +229,9 @@ class TestPendingTransitions:
         """
         Every declared status fits the field, checked through ``full_clean``.
 
-        The field was widened to 20 to take "pending" with room to spare. SQLite does not
-        enforce max_length, so a future choice that overflowed it would otherwise pass the
-        suite here and only fail on Postgres in production.
+        The field was widened to 20 to take "pending" with room to spare. SQLite does not enforce
+        max_length, so a future choice that overflowed it would otherwise pass the suite here and
+        only fail on Postgres in production.
         """
         question = baker.make(Question, talk=talk, user=author, status=status)
         question.full_clean()
@@ -254,8 +254,8 @@ class TestPendingIsNotVotable:
         """
         A 200 here would leak that a question exists at an id whose content is withheld.
 
-        The vote would also count: the moderator queue is sorted by votes, so an outsider
-        could float a held question to the top of it before anyone had approved it.
+        The vote would also count: the moderator queue is sorted by votes, so an outsider could
+        float a held question to the top of it before anyone had approved it.
         """
         question = baker.make(
             Question,
@@ -497,8 +497,8 @@ class TestEditingGoesBackThroughModeration:
         """
         Votes were cast on the previous wording, so they say nothing about the new one.
 
-        The author's own vote stays, which leaves the question where a newly asked one starts
-        rather than below it.
+        The author's own vote stays, which leaves the question where a newly asked one starts rather
+        than below it.
         """
         event = Event.objects.create(name="Open", slug="open", qa_mode=Event.QAMode.OPEN)
         talk = baker.make(Talk, event=event, title="A talk")

@@ -1,4 +1,5 @@
 """Tests for event support in management commands (generate_fake_talks & import_pretalx_talks)."""
+
 # ruff: noqa: PLR2004
 
 from datetime import timedelta

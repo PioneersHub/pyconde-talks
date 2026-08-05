@@ -186,8 +186,8 @@ class Question(models.Model):
         Hold the question for moderation, recording why.
 
         *reason* is stored on ``flag_reason`` so a moderator can see what caught it, and so a
-        heuristic that misfires in production can be identified from the data rather than
-        guessed at.
+        heuristic that misfires in production can be identified from the data rather than guessed
+        at.
         """
         self.status = self.Status.PENDING
         self.flag_reason = reason

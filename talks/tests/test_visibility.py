@@ -1,9 +1,9 @@
 """
 Tests for event-visibility access rules at the queryset level.
 
-``TalkQuerySet.accessible_to`` is the one gate every talk-facing view goes through, so these
-tests are written as an exhaustive truth table over (viewer kind) x (event visibility) rather
-than as a handful of examples. A leak here is a leak everywhere.
+``TalkQuerySet.accessible_to`` is the one gate every talk-facing view goes through, so these tests
+are written as an exhaustive truth table over (viewer kind) x (event visibility) rather than as a
+handful of examples. A leak here is a leak everywhere.
 """
 
 from datetime import timedelta
@@ -69,9 +69,9 @@ def _recorded_talk_for(event: Event) -> Talk:
     """
     Create a talk on *event* with a recording and a slot that has already happened.
 
-    The past slot is the point. ``Talk.start_time`` defaults to the ``FAR_FUTURE`` sentinel, and
-    an upcoming talk withholds its links whatever the video gate says, so a talk left at the
-    default would let these assertions pass without the gate being exercised at all.
+    The past slot is the point. ``Talk.start_time`` defaults to the ``FAR_FUTURE`` sentinel, and an
+    upcoming talk withholds its links whatever the video gate says, so a talk left at the default
+    would let these assertions pass without the gate being exercised at all.
     """
     return baker.make(
         Talk,
@@ -109,8 +109,8 @@ class TestAccessibleToVisibility:
         """
         AnonymousUser has no ``events`` relation.
 
-        Dereferencing it used to raise AttributeError, which is a 500 rather than an empty
-        list, so this asserts the queryset evaluates at all.
+        Dereferencing it used to raise AttributeError, which is a 500 rather than an empty list, so
+        this asserts the queryset evaluates at all.
         """
         _talk_for(hidden_event)
         assert list(Talk.objects.accessible_to(AnonymousUser())) == []
@@ -131,8 +131,8 @@ class TestAccessibleToVisibility:
         """
         Being logged in is not itself access.
 
-        A user with no ticket for a hidden event must see exactly what an anonymous visitor
-        sees. This is the case a naive rewrite breaks.
+        A user with no ticket for a hidden event must see exactly what an anonymous visitor sees.
+        This is the case a naive rewrite breaks.
         """
         _talk_for(hidden_event)
         outsider = baker.make(CustomUser, email="outsider@example.com")
@@ -272,9 +272,9 @@ class TestVideoGate:
         """
         The gate fails closed.
 
-        A talk that no view has run through ``allow_videos_for`` or ``unlock_video_access``
-        yields no link even on a public event. A view that forgets the call renders a missing
-        player, which is obvious, instead of leaking a recording, which is not.
+        A talk that no view has run through ``allow_videos_for`` or ``unlock_video_access`` yields
+        no link even on a public event. A view that forgets the call renders a missing player, which
+        is obvious, instead of leaking a recording, which is not.
         """
         talk = _recorded_talk_for(public_event)
         assert talk.get_video_link() == ""
@@ -297,8 +297,8 @@ class TestVideoGate:
         """
         The catalogue view of "is there a recording" must not move with the viewer.
 
-        The dashboard counter and the admin column report on the data, not on a player, so
-        they would otherwise show different totals to different people.
+        The dashboard counter and the admin column report on the data, not on a player, so they
+        would otherwise show different totals to different people.
         """
         talk = _recorded_talk_for(schedule_only_event)
         talk.allow_videos_for(AnonymousUser())
@@ -351,8 +351,8 @@ class TestEventsVisibleTo:
         """
         ``is_active`` still wins over visibility.
 
-        A public but deactivated event must stay off the site, otherwise turning an event off
-        would be silently undone by making it public.
+        A public but deactivated event must stay off the site, otherwise turning an event off would
+        be silently undone by making it public.
         """
         public_event.is_active = False
         public_event.save(update_fields=["is_active"])
@@ -393,8 +393,8 @@ class TestAccessibleToIsActive:
         """
         ``is_active`` is how an organizer pulls an event, so it has to bind the public half.
 
-        ``events_visible_to`` already drops inactive events from the picker; without the same
-        filter here the talks stayed reachable at their direct URLs, recording included.
+        ``events_visible_to`` already drops inactive events from the picker; without the same filter
+        here the talks stayed reachable at their direct URLs, recording included.
         """
         event = Event.objects.create(
             name="Retired",

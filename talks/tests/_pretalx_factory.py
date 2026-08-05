@@ -2,10 +2,10 @@
 Builders for real Pretalx API model instances in tests.
 
 Tests used to hand-mock submissions with ``unittest.mock.Mock``, which silently accepts any
-attribute and so could not catch a model-shape regression. These helpers instead build the same
-API-shaped JSON the live endpoint returns and run it through ``Submission.model_validate``, so a
-test exercises the genuine parse path. Keep the keyword arguments close to the fields a test cares
-about; everything else gets a sensible default.
+attribute and so could not catch a model-shape regression. These helpers instead build the same API-
+shaped JSON the live endpoint returns and run it through ``Submission.model_validate``, so a test
+exercises the genuine parse path. Keep the keyword arguments close to the fields a test cares about;
+everything else gets a sensible default.
 """
 
 from datetime import UTC, datetime

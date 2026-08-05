@@ -1,8 +1,8 @@
 """
 Views for managing and displaying Talk objects.
 
-Core browsing: list, detail, dashboard, upcoming, and ID-or-pretalx redirect. Rating endpoints
-live in ``talks.views_rating`` and the bookmark toggle in ``talks.views_saved``.
+Core browsing: list, detail, dashboard, upcoming, and ID-or-pretalx redirect. Rating endpoints live
+in ``talks.views_rating`` and the bookmark toggle in ``talks.views_saved``.
 """
 
 from datetime import timedelta
@@ -68,9 +68,9 @@ class TalkDetailView(DetailView[Talk]):
         Render the talk, sending anonymous visitors to log in rather than showing a bare 404.
 
         A talk on a hidden event is not in ``accessible_to`` for a logged-out visitor, so the
-        default would be a 404. That is right for a logged-in non-member (saying "no such
-        talk" avoids confirming it exists) but wrong for a member who simply has no session
-        yet, who should be asked to sign in. Only anonymous visitors get the redirect.
+        default would be a 404. That is right for a logged-in non-member (saying "no such talk"
+        avoids confirming it exists) but wrong for a member who simply has no session yet, who
+        should be asked to sign in. Only anonymous visitors get the redirect.
         """
         try:
             return super().get(request, *args, **kwargs)
@@ -142,8 +142,8 @@ class TalkListView(ListView[Talk]):
     """
     Display a list of Talk objects with filtering capabilities.
 
-    Supports filtering by room and date, and provides context for filter options.
-    Requires user authentication to access the view.
+    Supports filtering by room and date, and provides context for filter options. Requires user
+    authentication to access the view.
     """
 
     model = Talk
@@ -189,7 +189,11 @@ class TalkListView(ListView[Talk]):
         return _apply_search_filter(queryset, self.request)
 
     def _apply_event_filter(self, queryset: TalkQuerySet) -> TalkQuerySet:
-        """Filter talks by event. Defaults to the current event from session/settings."""
+        """
+        Filter talks by event.
+
+        Defaults to the current event from session/settings.
+        """
         event_id = self.request.GET.get("event", "")
         if event_id == "all":
             return queryset
@@ -208,9 +212,9 @@ class TalkListView(ListView[Talk]):
         Apply room, date, track, type, and saved filters from GET params.
 
         Each value is validated against the event-scoped ``queryset`` to discard stale params left
-        over from a previous event switch.
-        All valid params are then applied together in a single ``.filter()`` so that intersecting
-        criteria (e.g. Room A + April 6) correctly produce an empty result when no talks match both.
+        over from a previous event switch. All valid params are then applied together in a single
+        ``.filter()`` so that intersecting criteria (e.g. Room A + April 6) correctly produce an
+        empty result when no talks match both.
         """
         active: dict[str, str] = {}
 
@@ -372,11 +376,10 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
 
     Open to anonymous visitors, who get the figures for publicly listed events only.
 
-    Deliberately uncached. ``cache_page`` keyed on the cookie header (via ``vary_on_cookie``)
-    was safe only while every visitor was authenticated and so carried a distinct session
-    cookie; anonymous visitors can share a cookie header, or have none, and would then be
-    served a member's totals. The counts are three aggregate queries, so caching them bought
-    little against that.
+    Deliberately uncached. ``cache_page`` keyed on the cookie header (via ``vary_on_cookie``) was
+    safe only while every visitor was authenticated and so carried a distinct session cookie;
+    anonymous visitors can share a cookie header, or have none, and would then be served a member's
+    totals. The counts are three aggregate queries, so caching them bought little against that.
     """
     user = request.user
     current_date = timezone.now().date()
@@ -452,10 +455,10 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
 
     Deliberately uncached. It used to be ``cache_page(30)`` keyed on the cookie header via
     ``vary_on_cookie``, which was only safe while every visitor was authenticated and so had a
-    distinct session cookie. Anonymous visitors can share a cookie header (or have none at
-    all), which would let one viewer be served another's fragment, including the recording
-    links of an event they cannot access. The view is one indexed query for eight rows, so the
-    cache bought little against that.
+    distinct session cookie. Anonymous visitors can share a cookie header (or have none at all),
+    which would let one viewer be served another's fragment, including the recording links of an
+    event they cannot access. The view is one indexed query for eight rows, so the cache bought
+    little against that.
     """
     current_time = timezone.now()
     talks_qs = (
@@ -498,9 +501,9 @@ def talk_redirect_view(request: HttpRequest, talk_id: str) -> HttpResponse:
     """
     Get talk detail view by Talk ID or Pretalx ID.
 
-    Mirrors ``TalkDetailView.get``: an anonymous visitor following a link to a talk they
-    cannot currently see is asked to log in, while a logged-in non-member gets a 404 so the
-    response does not confirm the talk exists.
+    Mirrors ``TalkDetailView.get``: an anonymous visitor following a link to a talk they cannot
+    currently see is asked to log in, while a logged-in non-member gets a 404 so the response does
+    not confirm the talk exists.
     """
     talk = get_talk_by_id_or_pretalx(talk_id, user=request.user)
     if talk:

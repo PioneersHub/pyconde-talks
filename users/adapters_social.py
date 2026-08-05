@@ -50,9 +50,9 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
     """
     Enforce Discord role-based access control and prevent duplicate accounts.
 
-    Links Discord logins to existing email-based accounts.
-    Login is granted only to users who hold at least one role listed in
-    ``settings.DISCORD_ALLOWED_ROLES``. If the list is empty, all Discord logins are rejected.
+    Links Discord logins to existing email-based accounts. Login is granted only to users who hold
+    at least one role listed in ``settings.DISCORD_ALLOWED_ROLES``. If the list is empty, all
+    Discord logins are rejected.
 
     Role-to-Django permission mapping (applied when a Discord account is connected - on brand-new
     signups via ``save_user``, when linking to an existing email-based account, and when merging an
@@ -354,7 +354,6 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
         Raises:
             _DiscordNotInGuildError: if the user is not a member of the guild.
             httpx2.HTTPError: on any other non-2xx response or network failure.
-
         """
         response = httpx2.get(
             f"{_DISCORD_API}/users/@me/guilds/{guild_id}/member",

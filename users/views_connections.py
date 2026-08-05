@@ -1,9 +1,9 @@
 """
 Connection management views for Discord/social accounts.
 
-Split out from ``users.views`` so the wrapper around allauth's ConnectionsView and the
-"Discord-only user adds a ticket email" two-step flow live together. The core login, profile,
-and account-deletion views stay in ``users.views``.
+Split out from ``users.views`` so the wrapper around allauth's ConnectionsView and the "Discord-only
+user adds a ticket email" two-step flow live together. The core login, profile, and account-deletion
+views stay in ``users.views``.
 """
 
 import secrets
@@ -93,10 +93,9 @@ def connections_view(request: HttpRequest) -> HttpResponse:
     """
     Show connected social accounts with awareness of whether disconnect is safe.
 
-    Disconnect is only allowed when the user has a verified email that is also
-    recognized by the validation API (i.e. associated with a ticket purchase).
-    This prevents Discord-only staff users from disconnecting, changing their
-    Discord email, and reconnecting to create unlimited accounts.
+    Disconnect is only allowed when the user has a verified email that is also recognized by the
+    validation API (i.e. associated with a ticket purchase). This prevents Discord-only staff users
+    from disconnecting, changing their Discord email, and reconnecting to create unlimited accounts.
     """
     view = ConnectionsView.as_view()
     status = _connection_status(request, cast("CustomUser", request.user))
@@ -134,9 +133,9 @@ def add_email_view(request: HttpRequest) -> HttpResponse:
     """
     Let a Discord-only user add and verify an email address.
 
-    Step 1: accept an email, validate it against the authorization API, and send a code.
-    The code, email, and expiry are stored in the session. On success the user is redirected
-    to the confirmation page.
+    Step 1: accept an email, validate it against the authorization API, and send a code. The code,
+    email, and expiry are stored in the session. On success the user is redirected to the
+    confirmation page.
     """
     user = cast("CustomUser", request.user)
 
@@ -218,8 +217,8 @@ def confirm_add_email_view(request: HttpRequest) -> HttpResponse:
     """
     Step 2: verify the code the user received by email.
 
-    On success, create a verified ``EmailAddress`` record and update the user's primary email
-    if it differs. Associate the user with the selected event.
+    On success, create a verified ``EmailAddress`` record and update the user's primary email if it
+    differs. Associate the user with the selected event.
     """
     user = cast("CustomUser", request.user)
     session_data: dict[str, Any] | None = request.session.get(_ADD_EMAIL_SESSION_KEY)

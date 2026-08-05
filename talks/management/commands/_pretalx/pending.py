@@ -1,10 +1,9 @@
 """
 Detect-only support for the Pretalx importer.
 
-Helpers that turn the per-submission diff into ``PendingPretalxChange`` rows
-without touching the live ``Talk``/``Speaker`` graph. Used by the importer when
-``--detect-only`` is set so admins can review and apply changes from the admin
-UI on their own schedule.
+Helpers that turn the per-submission diff into ``PendingPretalxChange`` rows without touching the
+live ``Talk``/``Speaker`` graph. Used by the importer when ``--detect-only`` is set so admins can
+review and apply changes from the admin UI on their own schedule.
 """
 
 import datetime
@@ -37,10 +36,9 @@ def diff_speakers(
     """
     Return the symmetric difference between *talk*'s speakers and *submission_speakers*.
 
-    Read-only: never touches the database. Output shape is
-    ``{"added": [{"code", "name"}, ...], "removed": [{"code", "name"}, ...]}``,
-    with empty lists when nothing changed. *talk* may be ``None`` for the CREATE
-    case (every speaker counts as "added").
+    Read-only: never touches the database. Output shape is ``{"added": [{"code", "name"}, ...],
+    "removed": [{"code", "name"}, ...]}``, with empty lists when nothing changed. *talk* may be
+    ``None`` for the CREATE case (every speaker counts as "added").
     """
     current: dict[str, str] = {}
     if talk is not None and talk.pk is not None:
@@ -60,13 +58,13 @@ def serialize_field_diffs(
     """
     Convert the dict returned by :func:`_diff_talk_fields` into JSON-friendly diffs.
 
-    Output shape: ``{field_name: {"old": <value>, "new": <value>}}``. ``room`` and
-    ``event`` are flattened to their string representation (slug or name) so the
-    payload is safe to serialize. The ``room`` diff also carries ``old_pretalx_id`` /
-    ``new_pretalx_id`` so apply can resolve and rename the room by its stable id.
+    Output shape: ``{field_name: {"old": <value>, "new": <value>}}``. ``room`` and ``event`` are
+    flattened to their string representation (slug or name) so the payload is safe to serialize. The
+    ``room`` diff also carries ``old_pretalx_id`` / ``new_pretalx_id`` so apply can resolve and
+    rename the room by its stable id.
 
-    Read-only: ``_diff_talk_fields`` runs in detect mode, so room resolution never
-    writes and the talk instance is never mutated.
+    Read-only: ``_diff_talk_fields`` runs in detect mode, so room resolution never writes and the
+    talk instance is never mutated.
     """
     fresh = _diff_talk_fields(talk, data, ctx)
     diffs: dict[str, dict[str, Any]] = {}
@@ -92,9 +90,9 @@ def _room_rename_diff(talk: Talk, data: SubmissionData) -> dict[str, Any] | None
     """
     Return a ``room`` diff when *talk*'s current room was renamed on Pretalx.
 
-    A rename is detected when the talk's room carries the same stable Pretalx id as the
-    incoming submission but a different name. Read-only; no DB access beyond the already
-    loaded ``talk.room``.
+    A rename is detected when the talk's room carries the same stable Pretalx id as the incoming
+    submission but a different name. Read-only; no DB access beyond the already loaded
+    ``talk.room``.
     """
     current = talk.room
     if current is None or not data.room or data.pretalx_room_id is None:
@@ -117,9 +115,8 @@ def build_submission_payload(
     """
     Return the JSON-serializable snapshot of *data*, used as the apply payload.
 
-    The snapshot is self-contained: applying the pending change later does not
-    require re-fetching Pretalx. The shape mirrors what
-    :func:`~_pretalx.talks.create_talk` / ``update_talk`` consume.
+    The snapshot is self-contained: applying the pending change later does not require re-fetching
+    Pretalx. The shape mirrors what :func:`~_pretalx.talks.create_talk` / ``update_talk`` consume.
     """
     return {
         "title": data.title,
@@ -185,16 +182,15 @@ def record_pending_change(  # noqa: PLR0913
     """
     Upsert an open ``PendingPretalxChange`` row for ``(event, pretalx_code)``.
 
-    Returns ``(change, created)`` mirroring Django's ``get_or_create`` shape.
-    When an open row already exists the existing record is updated in place;
-    once it has been applied or dismissed a fresh row is created so the audit
-    trail of past decisions is preserved.
+    Returns ``(change, created)`` mirroring Django's ``get_or_create`` shape. When an open row
+    already exists the existing record is updated in place; once it has been applied or dismissed a
+    fresh row is created so the audit trail of past decisions is preserved.
 
-    The create is wrapped in a savepoint and guarded against the partial unique
-    constraint: if a concurrent detect run (e.g. cron racing the admin "Check
-    Pretalx now" button) inserts the open row between our lookup and insert, the
-    ``IntegrityError`` is caught, the savepoint keeps the surrounding request
-    transaction usable, and we fall back to updating the row the other run created.
+    The create is wrapped in a savepoint and guarded against the partial unique constraint: if a
+    concurrent detect run (e.g. cron racing the admin "Check Pretalx now" button) inserts the open
+    row between our lookup and insert, the ``IntegrityError`` is caught, the savepoint keeps the
+    surrounding request transaction usable, and we fall back to updating the row the other run
+    created.
     """
     values: dict[str, Any] = {
         "kind": kind,
@@ -233,9 +229,9 @@ def _jsonify(value: Any) -> Any:
     """
     Coerce a model-field value into something JSONField can store.
 
-    Datetimes get ``.isoformat()``; timedeltas become integer seconds; FK
-    instances render as their string repr (``Room.__str__`` is the room name,
-    ``Event.__str__`` is the slug). Anything else passes through.
+    Datetimes get ``.isoformat()``; timedeltas become integer seconds; FK instances render as their
+    string repr (``Room.__str__`` is the room name, ``Event.__str__`` is the slug). Anything else
+    passes through.
     """
     if value is None:
         return None

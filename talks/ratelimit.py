@@ -1,15 +1,15 @@
 """
 Cache-backed rate limiting for user-generated Q&A content.
 
-Keyed per user account, never per IP. At the conference venue ~2000 attendees reach the site
-through one NAT address, so a per-IP limit there is collective punishment: one spammer, or
-simply the rush after a popular talk, would lock out the whole room. This mirrors the reasoning
-already recorded for ``ACCOUNT_RATE_LIMITS`` in the settings module.
+Keyed per user account, never per IP. At the conference venue ~2000 attendees reach the site through
+one NAT address, so a per-IP limit there is collective punishment: one spammer, or simply the rush
+after a popular talk, would lock out the whole room. This mirrors the reasoning already recorded for
+``ACCOUNT_RATE_LIMITS`` in the settings module.
 
 Q&A always requires a login, so there is always an account to key on and no anonymous case to
-invent. Note the limiter is only as global as the cache backend: on the default per-process
-local memory cache the allowance is effectively per worker. That is fine for a single-worker
-deployment, and ``DJANGO_CACHE_URL`` points at Redis for anything larger.
+invent. Note the limiter is only as global as the cache backend: on the default per-process local
+memory cache the allowance is effectively per worker. That is fine for a single-worker deployment,
+and ``DJANGO_CACHE_URL`` points at Redis for anything larger.
 
 A cache that cannot be reached fails OPEN: the action is allowed and a warning is logged. Django
 does not wrap backend errors, so a Redis blip would otherwise surface as an uncaught driver
@@ -53,9 +53,9 @@ def _bucket_key(scope: str, identity: str, window_seconds: int) -> str:
     """
     Return the cache key for the current fixed window.
 
-    A fixed window rather than a true sliding one: it costs a single cache operation and the
-    worst case is twice the allowance across a boundary, which for "5 questions per 10 minutes"
-    is not a way in for a spammer.
+    A fixed window rather than a true sliding one: it costs a single cache operation and the worst
+    case is twice the allowance across a boundary, which for "5 questions per 10 minutes" is not a
+    way in for a spammer.
     """
     bucket = int(time.time()) // window_seconds
     return f"{_KEY_PREFIX}:{scope}:{identity}:{bucket}"
@@ -65,8 +65,8 @@ def is_rate_limited(scope: str, identity: str, rule: RateLimit) -> bool:
     """
     Return whether *identity* has already used up its allowance for *scope*.
 
-    A read-only peek, so two requests can both pass it before either has counted. Use ``claim``
-    for anything that has to hold: this is only for reporting.
+    A read-only peek, so two requests can both pass it before either has counted. Use ``claim`` for
+    anything that has to hold: this is only for reporting.
     """
     try:
         stored = cache.get(_bucket_key(scope, identity, rule.window_seconds), 0)
@@ -80,8 +80,8 @@ def consume(scope: str, identity: str, rule: RateLimit) -> int:
     """
     Record one action against the allowance and return the new count.
 
-    Returns 0 when the cache cannot be reached, which every caller reads as "within the
-    allowance". See the module docstring for why that direction is the right one.
+    Returns 0 when the cache cannot be reached, which every caller reads as "within the allowance".
+    See the module docstring for why that direction is the right one.
     """
     key = _bucket_key(scope, identity, rule.window_seconds)
     try:
@@ -104,14 +104,14 @@ def claim(scope: str, identity: str, rule: RateLimit) -> bool:
     """
     Count one action and return whether it was within the allowance.
 
-    Checking and then counting as two steps leaves a window where several concurrent requests
-    all read a count below the limit and all proceed, so a burst got through whatever the
-    allowance said. Counting first and judging the result closes that: the increment is atomic
-    on Redis, so exactly one request can be the one that reaches the limit.
+    Checking and then counting as two steps leaves a window where several concurrent requests all
+    read a count below the limit and all proceed, so a burst got through whatever the allowance
+    said. Counting first and judging the result closes that: the increment is atomic on Redis, so
+    exactly one request can be the one that reaches the limit.
 
-    An over-limit attempt is deliberately still counted. It means a caller who keeps hammering
-    holds their own window open, rather than being handed a fresh allowance the moment one
-    request is refused.
+    An over-limit attempt is deliberately still counted. It means a caller who keeps hammering holds
+    their own window open, rather than being handed a fresh allowance the moment one request is
+    refused.
     """
     return consume(scope, identity, rule) <= rule.limit
 
@@ -120,9 +120,9 @@ def refund(scope: str, identity: str, rule: RateLimit) -> None:
     """
     Give back one claimed action, for a submission that turned out not to count.
 
-    ``claim`` has to run before the content is validated, or the check is not atomic. But a
-    question rejected for being too long or failing the captcha was never posted, so it should
-    not cost the author part of their allowance either. Hence claim-then-refund.
+    ``claim`` has to run before the content is validated, or the check is not atomic. But a question
+    rejected for being too long or failing the captcha was never posted, so it should not cost the
+    author part of their allowance either. Hence claim-then-refund.
     """
     key = _bucket_key(scope, identity, rule.window_seconds)
     try:
@@ -141,8 +141,8 @@ def seconds_until_reset(rule: RateLimit) -> int:
     Return roughly how long until the current window rolls over.
 
     Depends only on the window, since the buckets are fixed rather than per-identity sliding.
-    Callers round this to whole minutes: an exact countdown would be false precision and would
-    tell a prober exactly when to come back.
+    Callers round this to whole minutes: an exact countdown would be false precision and would tell
+    a prober exactly when to come back.
     """
     elapsed = int(time.time()) % rule.window_seconds
     return max(rule.window_seconds - elapsed, 1)
@@ -152,8 +152,8 @@ def question_limits() -> tuple[RateLimit, RateLimit]:
     """
     Return the (per-talk, overall) allowances for asking questions.
 
-    Read from settings on each call rather than captured at import, so an operator can loosen
-    them mid-conference without a redeploy - which is exactly when that is needed.
+    Read from settings on each call rather than captured at import, so an operator can loosen them
+    mid-conference without a redeploy - which is exactly when that is needed.
     """
     return (
         RateLimit(

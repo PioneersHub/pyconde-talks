@@ -1,10 +1,10 @@
 """
 The contract for which URLs are reachable without logging in.
 
-This is a policy test rather than a behaviour test: it exists so that opening a URL to
-anonymous visitors has to be a deliberate edit here as well as in ``talks/urls.py``. Q&A and
-ratings are checked against a *public* event on purpose, because "public event" must not imply
-"public Q&A" - moderating is volunteer work, and that is the whole reason those stay closed.
+This is a policy test rather than a behaviour test: it exists so that opening a URL to anonymous
+visitors has to be a deliberate edit here as well as in ``talks/urls.py``. Q&A and ratings are
+checked against a *public* event on purpose, because "public event" must not imply "public Q&A" -
+moderating is volunteer work, and that is the whole reason those stay closed.
 """
 
 from http import HTTPStatus
@@ -120,7 +120,7 @@ def test_talk_detail_url_uses_pk_not_talk_id(public_talk: Talk) -> None:
     """
     Guard the kwarg name the parametrized test relies on.
 
-    ``talk_detail`` takes ``pk`` while the endpoints above take ``talk_id``; if that ever
-    changes, ``reverse`` would fail loudly here rather than silently skipping coverage.
+    ``talk_detail`` takes ``pk`` while the endpoints above take ``talk_id``; if that ever changes,
+    ``reverse`` would fail loudly here rather than silently skipping coverage.
     """
     assert reverse("talk_detail", kwargs={"pk": public_talk.pk})

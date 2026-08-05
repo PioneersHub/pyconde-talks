@@ -65,14 +65,14 @@ def youtube_embed_url(url: str) -> str:
     """
     Return the framable form of a YouTube *url*, or *url* unchanged when it is not one.
 
-    YouTube serves ``youtu.be`` and ``watch`` URLs with ``X-Frame-Options: SAMEORIGIN``, so a
-    page that drops one into an iframe shows an empty box. Only ``/embed/<id>`` may be framed,
-    and the IFrame API the player controls are built on needs it too. Links are stored in
-    whatever form they arrive in (organizers paste short links, and old rows already hold them),
-    so the conversion happens on the way out to the template rather than on the way in.
+    YouTube serves ``youtu.be`` and ``watch`` URLs with ``X-Frame-Options: SAMEORIGIN``, so a page
+    that drops one into an iframe shows an empty box. Only ``/embed/<id>`` may be framed, and the
+    IFrame API the player controls are built on needs it too. Links are stored in whatever form they
+    arrive in (organizers paste short links, and old rows already hold them), so the conversion
+    happens on the way out to the template rather than on the way in.
 
-    Query parameters are carried over, so a stored ``?enablejsapi=1`` survives. A ``t`` offset
-    from a shared link becomes the ``start`` parameter the embedded player understands.
+    Query parameters are carried over, so a stored ``?enablejsapi=1`` survives. A ``t`` offset from
+    a shared link becomes the ``start`` parameter the embedded player understands.
     """
     video_id = youtube_video_id(url)
     if not video_id:
@@ -95,18 +95,18 @@ def vimeo_embed_url(url: str) -> str:
     """
     Return the framable form of a Vimeo *url*, or *url* unchanged when it is not one.
 
-    Vimeo has the same problem as YouTube: a ``vimeo.com/<id>`` watch page is served with
-    ``X-Frame-Options: SAMEORIGIN`` and cannot be framed, only ``player.vimeo.com/video/<id>``
-    can. The Vimeo importer already stores the player URL, so this is for the links a human
-    pastes, which is the form Vimeo's own share button hands out.
+    Vimeo has the same problem as YouTube: a ``vimeo.com/<id>`` watch page is served with ``X-Frame-
+    Options: SAMEORIGIN`` and cannot be framed, only ``player.vimeo.com/video/<id>`` can. The Vimeo
+    importer already stores the player URL, so this is for the links a human pastes, which is the
+    form Vimeo's own share button hands out.
 
     Unlisted videos carry a privacy hash, either as a second path segment
-    (``vimeo.com/<id>/<hash>``) or as ``?h=<hash>``. Both end up as the ``h`` parameter the
-    player needs, without which an unlisted video refuses to load.
+    (``vimeo.com/<id>/<hash>``) or as ``?h=<hash>``. Both end up as the ``h`` parameter the player
+    needs, without which an unlisted video refuses to load.
 
-    Only the two shapes we actually receive are converted. Channel, showcase, and live-event
-    URLs bury a number in the path that is not a video ID, so they are left alone rather than
-    rewritten into a player URL that would point at nothing.
+    Only the two shapes we actually receive are converted. Channel, showcase, and live-event URLs
+    bury a number in the path that is not a video ID, so they are left alone rather than rewritten
+    into a player URL that would point at nothing.
     """
     if not url:
         return url
@@ -138,8 +138,8 @@ def embeddable_video_url(url: str) -> str:
     """
     Return the form of *url* that may be loaded in an iframe, or *url* when nothing applies.
 
-    The single entry point for the template-facing link: neither YouTube nor Vimeo lets its
-    watch pages be framed, and both are stored in whatever shape they arrived in.
+    The single entry point for the template-facing link: neither YouTube nor Vimeo lets its watch
+    pages be framed, and both are stored in whatever shape they arrived in.
     """
     for convert in (youtube_embed_url, vimeo_embed_url):
         converted = convert(url)

@@ -1,11 +1,10 @@
 """
 Helpers for tracking the user-selected event across requests.
 
-Several views and the branding context processor need to know which ``Event`` the current
-request should be bound to. They all agree on the same session key and the same fallback
-order (session slug, then the ``DEFAULT_EVENT`` setting, then the first active event), so
-the key and the resolution helper live in one place rather than being copied at each call
-site.
+Several views and the branding context processor need to know which ``Event`` the current request
+should be bound to. They all agree on the same session key and the same fallback order (session
+slug, then the ``DEFAULT_EVENT`` setting, then the first active event), so the key and the
+resolution helper live in one place rather than being copied at each call site.
 """
 
 import contextlib
@@ -51,8 +50,8 @@ def events_visible_to(user: AbstractBaseUser | AnonymousUser | None) -> QuerySet
     Return the active events this user may browse, for any user including anonymous ones.
 
     ``CustomUser.visible_events`` covers the authenticated case but does not exist on
-    ``AnonymousUser``, so views would otherwise have to branch on ``is_authenticated`` before
-    every call. Anonymous visitors get the events that are not hidden, which is the same set
+    ``AnonymousUser``, so views would otherwise have to branch on ``is_authenticated`` before every
+    call. Anonymous visitors get the events that are not hidden, which is the same set
     ``TalkQuerySet.accessible_to`` uses for them.
     """
     visible_events = getattr(user, "visible_events", None)
@@ -73,15 +72,15 @@ def resolve_default_event(request: HttpRequest) -> Event | None:
     3. Any active event, as a last-resort fallback.
 
     Candidates are restricted to the events the visitor may browse. Without that, an anonymous
-    visitor would be defaulted onto a hidden event (``DEFAULT_EVENT`` names the current one,
-    which is hidden for most of its life) and shown an empty talk list with no hint why.
+    visitor would be defaulted onto a hidden event (``DEFAULT_EVENT`` names the current one, which
+    is hidden for most of its life) and shown an empty talk list with no hint why.
 
-    This is the version used for list views and other places that treat "the current event"
-    as a site-wide default. The ``branding`` context processor has its own user-scoped
-    variant because it needs to respect per-user event membership.
+    This is the version used for list views and other places that treat "the current event" as a
+    site-wide default. The ``branding`` context processor has its own user-scoped variant because it
+    needs to respect per-user event membership.
 
-    The result is cached on the ``request`` object so multiple callers in the same
-    request (e.g. ``_apply_event_filter`` and ``get_context_data``) share one DB hit.
+    The result is cached on the ``request`` object so multiple callers in the same request (e.g.
+    ``_apply_event_filter`` and ``get_context_data``) share one DB hit.
     """
     cached = getattr(request, _CACHE_ATTR, _UNSET)
     if cached is not _UNSET:

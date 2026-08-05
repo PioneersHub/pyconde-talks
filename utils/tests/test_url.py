@@ -198,8 +198,8 @@ class TestVimeoEmbedUrl:
         """
         Leave alone anything that is not a plain Vimeo video page.
 
-        Channel, showcase, and live-event URLs also hold a number, but not a video ID, so
-        rewriting them into a player URL would point the iframe at the wrong thing (or nothing).
+        Channel, showcase, and live-event URLs also hold a number, but not a video ID, so rewriting
+        them into a player URL would point the iframe at the wrong thing (or nothing).
         """
         assert vimeo_embed_url(url) == url
 

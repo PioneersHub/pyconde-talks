@@ -1,9 +1,9 @@
 """
 Tests for the per-event Q&A modes.
 
-The four modes are a spectrum of how much attention the organizers can give the queue: open
-while the event runs and volunteers are watching, moderated when spam appears, frozen once
-nobody is watching, disabled when the Q&A was never wanted.
+The four modes are a spectrum of how much attention the organizers can give the queue: open while
+the event runs and volunteers are watching, moderated when spam appears, frozen once nobody is
+watching, disabled when the Q&A was never wanted.
 """
 
 from http import HTTPStatus
@@ -174,8 +174,8 @@ class TestDisabledMode:
         """
         Disabling hides the content from everyone.
 
-        A moderator with a stale tab polls every ten seconds; the switch has to take effect
-        there too, not just for ordinary attendees.
+        A moderator with a stale tab polls every ten seconds; the switch has to take effect there
+        too, not just for ordinary attendees.
         """
         talk = _talk_with_qa(Event.QAMode.DISABLED)
         baker.make(Question, talk=talk, content="Previously asked")
@@ -225,8 +225,8 @@ class TestModeHelpers:
         """
         The event is fetched once, not once per mode check.
 
-        Every check reads ``talk.event``, so without select_related the list view would issue
-        an extra query for each one.
+        Every check reads ``talk.event``, so without select_related the list view would issue an
+        extra query for each one.
         """
         talk = _talk_with_qa(Event.QAMode.OPEN)
         for i in range(10):
@@ -352,10 +352,11 @@ class TestDisabledModeClosesEveryEndpoint:
 @pytest.mark.django_db
 class TestParticipationNeedsAccessToTheEvent:
     """
-    Reading a Q&A is open to anyone who can see the talk. Taking part is not.
+    Reading a Q&A is open to anyone who can see the talk.
 
-    Otherwise a ticket for last year's public archive was enough to post into the Q&A of the
-    conference running right now, which is where moderator attention is scarcest.
+    Taking part is not.     Otherwise a ticket for last year's public archive was enough to post
+    into the Q&A of the     conference running right now, which is where moderator attention is
+    scarcest.
     """
 
     @staticmethod
@@ -445,8 +446,8 @@ class TestParticipationNeedsAccessToTheEvent:
         """
         A public event needs no ticket, because registration for it needs no ticket either.
 
-        Requiring one here would only mean "whoever happened to register through this event",
-        which protects nothing while breaking Q&A for everyone who arrived another way.
+        Requiring one here would only mean "whoever happened to register through this event", which
+        protects nothing while breaking Q&A for everyone who arrived another way.
         """
         event = Event.objects.create(
             name="Archive",
@@ -535,15 +536,15 @@ class TestQaErrorsAreDeliveredSafely:
     A Q&A error has to be identifiable, or the swap opt-in cannot be scoped.
 
     ``base.html`` keys its 4xx swap on the header these responses carry. Keyed on the status code
-    instead, every HTMX control on the site would swap whatever a 4xx returned - Django's 404
-    page into a bookmark button, the CSRF failure page into the rating widget.
+    instead, every HTMX control on the site would swap whatever a 4xx returned - Django's 404 page
+    into a bookmark button, the CSRF failure page into the rating widget.
     """
 
     def test_an_error_carries_the_swap_and_placement_headers(self, client: Client) -> None:
         """
         The marker plus the three placement headers, which are one contract.
 
-        Retarget/reswap/reselect matter because the moderation and vote buttons target
+        Retarget/reswap/reselect matter because the moderation and vote buttons all target
         ``#question-list`` with ``outerHTML`` and inherit ``hx-select`` from the fragment root:
         without redirecting all three, the error body is filtered to nothing and the swap deletes
         the whole thread and its poller.

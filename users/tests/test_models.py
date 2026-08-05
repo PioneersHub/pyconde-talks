@@ -48,7 +48,6 @@ def test_create_user(user_data: UserTestData) -> None:
 
     Args:
         user_data: Dictionary containing user creation parameters
-
     """
     user = CustomUser.objects.create_user(**user_data)
     assert user.email == user_data["email"]
@@ -77,7 +76,6 @@ def test_create_superuser(superuser_data: dict[str, Any]) -> None:
 
     Args:
         superuser_data: Dictionary containing superuser creation parameters
-
     """
     user = CustomUser.objects.create_superuser(
         email=superuser_data["email"],

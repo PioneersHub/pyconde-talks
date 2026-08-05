@@ -43,7 +43,6 @@ class QuestionAdmin(admin.ModelAdmin[Question]):
         readonly_fields: Fields that cannot be edited in the admin.
         inlines: Related models to display inline.
         list_select_related: Related models to prefetch for list view optimization.
-
     """
 
     list_display = (
@@ -177,7 +176,6 @@ class QuestionVoteAdmin(admin.ModelAdmin[QuestionVote]):
         list_filter: Fields to filter by in the admin list view.
         search_fields: Fields to search by in the admin list view.
         readonly_fields: Fields that cannot be edited in the admin.
-
     """
 
     list_display = ("question_preview", "user", "created_at")
@@ -205,7 +203,6 @@ class AnswerAdmin(admin.ModelAdmin[Answer]):
         search_fields: Fields to search by in the admin list view.
         readonly_fields: Fields that cannot be edited in the admin.
         list_select_related: Related models to prefetch for list view optimization.
-
     """
 
     list_display = ("content_preview", "question_preview", "user", "is_official", "created_at")

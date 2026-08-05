@@ -1,8 +1,8 @@
 """
 Tests for the Cloudflare Turnstile helper.
 
-The behaviour worth pinning is what happens when Cloudflare is unreachable, and that a
-deployment without keys makes no network call at all.
+The behaviour worth pinning is what happens when Cloudflare is unreachable, and that a deployment
+without keys makes no network call at all.
 """
 
 from typing import TYPE_CHECKING
@@ -108,8 +108,8 @@ def test_network_failure_follows_fail_open(
     """
     A Cloudflare outage is a policy decision, not a crash.
 
-    The default is to let submissions through: losing the captcha for a few minutes beats
-    attendees being unable to ask anything at all.
+    The default is to let submissions through: losing the captcha for a few minutes beats attendees
+    being unable to ask anything at all.
     """
     settings.TURNSTILE_SITE_KEY = "site-key"
     settings.TURNSTILE_SECRET_KEY = "secret-key"
@@ -140,8 +140,8 @@ def test_the_token_is_sent_but_the_client_ip_is_not(httpx2_mock: respx.Router) -
     """
     The client IP is deliberately omitted.
 
-    It is optional, and behind a reverse proxy the wrong address is easy to send and causes
-    false negatives. The token is the evidence that matters.
+    It is optional, and behind a reverse proxy the wrong address is easy to send and causes false
+    negatives. The token is the evidence that matters.
     """
     httpx2_mock.post(VERIFY_URL).respond(json={"success": True})
     turnstile.verify("a-token")
@@ -166,8 +166,8 @@ def test_a_bad_secret_follows_fail_open(
     A wrong secret is our mistake, not evidence of a bot.
 
     It looks the same as a rejected token in the response body, so without this the whole Q&A
-    silently refuses every question until an operator works out why. Treated like an outage,
-    which is what it is from an attendee's point of view.
+    silently refuses every question until an operator works out why. Treated like an outage, which
+    is what it is from an attendee's point of view.
     """
     settings.TURNSTILE_SITE_KEY = "site-key"
     settings.TURNSTILE_SECRET_KEY = "a-placeholder-that-was-never-replaced"

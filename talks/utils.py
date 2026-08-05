@@ -21,8 +21,8 @@ def parse_iso_date(value: str | None) -> date | None:
     """
     Parse a ``YYYY-MM-DD`` string into a date, returning None on empty or malformed input.
 
-    Shared by the talk-list, schedule, and chair views so they all reject bad ?date params the
-    same way (previously each had its own copy, one of which caught a different exception set).
+    Shared by the talk-list, schedule, and chair views so they all reject bad ?date params the same
+    way (previously each had its own copy, one of which caught a different exception set).
     """
     if not value:
         return None
@@ -44,9 +44,9 @@ def get_talk_by_id_or_pretalx(
     pk, fall back to checking the `pretalx_link`.
 
     The queryset is always scoped through ``accessible_to``, including when *user* is ``None``
-    (treated as anonymous), which prevents cross-event information disclosure: a 302 rather
-    than a 404 would reveal that a talk exists. There is deliberately no unscoped branch, so a
-    caller that wants every talk has to reach for ``Talk.objects`` and say so.
+    (treated as anonymous), which prevents cross-event information disclosure: a 302 rather than a
+    404 would reveal that a talk exists. There is deliberately no unscoped branch, so a caller that
+    wants every talk has to reach for ``Talk.objects`` and say so.
     """
     qs = Talk.objects.accessible_to(user)
 

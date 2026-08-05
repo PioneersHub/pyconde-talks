@@ -105,9 +105,9 @@ class Command(BaseCommand):
         """
         Get a room by name, scoped to *event* when given.
 
-        Rooms are event-scoped, so the same name can exist in several events. With an
-        event, the lookup is unambiguous; without one it falls back to a global match
-        (first by ordering) for backward compatibility when no event is configured.
+        Rooms are event-scoped, so the same name can exist in several events. With an event, the
+        lookup is unambiguous; without one it falls back to a global match (first by ordering) for
+        backward compatibility when no event is configured.
         """
         room_name = room_name.strip()
         qs = Room.objects.filter(name=room_name)

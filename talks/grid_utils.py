@@ -1,8 +1,8 @@
 """
 Shared CSS Grid helpers for talk schedule and chair-grid views.
 
-Both views lay out talks in a grid where columns are rooms and rows are time
-boundaries.  Card height is proportional to talk duration.
+Both views lay out talks in a grid where columns are rooms and rows are time boundaries.  Card
+height is proportional to talk duration.
 """
 
 from datetime import datetime, timedelta
@@ -19,9 +19,9 @@ def build_grid_slices(talks: list[Talk]) -> tuple[list[datetime], str]:
     """
     Compute CSS Grid named row lines from all talk start/end time boundaries.
 
-    Returns (sorted_boundaries, css_grid_template_rows).  Each boundary becomes a
-    named grid line like ``[t-0930]``.  Heights are proportional to the gap between
-    consecutive boundaries (2 px/min, minimum 20 px).
+    Returns (sorted_boundaries, css_grid_template_rows).  Each boundary becomes a named grid line
+    like ``[t-0930]``. Heights are proportional to the gap between consecutive boundaries (2 px/min,
+    minimum 20 px).
     """
     boundaries: set[datetime] = set()
     for t in talks:
@@ -59,8 +59,8 @@ def build_time_labels(sorted_bounds: list[datetime]) -> list[dict[str, str]]:
     """
     Return time-label dicts for the first (time) column of the grid.
 
-    Each dict has ``name`` (the CSS grid line name) and ``display`` (H:MM string).
-    The final boundary is skipped because it is a talk end-time with no row below it.
+    Each dict has ``name`` (the CSS grid line name) and ``display`` (H:MM string). The final
+    boundary is skipped because it is a talk end-time with no row below it.
     """
     labels: list[dict[str, str]] = []
     seen: set[str] = set()

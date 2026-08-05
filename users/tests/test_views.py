@@ -104,7 +104,6 @@ def test_form_valid_authorized_new_user(
 
     Verifies that when an authorized email for a non-existing user is submitted, a new user is
     created and the view proceeds with the login code process.
-
     """
     # Make sure the user is not in the database
     assert not user_model.objects.filter(email=login_form_data["email"].lower()).exists()

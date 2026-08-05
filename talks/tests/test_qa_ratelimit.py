@@ -1,9 +1,9 @@
 """
 Tests for the Q&A rate limiter.
 
-The cache is process-global and shared across the whole test run, so these depend on the
-autouse ``_clear_cache`` fixture in the root conftest. Without it a counter would leak between
-tests and, under ``--random-order``, fail only on some seeds.
+The cache is process-global and shared across the whole test run, so these depend on the autouse
+``_clear_cache`` fixture in the root conftest. Without it a counter would leak between tests and,
+under ``--random-order``, fail only on some seeds.
 """
 
 from http import HTTPStatus
@@ -62,8 +62,8 @@ def _ask(client: Client, talk: Talk, content: str) -> _MonkeyPatchedWSGIResponse
     """
     Post a question as the real form does, over HTMX, and return the response.
 
-    The header matters: a plain POST gets the flash-and-redirect branch, so an error arrives as
-    a 302 and the status code under test would be lost.
+    The header matters: a plain POST gets the flash-and-redirect branch, so an error arrives as a
+    302 and the status code under test would be lost.
     """
     return client.post(
         reverse("question_create", kwargs={"talk_id": talk.pk}),
@@ -283,8 +283,8 @@ class TestClaimIsAtomic:
         """
         A question that never got stored must not cost part of the allowance.
 
-        The claim has to happen before validation for the limit to be atomic, so the refund is
-        what keeps an over-long or captcha-failing draft from quietly eating a slot.
+        The claim has to happen before validation for the limit to be atomic, so the refund is what
+        keeps an over-long or captcha-failing draft from quietly eating a slot.
         """
         settings.QA_QUESTION_RATE_LIMIT_PER_TALK = ALLOWANCE
         client.force_login(asker)
@@ -336,8 +336,8 @@ class TestClaimSemantics:
         """
         A refused attempt still counts.
 
-        Otherwise hammering the endpoint would reset the allowance on every refusal, which is
-        the opposite of what a rate limit is for.
+        Otherwise hammering the endpoint would reset the allowance on every refusal, which is the
+        opposite of what a rate limit is for.
         """
         rule = RateLimit(limit=1, window_seconds=600)
         assert claim("test_scope", "hammerer", rule) is True

@@ -1,4 +1,5 @@
 """Tests for template tags: highlight, stat_tags, svg_tags, time_filters."""
+
 # ruff: noqa: PLR2004
 
 from pathlib import Path

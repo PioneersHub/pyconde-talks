@@ -13,9 +13,9 @@ def _superuser() -> CustomUser:
     """
     Return a superuser, for tests about lookup rather than about access.
 
-    ``get_talk_by_id_or_pretalx`` always scopes to what the viewer may see, and talks default
-    to a hidden event, so a viewer that sees everything keeps these tests focused on whether
-    the pk / pretalx-link resolution works.
+    ``get_talk_by_id_or_pretalx`` always scopes to what the viewer may see, and talks default to a
+    hidden event, so a viewer that sees everything keeps these tests focused on whether the pk /
+    pretalx-link resolution works.
     """
     return CustomUser.objects.create_superuser(
         email="lookup-admin@example.com",
@@ -43,8 +43,8 @@ class TestGetTalkByIdOrPretalx:
         """
         Omitting *user* scopes to the anonymous view rather than to everything.
 
-        The helper used to fall back to ``Talk.objects.all()``, which would now hand a talk on
-        a hidden event to a caller that simply forgot to pass the viewer.
+        The helper used to fall back to ``Talk.objects.all()``, which would now hand a talk on a
+        hidden event to a caller that simply forgot to pass the viewer.
         """
         talk = baker.make(Talk)
         assert get_talk_by_id_or_pretalx(str(talk.pk)) is None

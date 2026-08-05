@@ -141,8 +141,8 @@ class TestEventVisibility:
         """
         The queryset constant stays in step with the enum.
 
-        ``PUBLICLY_LISTED_VISIBILITIES`` holds plain strings so it can go straight into a
-        filter, which means a renamed or added choice would otherwise drift from it silently.
+        ``PUBLICLY_LISTED_VISIBILITIES`` holds plain strings so it can go straight into a filter,
+        which means a renamed or added choice would otherwise drift from it silently.
         """
         assert set(PUBLICLY_LISTED_VISIBILITIES) == {
             str(Event.Visibility.SCHEDULE_ONLY),

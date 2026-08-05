@@ -1,8 +1,8 @@
 """
 Saved-talk views: the toggle, and the merge of bookmarks made while logged out.
 
-Split out from ``talks.views`` so the bookmark endpoints are isolated from the browsing and
-rating views.
+Split out from ``talks.views`` so the bookmark endpoints are isolated from the browsing and rating
+views.
 """
 
 import json
@@ -36,8 +36,8 @@ def toggle_save_talk(request: HttpRequest, talk_id: int) -> HttpResponse:
     """
     Toggle a talk's saved/bookmarked status for the current user.
 
-    If the talk is already saved, it removes the saved status. Otherwise, it saves the talk.
-    Returns an HTMX partial with the updated bookmark button.
+    If the talk is already saved, it removes the saved status. Otherwise, it saves the talk. Returns
+    an HTMX partial with the updated bookmark button.
     """
     user = cast("CustomUser", request.user)
     talk = get_object_or_404(Talk.objects.accessible_to(user), pk=talk_id)
@@ -96,13 +96,13 @@ def merge_saved_talks(request: HttpRequest) -> JsonResponse:
     Fold bookmarks made while logged out into the account.
 
     Called once by ``saved-talks.js`` on the first authenticated page view after a login that
-    followed anonymous browsing. It has to be client-initiated: the bookmarks live in
-    localStorage, which a login signal on the server cannot see.
+    followed anonymous browsing. It has to be client-initiated: the bookmarks live in localStorage,
+    which a login signal on the server cannot see.
 
     Ids are scoped through ``accessible_to``, so a hand-crafted payload cannot be used to probe
-    which talk ids exist on an event the user cannot see. The merge is a union and never
-    deletes, so an account's own bookmarks always win, and it is idempotent - the client clears
-    its copy only on a 200, and retries on the next page view otherwise.
+    which talk ids exist on an event the user cannot see. The merge is a union and never deletes, so
+    an account's own bookmarks always win, and it is idempotent - the client clears its copy only on
+    a 200, and retries on the next page view otherwise.
     """
     talk_ids = _parse_merge_ids(request.body)
     if talk_ids is None:

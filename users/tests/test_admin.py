@@ -1,4 +1,5 @@
 """Tests for users.admin covering admin views & actions."""
+
 # ruff: noqa: PLC0415, PLR2004
 
 from http import HTTPStatus

@@ -135,10 +135,10 @@ def test_rating_count_not_inflated_by_search_speaker_join() -> None:
     """
     A multi-speaker talk reports its true rating count when a search joins speakers.
 
-    The default ("all") search scope ORs a Q(speakers__name__icontains=...) into the filter,
-    which fans each talk row out once per speaker. Before the fix, the shared with_rating_stats()
-    annotation used a plain Count("ratings"), so the displayed count was multiplied by the
-    speaker count. This drives the exact query chain TalkListView.get_queryset builds.
+    The default ("all") search scope ORs a Q(speakers__name__icontains=...) into the filter, which
+    fans each talk row out once per speaker. Before the fix, the shared with_rating_stats()
+    annotation used a plain Count("ratings"), so the displayed count was multiplied by the speaker
+    count. This drives the exact query chain TalkListView.get_queryset builds.
     """
     event = Event.objects.create(slug="ratings", name="Ratings", year=2099)
     talk = baker.make(Talk, event=event, title="Distinctive Title")

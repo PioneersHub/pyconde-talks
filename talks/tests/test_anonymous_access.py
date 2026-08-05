@@ -1,9 +1,9 @@
 """
 End-to-end checks on what an anonymous visitor actually receives.
 
-``test_visibility.py`` covers the queryset rules; this file renders real responses, because
-the thing that leaks is the video URL in the HTML, not a flag in a context dict. Assertions
-are therefore made against the response body.
+``test_visibility.py`` covers the queryset rules; this file renders real responses, because the
+thing that leaks is the video URL in the HTML, not a flag in a context dict. Assertions are
+therefore made against the response body.
 """
 
 from datetime import datetime, timedelta
@@ -37,13 +37,13 @@ def _talk_on(
     """
     Create a talk with a recording on an event with the given visibility.
 
-    The slot defaults to the past on purpose. ``Talk.start_time`` defaults to the
-    ``FAR_FUTURE`` sentinel, and an upcoming talk withholds its links anyway unless
-    ``SHOW_UPCOMING_TALKS_LINKS`` is set. Leaving the default would make every "the video is
-    withheld" assertion below pass without the video gate doing anything at all.
+    The slot defaults to the past on purpose. ``Talk.start_time`` defaults to the ``FAR_FUTURE``
+    sentinel, and an upcoming talk withholds its links anyway unless ``SHOW_UPCOMING_TALKS_LINKS``
+    is set. Leaving the default would make every "the video is withheld" assertion below pass
+    without the video gate doing anything at all.
 
-    Tests for the upcoming-talks fragment pass a future slot instead, since that view only
-    selects talks that have not started yet.
+    Tests for the upcoming-talks fragment pass a future slot instead, since that view only selects
+    talks that have not started yet.
     """
     event = Event.objects.create(name=slug, slug=slug, visibility=visibility)
     return baker.make(
@@ -81,8 +81,8 @@ class TestAnonymousTalkList:
         """
         ``?event=<id>`` narrows the visible set, it does not widen it.
 
-        The visibility filter is applied to the base queryset, so naming a hidden event
-        explicitly returns nothing rather than bypassing the scoping.
+        The visibility filter is applied to the base queryset, so naming a hidden event explicitly
+        returns nothing rather than bypassing the scoping.
         """
         hidden = _talk_on(Event.Visibility.HIDDEN, slug="hidden", title="Secret Talk")
         response = client.get(reverse("talk_list"), {"event": str(hidden.event_id)})
@@ -136,8 +136,8 @@ class TestAnonymousTalkDetail:
         """
         Someone already logged in gets a 404, which does not confirm the talk exists.
 
-        The redirect above is only useful to a visitor who has not signed in yet; reusing it
-        here would tell any account holder that a given talk id is real.
+        The redirect above is only useful to a visitor who has not signed in yet; reusing it here
+        would tell any account holder that a given talk id is real.
         """
         talk = _talk_on(Event.Visibility.HIDDEN, slug="hidden")
         outsider = baker.make(CustomUser, email="outsider@example.com")
@@ -200,8 +200,8 @@ class TestAnonymousDashboardStats:
         """
         ``hide`` keeps a talk out of the totals as well as out of the list.
 
-        The counts sit next to the list they describe, so counting a talk the visitor cannot
-        see would make the two disagree.
+        The counts sit next to the list they describe, so counting a talk the visitor cannot see
+        would make the two disagree.
         """
         talk = _talk_on(Event.Visibility.PUBLIC, slug="public", title="Shown")
         baker.make(Talk, event=talk.event, title="Embargoed", hide=True)
@@ -219,8 +219,8 @@ class TestAnonymousDashboardStats:
         """
         The response is not shared between viewers.
 
-        It used to be cached on the cookie header, which cannot distinguish two anonymous
-        visitors from each other or from a member whose cookies happen to match.
+        It used to be cached on the cookie header, which cannot distinguish two anonymous visitors
+        from each other or from a member whose cookies happen to match.
         """
         talk = _talk_on(Event.Visibility.HIDDEN, slug="hidden", title="Members Only")
         member = baker.make(CustomUser, email="member@example.com")
@@ -258,8 +258,8 @@ class TestAnonymousUpcomingTalks:
         """
         The fragment used to be cached on the cookie header.
 
-        That was safe only while every visitor was authenticated with a distinct session
-        cookie. Two back-to-back requests must reflect their own viewer, not the first one.
+        That was safe only while every visitor was authenticated with a distinct session cookie. Two
+        back-to-back requests must reflect their own viewer, not the first one.
         """
         talk = _talk_on(
             Event.Visibility.HIDDEN,

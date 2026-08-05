@@ -81,10 +81,10 @@ def _get_oauth_token() -> str | None:
     """
     Return a valid Bearer token, or ``None`` if OAuth2 is not configured.
 
-    The token is stored in Django's cache (``django.core.cache``), so all worker
-    processes share it - with Redis/memcached as the prod backend, one fetch per
-    cluster-wide expiry instead of one per worker. The ``timeout`` parameter on
-    ``cache.set`` handles eviction; no manual expiry tracking needed here.
+    The token is stored in Django's cache (``django.core.cache``), so all worker processes share it
+    - with Redis/memcached as the prod backend, one fetch per cluster-wide expiry instead of one per
+    worker. The ``timeout`` parameter on ``cache.set`` handles eviction; no manual expiry tracking
+    needed here.
     """
     client_id = getattr(settings, "EMAIL_VALIDATION_API_OAUTH2_CLIENT_ID", "")
     client_secret = getattr(settings, "EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET", "")
@@ -144,7 +144,6 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
 
         Returns:
             bool: True if the email is authorized, False otherwise (including on API errors)
-
         """
         email = email.lower().strip()
         email_hash = hash_email(email)
@@ -229,8 +228,8 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
         Look up the account for *email*, returning ``(lookup_succeeded, user_or_none)``.
 
         The two failure modes have to stay distinguishable: "no such user yet" is normal and
-        continues to the validation API, whereas a database error must deny rather than be
-        mistaken for a new signup.
+        continues to the validation API, whereas a database error must deny rather than be mistaken
+        for a new signup.
         """
         UserModel = _user_model()  # noqa: N806  # NOSONAR(S117)
         try:
@@ -320,8 +319,8 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
         Call the validation API with retry and optional OAuth2 Bearer token.
 
         Returns ``{"valid": False}`` immediately when ``api_url`` is empty or when the API responds
-        with 404 (meaning the email is not registered in the system).
-        Only transient network failures (timeouts, connection errors) trigger a retry.
+        with 404 (meaning the email is not registered in the system). Only transient network
+        failures (timeouts, connection errors) trigger a retry.
         """
         if not api_url:
             return {"valid": False}
@@ -355,8 +354,8 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
         event selection. It checks the email against every active event validation API (deduplicated
         by URL) plus the fallback.
 
-        Returns True for whitelisted emails, superuser accounts, emails recognized by any
-        configured validation API, or any email at all once some event is public.
+        Returns True for whitelisted emails, superuser accounts, emails recognized by any configured
+        validation API, or any email at all once some event is public.
         """
         email = email.lower().strip()
         email_hash = hash_email(email)

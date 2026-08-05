@@ -5,6 +5,7 @@ These exercise the parse path and the navigation properties on :class:`Submissio
 independent of the HTTP client. (The Django ``PendingPretalxChange`` model is covered separately in
 ``test_models_pretalx.py``.)
 """
+
 # ruff: noqa: PLR2004
 
 from datetime import UTC, datetime

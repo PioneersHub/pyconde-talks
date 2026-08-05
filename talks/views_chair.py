@@ -1,9 +1,9 @@
 """
 Session-chair views (moderator-only).
 
-Lets a moderator volunteer (or step down) as the session chair for a block of adjacent talks in
-the same room and renders a day grid (times on the left, rooms across the top) showing who is
-chairing each session.
+Lets a moderator volunteer (or step down) as the session chair for a block of adjacent talks in the
+same room and renders a day grid (times on the left, rooms across the top) showing who is chairing
+each session.
 """
 
 from datetime import date, datetime, timedelta
@@ -67,8 +67,8 @@ def _find_chair_conflicts(target_user: CustomUser, block: list[Talk]) -> list[Ta
     """
     Return talks already chaired by target_user that would overlap in time with the block.
 
-    Any overlap (even partial) is a conflict. Talks already in the block are excluded - they will
-    be reassigned and therefore cannot conflict with themselves.
+    Any overlap (even partial) is a conflict. Talks already in the block are excluded - they will be
+    reassigned and therefore cannot conflict with themselves.
     """
     dates = {t.start_time.date() for t in block if t.start_time}
     if not dates:
@@ -94,9 +94,9 @@ def _get_available_chairs(user: CustomUser, event_id: int | None) -> list[Custom
     """
     Return users eligible to chair sessions for the given event scope.
 
-    Superusers are always included (they have implicit access to all events).
-    Regular staff must be members of the specific event - or, when no event is
-    selected, members of any event visible to the requesting admin.
+    Superusers are always included (they have implicit access to all events). Regular staff must be
+    members of the specific event - or, when no event is selected, members of any event visible to
+    the requesting admin.
     """
     UserModel = cast("type[CustomUser]", get_user_model())  # noqa: N806  # NOSONAR(S117)
     qs = UserModel.objects.filter(Q(is_staff=True) | Q(is_superuser=True))
@@ -132,8 +132,8 @@ def _find_tight_transitions(
     Find talks with tight room transitions relative to ``talk``.
 
     Return talks chaired by target_user in a different room whose gap to ``talk`` is within
-    ``BLOCK_GAP_TOLERANCE`` (but not overlapping). These are not conflicts - the moderator can
-    chair both - but switching rooms in under 5 minutes is worth a heads-up.
+    ``BLOCK_GAP_TOLERANCE`` (but not overlapping). These are not conflicts - the moderator can chair
+    both - but switching rooms in under 5 minutes is worth a heads-up.
     """
     if not talk.start_time or not talk.room:
         return []
@@ -209,8 +209,8 @@ def _mod_toggle(user: CustomUser, talk: Talk) -> tuple[str | None, str | None]:
     """
     Execute the moderator self-toggle: claim or release a single talk.
 
-    Returns ``(error, warning)`` - error is set when claiming is blocked, warning when a tight
-    room change is detected after a successful claim.
+    Returns ``(error, warning)`` - error is set when claiming is blocked, warning when a tight room
+    change is detected after a successful claim.
     """
     if talk.session_chair_id not in (None, user.pk):
         return None, None  # Someone else chairs this talk; silently do nothing.
@@ -254,9 +254,9 @@ def toggle_session_chair(request: HttpRequest, talk_id: int) -> HttpResponse:
     """
     Claim or release the session chair for a single talk.
 
-    Moderators may claim an unassigned talk or release one they already chair.
-    Admins (superusers) may assign any moderator to any talk, or clear it.
-    The same person cannot chair two overlapping sessions.
+    Moderators may claim an unassigned talk or release one they already chair. Admins (superusers)
+    may assign any moderator to any talk, or clear it. The same person cannot chair two overlapping
+    sessions.
     """
     user = cast("CustomUser", request.user)
     _require_moderator(user)
@@ -348,8 +348,8 @@ def _build_chair_grid(
     """
     Build chair grid data using the same CSS Grid layout as the schedule view.
 
-    Returns ``(rooms, chair_items, grid_template_rows, time_labels)``.  Each chair item
-    carries the talk, its CSS ``grid_area``, and the block id used for hover highlighting.
+    Returns ``(rooms, chair_items, grid_template_rows, time_labels)``.  Each chair item carries the
+    talk, its CSS ``grid_area``, and the block id used for hover highlighting.
     """
     talks_qs = (
         Talk.objects.filter(start_time__date=selected_date)

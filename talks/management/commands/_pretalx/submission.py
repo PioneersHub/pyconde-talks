@@ -26,8 +26,8 @@ class SubmissionData:
     Flat, truncated representation of a Pretalx :class:`Submission`.
 
     The submission's navigation properties handle the null-safe digging through the nested API
-    shape; this class only applies importer policy: capping each string to its Django model
-    max-length, building the talk link, and defaulting an unscheduled talk to ``FAR_FUTURE``.
+    shape; this class only applies importer policy: capping each string to its Django model max-
+    length, building the talk link, and defaulting an unscheduled talk to ``FAR_FUTURE``.
     """
 
     def __init__(self, submission: Submission, pretalx_event_url: str) -> None:

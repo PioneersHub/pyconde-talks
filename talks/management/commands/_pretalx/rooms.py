@@ -29,14 +29,14 @@ def get_or_create_room(
     """
     Return the event-scoped :class:`~talks.models.Room` for *room_name*, creating it if needed.
 
-    Rooms are scoped to ``ctx.event_obj`` and matched by the stable ``(event, pretalx_id)``
-    first, then ``(event, name)``. A room renamed on Pretalx is renamed IN PLACE (same row,
-    so its streamings / slido_link / capacity and all Talk FKs stay attached) and a legacy
-    row's ``pretalx_id`` is stamped on first sight. Returns ``None`` when *room_name* is empty.
+    Rooms are scoped to ``ctx.event_obj`` and matched by the stable ``(event, pretalx_id)`` first,
+    then ``(event, name)``. A room renamed on Pretalx is renamed IN PLACE (same row, so its
+    streamings / slido_link / capacity and all Talk FKs stay attached) and a legacy row's
+    ``pretalx_id`` is stamped on first sight. Returns ``None`` when *room_name* is empty.
 
-    In ``--dry-run`` and ``--detect-only`` modes nothing is written: the matched row is
-    returned UNCHANGED (no rename/stamp - the rename is surfaced as a reviewable diff
-    instead) or, for a brand-new room, an unsaved instance is returned.
+    In ``--dry-run`` and ``--detect-only`` modes nothing is written: the matched row is returned
+    UNCHANGED (no rename/stamp - the rename is surfaced as a reviewable diff instead) or, for a
+    brand-new room, an unsaved instance is returned.
     """
     if not room_name:
         return None
@@ -84,12 +84,12 @@ def _reconcile_existing_room(
     """
     Bring an existing room in line with Pretalx: rename in place and/or stamp the id.
 
-    Write-path only (callers must guard on ``not (dry_run or detect_only)``). Renaming
-    keeps the same row so streamings/talks/config stay attached.
+    Write-path only (callers must guard on ``not (dry_run or detect_only)``). Renaming keeps the
+    same row so streamings/talks/config stay attached.
 
-    Stamping the id is collision-free without an extra check: we only reach the stamp
-    branch when ``resolve_for_event`` matched by name, which only happens after its
-    ``(event, pretalx_id)`` lookup missed - i.e. no other room in this event holds the id.
+    Stamping the id is collision-free without an extra check: we only reach the stamp branch when
+    ``resolve_for_event`` matched by name, which only happens after its ``(event, pretalx_id)``
+    lookup missed - i.e. no other room in this event holds the id.
     """
     update_fields: list[str] = []
     if room.name != name:
@@ -126,10 +126,10 @@ def batch_create_rooms(
     """
     Bulk-create rooms referenced by confirmed/accepted *submissions*, scoped to the event.
 
-    Rooms already present in ``ctx.event_obj`` (matched by name) are skipped. Names are
-    deduped within the batch (one row per name per event), keeping the first-seen Pretalx
-    id. Per-talk ``get_or_create_room`` later stamps ids and renames as needed; this is
-    just a fast pre-create so the per-talk path mostly hits existing rows.
+    Rooms already present in ``ctx.event_obj`` (matched by name) are skipped. Names are deduped
+    within the batch (one row per name per event), keeping the first-seen Pretalx id. Per-talk
+    ``get_or_create_room`` later stamps ids and renames as needed; this is just a fast pre-create so
+    the per-talk path mostly hits existing rows.
     """
     # name -> first-seen pretalx id for this event's confirmed/accepted submissions.
     pairs: dict[str, int | None] = {}

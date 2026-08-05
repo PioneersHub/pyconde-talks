@@ -1,13 +1,12 @@
 """
 Tests for the Room.event backfill logic used by data migration 0025.
 
-``Room.event`` is NOT NULL on the current schema, so event-less rooms can't be created
-through the ORM anymore - but the backfill runs during migration 0025, while the column
-is still nullable. To exercise every branch we drive ``backfill_room_events`` with small
-duck-typed fakes that stand in for the historical (nullable) Room/Event/Talk models. A
-final real-model test confirms it stays a safe no-op against the live schema (where no
-null-event rooms exist), and migration 0025 applying during test-DB setup validates the
-query chain itself.
+``Room.event`` is NOT NULL on the current schema, so event-less rooms can't be created through the
+ORM anymore - but the backfill runs during migration 0025, while the column is still nullable. To
+exercise every branch we drive ``backfill_room_events`` with small duck-typed fakes that stand in
+for the historical (nullable) Room/Event/Talk models. A final real-model test confirms it stays a
+safe no-op against the live schema (where no null-event rooms exist), and migration 0025 applying
+during test-DB setup validates the query chain itself.
 """
 
 from typing import Any
@@ -146,10 +145,10 @@ class TestBackfillRoomEvents:
         """
         Many talks in one room/event must collapse to a single distinct event.
 
-        Regression: Talk.Meta.ordering (start_time) used to be injected into the DISTINCT
-        SELECT, so the event query returned one row per talk (the same event repeated). On
-        Postgres that made a normal single-event room look like a cross-event room and the
-        backfill raised. This drives the real ORM query (the fakes can't catch it).
+        Regression: Talk.Meta.ordering (start_time) used to be injected into the DISTINCT SELECT, so
+        the event query returned one row per talk (the same event repeated). On Postgres that made a
+        normal single-event room look like a cross-event room and the backfill raised. This drives
+        the real ORM query (the fakes can't catch it).
         """
         event = Event.objects.create(slug="e", name="E", year=2026)
         room = Room.objects.create(name="Hall", event=event)

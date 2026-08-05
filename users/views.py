@@ -1,8 +1,8 @@
 """
 Core views for user authentication, profile, and account deletion.
 
-Connection-management views (social connections wrapper and the "add ticket email" flow for
-Discord-only users) live in ``users.views_connections``.
+Connection-management views (social connections wrapper and the "add ticket email" flow for Discord-
+only users) live in ``users.views_connections``.
 """
 
 from typing import TYPE_CHECKING, Any, cast

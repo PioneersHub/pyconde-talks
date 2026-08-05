@@ -26,8 +26,8 @@ def get_or_create_speaker(
     """
     Return the :class:`~talks.models.Speaker` for *speaker_data*, creating it if needed.
 
-    If the speaker already exists it is updated via :func:`maybe_update_speaker`
-    (when flags allow).  In ``--dry-run`` mode an unsaved instance is returned.
+    If the speaker already exists it is updated via :func:`maybe_update_speaker` (when flags allow).
+    In ``--dry-run`` mode an unsaved instance is returned.
     """
     existing = Speaker.objects.filter(pretalx_id=speaker_data.code).first()
     if existing:
@@ -69,8 +69,7 @@ def maybe_update_speaker(
     """
     Update *existing* speaker when data differs and flags permit.
 
-    No-ops when ``--no-update`` or ``--dry-run`` is active, or when the
-    fields already match.
+    No-ops when ``--no-update`` or ``--dry-run`` is active, or when the fields already match.
     """
     if ctx.no_update:
         ctx.log(
@@ -109,8 +108,8 @@ def collect_speakers_from_submissions(
     """
     Collect unique speakers from confirmed/accepted *submissions*.
 
-    Returns a ``{pretalx_code: SubmissionSpeaker}`` mapping, deduplicating
-    speakers that appear in multiple submissions.
+    Returns a ``{pretalx_code: SubmissionSpeaker}`` mapping, deduplicating speakers that appear in
+    multiple submissions.
     """
     speakers_data: dict[str, SubmissionSpeaker] = {}
     valid_states = {State.confirmed, State.accepted}
@@ -139,16 +138,14 @@ def batch_create_or_update_speakers(
     """
     Upsert all speakers from confirmed/accepted *submissions* in a single statement.
 
-    Uses Django 4.1+ ``bulk_create(update_conflicts=True)`` so the database
-    performs an ``INSERT ... ON CONFLICT DO UPDATE`` keyed on ``pretalx_id`` -
-    one round-trip whether the speaker is new or already present. With
-    ``--no-update`` the call falls back to ``ignore_conflicts=True`` so existing
-    rows are left untouched.
+    Uses Django 4.1+ ``bulk_create(update_conflicts=True)`` so the database performs an ``INSERT ...
+    ON CONFLICT DO UPDATE`` keyed on ``pretalx_id`` - one round-trip whether the speaker is new or
+    already present. With ``--no-update`` the call falls back to ``ignore_conflicts=True`` so
+    existing rows are left untouched.
 
-    Returns the set of ``pretalx_id`` values whose visual fields (name or avatar)
-    changed as part of this upsert. Callers use this set to decide which talks'
-    social-card images need regenerating. With ``--no-update`` the returned set is
-    empty (no existing rows are touched).
+    Returns the set of ``pretalx_id`` values whose visual fields (name or avatar) changed as part of
+    this upsert. Callers use this set to decide which talks' social-card images need regenerating.
+    With ``--no-update`` the returned set is empty (no existing rows are touched).
     """
     speakers_data = collect_speakers_from_submissions(submissions)
     if not speakers_data:

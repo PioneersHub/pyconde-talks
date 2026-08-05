@@ -1,8 +1,8 @@
 """
 Tests for the Turnstile challenge on the question form.
 
-The important property is that a deployment without keys is completely unaffected: no field,
-no verification call, no behaviour change. Everything else is what happens once it is on.
+The important property is that a deployment without keys is completely unaffected: no field, no
+verification call, no behaviour change. Everything else is what happens once it is on.
 """
 
 from http import HTTPStatus
@@ -56,7 +56,11 @@ def _turnstile_on(settings: SettingsWrapper) -> None:
 
 @pytest.mark.django_db
 class TestTurnstileDisabled:
-    """The default. Nothing about the form changes."""
+    """
+    The default.
+
+    Nothing about the form changes.
+    """
 
     def test_the_widget_is_absent(self, client: Client, talk: Talk, asker: CustomUser) -> None:
         """No captcha markup and no Cloudflare script on the page."""

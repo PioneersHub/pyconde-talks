@@ -62,9 +62,9 @@ def _has_publicly_listed_event() -> bool:
     """
     Return whether any active event is browsable without logging in.
 
-    The anonymous home page uses this to decide whether to offer the talks and stats widgets
-    at all: with every event hidden there is nothing behind those links, and a stats panel
-    reading "0 talks" is worse than no panel.
+    The anonymous home page uses this to decide whether to offer the talks and stats widgets at all:
+    with every event hidden there is nothing behind those links, and a stats panel reading "0 talks"
+    is worse than no panel.
     """
     return Event.objects.filter(
         is_active=True,

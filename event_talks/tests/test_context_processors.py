@@ -209,8 +209,8 @@ class TestBrandingEventResolution:
         """
         With no browsable event, the flag is False.
 
-        The anonymous home page uses it to drop the Browse Talks link and the stats widget,
-        which would otherwise lead to an empty page and a panel of zeroes.
+        The anonymous home page uses it to drop the Browse Talks link and the stats widget, which
+        would otherwise lead to an empty page and a panel of zeroes.
         """
         Event.objects.create(
             name="Hidden",

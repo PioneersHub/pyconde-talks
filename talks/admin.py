@@ -69,7 +69,6 @@ class RoomAdmin(admin.ModelAdmin[Room]):
         list_filter: Fields to filter by in the admin list view.
         search_fields: Fields to search by in the admin list view.
         fieldsets: Field groupings for the admin form.
-
     """
 
     list_display = (
@@ -149,7 +148,6 @@ class StreamingAdmin(admin.ModelAdmin[Streaming]):
         search_fields: Fields to search by in the admin list view.
         fieldsets: Field groupings for the admin form.
         autocomplete_fields: Fields to enable autocomplete interface.
-
     """
 
     list_display = (
@@ -219,7 +217,6 @@ class SpeakerAdmin(admin.ModelAdmin[Speaker]):
         list_filter: Fields to filter by in the admin list view.
         search_fields: Fields to search by in the admin list view.
         fieldsets: Field groupings for the admin form.
-
     """
 
     list_display = (
@@ -289,7 +286,6 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
         fieldsets: Field groupings for the admin form.
         readonly_fields: Fields that cannot be edited in the admin.
         autocomplete_fields: Fields to enable autocomplete interface.
-
     """
 
     list_display = (
@@ -468,8 +464,8 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
         """
         Display whether the talk has a video link.
 
-        Uses the viewer-independent accessor: this column reports on the catalogue, so it must
-        not depend on who is looking, unlike ``get_video_link``.
+        Uses the viewer-independent accessor: this column reports on the catalogue, so it must not
+        depend on who is looking, unlike ``get_video_link``.
         """
         return obj.has_recording()
 

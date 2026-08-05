@@ -85,9 +85,9 @@ class TestScheduleView:
         """
         The schedule renders without a login.
 
-        It used to redirect. The programme is public information already published on
-        Pretalx, so the page itself is open and ``accessible_to`` decides per row which
-        events' talks actually appear.
+        It used to redirect. The programme is public information already published on Pretalx, so
+        the page itself is open and ``accessible_to`` decides per row which events' talks actually
+        appear.
         """
         response = client.get(reverse("schedule"))
         assert response.status_code == HTTPStatus.OK

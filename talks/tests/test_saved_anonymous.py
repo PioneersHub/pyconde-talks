@@ -1,10 +1,10 @@
 """
 Tests for bookmarks made while logged out, and the merge that folds them into an account.
 
-The client half lives in ``static/js/saved-talks.js`` and has no test runner in this project,
-so the server side is covered thoroughly and the markup contract the script depends on is
-asserted here too: if a data attribute is renamed, these fail rather than the feature quietly
-breaking in the browser.
+The client half lives in ``static/js/saved-talks.js`` and has no test runner in this project, so the
+server side is covered thoroughly and the markup contract the script depends on is asserted here
+too: if a data attribute is renamed, these fail rather than the feature quietly breaking in the
+browser.
 """
 
 import json
@@ -112,8 +112,8 @@ class TestAnonymousSaveButton:
         """
         The script must never hardcode English.
 
-        Labels and titles are rendered through gettext and handed to JavaScript as data
-        attributes, so switching language switches the button text too.
+        Labels and titles are rendered through gettext and handed to JavaScript as data attributes,
+        so switching language switches the button text too.
         """
         response = client.get(reverse("talk_detail", kwargs={"pk": talks[0].pk}))
         body = response.content.decode()
@@ -176,8 +176,8 @@ class TestMergeEndpoint:
         """
         Merging twice adds nothing the second time.
 
-        The client only clears its copy on a 200, so a response that never arrived means the
-        same payload is sent again on the next page view.
+        The client only clears its copy on a 200, so a response that never arrived means the same
+        payload is sent again on the next page view.
         """
         client.force_login(member)
         _merge(client, [talks[0].pk])

@@ -269,8 +269,8 @@ def _join_literals(literals: list[str]) -> str:
 
     Both keys and values can be split over several quoted lines, and both use C-style escapes, so
     the quotes come off and the escapes are resolved in one place. Without the unescaping, a msgid
-    holding an escaped quote (any of the strings with an inline link) never matches the same
-    string as read back from a compiled catalogue.
+    holding an escaped quote (any of the strings with an inline link) never matches the same string
+    as read back from a compiled catalogue.
     """
     body = "".join(literal[1:-1] for literal in literals)
     return body.replace('\\"', '"').replace("\\n", "\n").replace("\\t", "\t").replace("\\\\", "\\")
@@ -293,11 +293,12 @@ class PoEntry:
 
 def _read_po_entry(block: str) -> PoEntry:
     """
-    Parse one .po entry. A minimal reader, to avoid a dependency for two tests.
+    Parse one .po entry.
 
-    ``msgid_plural`` and the ``msgstr[n]`` forms are noted but not collected: their runtime lookup
-    goes through ``ngettext`` and the catalogue's plural rule, which is a different question from
-    the two asked here.
+    A minimal reader, to avoid a dependency for two tests.     ``msgid_plural`` and the
+    ``msgstr[n]`` forms are noted but not collected: their runtime lookup     goes through
+    ``ngettext`` and the catalogue's plural rule, which is a different question from     the two
+    asked here.
     """
     msgid_literals: list[str] = []
     msgstr_literals: list[str] = []
@@ -388,9 +389,9 @@ def test_every_catalogue_is_compiled_and_current(language_code: str) -> None:
     Django reads the ``.mo``, so editing the ``.po`` without running ``compilemessages`` changes
     nothing at runtime while looking done in review. Both files are committed.
 
-    Compared by content, not by modification time. mtimes are not meaningful in a git working
-    tree: a clone, a checkout or a stash writes files in whatever order it likes, so an
-    mtime comparison fails at random on CI while saying nothing about the actual contents.
+    Compared by content, not by modification time. mtimes are not meaningful in a git working tree:
+    a clone, a checkout or a stash writes files in whatever order it likes, so an mtime comparison
+    fails at random on CI while saying nothing about the actual contents.
     """
     po = _catalog_path(language_code)
     mo = po.with_suffix(".mo")

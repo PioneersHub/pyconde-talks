@@ -1,4 +1,5 @@
 """Comprehensive tests for talks.views_qa covering uncovered branches."""
+
 # ruff: noqa: F841
 
 from http import HTTPStatus

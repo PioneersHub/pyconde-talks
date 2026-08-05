@@ -6,6 +6,7 @@ real behaviour is exercised: pagination, validation-skip, header construction, t
 throttling, retry/reraise, and the optional dev cache. respx bridges httpx -> httpx2 internally, so
 canned responses are built with ``httpx.Response`` while raised transport errors use ``httpx2``.
 """
+
 # ruff: noqa: PLR2004
 
 import time
@@ -58,7 +59,7 @@ def _client() -> PretalxClient:
 
 
 def test_submissions_follows_pagination(httpx2_mock: respx.Router) -> None:
-    """submissions() walks every page via the ``next`` link and returns validated models."""
+    """PretalxClient.submissions() walks every page via ``next`` and returns validated models."""
     page2 = "https://pretalx.com/api/events/evt/submissions/?expand=x&page=2"
     httpx2_mock.get(host=_HOST, path=_SUBS_PATH).mock(
         side_effect=[
@@ -113,7 +114,7 @@ def test_request_omits_auth_without_token(httpx2_mock: respx.Router) -> None:
 
 
 def test_event_parses_payload(httpx2_mock: respx.Router) -> None:
-    """event() returns a parsed Event for a well-formed payload."""
+    """PretalxClient.event() returns a parsed Event for a well-formed payload."""
     httpx2_mock.get(host=_HOST, path=_EVENT_PATH).respond(
         json={"name": {"en": "PyCon"}, "slug": "evt"},
     )
@@ -125,7 +126,7 @@ def test_event_parses_payload(httpx2_mock: respx.Router) -> None:
 
 
 def test_event_returns_none_on_bad_payload(httpx2_mock: respx.Router) -> None:
-    """event() returns None when the payload fails validation (rather than raising)."""
+    """PretalxClient.event() returns None when the payload fails validation, rather than raising."""
     httpx2_mock.get(host=_HOST, path=_EVENT_PATH).respond(json={"slug": "evt"})  # missing name
 
     assert _client().event("evt") is None

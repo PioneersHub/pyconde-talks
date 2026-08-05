@@ -1,8 +1,8 @@
 """
 Integration test for the update video links management command.
 
-This test performs a real network call to Vimeo when enabled via environment variable.
-It verifies the command completes without failure.
+This test performs a real network call to Vimeo when enabled via environment variable. It verifies
+the command completes without failure.
 """
 
 import os

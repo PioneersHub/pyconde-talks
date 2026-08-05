@@ -1,11 +1,10 @@
 """
 Reusable logic for the Room.event backfill (data migration 0025).
 
-Kept out of the migration file so it can be unit-tested against the real models,
-while the migration calls it with historical model classes via ``apps.get_model``.
-It only touches fields present in both the historical and current Room/Talk/Event
-models (``event``, the Talk->Room FK, ``Event.year``/``slug``), so it is safe to run
-from a migration.
+Kept out of the migration file so it can be unit-tested against the real models, while the migration
+calls it with historical model classes via ``apps.get_model``. It only touches fields present in
+both the historical and current Room/Talk/Event models (``event``, the Talk->Room FK,
+``Event.year``/``slug``), so it is safe to run from a migration.
 """
 
 from typing import TYPE_CHECKING, Any

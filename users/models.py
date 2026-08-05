@@ -41,7 +41,6 @@ class InvalidEmailError(Exception):
 
         Args:
             email: The invalid email that caused the error
-
         """
         self.email = email
         super().__init__(f"Invalid email address: {obfuscate_email(email)}")
@@ -77,7 +76,6 @@ class CustomUserManager(BaseUserManager["CustomUser"]):
 
         Raises:
             InvalidEmailError: If the email is invalid or not provided
-
         """
         if not email:
             raise InvalidEmailError(email) from None
@@ -127,7 +125,6 @@ class CustomUserManager(BaseUserManager["CustomUser"]):
         Raises:
             InvalidEmailError: If the email is invalid or not provided
             ValidationError: If superuser flags are not properly set
-
         """
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
@@ -222,10 +219,10 @@ class CustomUser(AbstractUser):
         """
         Return the most human-readable name for this user.
 
-        Prefers the chosen display name, then the full name, then the email. Pass
-        ``obfuscate=True`` to mask the email fallback for public contexts (e.g. the Q&A author
-        line); moderator-facing callers show it verbatim. Returns an empty string only when all
-        three are empty, so callers that want an "Anonymous" fallback should coalesce.
+        Prefers the chosen display name, then the full name, then the email. Pass ``obfuscate=True``
+        to mask the email fallback for public contexts (e.g. the Q&A author line); moderator-facing
+        callers show it verbatim. Returns an empty string only when all three are empty, so callers
+        that want an "Anonymous" fallback should coalesce.
         """
         email = obfuscate_email(self.email) if obfuscate else self.email
         return self.display_name.strip() or self.get_full_name().strip() or email
@@ -234,9 +231,9 @@ class CustomUser(AbstractUser):
         """
         Return active events visible to this user, ordered by name.
 
-        Superusers see all active events. Everyone else sees their own events plus every event
-        that is not hidden, mirroring ``TalkQuerySet.accessible_to`` so the event picker never
-        offers an event whose talk list would then come back empty.
+        Superusers see all active events. Everyone else sees their own events plus every event that
+        is not hidden, mirroring ``TalkQuerySet.accessible_to`` so the event picker never offers an
+        event whose talk list would then come back empty.
         """
         event_model = self.events.model
         if self.is_superuser:
@@ -262,18 +259,16 @@ class EventAccessGrant(models.Model):
     """
     Records how a user came to have access to an event.
 
-    ``CustomUser.events`` records *that* someone has access. It does not record why, and once
-    public events opened registration those two cases stopped being equivalent: an account let
-    in with no ticket check looks exactly like a ticket holder. Flipping a public event back to
-    schedule-only would then silently leave behind members who were never checked, with no way
-    to find them again.
+    ``CustomUser.events`` records *that* someone has access. It does not record why, and once public
+    events opened registration those two cases stopped being equivalent: an account let in with no
+    ticket check looks exactly like a ticket holder. Flipping a public event back to schedule-only
+    would then silently leave behind members who were never checked, with no way to find them again.
 
-    A companion table rather than a ``through`` model on the M2M. ``through`` would be the
-    tidier data model, but it forbids the admin's ``filter_horizontal`` widget that organizers
-    use to assign events in bulk, and it means migrating the live membership table. Membership
-    stays the M2M's business; this annotates it. A membership with no row here was either made
-    directly in the admin or predates this record, which is why there is no "unknown" choice
-    pretending otherwise.
+    A companion table rather than a ``through`` model on the M2M. ``through`` would be the tidier
+    data model, but it forbids the admin's ``filter_horizontal`` widget that organizers use to
+    assign events in bulk, and it means migrating the live membership table. Membership stays the
+    M2M's business; this annotates it. A membership with no row here was either made directly in the
+    admin or predates this record, which is why there is no "unknown" choice pretending otherwise.
     """
 
     class Source(models.TextChoices):
@@ -332,8 +327,8 @@ def grant_event_access(
     Give *user* access to *event* and record why.
 
     The one place membership is handed out, so the record cannot drift from the membership it
-    describes. An existing grant keeps its original source: someone who was ticket-checked last
-    year does not become an open-registration member because they signed in again.
+    describes. An existing grant keeps its original source: someone who was ticket-checked last year
+    does not become an open-registration member because they signed in again.
     """
     user.events.add(event)
     EventAccessGrant.objects.get_or_create(

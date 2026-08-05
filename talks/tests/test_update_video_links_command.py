@@ -1,4 +1,5 @@
 """Unit tests for the update_video_links management command."""
+
 # ruff: noqa: PLR2004
 
 from io import StringIO

@@ -2,20 +2,20 @@
 Lightweight heuristics that hold likely-spam questions for review.
 
 Deliberately conservative. A false positive costs an attendee a few minutes while a moderator
-approves their question; a rule that fires often costs the moderators their trust in the queue,
-and a queue nobody reads carefully is worse than no queue at all. So every rule here aims at a
-pattern that essentially never appears in a real conference question.
+approves their question; a rule that fires often costs the moderators their trust in the queue, and
+a queue nobody reads carefully is worse than no queue at all. So every rule here aims at a pattern
+that essentially never appears in a real conference question.
 
 The clearest example is links. Advertising is full of them, but so is a good question: "how does
-this compare to https://scikit-learn.org?" is entirely normal. A single link therefore never
-flags on its own - it takes a second signal, or several links, to look like an advert.
+this compare to https://scikit-learn.org?" is entirely normal. A single link therefore never flags
+on its own - it takes a second signal, or several links, to look like an advert.
 
-Not a library. The usual candidate is Akismet, which means an API key, a per-request round trip
-to a third party on a path that must not block the Q&A, and sending attendees' question text off
-site. Its training is also aimed at blog comments in English, whereas half the input here is
-German. A handful of rules aimed at this specific context is both cheaper and easier to explain
-to the moderator who has to trust the queue. ``QA_SPAM_KEYWORDS`` is the escape hatch for a
-campaign these rules do not catch.
+Not a library. The usual candidate is Akismet, which means an API key, a per-request round trip to a
+third party on a path that must not block the Q&A, and sending attendees' question text off site.
+Its training is also aimed at blog comments in English, whereas half the input here is German. A
+handful of rules aimed at this specific context is both cheaper and easier to explain to the
+moderator who has to trust the queue. ``QA_SPAM_KEYWORDS`` is the escape hatch for a campaign these
+rules do not catch.
 """
 
 import re
@@ -59,9 +59,9 @@ _CONTACT_RE: Final = re.compile(
 
 # A messaging platform named next to a handle or a phone number. That pairing is what an advert
 # looks like; the platform name on its own is just a topic.
-# Written as concatenated single-line strings rather than one triple-quoted verbose pattern: a
-# tool that walks the token stream cannot tell this apart from a docstring, and reflowing it would
-# silently rewrite the pattern.
+# Written as concatenated single-line strings rather than one triple-quoted verbose pattern:
+# docformatter reads a triple-quoted string in this position as a docstring and reflows it into
+# broken syntax, and excluding the file would cost it docstring formatting entirely.
 _CONTACT_HANDLE_RE: Final = re.compile(
     r"(?i)"
     r"\b(?:whats\s?app|telegram|wechat|signal)\b"
@@ -121,9 +121,9 @@ def _configured_keywords() -> list[str]:
     """
     Return the operator-configured spam keywords, lowercased.
 
-    Empty by default. It is a lever for a conference that finds itself under a specific,
-    ongoing campaign, so terms can be added without a deploy; keyword lists date badly and are
-    not worth maintaining speculatively.
+    Empty by default. It is a lever for a conference that finds itself under a specific, ongoing
+    campaign, so terms can be added without a deploy; keyword lists date badly and are not worth
+    maintaining speculatively.
     """
     return [word.lower() for word in getattr(settings, "QA_SPAM_KEYWORDS", []) if word]
 
@@ -165,9 +165,9 @@ def _is_shouting(content: str) -> bool:
     almost entirely capitals. The second catches "FREE MONEY CLICK HERE NOW", where no single word
     is long enough for the first, without touching a question that is merely acronym-heavy.
 
-    URLs are removed before either test. They are not prose, and their lowercase characters
-    dragged the ratio down far enough that "SHOUTING plus a link" - the exact pairing the caller
-    is looking for - stopped registering as shouting at all.
+    URLs are removed before either test. They are not prose, and their lowercase characters dragged
+    the ratio down far enough that "SHOUTING plus a link" - the exact pairing the caller is looking
+    for - stopped registering as shouting at all.
     """
     prose = _URL_RE.sub(" ", content)
     if _SHOUTING_RE.search(prose):
@@ -190,10 +190,10 @@ def _has_mixed_script_word(content: str) -> bool:
     """
     Return whether any single word mixes Latin letters with another alphabet.
 
-    That is what a homoglyph swap looks like: spelling "Contact" with a Cyrillic capital Es in
-    place of the C reads as Latin to a person and slips every literal pattern here. A question
-    quoting another script in its own words is fine, because the mixing has to happen inside a
-    single word to count.
+    That is what a homoglyph swap looks like: spelling "Contact" with a Cyrillic capital Es in place
+    of the C reads as Latin to a person and slips every literal pattern here. A question quoting
+    another script in its own words is fine, because the mixing has to happen inside a single word
+    to count.
     """
     for word in re.split(r"\s+", content):
         scripts = {
@@ -212,8 +212,8 @@ def spam_flag_reason(content: str) -> str:
     """
     Return a short reason when *content* looks like spam, or "" when it looks fine.
 
-    The reason is stored on ``Question.flag_reason`` so a moderator can see what caught it and
-    a rule that misfires in production can be found in the data rather than guessed at.
+    The reason is stored on ``Question.flag_reason`` so a moderator can see what caught it and a
+    rule that misfires in production can be found in the data rather than guessed at.
 
     Ordered cheapest and most certain first. Every rule needs either an unambiguous signal of its
     own (several links, a shortener, a homoglyph) or two weaker ones together, so that no single

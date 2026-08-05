@@ -22,8 +22,8 @@ def resolve_event_slug(ctx: ImportContext) -> str | None:
     """
     Derive the event slug from CLI args or the Pretalx URL.
 
-    Returns ``None`` (and logs an error) when neither source is available,
-    which signals the caller to abort the import.
+    Returns ``None`` (and logs an error) when neither source is available, which signals the caller
+    to abort the import.
     """
     if ctx.event_slug:
         return ctx.event_slug

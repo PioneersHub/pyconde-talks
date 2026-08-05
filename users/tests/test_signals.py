@@ -1,4 +1,5 @@
 """Tests for users.signals covering auth signal handlers."""
+
 # ruff: noqa: PLR2004
 
 from unittest.mock import MagicMock, patch

@@ -1,11 +1,10 @@
 """
 Email digest sent at the end of a ``--detect-only`` import run.
 
-Summarizes the ``PendingPretalxChange`` rows produced (or refreshed) during the
-current run so admins know to open the admin and triage. Uses Django's
-``send_mail`` so it works with whatever email backend the project is configured
-to use (``django-anymail`` for Mailgun in production, the console backend in
-dev).
+Summarizes the ``PendingPretalxChange`` rows produced (or refreshed) during the current run so
+admins know to open the admin and triage. Uses Django's ``send_mail`` so it works with whatever
+email backend the project is configured to use (``django-anymail`` for Mailgun in production, the
+console backend in dev).
 """
 
 from typing import TYPE_CHECKING
@@ -32,9 +31,8 @@ def maybe_send_digest(
     """
     Send a summary email when *detected_changes* is non-empty.
 
-    Returns ``True`` if an email was actually dispatched. No-ops when the list
-    is empty (no point spamming admins on a clean run) or when the project has
-    no recipients configured.
+    Returns ``True`` if an email was actually dispatched. No-ops when the list is empty (no point
+    spamming admins on a clean run) or when the project has no recipients configured.
     """
     if not detected_changes:
         return False
@@ -61,9 +59,9 @@ def _resolve_recipients() -> list[str]:
     """
     Pick the recipient list from settings.
 
-    ``PRETALX_DIGEST_RECIPIENTS`` wins when present (an empty list explicitly means
-    "do not email anyone"). Falling back to Django's ``ADMINS`` only kicks in when
-    the setting is absent or set to ``None``.
+    ``PRETALX_DIGEST_RECIPIENTS`` wins when present (an empty list explicitly means "do not email
+    anyone"). Falling back to Django's ``ADMINS`` only kicks in when the setting is absent or set to
+    ``None``.
     """
     configured = getattr(settings, "PRETALX_DIGEST_RECIPIENTS", None)
     if configured is not None:

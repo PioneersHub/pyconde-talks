@@ -1,4 +1,5 @@
 """Comprehensive tests for talks.models_qa covering all uncovered branches."""
+
 # ruff: noqa: PLR2004
 
 import pytest

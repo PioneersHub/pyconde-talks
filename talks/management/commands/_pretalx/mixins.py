@@ -107,7 +107,6 @@ class LoggingMixin:
         style:
             Optional Django style name (``"SUCCESS"``, ``"WARNING"``,
             ``"ERROR"``).  ``"ERROR"`` directs output to *stderr*.
-
         """
         if verbosity.value < min_level.value:
             return
@@ -238,9 +237,9 @@ class ProcessingMixin(LoggingMixin):
         """
         Pre-create rooms and upsert speakers in bulk.
 
-        Skipped under ``--dry-run`` and ``--detect-only``: both modes must leave the
-        Speaker/Room tables untouched. Also records which speakers had a visual change
-        so the per-talk loop can decide on image regeneration.
+        Skipped under ``--dry-run`` and ``--detect-only``: both modes must leave the Speaker/Room
+        tables untouched. Also records which speakers had a visual change so the per-talk loop can
+        decide on image regeneration.
         """
         if ctx.dry_run or ctx.detect_only:
             self._speakers_with_visual_change = frozenset()
@@ -285,8 +284,8 @@ class ProcessingMixin(LoggingMixin):
         """
         Route a single submission to the appropriate handler.
 
-        Returns one of ``"created"``, ``"updated"``, ``"deleted"``, or
-        ``"skipped"`` for stats tracking.
+        Returns one of ``"created"``, ``"updated"``, ``"deleted"``, or ``"skipped"`` for stats
+        tracking.
         """
         data = SubmissionData(submission, ctx.pretalx_event_url)
         # Scope the match to the event being imported: pretalx_link already embeds the event
@@ -317,8 +316,8 @@ class ProcessingMixin(LoggingMixin):
         """
         Delete *existing_talk* when its submission is no longer confirmed/accepted.
 
-        In ``--detect-only`` mode the delete is recorded as a pending change
-        instead, so an admin can confirm it before the row disappears.
+        In ``--detect-only`` mode the delete is recorded as a pending change instead, so an admin
+        can confirm it before the row disappears.
         """
         if not existing_talk:
             return "skipped"
@@ -360,16 +359,14 @@ class ProcessingMixin(LoggingMixin):
         """
         Sync *existing_talk* with fresh data.
 
-        Returns ``"skipped"`` when ``--no-update`` is set, ``"unchanged"`` when the
-        talk and speakers are already in sync with Pretalx, and ``"updated"``
-        otherwise.
+        Returns ``"skipped"`` when ``--no-update`` is set, ``"unchanged"`` when the talk and
+        speakers are already in sync with Pretalx, and ``"updated"`` otherwise.
 
-        Image regeneration is triggered when *any* of these is true (and
-        ``--skip-images`` is not set): the talk data or speaker set changed,
-        ``--force-images`` was passed, a still-attached speaker's name/avatar
-        changed earlier in this run, or a social-card template is newer than the
-        current image. The return status reflects the data diff only -
-        force-regen does not promote ``"unchanged"`` to ``"updated"``.
+        Image regeneration is triggered when *any* of these is true (and ``--skip-images`` is not
+        set): the talk data or speaker set changed, ``--force-images`` was passed, a still-attached
+        speaker's name/avatar changed earlier in this run, or a social-card template is newer than
+        the current image. The return status reflects the data diff only - force-regen does not
+        promote ``"unchanged"`` to ``"updated"``.
         """
         if ctx.no_update:
             ctx.log(
@@ -408,9 +405,8 @@ class ProcessingMixin(LoggingMixin):
         """
         Record a would-be UPDATE on *existing_talk* as a pending change.
 
-        Computes the field and speaker diffs read-only, drops a
-        ``PendingPretalxChange`` row when anything actually changed, and reports
-        ``"unchanged"`` otherwise. Never touches the Talk.
+        Computes the field and speaker diffs read-only, drops a ``PendingPretalxChange`` row when
+        anything actually changed, and reports ``"unchanged"`` otherwise. Never touches the Talk.
         """
         field_diffs = serialize_field_diffs(existing_talk, data, ctx)
         speaker_diffs = diff_speakers(existing_talk, speakers)
@@ -448,10 +444,9 @@ class ProcessingMixin(LoggingMixin):
         """
         Decide whether *talk*'s social-card image needs to be (re)built.
 
-        ``--skip-images`` always wins. Otherwise regenerate when the talk data
-        changed, ``--force-images`` is set, any of the talk's speakers had a
-        name/avatar change in this run, or the current image is older than the
-        latest social-card template PNG for this event.
+        ``--skip-images`` always wins. Otherwise regenerate when ``--force-images`` is set, the talk
+        data changed, any of the talk's speakers had a name/avatar change in this run, or the
+        current image is older than the latest social-card template PNG for this event.
         """
         if ctx.skip_images:
             return False
@@ -485,8 +480,8 @@ class ProcessingMixin(LoggingMixin):
         """
         Create a new :class:`~talks.models.Talk` and attach speakers + image.
 
-        In ``--detect-only`` mode the would-be CREATE lands in a pending row
-        instead, so an admin can decide whether to import it.
+        In ``--detect-only`` mode the would-be CREATE lands in a pending row instead, so an admin
+        can decide whether to import it.
         """
         if ctx.detect_only:
             change, _ = record_pending_change(

@@ -1,9 +1,8 @@
 """
 Admin for ``PendingPretalxChange`` rows recorded by the detect-only importer.
 
-Provides a triage list with status / kind / event filters, bulk *apply* and
-*dismiss* actions, and a "Check Pretalx now" button that re-runs the
-detect-only importer for the selected event.
+Provides a triage list with status / kind / event filters, bulk *apply* and *dismiss* actions, and a
+"Check Pretalx now" button that re-runs the detect-only importer for the selected event.
 """
 
 from typing import TYPE_CHECKING, cast
@@ -200,19 +199,17 @@ class PendingPretalxChangeAdmin(admin.ModelAdmin[PendingPretalxChange]):
         """
         Run the detect-only importer for the default event and return to the list.
 
-        POST-only: this mutates state (writes PendingPretalxChange rows, makes
-        outbound API calls), so it must not be reachable via GET. ``admin_view``
-        already wraps it in ``csrf_protect``, so requiring POST means the CSRF
-        token is enforced and the action can't be triggered by a forged link.
+        POST-only: this mutates state (writes PendingPretalxChange rows, makes outbound API calls),
+        so it must not be reachable via GET. ``admin_view`` already wraps it in ``csrf_protect``, so
+        requiring POST means the CSRF token is enforced and the action can't be triggered by a
+        forged link.
 
-        Synchronous on purpose: the importer is API-bound (tens of seconds for a
-        500-talk event) but small enough to block one admin request. Surfacing
-        progress would need a task queue; that's deferred to keep the deploy
-        footprint flat.
+        Synchronous on purpose: the importer is API-bound (tens of seconds for a 500-talk event) but
+        small enough to block one admin request. Surfacing progress would need a task queue; that's
+        deferred to keep the deploy footprint flat.
 
-        ``admin_view`` only enforces ``is_staff``; this also requires the model's
-        change permission so a staff user with no rights on this model cannot
-        trigger an outbound import.
+        ``admin_view`` only enforces ``is_staff``; this also requires the model's change permission
+        so a staff user with no rights on this model cannot trigger an outbound import.
         """
         if not self.has_change_permission(request):
             raise PermissionDenied

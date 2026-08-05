@@ -1,4 +1,5 @@
 """Unit tests for the import_livestream_urls management command."""
+
 # ruff: noqa: DTZ001 PLR2004
 
 from datetime import datetime

@@ -101,11 +101,11 @@ class Command(BaseCommand):
         """
         Return the unique talk whose Pretalx code equals *pretalx_id*, or None.
 
-        ``pretalx_link__contains`` only narrows the candidates; the match is then made on the
-        exact ``Talk.pretalx_code``. A bare substring match would let a short code (e.g. "ABC")
-        clobber the recording link of a talk whose code merely starts with it ("ABCDEF"), or any
-        talk whose URL happens to contain the string. On an ambiguous match we skip rather than
-        silently overwrite an arbitrary ``.first()``.
+        ``pretalx_link__contains`` only narrows the candidates; the match is then made on the exact
+        ``Talk.pretalx_code``. A bare substring match would let a short code (e.g. "ABC") clobber
+        the recording link of a talk whose code merely starts with it ("ABCDEF"), or any talk whose
+        URL happens to contain the string. On an ambiguous match we skip rather than silently
+        overwrite an arbitrary ``.first()``.
         """
         candidates = [
             talk

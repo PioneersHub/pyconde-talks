@@ -1,9 +1,9 @@
 """
 Rating and bookmark models for conference talks.
 
-Split out from ``talks.models`` so the Rating/SavedTalk pair (and their constants) live next to
-each other. Uses the string reference ``"talks.Talk"`` for the foreign key so there is no import
-cycle with ``talks.models``.
+Split out from ``talks.models`` so the Rating/SavedTalk pair (and their constants) live next to each
+other. Uses the string reference ``"talks.Talk"`` for the foreign key so there is no import cycle
+with ``talks.models``.
 """
 
 from typing import TYPE_CHECKING, ClassVar

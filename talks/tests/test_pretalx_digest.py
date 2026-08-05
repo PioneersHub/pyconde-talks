@@ -19,6 +19,8 @@ def _ctx(event: Event | None = None) -> ImportContext:
 
     def _noop(*_args: object, **_kwargs: object) -> None:
         """Silent log function."""
+        # Empty body on purpose. Without this comment, docformatter and ruff-format disagree about
+        # the blank lines around a docstring-only body and rewrite the file back and forth forever.
 
     return ImportContext(verbosity=VerbosityLevel.NORMAL, log_fn=_noop, event_obj=event)
 

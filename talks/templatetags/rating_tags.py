@@ -45,7 +45,6 @@ def star_rating(average_rating: float | None, rating_count: int = 0) -> SafeStri
 
     Returns:
         HTML string with star rating display.
-
     """
     if average_rating is None or rating_count == 0:
         return format_html(

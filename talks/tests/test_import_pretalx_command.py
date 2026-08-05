@@ -3,6 +3,7 @@ Unit tests for the import_pretalx_talks management command.
 
 Tests cover the core logic without making actual API calls.
 """
+
 # ruff: noqa: PLR2004
 # mypy: disable-error-code="arg-type"
 
@@ -52,6 +53,9 @@ def _noop_log(
     style: str | None = None,
 ) -> None:
     """Silent log function for tests that don't need logging output."""
+
+    # Empty body on purpose. Without this comment, docformatter and ruff-format disagree about the
+    # blank lines around a docstring-only body and rewrite the file back and forth forever.
 
 
 _noop: LogFn = _noop_log

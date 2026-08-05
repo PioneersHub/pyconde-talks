@@ -31,10 +31,9 @@ class RoomAvailability:
     """
     Track free time intervals per room for conflict-free talk placement.
 
-    Each room starts with one free interval per conference day (09:00 - 17:30).
-    ``find_slot`` picks a random available start time aligned to 30-min
-    boundaries, and ``reserve`` splits the containing interval so the time
-    cannot be reused.
+    Each room starts with one free interval per conference day (09:00 - 17:30). ``find_slot`` picks
+    a random available start time aligned to 30-min boundaries, and ``reserve`` splits the
+    containing interval so the time cannot be reused.
     """
 
     def __init__(
@@ -46,8 +45,8 @@ class RoomAvailability:
         """
         Initialize with full-day free intervals for every room.
 
-        Pre-existing talks in the database are automatically reserved so
-        that new talks never overlap with them.
+        Pre-existing talks in the database are automatically reserved so that new talks never
+        overlap with them.
         """
         self._free: dict[int, list[tuple[datetime, datetime]]] = {}
         all_rooms: list[Room] = []

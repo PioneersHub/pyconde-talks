@@ -1,9 +1,9 @@
 """
 Avatar caching (memory + disk) and async prefetch for speaker photos.
 
-Provides a two-tier cache (``AVATAR_CACHE`` in-memory dict + on-disk files
-under ``MEDIA_ROOT/avatars/``) and an async prefetch routine that warms the
-cache before image generation begins.
+Provides a two-tier cache (``AVATAR_CACHE`` in-memory dict + on-disk files under
+``MEDIA_ROOT/avatars/``) and an async prefetch routine that warms the cache before image generation
+begins.
 """
 
 # ruff: noqa: BLE001
@@ -62,7 +62,11 @@ def get_avatar_cache_dir() -> Path:
 
 
 def get_cached_avatar_bytes(cache_dir: Path, url: str) -> bytes | None:
-    """Look up *url* in the memory cache, then disk. Hydrate memory on disk hit."""
+    """
+    Look up *url* in the memory cache, then disk.
+
+    Hydrate memory on disk hit.
+    """
     data = AVATAR_CACHE.get(url)
     if data is not None:
         return data
@@ -80,7 +84,11 @@ def get_cached_avatar_bytes(cache_dir: Path, url: str) -> bytes | None:
 
 
 def save_avatar_bytes(cache_dir: Path, url: str, data: bytes) -> None:
-    """Write *data* to disk and memory cache. Warns but does not raise on I/O errors."""
+    """
+    Write *data* to disk and memory cache.
+
+    Warns but does not raise on I/O errors.
+    """
     path = _url_to_cache_path(cache_dir, url)
     try:
         path.parent.mkdir(parents=True, exist_ok=True)

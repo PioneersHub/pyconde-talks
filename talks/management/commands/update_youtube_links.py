@@ -127,9 +127,9 @@ class Command(BaseCommand):
         """
         Group the talks that have a Pretalx link by their Pretalx code.
 
-        One query for the whole event, instead of one per entry in the map. Codes are kept in a
-        list rather than collapsed to a single talk so an ambiguous code can be reported and
-        skipped instead of overwriting an arbitrary one of its matches.
+        One query for the whole event, instead of one per entry in the map. Codes are kept in a list
+        rather than collapsed to a single talk so an ambiguous code can be reported and skipped
+        instead of overwriting an arbitrary one of its matches.
         """
         talks = Talk.objects.exclude(pretalx_link="")
         if event is not None:

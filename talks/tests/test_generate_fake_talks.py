@@ -1,4 +1,5 @@
 """Tests for the generate_fake_talks management command."""
+
 # ruff: noqa: PLR2004
 
 import random

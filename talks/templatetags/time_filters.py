@@ -30,7 +30,6 @@ def format_seconds(seconds: float | str) -> str:
         '0:00'
         >>> format_seconds("invalid")
         '0:00'
-
     """
     try:
         seconds_int = int(float(seconds))

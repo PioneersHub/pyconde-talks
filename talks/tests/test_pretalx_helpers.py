@@ -5,6 +5,7 @@ These cover the argument plumbing, single-record helpers, and warning paths that
 Pretalx API or mocked HTTP layer. The bigger integration flows still live in
 ``test_import_pretalx_command.py`` and ``test_import_pretalx_integration.py``.
 """
+
 # ruff: noqa: PLR2004
 
 from dataclasses import FrozenInstanceError
