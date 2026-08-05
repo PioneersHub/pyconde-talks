@@ -6,8 +6,14 @@ tests are written as an exhaustive truth table over (viewer kind) x (event visib
 than as a handful of examples. A leak here is a leak everywhere.
 """
 
+from datetime import timedelta
+from http import HTTPStatus
+from typing import TYPE_CHECKING
+
 import pytest
 from django.contrib.auth.models import AnonymousUser
+from django.urls import reverse
+from django.utils import timezone
 from model_bakery import baker
 
 from events.models import Event
@@ -15,6 +21,10 @@ from events.session import events_visible_to
 from talks.models import Talk, unlock_video_access, user_can_watch_videos
 from users.models import CustomUser
 from utils.test_perf import assert_no_n_plus_one
+
+
+if TYPE_CHECKING:
+    from django.test import Client
 
 
 @pytest.fixture
@@ -47,9 +57,29 @@ def public_event() -> Event:
     )
 
 
+VIDEO_URL = "https://youtube.com/watch?v=abc"
+
+
 def _talk_for(event: Event) -> Talk:
     """Create a talk belonging to *event*."""
     return baker.make(Talk, event=event, title=f"Talk for {event.slug}")
+
+
+def _recorded_talk_for(event: Event) -> Talk:
+    """
+    Create a talk on *event* with a recording and a slot that has already happened.
+
+    The past slot is the point. ``Talk.start_time`` defaults to the ``FAR_FUTURE`` sentinel, and
+    an upcoming talk withholds its links whatever the video gate says, so a talk left at the
+    default would let these assertions pass without the gate being exercised at all.
+    """
+    return baker.make(
+        Talk,
+        event=event,
+        video_link=VIDEO_URL,
+        start_time=timezone.now() - timedelta(days=1),
+        duration=timedelta(minutes=30),
+    )
 
 
 @pytest.mark.django_db
@@ -246,11 +276,7 @@ class TestVideoGate:
         yields no link even on a public event. A view that forgets the call renders a missing
         player, which is obvious, instead of leaking a recording, which is not.
         """
-        talk = baker.make(
-            Talk,
-            event=public_event,
-            video_link="https://youtube.com/watch?v=abc",
-        )
+        talk = _recorded_talk_for(public_event)
         assert talk.get_video_link() == ""
         assert talk.allow_videos_for(AnonymousUser()).get_video_link() != ""
 
@@ -274,11 +300,7 @@ class TestVideoGate:
         The dashboard counter and the admin column report on the data, not on a player, so
         they would otherwise show different totals to different people.
         """
-        talk = baker.make(
-            Talk,
-            event=schedule_only_event,
-            video_link="https://youtube.com/watch?v=abc",
-        )
+        talk = _recorded_talk_for(schedule_only_event)
         talk.allow_videos_for(AnonymousUser())
         assert talk.get_video_link() == ""
         assert talk.has_recording() is True
@@ -361,3 +383,119 @@ class TestEventsVisibleTo:
     ) -> None:
         """Neither AnonymousUser nor None has ``visible_events``; both resolve to the public set."""
         assert list(events_visible_to(user)) == [public_event]
+
+
+@pytest.mark.django_db
+class TestAccessibleToIsActive:
+    """Deactivating an event takes it off the site for visitors who are not members."""
+
+    def test_anonymous_cannot_list_talks_of_a_deactivated_public_event(self) -> None:
+        """
+        ``is_active`` is how an organizer pulls an event, so it has to bind the public half.
+
+        ``events_visible_to`` already drops inactive events from the picker; without the same
+        filter here the talks stayed reachable at their direct URLs, recording included.
+        """
+        event = Event.objects.create(
+            name="Retired",
+            slug="retired",
+            visibility=Event.Visibility.PUBLIC,
+            is_active=False,
+        )
+        talk = _talk_for(event)
+
+        assert talk not in Talk.objects.accessible_to(AnonymousUser())
+        assert list(events_visible_to(AnonymousUser())) == []
+
+    def test_the_detail_page_is_gone_for_anonymous_visitors(self, client: Client) -> None:
+        """End to end: no 200, and no recording in the body."""
+        event = Event.objects.create(
+            name="Retired",
+            slug="retired",
+            visibility=Event.Visibility.PUBLIC,
+            is_active=False,
+        )
+        talk = _recorded_talk_for(event)
+
+        response = client.get(reverse("talk_detail", kwargs={"pk": talk.pk}))
+
+        # Anonymous visitors are sent to log in rather than shown a bare 404.
+        assert response.status_code == HTTPStatus.FOUND
+        assert VIDEO_URL.encode() not in response.content
+
+    def test_members_lose_a_deactivated_event_too(self) -> None:
+        """
+        Deactivating an event hides it from everyone, ticket holders included.
+
+        The event is already gone from their picker, so anything still reachable would only be
+        reachable by direct URL. Holding a ticket does not make a withdrawn event visible again.
+        """
+        event = Event.objects.create(
+            name="Retired",
+            slug="retired",
+            visibility=Event.Visibility.PUBLIC,
+            is_active=False,
+        )
+        talk = _talk_for(event)
+        member = baker.make(CustomUser, email="member@example.com")
+        member.events.add(event)
+
+        assert talk not in Talk.objects.accessible_to(member)
+        assert user_can_watch_videos(member, event) is False
+
+    def test_a_member_of_a_deactivated_hidden_event_sees_nothing(self) -> None:
+        """The same for a hidden event, which is the usual state of a finished conference."""
+        event = Event.objects.create(
+            name="Last year",
+            slug="last-year",
+            visibility=Event.Visibility.HIDDEN,
+            is_active=False,
+        )
+        talk = _talk_for(event)
+        member = baker.make(CustomUser, email="member@example.com")
+        member.events.add(event)
+
+        assert talk not in Talk.objects.accessible_to(member)
+
+    def test_superusers_still_see_a_deactivated_event(self) -> None:
+        """Administrators keep their view of everything, which is how it gets fixed."""
+        event = Event.objects.create(
+            name="Retired",
+            slug="retired",
+            visibility=Event.Visibility.PUBLIC,
+            is_active=False,
+        )
+        talk = _talk_for(event)
+        superuser = CustomUser.objects.create_superuser(
+            email="admin@example.com",
+            password="password",
+        )
+
+        assert talk in Talk.objects.accessible_to(superuser)
+
+    def test_an_active_public_event_is_unaffected(self) -> None:
+        """The ordinary case must keep working."""
+        event = Event.objects.create(
+            name="Live",
+            slug="live",
+            visibility=Event.Visibility.PUBLIC,
+            is_active=True,
+        )
+        talk = _talk_for(event)
+
+        assert talk in Talk.objects.accessible_to(AnonymousUser())
+
+    def test_the_video_gate_closes_with_the_event(self, client: Client) -> None:
+        """
+        ``user_can_watch_videos`` states the same rule as ``accessible_to`` and must agree.
+
+        Two spellings of one rule that drift apart is how a gate ends up open on one path.
+        """
+        event = Event.objects.create(
+            name="Retired",
+            slug="retired",
+            visibility=Event.Visibility.PUBLIC,
+            is_active=False,
+        )
+
+        assert user_can_watch_videos(AnonymousUser(), event) is False

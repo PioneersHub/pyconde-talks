@@ -314,15 +314,17 @@ def user_can_watch_videos(
     """
     Return whether *user* may watch recordings belonging to *event*.
 
-    Superusers and ticket holders always may. Everyone else only may once the event is public:
-    a schedule-only event publishes its programme but keeps the recordings for ticket holders.
+    Superusers always may. Everyone else needs the event to be active first: deactivating an
+    event takes it off the site for everyone, so there is nothing left to play. Given an active
+    event, ticket holders may, and everyone else only once it is public - a schedule-only event
+    publishes its programme but keeps the recordings for ticket holders.
 
     Kept separate from ``TalkQuerySet.accessible_to``, which decides whether a talk is *listed*.
     A schedule-only talk is listed to everyone and playable only by members.
     """
     if getattr(user, "is_superuser", False):
         return True
-    if event is None:
+    if event is None or not event.is_active:
         return False
     if event.visibility == event.Visibility.PUBLIC:
         return True
@@ -330,6 +332,47 @@ def user_can_watch_videos(
         return False
     member_events = getattr(user, "events", None)
     return member_events is not None and member_events.filter(pk=event.pk).exists()
+
+
+def user_can_join_qa(
+    user: AbstractBaseUser | AnonymousUser | None,
+    event: Event | None,
+) -> bool:
+    """
+    Return whether *user* may post or vote in *event*'s Q&A.
+
+    Reading the thread only needs the talk to be listed, but taking part needs a relationship
+    with the event: a ticket, or an event that is public and therefore open to anyone. Without
+    that, holding a ticket for last year's public archive was enough to post into the Q&A of
+    the conference running right now, which is the one place moderator attention is scarcest.
+
+    Staff and superusers always may, because they are the ones moderating.
+    """
+    if is_qa_moderator(user):
+        return True
+    if event is None or not event.is_active:
+        return False
+    if event.visibility == event.Visibility.PUBLIC:
+        # Registration is open on a public event, so requiring a ticket here would only mean
+        # "whoever happened to register through this event", which protects nothing.
+        return True
+    if user is None or not user.is_authenticated:
+        return False
+    member_events = getattr(user, "events", None)
+    return member_events is not None and member_events.filter(pk=event.pk).exists()
+
+
+def is_qa_moderator(user: AbstractBaseUser | AnonymousUser | None) -> bool:
+    """
+    Return whether *user* moderates the Q&A (staff or superuser).
+
+    Lives here rather than in ``talks.views_qa`` so the access predicates above can use it
+    without importing from the view layer. ``views_qa.is_moderator`` is the same check and stays
+    as the name the views and templates already use.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    return bool(getattr(user, "is_staff", False) or getattr(user, "is_superuser", False))
 
 
 def unlock_video_access(
@@ -362,7 +405,9 @@ def unlock_video_access(
     for talk in talks:
         event_id = talk.event_id
         if event_id not in decided:
-            decided[event_id] = (
+            # Same rule as ``user_can_watch_videos``, batched: an active event, then either
+            # membership or public visibility.
+            decided[event_id] = talk.event.is_active and (
                 event_id in member_event_ids or talk.event.visibility == Event.Visibility.PUBLIC
             )
         talk.videos_unlocked = decided[event_id]
@@ -384,10 +429,10 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
         """
         Return talks the given user is allowed to see listed.
 
-        Superusers see every talk. Everyone else sees the union of two sets: talks belonging to
-        an event they are a member of, and talks belonging to an event that is not hidden. A
-        logged-in visitor browsing an event they hold no ticket for therefore sees exactly what
-        an anonymous visitor sees, plus their own events.
+        Superusers see every talk. Everyone else sees talks on *active* events only, and within
+        those the union of two sets: events they are a member of, and events that are not
+        hidden. A logged-in visitor browsing an event they hold no ticket for therefore sees
+        exactly what an anonymous visitor sees, plus their own events.
 
         Anonymous users have no ``events`` relation, so membership is skipped rather than
         dereferenced. ``None`` is treated as anonymous. Every talk belongs to an event
@@ -395,6 +440,12 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
 
         ``hide`` takes a talk out of every non-superuser view whatever its event's visibility,
         so an embargoed session can be held back even on an otherwise public event.
+
+        ``is_active`` binds both halves, membership included. Deactivating an event is how an
+        organizer takes it off the site, and ``events_visible_to`` / ``visible_events`` already
+        drop inactive events from the event picker, so anything still reachable here would only
+        be reachable by direct URL - visible to whoever kept a link, invisible to everyone
+        navigating normally. Holding a ticket does not change that: the event is gone.
 
         This decides *listing* only. Whether the recording can be played is a separate
         question: a schedule-only event lists its talks to everyone but withholds the video.
@@ -410,7 +461,7 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
             if member_events is not None:
                 visible |= Q(event__in=member_events.all())
 
-        return self.filter(visible).exclude(hide=True)
+        return self.filter(visible, event__is_active=True).exclude(hide=True)
 
     def with_streamings(self) -> list[Talk]:
         """

@@ -6,11 +6,13 @@ the thing that leaks is the video URL in the HTML, not a flag in a context dict.
 are therefore made against the response body.
 """
 
+from datetime import datetime, timedelta
 from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from model_bakery import baker
 
 from events.models import Event
@@ -25,10 +27,33 @@ if TYPE_CHECKING:
 VIDEO_URL = "https://youtube.com/watch?v=secret-recording"
 
 
-def _talk_on(visibility: str, *, slug: str, title: str = "A talk") -> Talk:
-    """Create a talk with a recording on an event with the given visibility."""
+def _talk_on(
+    visibility: str,
+    *,
+    slug: str,
+    title: str = "A talk",
+    start_time: datetime | None = None,
+) -> Talk:
+    """
+    Create a talk with a recording on an event with the given visibility.
+
+    The slot defaults to the past on purpose. ``Talk.start_time`` defaults to the
+    ``FAR_FUTURE`` sentinel, and an upcoming talk withholds its links anyway unless
+    ``SHOW_UPCOMING_TALKS_LINKS`` is set. Leaving the default would make every "the video is
+    withheld" assertion below pass without the video gate doing anything at all.
+
+    Tests for the upcoming-talks fragment pass a future slot instead, since that view only
+    selects talks that have not started yet.
+    """
     event = Event.objects.create(name=slug, slug=slug, visibility=visibility)
-    return baker.make(Talk, event=event, title=title, video_link=VIDEO_URL)
+    return baker.make(
+        Talk,
+        event=event,
+        title=title,
+        video_link=VIDEO_URL,
+        start_time=start_time or (timezone.now() - timedelta(days=1)),
+        duration=timedelta(minutes=30),
+    )
 
 
 @pytest.mark.django_db
@@ -215,7 +240,12 @@ class TestAnonymousUpcomingTalks:
 
     def test_renders_and_scopes_by_visibility(self, client: Client) -> None:
         """Only non-hidden events reach an anonymous visitor."""
-        hidden = _talk_on(Event.Visibility.HIDDEN, slug="hidden", title="Secret Talk")
+        hidden = _talk_on(
+            Event.Visibility.HIDDEN,
+            slug="hidden",
+            title="Secret Talk",
+            start_time=timezone.now() + timedelta(hours=1),
+        )
         response = client.get(reverse("upcoming_talks"))
 
         assert response.status_code == HTTPStatus.OK
@@ -231,7 +261,12 @@ class TestAnonymousUpcomingTalks:
         That was safe only while every visitor was authenticated with a distinct session
         cookie. Two back-to-back requests must reflect their own viewer, not the first one.
         """
-        talk = _talk_on(Event.Visibility.HIDDEN, slug="hidden", title="Members Only Talk")
+        talk = _talk_on(
+            Event.Visibility.HIDDEN,
+            slug="hidden",
+            title="Members Only Talk",
+            start_time=timezone.now() + timedelta(hours=1),
+        )
         member = baker.make(CustomUser, email="member@example.com")
         member.events.add(talk.event)
 
