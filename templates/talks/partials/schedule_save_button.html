@@ -11,7 +11,9 @@
         class="p-1 rounded hover:bg-black/10 transition-colors {% if is_saved %}text-yellow-500{% else %}text-gray-400{% endif %}"
         title="{% if is_saved %}{{ remove_title }}{% else %}{{ save_title }}{% endif %}"
         data-title-saved="{{ remove_title }}"
-        data-title-unsaved="{{ save_title }}">
+        data-title-unsaved="{{ save_title }}"
+        {# This variant colors its unsaved state, unlike save_button.html. Naming the class lets saved-talks.js drop it when it paints a bookmark on, instead of leaving both colors on the element. #}
+        data-save-muted-class="text-gray-400">
   <span data-save-icon-solid class="{% if not is_saved %}hidden{% endif %}">{% svg 'bookmark-solid' "h-4 w-4" %}</span>
   <span data-save-icon-outline class="{% if is_saved %}hidden{% endif %}">{% svg 'bookmark' "h-4 w-4" %}</span>
 </button>
