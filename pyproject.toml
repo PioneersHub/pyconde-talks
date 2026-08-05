@@ -85,6 +85,9 @@ prod = [
     # ``[binary]`` ships its own libpq wheel so the Docker image does not need libpq-dev.
     # Add the ``pool`` extra to enable Django's native connection pool (`DJANGO_DB_POOL=True`).
     "psycopg[binary]>=3.3.4",
+    # Client for Django's built-in RedisCache (`DJANGO_CACHE_URL=redis://...`). Django ships the
+    # backend itself, so django-redis is not needed - only the driver.
+    "redis>=6.4.0",
 ]
 docs = [
     "zensical>=0.0.53",

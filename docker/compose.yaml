@@ -20,6 +20,32 @@ services:
     expose:
       - "5432"
 
+  redis:
+    # Shared cache. The Q&A rate limiter counts per account here, and the allauth OAuth bearer
+    # token is cached here too; both need a backend common to every worker, which the default
+    # per-process local memory cache is not.
+    image: redis:8-alpine@sha256:978f0e01593e65eed801f2402944efcd936d43b5027e4908a7897baf88ed6241
+    container_name: ${CONTAINER_PREFIX}-redis
+    restart: unless-stopped
+    # Cache-only, so persistence is off: losing the contents on restart costs at most a reset
+    # rate-limit window and one token refresh, and avoids an RDB dump on a read-only filesystem.
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory-policy", "allkeys-lru"]
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - app_network
+    expose:
+      - "6379"
+
   django:
     # ATTENTION: build with Bake: `COMPOSE_BAKE=true docker compose up --build`
     #            or `docker buildx bake --allow=fs.read=..` instead of `docker compose build`
@@ -50,6 +76,8 @@ services:
       - /tmp
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     env_file:
       - .env

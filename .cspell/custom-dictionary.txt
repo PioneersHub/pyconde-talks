@@ -33,7 +33,9 @@ addopts
 adduser
 ahmadalli
 allauth
+allkeys
 anymail
+appendonly
 arithmatex
 armv
 asgi
@@ -152,6 +154,7 @@ manylinux
 markdownify
 matplotlib
 maxlength
+maxmemory
 mdformat
 meynard
 minmax
