@@ -109,7 +109,7 @@ jobs:
         working-directory: docker
         env:
           REGISTRY: ${{ needs.setup.outputs.registry }}
-          TAG: ${{ needs.setup.outputs.tag }}
+          IMAGE_TAG: ${{ needs.setup.outputs.tag }}
         run: |
           docker buildx bake --allow=fs.read=.. \
             --set '*.output=type=registry' \

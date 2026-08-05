@@ -70,18 +70,18 @@ baked into the image matches the exported files.
     looks exactly like a stale build cache but is not. Check with
     `docker images | grep -E 'event-talks|talks.pycon.de-django'`: two images, two timestamps.
 
-    Note also that the two files spell the tag differently: compose reads `IMAGE_TAG`, bake reads `TAG`.
-    Exporting only `IMAGE_TAG` is not enough - bake would still tag `:latest`.
+    Bake and compose read the same two variable *names* (`IMAGE_NAME`, `IMAGE_TAG`), so exporting them
+    once is enough. Only the defaults differ, and deliberately: bake's `event-talks` is the
+    event-agnostic name CI publishes to GHCR, while `.env` carries the per-deployment name.
 
 Export both names from `.env`, then build:
 
 ```bash
 cd docker
 
-# Bake reads the environment, not .env. IMAGE_NAME is the same variable compose uses;
-# bake's tag variable is called TAG, while compose calls it IMAGE_TAG.
+# Bake takes its variables from the environment, not from .env. Same names compose uses.
 export IMAGE_NAME="$(grep -E '^IMAGE_NAME=' .env | cut -d= -f2-)"
-export TAG="$(grep -E '^IMAGE_TAG=' .env | cut -d= -f2-)"
+export IMAGE_TAG="$(grep -E '^IMAGE_TAG=' .env | cut -d= -f2-)"
 
 rm -rf staticfiles                       # buildx does not clean stale files
 docker buildx bake --allow=fs.read=..    # builds linux/amd64 by default
@@ -204,7 +204,7 @@ alias dcl='docker compose -f compose.yaml -f compose.local.yaml'
 # Bake reads the environment, not .env (see step 2). Without these two exports the build is
 # tagged event-talks:latest and compose keeps running the previous image.
 export IMAGE_NAME="$(grep -E '^IMAGE_NAME=' .env | cut -d= -f2-)"
-export TAG="$(grep -E '^IMAGE_TAG=' .env | cut -d= -f2-)"
+export IMAGE_TAG="$(grep -E '^IMAGE_TAG=' .env | cut -d= -f2-)"
 
 dcl down
 rm -rf staticfiles
