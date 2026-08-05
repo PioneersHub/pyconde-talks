@@ -227,3 +227,128 @@ class TestEventAwareAuthorization:
         )
         adapter.set_selected_event(event_with_api)
         assert adapter.is_email_authorized("super@example.com") is True
+
+
+@pytest.mark.django_db
+class TestPublicEventOpenRegistration:
+    """A public event drops the ticket check, because its content is already open."""
+
+    @pytest.fixture(autouse=True)
+    def _no_api(self, settings: SettingsWrapper) -> None:
+        """Remove every authorization shortcut so only the visibility rule can allow a login."""
+        settings.AUTHORIZED_EMAILS_WHITELIST = []
+        settings.EMAIL_VALIDATION_API_URL_FALLBACK = ""
+        settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_ID = ""
+        settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET = ""
+        settings.EMAIL_VALIDATION_API_OAUTH2_TOKEN_URL = ""
+
+    @pytest.fixture
+    def public_event(self) -> Event:
+        """Return an active public event with no validation API configured."""
+        return Event.objects.create(
+            name="Public Event",
+            slug="public-event",
+            year=2025,
+            validation_api_url="",
+            is_active=True,
+            visibility=Event.Visibility.PUBLIC,
+        )
+
+    def test_unknown_email_is_allowed(
+        self,
+        adapter: AccountAdapter,
+        public_event: Event,
+    ) -> None:
+        """
+        Anyone may register for a public event.
+
+        Without this the recordings would be readable but nobody new could ever ask a
+        question, which is the only thing a login still buys on such an event.
+        """
+        adapter.set_selected_event(public_event)
+        assert adapter.is_email_authorized("stranger@example.com") is True
+
+    def test_existing_user_is_linked_to_the_event(
+        self,
+        adapter: AccountAdapter,
+        user_model: type[Any],
+        public_event: Event,
+    ) -> None:
+        """An existing account gains access to the public event on login."""
+        user = user_model.objects.create_user(email="returning@example.com")
+        assert user.events.filter(pk=public_event.pk).exists() is False
+
+        adapter.set_selected_event(public_event)
+        assert adapter.is_email_authorized("returning@example.com") is True
+        assert user.events.filter(pk=public_event.pk).exists() is True
+
+    def test_deactivated_account_is_still_denied(
+        self,
+        adapter: AccountAdapter,
+        user_model: type[Any],
+        public_event: Event,
+    ) -> None:
+        """
+        A ban outranks open registration.
+
+        Order of checks matters here: the is_active test has to come first, or making an event
+        public would quietly readmit everyone who had been removed.
+        """
+        user = user_model.objects.create_user(email="banned@example.com")
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+
+        adapter.set_selected_event(public_event)
+        assert adapter.is_email_authorized("banned@example.com") is False
+
+    def test_no_validation_api_is_called(
+        self,
+        adapter: AccountAdapter,
+        public_event: Event,
+        respx_mock: respx.MockRouter,
+    ) -> None:
+        """The ticket API is skipped entirely rather than called and ignored."""
+        public_event.validation_api_url = "https://tickets.example.com/validate"
+        public_event.save(update_fields=["validation_api_url"])
+        route = respx_mock.post("https://tickets.example.com/validate")
+
+        adapter.set_selected_event(public_event)
+        assert adapter.is_email_authorized("stranger@example.com") is True
+        assert route.called is False
+
+    @pytest.mark.parametrize(
+        "visibility",
+        [Event.Visibility.HIDDEN, Event.Visibility.SCHEDULE_ONLY],
+    )
+    def test_other_visibilities_still_require_a_ticket(
+        self,
+        adapter: AccountAdapter,
+        visibility: str,
+    ) -> None:
+        """Only PUBLIC opens registration; schedule-only still gates on the ticket API."""
+        event = Event.objects.create(
+            name="Gated",
+            slug=f"gated-{visibility}",
+            is_active=True,
+            visibility=visibility,
+        )
+        adapter.set_selected_event(event)
+        assert adapter.is_email_authorized("stranger@example.com") is False
+
+    def test_can_login_by_email_is_true_while_an_event_is_public(
+        self,
+        adapter: AccountAdapter,
+    ) -> None:
+        """
+        Disconnecting a social account is safe when anyone can sign in by email.
+
+        ``can_login_by_email`` guards the Discord disconnect flow; without this a user on a
+        public event would be told they cannot safely disconnect when in fact they can.
+        """
+        Event.objects.create(
+            name="Public",
+            slug="public-live",
+            is_active=True,
+            visibility=Event.Visibility.PUBLIC,
+        )
+        assert adapter.can_login_by_email("anyone@example.com") is True

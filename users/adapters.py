@@ -132,9 +132,11 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
 
         Authorization order:
         1. Whitelist / superuser → always allowed.
-        2. Existing active user already linked to the event → allowed.
-        3. Existing user NOT yet linked → call event validation API → link on success.
-        4. New user → call event validation API (user will be created afterwards).
+        2. Deactivated account → always denied.
+        3. Public event → allowed with no ticket check (open registration).
+        4. Existing active user already linked to the event → allowed.
+        5. Existing user NOT yet linked → call event validation API → link on success.
+        6. New user → call event validation API (user will be created afterwards).
 
         Args:
             email: The email address to validate
@@ -152,15 +154,9 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
 
         event = self._selected_event
 
-        # Look up the user (may not exist yet)
-        UserModel = _user_model()  # noqa: N806  # NOSONAR(S117)
-        user: CustomUser | None = None
-        try:
-            user = UserModel.objects.get(email=email)
-        except UserModel.DoesNotExist:
-            pass
-        except DatabaseError:  # pragma: no cover
-            logger.exception("Database error looking up user", email=email_hash)
+        found, user = self._lookup_user(email, email_hash)
+        if not found:
+            # The lookup itself failed (database error), which is not a "no such user".
             return False
 
         # A deactivated/banned account is never authorized. Deny up front so we neither call the
@@ -170,7 +166,35 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
             logger.warning("Authorization denied for inactive user", email=email_hash)
             return False
 
-        # If user exists, is active, and already linked to this event -> allow
+        # A public event has no ticket check: its content is already open, so the only things a
+        # login still buys are Q&A, ratings and saved talks. Refusing to create an account here
+        # would not protect anything, it would just stop people using those. Deliberately below
+        # the is_active check, so a banned account stays banned on a public event.
+        if event and event.visibility == Event.Visibility.PUBLIC:
+            logger.info(
+                "Open registration for public event",
+                email=email_hash,
+                event_slug=event.slug,
+            )
+            if user:
+                user.events.add(event)
+            return True
+
+        return self._authorize_by_ticket(email, email_hash, user, event)
+
+    def _authorize_by_ticket(
+        self,
+        email: str,
+        email_hash: str,
+        user: CustomUser | None,
+        event: Event | None,
+    ) -> bool:
+        """
+        Authorize against the event's ticket-validation API, linking the user on success.
+
+        The path taken by every event that is not public: an existing link is proof enough,
+        otherwise the external API decides and a successful answer mints the membership.
+        """
         if user and user.is_active and event and user.events.filter(pk=event.pk).exists():
             logger.info(
                 "User already associated with event",
@@ -179,7 +203,6 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
             )
             return True
 
-        # Otherwise, call the event's validation API
         if not self._validate_email_for_event(email, email_hash, event):
             return False
 
@@ -198,6 +221,24 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _lookup_user(email: str, email_hash: str) -> tuple[bool, CustomUser | None]:
+        """
+        Look up the account for *email*, returning ``(lookup_succeeded, user_or_none)``.
+
+        The two failure modes have to stay distinguishable: "no such user yet" is normal and
+        continues to the validation API, whereas a database error must deny rather than be
+        mistaken for a new signup.
+        """
+        UserModel = _user_model()  # noqa: N806  # NOSONAR(S117)
+        try:
+            return True, UserModel.objects.get(email=email)
+        except UserModel.DoesNotExist:
+            return True, None
+        except DatabaseError:  # pragma: no cover
+            logger.exception("Database error looking up user", email=email_hash)
+            return False, None
 
     @staticmethod
     def _is_privileged(email: str, email_hash: str) -> bool:
@@ -313,13 +354,18 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
         event selection. It checks the email against every active event validation API (deduplicated
         by URL) plus the fallback.
 
-        Returns True for whitelisted emails, superuser accounts, or emails recognized by any
-        configured validation API.
+        Returns True for whitelisted emails, superuser accounts, emails recognized by any
+        configured validation API, or any email at all once some event is public.
         """
         email = email.lower().strip()
         email_hash = hash_email(email)
 
         if self._is_privileged(email, email_hash):
+            return True
+
+        # Any public event means anyone can sign in via the code flow, so disconnecting a
+        # social account cannot lock this user out.
+        if Event.objects.filter(is_active=True, visibility=Event.Visibility.PUBLIC).exists():
             return True
 
         # Collect unique validation API URLs from active events + fallback.

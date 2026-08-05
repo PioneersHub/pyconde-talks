@@ -6,18 +6,46 @@ from django.conf import settings
 
 
 @pytest.mark.parametrize("action", ["login_failed", "request_login_code", "confirm_email"])
-def test_auth_limits_are_keyed_per_account_not_per_ip(action: str) -> None:
+def test_auth_limits_are_keyed_per_account(action: str) -> None:
     """
-    Auth rate limits must be keyed per account/email, never per IP.
+    Every auth rate limit must carry a per-account/email bucket.
 
-    ~2000 conference attendees share one venue NAT IP, so a per-IP auth limit is collective
-    punishment: one actor (or the opening-session login rush) would lock out everyone behind that
-    IP. Per-account ("key") limits are immune to a shared IP. This fails loudly if a per-IP bucket
-    creeps back into an auth limit.
+    ~2000 conference attendees share one venue NAT IP, so an auth limit that is *only* per-IP is
+    collective punishment: one actor (or the opening-session login rush) would lock out everyone
+    behind that IP. The per-account ("key") bucket is immune to a shared IP and is the protection
+    actually wanted, so it must never be dropped.
     """
     scopes = {rate.per for rate in parse_rates(settings.ACCOUNT_RATE_LIMITS[action])}
     assert "key" in scopes, f"{action} lost its per-account rate limit"
+
+
+@pytest.mark.parametrize("action", ["login_failed", "confirm_email"])
+def test_account_scoped_actions_stay_off_the_shared_ip(action: str) -> None:
+    """
+    Actions that target a known account get no per-IP bucket at all.
+
+    Their per-account key already bounds the abuse, so adding an IP bucket would only create the
+    shared-venue lockout without buying anything.
+    """
+    scopes = {rate.per for rate in parse_rates(settings.ACCOUNT_RATE_LIMITS[action])}
     assert "ip" not in scopes, f"{action} must not be per-IP (a shared venue IP locks everyone out)"
+
+
+def test_login_code_requests_carry_a_loose_ip_ceiling() -> None:
+    """
+    ``request_login_code`` is the one auth action that also needs a per-IP bound.
+
+    Public events accept any address without a ticket check, and each new address creates a user
+    row and sends mail, so a script walking a list of addresses never repeats the per-email key.
+    The IP ceiling closes that, and is deliberately loose: it has to sit well above what the
+    venue's shared NAT produces during the opening-session rush, so it makes bulk signup
+    pointless without throttling real attendees.
+    """
+    limits = settings.ACCOUNT_RATE_LIMITS["request_login_code"]
+    rates = {rate.per: rate for rate in parse_rates(limits)}
+    assert "ip" in rates, "public-event registration needs a per-IP ceiling on login codes"
+    per_ip = rates["ip"]
+    assert per_ip.amount >= 50, "the per-IP ceiling must stay above venue-scale legitimate use"  # noqa: PLR2004
 
 
 @pytest.mark.parametrize("action", ["login", "signup"])

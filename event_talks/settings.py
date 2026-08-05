@@ -314,14 +314,21 @@ ALLAUTH_TRUSTED_PROXY_COUNT = env.int("ALLAUTH_TRUSTED_PROXY_COUNT", default=0)
 # so we override them. login/signup are disabled (None): they are anonymous actions with no
 # per-account key, and brute force is already bounded without an IP limit. Login is passwordless
 # email-code, so an attacker never sees the emailed code; ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS caps
-# code guesses; the email-validation API gates who can receive a code at all; and nginx applies a
-# coarse per-connection request limit on top.
+# code guesses; and nginx applies a coarse per-connection request limit on top.
+#
+# The per-email limit alone stopped being enough once public events opened registration. It
+# bounds requests for any ONE address, but a script walking a list of addresses never repeats a
+# key, and each new address creates a user row and sends mail. So request_login_code carries a
+# second, deliberately loose per-IP bound as well: high enough that the venue's shared NAT will
+# not trip it during the opening-session rush, low enough to make bulk signup from one host
+# pointless. Both limits apply; whichever is hit first wins.
 # https://docs.allauth.org/en/latest/account/rate_limits.html
 ACCOUNT_RATE_LIMITS = {
     # 5 wrong code entries per account / 5 min (key = the targeted account).
     "login_failed": "5/5m/key",
-    # 5 login-code requests per email / 5 min (key = the email a code is requested for).
-    "request_login_code": "5/5m/key",
+    # 5 login-code requests per email / 5 min, plus a coarse per-IP ceiling (see above).
+    # allauth parses several limits from one comma-separated string, not from a list.
+    "request_login_code": f"5/5m/key,{env('LOGIN_CODE_IP_RATE_LIMIT', default='60/5m/ip')}",
     # 3 email-confirmation requests per account / 3 min.
     "confirm_email": "3/3m/key",
     # Anonymous, no per-account key -> a per-IP limit would lock out the shared venue, so disable.
