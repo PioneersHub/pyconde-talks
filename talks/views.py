@@ -20,7 +20,7 @@ from django.views.decorators.vary import vary_on_cookie
 from django.views.generic import DetailView, ListView
 
 from events.models import Event
-from events.session import resolve_default_event
+from events.session import events_visible_to, resolve_default_event
 
 from .models import (
     Rating,
@@ -65,13 +65,12 @@ class TalkDetailView(DetailView[Talk]):
 
     def get_queryset(self) -> QuerySet[Talk]:
         """Optimize query with related data."""
-        user = cast("CustomUser", self.request.user)
         # select_related("event"): the detail template's get_image_url and the rating-summary
         # check both dereference talk.event, which would otherwise be a separate query per page.
         return (
             Talk.objects.select_related("room", "event")
             .prefetch_related("speakers")
-            .accessible_to(user)
+            .accessible_to(self.request.user)
         )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
@@ -225,8 +224,10 @@ class TalkListView(ListView[Talk]):
         if active:
             queryset = queryset.filter(**active)
 
-        # Filter by saved talks
-        if self.request.GET.get("saved") == "1":
+        # Filter by saved talks. Anonymous bookmarks are not in the database (there is no user
+        # to hang them off), and filtering on AnonymousUser raises TypeError rather than
+        # returning nothing, so skip the filter entirely for logged-out visitors.
+        if self.request.GET.get("saved") == "1" and self.request.user.is_authenticated:
             queryset = queryset.filter(
                 saved_by__user=self.request.user,
             )
@@ -243,8 +244,7 @@ class TalkListView(ListView[Talk]):
         context = super().get_context_data(**kwargs)
 
         # Event filter options & selection
-        user = cast("CustomUser", self.request.user)
-        context["events"] = user.visible_events()
+        context["events"] = events_visible_to(self.request.user)
 
         event_param = self.request.GET.get("event", "")
         if event_param:
@@ -310,10 +310,12 @@ class TalkListView(ListView[Talk]):
             ("completed", _("Completed")),
         ]
 
-        # Build a set of saved talk IDs for the current user. LoginRequiredMiddleware ensures
-        # this view only runs for authenticated users.
-        context["saved_talk_ids"] = SavedTalk.talk_ids_for(
-            cast("CustomUser", self.request.user),
+        # Build a set of saved talk IDs for the current user. Anonymous visitors keep their
+        # bookmarks in the browser, so there is nothing to look up for them.
+        context["saved_talk_ids"] = (
+            SavedTalk.talk_ids_for(cast("CustomUser", self.request.user))
+            if self.request.user.is_authenticated
+            else set()
         )
 
         # Determine whether rating summaries are visible to this user
@@ -357,7 +359,7 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
 
     # Determine which events the user may see. Materialize once so we iterate the
     # same in-memory list later instead of re-querying for the row data.
-    events = list(user.visible_events())
+    events = list(events_visible_to(user))
     event_ids = [event.id for event in events]  # type: ignore[attr-defined]
 
     # Fetch only the fields needed for has_recording() - scoped to user events.
@@ -469,7 +471,7 @@ def upcoming_talks(request: HttpRequest) -> HttpResponse:
 @require_safe
 def talk_redirect_view(request: HttpRequest, talk_id: str) -> HttpResponse:
     """Get talk detail view by Talk ID or Pretalx ID."""
-    talk = get_talk_by_id_or_pretalx(talk_id, user=cast("CustomUser", request.user))
+    talk = get_talk_by_id_or_pretalx(talk_id, user=request.user)
     if talk:
         return redirect("talk_detail", pk=talk.pk)
     raise Http404

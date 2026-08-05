@@ -7,7 +7,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_safe
 
-from events.session import resolve_default_event
+from events.session import events_visible_to, resolve_default_event
 
 from .grid_utils import build_grid_slices, build_time_labels, grid_line_name
 from .models import Room, SavedTalk, Talk
@@ -17,12 +17,17 @@ from .utils import parse_iso_date
 if TYPE_CHECKING:
     from datetime import date
 
+    from django.contrib.auth.base_user import AbstractBaseUser
+    from django.contrib.auth.models import AnonymousUser
     from django.http import HttpRequest, HttpResponse
 
     from users.models import CustomUser
 
 
-def _get_schedule_dates(user: CustomUser, event_id: int | None = None) -> list[date]:
+def _get_schedule_dates(
+    user: AbstractBaseUser | AnonymousUser,
+    event_id: int | None = None,
+) -> list[date]:
     """Return available schedule dates, filtered by user event access and optional event."""
     # Always scope to the user's accessible events first, then optionally narrow to one event.
     # Skipping `accessible_to` when ``event_id`` is set would let a user request any event's
@@ -41,7 +46,7 @@ def _get_schedule_dates(user: CustomUser, event_id: int | None = None) -> list[d
 
 def _build_schedule_data(
     selected_date: date,
-    user: CustomUser,
+    user: AbstractBaseUser | AnonymousUser,
     event_id: int | None = None,
 ) -> tuple[list[Talk], list[Room], list[dict[str, Any]], str, list[dict[str, str]]]:
     """
@@ -171,10 +176,10 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
     Each talk is positioned using CSS Grid named row lines so that overlapping talks in different
     rooms appear side-by-side and card heights are proportional to duration.
     """
-    user = cast("CustomUser", request.user)
+    user = request.user
 
     selected_event_id = _resolve_selected_event_id(request)
-    available_events = user.visible_events()
+    available_events = events_visible_to(user)
 
     available_dates = _get_schedule_dates(user, event_id=selected_event_id)
     selected_date = _resolve_selected_date(request, available_dates)

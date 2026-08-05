@@ -7,9 +7,9 @@ from .models import Talk
 
 
 if TYPE_CHECKING:
+    from django.contrib.auth.base_user import AbstractBaseUser
+    from django.contrib.auth.models import AnonymousUser
     from django.http import HttpRequest
-
-    from users.models import CustomUser
 
 
 def is_htmx_request(request: HttpRequest) -> bool:
@@ -32,17 +32,23 @@ def parse_iso_date(value: str | None) -> date | None:
         return None
 
 
-def get_talk_by_id_or_pretalx(talk_id: str, *, user: CustomUser | None = None) -> Talk | None:
+def get_talk_by_id_or_pretalx(
+    talk_id: str,
+    *,
+    user: AbstractBaseUser | AnonymousUser | None = None,
+) -> Talk | None:
     """
     Return a Talk by primary key or Pretalx ID.
 
     Try to interpret `talk_id` as the model primary key. If that fails or no Talk exists with that
     pk, fall back to checking the `pretalx_link`.
 
-    When *user* is provided the queryset is scoped to talks the user may access, preventing
-    cross-event information disclosure (a 302 vs 404 reveals whether a talk exists).
+    The queryset is always scoped through ``accessible_to``, including when *user* is ``None``
+    (treated as anonymous), which prevents cross-event information disclosure: a 302 rather
+    than a 404 would reveal that a talk exists. There is deliberately no unscoped branch, so a
+    caller that wants every talk has to reach for ``Talk.objects`` and say so.
     """
-    qs = Talk.objects.accessible_to(user) if user else Talk.objects.all()
+    qs = Talk.objects.accessible_to(user)
 
     # Try to interpret as primary key
     try:
