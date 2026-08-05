@@ -33,8 +33,12 @@ schedule-only once it is announced, and public a few months after the videos are
 ### Who sees what
 
 Listing access is decided in one place, `TalkQuerySet.accessible_to`. Everyone except superusers
-sees the union of two sets: talks on events they hold a ticket for, and talks on events that are not
-hidden.
+sees talks on **active** events only, and within those the union of two sets: talks on events they
+hold a ticket for, and talks on events that are not hidden.
+
+Deactivating an event (`is_active = False`) therefore takes it off the site for everyone, ticket
+holders included. It is already gone from the event picker, so anything still reachable would only
+be reachable by whoever kept a direct link. Superusers keep seeing it, which is how it gets fixed.
 
 The case worth stating plainly is that **being logged in is not itself access**. A visitor with an
 account but no ticket for a hidden event sees exactly what an anonymous visitor sees. Logging in
@@ -69,6 +73,21 @@ refusing to create accounts would not protect anything, it would just stop peopl
 A deactivated account stays deactivated. The `is_active` check runs before the visibility check, so
 making an event public does not readmit anyone who was removed.
 
+### Who got in without a ticket
+
+`EventAccessGrant` records *how* each membership was granted: `ticket`, `open_registration`,
+`discord_role` or `transfer`. `CustomUser.events` only records *that* someone has access, and once
+open registration existed those two stopped being the same thing.
+
+This matters before taking an event back off public visibility. Without the record, the accounts let
+in with no ticket check are indistinguishable from real ticket holders, so they would silently keep
+their access with no way to find them again. The user admin shows the grants read-only under *How
+event access was granted*.
+
+Every login flow goes through `grant_event_access`, which writes both at once. An existing grant
+keeps its original source, so signing in again does not rewrite someone's history. A membership with
+no grant row was added by hand in the admin.
+
 Because account creation is then unauthenticated, `request_login_code` carries a per-IP ceiling
 (`LOGIN_CODE_IP_RATE_LIMIT`) on top of the per-email limit. The per-email key alone does not bound a
 script working through a list of addresses. That ceiling is deliberately loose: the venue's
@@ -78,6 +97,12 @@ attendees share one NAT address, so it has to sit well above the opening-session
 
 Q&A, ratings and saved talks require an account at **every** visibility level, public included.
 Moderating is volunteer work, so opening an event's recordings does not also open its Q&A.
+
+Asking and voting need more than an account: they need a relationship with the event, meaning a
+ticket for it, or an event that is public and therefore open to anyone anyway. Reading the thread
+only needs the talk to be listed. Without that split, a ticket for last year's public archive was
+enough to post into the Q&A of the conference running right now, which is where moderator attention
+is scarcest. Staff and superusers are exempt, because they are the ones moderating.
 
 Those views declare the requirement themselves rather than relying on the URL configuration, and
 `talks/tests/test_access_policy.py` pins the split: every closed endpoint is checked against a
@@ -98,8 +123,16 @@ is available changes over an event's life too.
 | `FROZEN`         | refused            | visible, still votable |
 | `DISABLED`       | refused            | hidden; the page 404s  |
 
+`FROZEN` and `DISABLED` close editing as well as asking. An edit replaces the body wholesale, so
+leaving it open would make editing the way to post new content after a freeze.
+
 A question held for review is visible to its author and to moderators, nobody else. The author half
 matters: otherwise posting into a moderated Q&A is indistinguishable from the post being dropped.
+
+Editing an already-published question runs the same decision again, as if it had just been asked: on
+a moderated event it goes back into the queue, and its votes are reset to the author's own, because
+those votes were cast on the previous wording. The edit form says both things before you commit. Nor
+does answering a held question publish it: only a moderator approving it does that.
 
 `DISABLED` yields nothing even to moderators. The question list polls every ten seconds, so a stale
 tab would otherwise keep serving content after the switch was flipped.
@@ -114,14 +147,31 @@ rather than their question.
     ([`talks/spam.py`](https://github.com/PioneersHub/pyconde-talks/blob/main/talks/spam.py)).
     Deliberately conservative: a single link never flags, because "how does this compare to
     `https://scikit-learn.org`?" is an ordinary question and a rule that fires on it would fill the
-    queue with noise until moderators stopped reading it. Two or more links, a messaging handle or a
-    shortener, or one link alongside shouting will flag. The check runs on edit as well as create,
-    or the way past it would be to post something innocuous and edit the links in afterwards.
+    queue with noise until moderators stopped reading it. Two or more links, a shortener, a
+    messaging platform named next to an actual handle or phone number, or one link alongside
+    shouting will flag.
+
+    Naming a messaging platform on its own does not, and neither does a dotted module path such as
+    `scipy.io`: both are ordinary things to ask about at a Python conference. The check runs on edit
+    as well as create, and for every published status, or the way past it would be to post something
+    innocuous and edit the links in afterwards.
+
+    Obfuscated links (`hxxp://`, `spam dot com`, `spam[dot]com`) are normalized before the links are
+    counted, shouting is measured across short words as well as long ones, an earnings pitch counts
+    as a signal, and a word mixing Latin with another alphabet is treated as a homoglyph swap.
+
+    Deliberately not a library. Akismet would mean an API key, a round trip to a third party on a path
+    that must not block the Q&A, and sending attendees' question text off site, all trained on
+    English blog comments when half the input here is German.
+
 - **Rate limiting**
     ([`talks/ratelimit.py`](https://github.com/PioneersHub/pyconde-talks/blob/main/talks/ratelimit.py)).
     Five questions per talk per ten minutes and twenty per hour overall, per account and never per
-    IP. Moderators are exempt. The allowance is consumed only once a question is actually stored, so
-    a rejected draft does not cost the author part of their quota.
+    IP. Moderators are exempt. The allowance is claimed with an atomic increment before the content
+    is validated, so a burst of concurrent posts cannot all pass a check none of them had counted
+    yet, and refunded if the submission turns out not to be storable, so a rejected draft does not
+    cost the author part of their quota.
+
 - **Turnstile**
     ([`utils/turnstile.py`](https://github.com/PioneersHub/pyconde-talks/blob/main/utils/turnstile.py)).
     Optional. With either key unset it is skipped entirely, so dev and CI need no configuration.

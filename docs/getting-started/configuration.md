@@ -105,6 +105,14 @@ The database is configured from a single connection URL.
     single-worker deployment; point it at Redis for anything larger. The Docker Compose stack ships a
     Redis service and is already configured this way.
 
+    The local backend also caps itself at 300 entries and evicts at random once full, which would lose
+    live rate-limit counters on a busy talk, so `MAX_ENTRIES` is raised for it in settings.
+
+A cache that cannot be reached fails **open**: the rate limiter allows the action and logs a
+warning. Django does not wrap backend errors, so a Redis blip would otherwise surface as an uncaught
+driver exception and turn every question submission into a 500. Losing the limit for the length of
+an outage is a smaller problem than losing the Q&A.
+
 ## Email
 
 Login codes and admin notifications are sent by email. In development this points at Mailpit; in
