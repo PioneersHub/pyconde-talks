@@ -1,9 +1,17 @@
 {% extends "base.html" %}
 {% load i18n %}
 {% load svg_tags %}
+{% get_current_language as LANGUAGE_CODE %}
 {% block title %}
   {% translate "Questions for" %} {{ talk.title }}
 {% endblock title %}
+{% block extra_head %}
+  {% if turnstile_site_key %}
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            async
+            defer></script>
+  {% endif %}
+{% endblock extra_head %}
 {% block content %}
   <div class="container mx-auto px-4 py-8">
     <script>
@@ -17,6 +25,15 @@
       const questionInput = document.getElementById('id_content');
       if (questionInput) {
         questionInput.value = '';
+      }
+    });
+
+    // A Turnstile token is single-use, so after any submit - accepted or rejected - the widget
+    // has to be reset or the next question fails with "timeout-or-duplicate". Guarded on the
+    // global so this is a no-op when the captcha is not configured.
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+      if (evt.detail.elt && evt.detail.elt.id === 'question-form' && globalThis.turnstile) {
+        globalThis.turnstile.reset('#qa-turnstile');
       }
     });
     </script>
@@ -63,6 +80,16 @@
                       class='w-full px-3 py-2 border rounded-md focus:outline-none focus-ring-primary disabled:opacity-50 disabled:cursor-not-allowed'
                       required></textarea>
           </div>
+          {% if turnstile_site_key %}
+            <div class="mb-4">
+              <div id="qa-turnstile"
+                   class="cf-turnstile"
+                   data-sitekey="{{ turnstile_site_key }}"
+                   data-theme="auto"
+                   data-language="{{ LANGUAGE_CODE }}"
+                   data-response-field-name="cf-turnstile-response"></div>
+            </div>
+          {% endif %}
           <div class="flex items-center gap-3">
             <button type="submit"
                     id="question-submit-btn"

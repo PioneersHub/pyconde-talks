@@ -50,6 +50,8 @@
     </title>
     <script src="{% static 'js/htmx.min.js' %}" defer></script>
     <script src="{% static 'js/idiomorph-ext.min.js' %}" defer></script>
+    {% block extra_head %}
+    {% endblock extra_head %}
   </head>
   <body class="app-body">
     <nav class="app-nav">

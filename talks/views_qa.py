@@ -14,6 +14,7 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING, Any, cast
 
 from django import forms
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -29,6 +30,7 @@ from django.utils.translation import (
 from django.views.decorators.http import require_POST, require_safe
 from django.views.generic import CreateView, ListView, UpdateView
 
+from .forms_qa import QuestionForm
 from .models import Talk
 from .models_qa import Question, QuestionQuerySet, QuestionVote
 from .ratelimit import consume, is_rate_limited, question_limits, seconds_until_reset
@@ -158,6 +160,9 @@ class QuestionListView(LoginRequiredMixin, ListView[Question]):
         context["talk"] = self.talk
         context["user_can_moderate"] = is_moderator(self.request.user)
         context["status_filter"] = self.status_filter
+        # Only this page needs the key, so it goes in the view rather than a context processor
+        # that would run on every request including the ten-second poll.
+        context["turnstile_site_key"] = settings.TURNSTILE_SITE_KEY
         return context
 
 
@@ -170,7 +175,7 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
 
     model = Question
     template_name = "talks/questions/question_form.html"
-    fields = ("content",)
+    form_class = QuestionForm
 
     def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         """

@@ -820,6 +820,20 @@ QA_QUESTION_RATE_WINDOW_OVERALL = env.int("QA_QUESTION_RATE_WINDOW_OVERALL", def
 # date badly, so this exists for a conference under a specific ongoing spam campaign.
 QA_SPAM_KEYWORDS = env.list("QA_SPAM_KEYWORDS", default=[])
 
+# Cloudflare Turnstile on the question form. Optional: with either key unset the captcha is
+# skipped entirely, so dev, CI and any deployment that would rather not involve Cloudflare need
+# no configuration. https://developers.cloudflare.com/turnstile/
+TURNSTILE_SITE_KEY = env("TURNSTILE_SITE_KEY", default="")
+TURNSTILE_SECRET_KEY = env("TURNSTILE_SECRET_KEY", default="")
+TURNSTILE_VERIFY_URL = env(
+    "TURNSTILE_VERIFY_URL",
+    default="https://challenges.cloudflare.com/turnstile/v0/siteverify",
+)
+TURNSTILE_TIMEOUT = env.int("TURNSTILE_TIMEOUT", default=5)
+# Let submissions through when Cloudflare cannot be reached. Losing the captcha for a few
+# minutes beats attendees being unable to ask anything during an outage.
+TURNSTILE_FAIL_OPEN = env.bool("TURNSTILE_FAIL_OPEN", default=True)
+
 
 # --------------------------------------------------------------------------------------------------
 # SESSION CHAIRING
