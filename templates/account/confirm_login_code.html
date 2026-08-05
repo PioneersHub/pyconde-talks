@@ -11,6 +11,11 @@
       {% endif %}
       <form method="post" action="{% url 'account_confirm_login_code' %}">
         {% csrf_token %}
+        {% if redirect_field_value %}
+          <input type="hidden"
+                 name="{{ redirect_field_name }}"
+                 value="{{ redirect_field_value }}" />
+        {% endif %}
         <div class="mb-6">
           <label for="{{ form.code.id_for_label }}"
                  class="block text-sm font-medium text-label mb-1">{% trans "Login Code" %}</label>

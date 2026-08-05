@@ -33,6 +33,11 @@
       {% include "partials/alert_error.html" with message=form.non_field_errors icon="envelope" %}
       <form method="post" action="{% url 'account_request_login_code' %}">
         {% csrf_token %}
+        {% if redirect_field_value %}
+          <input type="hidden"
+                 name="{{ redirect_field_name }}"
+                 value="{{ redirect_field_value }}" />
+        {% endif %}
         {% include "partials/event_selector.html" %}
         <div class="mb-6">
           <div class="flex justify-between items-center mb-1">
