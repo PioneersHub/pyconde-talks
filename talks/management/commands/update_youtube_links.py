@@ -11,12 +11,10 @@ map needs no database IDs and can be produced straight from the YouTube upload s
 """
 
 import json
-import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError, CommandParser
@@ -24,57 +22,23 @@ from django.db import transaction
 
 from events.models import Event
 from talks.models import Talk
+from utils.url import YOUTUBE_ID_PATTERN, youtube_video_id
 
 
 # cspell:ignore KFPNUA
 
-# YouTube video IDs are 11 characters of the URL-safe base64 alphabet. Checking the shape keeps a
-# typo, an empty value, or a whole URL pasted into the map from being stored as a broken link.
-YOUTUBE_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{11}$")
-
-# The short form is what the map is written for. The embed form is what YouTube allows inside an
-# iframe, so keep it available for when the player refuses to frame a youtu.be URL.
-URL_FORMATS = {
-    "short": "https://youtu.be/{video_id}",
-    "embed": "https://www.youtube.com/embed/{video_id}",
-}
-DEFAULT_URL_FORMAT = "short"
+# Talks store the short form the map is written for. Nothing here has to care whether the player
+# can frame it: ``Talk.get_video_link`` converts to the embeddable URL on the way to the template.
+YOUTUBE_URL_TEMPLATE = "https://youtu.be/{video_id}"
 
 # How many still-missing codes to spell out in the summary before switching to a count.
 MAX_LISTED_CODES = 20
 
 
-def extract_video_id(link: str) -> str:
-    """
-    Return the YouTube video ID *link* points at, or "" when it points at something else.
-
-    Used to tell "this talk already has this recording" from "this talk needs updating", so a
-    re-run of the command is a no-op instead of rewriting every row. Both URL formats this
-    command writes are recognized, plus the ``watch?v=`` form a human may have pasted by hand.
-    """
-    if not link:
-        return ""
-
-    parsed = urlparse(link)
-    host = parsed.netloc.lower().removeprefix("www.")
-    path = parsed.path.strip("/")
-
-    if host == "youtu.be":
-        candidate = path
-    elif host == "youtube.com":
-        candidate = path.removeprefix("embed/") if path.startswith("embed/") else ""
-        candidate = candidate or parse_qs(parsed.query).get("v", [""])[0]
-    else:
-        return ""
-
-    return candidate if YOUTUBE_ID_PATTERN.match(candidate) else ""
-
-
 @dataclass(frozen=True)
 class UpdatePlan:
-    """How a YouTube ID becomes a stored link, and what to do with links already there."""
+    """What to do with links that are already on the talks being updated."""
 
-    url_template: str = URL_FORMATS[DEFAULT_URL_FORMAT]
     dry_run: bool = False
     skip_existing: bool = False
 
@@ -110,13 +74,6 @@ class Command(BaseCommand):
             default=getattr(settings, "DEFAULT_EVENT", ""),
             help="Only update talks of this event (default: DEFAULT_EVENT). Pass an empty "
             "string to match talks of every event.",
-        )
-        parser.add_argument(
-            "--url-format",
-            choices=sorted(URL_FORMATS),
-            default=DEFAULT_URL_FORMAT,
-            help=f"Stored link format: 'short' for {URL_FORMATS['short']}, "
-            f"'embed' for {URL_FORMATS['embed']} (default: {DEFAULT_URL_FORMAT})",
         )
         parser.add_argument(
             "--skip-existing",
@@ -243,7 +200,7 @@ class Command(BaseCommand):
         stats: UpdateStats,
     ) -> None:
         """Store the recording link on *talk*, unless it is already there or must be kept."""
-        if extract_video_id(talk.video_link) == video_id:
+        if youtube_video_id(talk.video_link) == video_id:
             stats.unchanged += 1
             return
 
@@ -254,7 +211,7 @@ class Command(BaseCommand):
             )
             return
 
-        video_link = plan.url_template.format(video_id=video_id)
+        video_link = YOUTUBE_URL_TEMPLATE.format(video_id=video_id)
         stats.updated += 1
         self.stdout.write(f"{talk.pretalx_code}: {video_link} -> '{talk.title}'")
         if plan.dry_run:
@@ -305,7 +262,6 @@ class Command(BaseCommand):
         self.stdout.write(f"Loaded {len(video_ids)} Pretalx code(s) from {path}, matching {scope}")
 
         plan = UpdatePlan(
-            url_template=URL_FORMATS[options.get("url_format") or DEFAULT_URL_FORMAT],
             dry_run=dry_run,
             skip_existing=options.get("skip_existing", False),
         )

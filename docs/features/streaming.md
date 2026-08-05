@@ -60,6 +60,17 @@ YouTube links get `enablejsapi=1` appended automatically when the talk is saved
 so re-saving does not keep appending it. The `video_link` field is also validated on save by
 `validate_video_link`.
 
+Any YouTube link is stored in whatever form it arrived in, and converted to
+`https://www.youtube.com/embed/<id>` by `get_video_link()` on the way to the template. This is not
+cosmetic: YouTube answers `youtu.be/<id>`, `watch?v=<id>`, `shorts/<id>`, and `live/<id>` with
+`X-Frame-Options: SAMEORIGIN`, so framing one of those shows an empty box, and the IFrame API needs
+the embed path too. Converting on read rather than on write means organizers can keep pasting short
+links, and rows that already hold one start working without a data migration. Query parameters are
+carried over so `enablejsapi=1` survives, and a `t=90` offset from a shared link becomes the
+`start=90` the embedded player understands. Non-YouTube links pass through untouched. The conversion
+lives in `youtube_embed_url()` in
+[`utils/url.py`](https://github.com/PioneersHub/pyconde-talks/blob/main/utils/url.py).
+
 A live stream is detected with `has_active_streaming()`: true when the matched streaming's window
 contains the current time. The detail page uses this to switch the start-of-talk control from a
 seekable "Jump to" button to a "please skip manually" note, since you cannot reliably seek a live
@@ -109,10 +120,7 @@ talk). `--dry-run` reports the counts without writing.
 `update_youtube_links` does the same job for recordings published on YouTube, but reads a local JSON
 file mapping each Pretalx code to a YouTube video ID instead of calling an API. It matches on
 `Talk.pretalx_code` too, skips codes that match more than one talk, and re-running it changes
-nothing because a link already pointing at the mapped video counts as unchanged. Note that the
-detail page frames `video_link` directly, and YouTube only allows framing of
-`https://www.youtube.com/embed/<id>`, so pass `--url-format embed` when the stored link has to play
-in the on-site player. See
+nothing because a link already pointing at the mapped video counts as unchanged. See
 [Management commands](../reference/management-commands.md#update_youtube_links) for the flags.
 
 ## Transcriptions

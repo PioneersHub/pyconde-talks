@@ -309,8 +309,8 @@ The file is a flat JSON object, one entry per talk:
 
 - Match each Pretalx code in the map to a talk through `Talk.pretalx_code`, the last path segment of
     `pretalx_link`.
-- Set the matched talk's `video_link` to the YouTube URL and reset `video_start_time` to `0`, since
-    a per-talk upload already starts at the talk.
+- Set the matched talk's `video_link` to `https://youtu.be/<id>` and reset `video_start_time` to
+    `0`, since a per-talk upload already starts at the talk.
 - Report every code that matched no talk, matched more than one, or carried an unusable video ID,
     plus the talks still without a recording that the map does not cover.
 
@@ -322,13 +322,12 @@ uv run python manage.py update_youtube_links PyConDE_2026-Pretalx_YouTube_map.js
 
 Runs inside a single transaction.
 
-!!! warning "Pick the URL format that your player can frame"
+!!! info "The stored form is not the rendered form"
 
-    The talk detail page puts `video_link` straight into an `<iframe src>`. YouTube serves
-    `https://youtu.be/<id>` with `X-Frame-Options: SAMEORIGIN`, so that form is refused inside the
-    player; only `https://www.youtube.com/embed/<id>` can be framed, and the IFrame API that drives the
-    jump-to-time button needs it too. The default is the short form, which is what the map is usually
-    written for. Pass `--url-format embed` to store embeddable URLs instead.
+    Talks keep the short `https://youtu.be/<id>` URL. `Talk.get_video_link()` converts it to
+    `https://www.youtube.com/embed/<id>` on the way to the template, because YouTube serves every other
+    path with `X-Frame-Options: SAMEORIGIN` and refuses to be framed. Nothing has to be normalized on
+    the way in, and rows that already hold a short link are fixed on read.
 
 !!! note "Re-running is a no-op"
 
@@ -339,13 +338,12 @@ Runs inside a single transaction.
 
 ### Flags
 
-| Flag              | Default                 | What it does                                                          |
-| ----------------- | ----------------------- | --------------------------------------------------------------------- |
-| `json_file`       | required (positional)   | Path to the JSON map of Pretalx codes to YouTube IDs.                 |
-| `--event-slug`    | `DEFAULT_EVENT` setting | Only update talks of this event. Pass `''` to match every event.      |
-| `--url-format`    | `short`                 | `short` for `https://youtu.be/<id>`, `embed` for the embeddable form. |
-| `--skip-existing` | off                     | Leave talks that already have a video link untouched.                 |
-| `--dry-run`       | off                     | Report what would change without writing.                             |
+| Flag              | Default                 | What it does                                                     |
+| ----------------- | ----------------------- | ---------------------------------------------------------------- |
+| `json_file`       | required (positional)   | Path to the JSON map of Pretalx codes to YouTube IDs.            |
+| `--event-slug`    | `DEFAULT_EVENT` setting | Only update talks of this event. Pass `''` to match every event. |
+| `--skip-existing` | off                     | Leave talks that already have a video link untouched.            |
+| `--dry-run`       | off                     | Report what would change without writing.                        |
 
 ### Required configuration
 
@@ -361,12 +359,6 @@ Yes. `--dry-run` prints the same per-talk lines and summary as a real run, but w
 
     ```bash
     uv run python manage.py update_youtube_links map.json --dry-run
-    ```
-
-=== "Store embeddable URLs"
-
-    ```bash
-    uv run python manage.py update_youtube_links map.json --url-format embed
     ```
 
 === "Only fill talks that have no recording yet"

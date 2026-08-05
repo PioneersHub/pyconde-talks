@@ -2,20 +2,18 @@
 # ruff: noqa: PLR2004
 
 import json
+from datetime import timedelta
 from io import StringIO
 from typing import TYPE_CHECKING, Any
 
 import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.utils import timezone
 from model_bakery import baker
 
 from events.models import Event
-from talks.management.commands.update_youtube_links import (
-    Command,
-    UpdatePlan,
-    extract_video_id,
-)
+from talks.management.commands.update_youtube_links import Command, UpdatePlan
 from talks.models import Talk
 
 
@@ -58,37 +56,6 @@ def make_talk(code: str, **kwargs: Any) -> Talk:
         **kwargs,
     )
     return talk
-
-
-# ---------------------------------------------------------------------------
-# extract_video_id
-# ---------------------------------------------------------------------------
-class TestExtractVideoId:
-    """Verify extract_video_id recognizes the YouTube URL forms and rejects the rest."""
-
-    @pytest.mark.parametrize(
-        "link",
-        [
-            f"https://youtu.be/{VIDEO_ID}",
-            f"https://youtu.be/{VIDEO_ID}?enablejsapi=1",
-            f"https://www.youtube.com/embed/{VIDEO_ID}",
-            f"https://youtube.com/embed/{VIDEO_ID}?enablejsapi=1",
-            f"https://www.youtube.com/watch?v={VIDEO_ID}",
-        ],
-        ids=["short", "short-enriched", "embed", "embed-enriched", "watch"],
-    )
-    def test_recognized_forms(self, link: str) -> None:
-        """Pull the ID out of every YouTube URL form the site may hold."""
-        assert extract_video_id(link) == VIDEO_ID
-
-    @pytest.mark.parametrize(
-        "link",
-        ["", "https://vimeo.com/123456789", "https://youtu.be/", "https://youtu.be/too-short"],
-        ids=["empty", "vimeo", "no-id", "malformed-id"],
-    )
-    def test_unrecognized_forms(self, link: str) -> None:
-        """Return an empty string for links that do not carry a YouTube video ID."""
-        assert extract_video_id(link) == ""
 
 
 # ---------------------------------------------------------------------------
@@ -192,13 +159,13 @@ class TestUpdateVideoLinks:
         assert talk.video_start_time == 0
         assert stats.updated == 1
 
-    def test_embed_url_format(self, command: Command) -> None:
-        """Store the embeddable URL when the embed format is chosen."""
-        talk = make_talk("KFPNUA")
-        plan = UpdatePlan(url_template="https://www.youtube.com/embed/{video_id}")
-        command.update_video_links({"KFPNUA": VIDEO_ID}, command.talks_by_code(None), plan)
+    def test_stored_link_is_playable(self, command: Command) -> None:
+        """The short URL that lands in the database renders as an embeddable one."""
+        talk = make_talk("KFPNUA", start_time=timezone.now() - timedelta(hours=2))
+        command.update_video_links({"KFPNUA": VIDEO_ID}, command.talks_by_code(None))
         talk.refresh_from_db()
-        assert talk.video_link == f"https://www.youtube.com/embed/{VIDEO_ID}?enablejsapi=1"
+        talk.videos_unlocked = True
+        assert talk.get_video_link() == f"https://www.youtube.com/embed/{VIDEO_ID}?enablejsapi=1"
 
     def test_rerun_is_a_noop(self, command: Command) -> None:
         """A second run over the same map changes nothing, whatever the stored URL form."""
@@ -391,19 +358,6 @@ class TestHandleCommand:
         output = stdout.getvalue()
         assert "DRY RUN" in output
         assert "Dry run completed" in output
-
-    def test_embed_format_flag(self, json_map: Path) -> None:
-        """--url-format embed stores the iframe-embeddable URL."""
-        talk = make_talk("KFPNUA")
-        call_command(
-            "update_youtube_links",
-            str(json_map),
-            "--event-slug=",
-            "--url-format=embed",
-            stdout=StringIO(),
-        )
-        talk.refresh_from_db()
-        assert talk.video_link == f"https://www.youtube.com/embed/{VIDEO_ID}?enablejsapi=1"
 
     def test_event_scoping(self, json_map: Path) -> None:
         """Only talks of the given event are updated, even on a shared Pretalx code."""
