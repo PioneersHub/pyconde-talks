@@ -6,11 +6,20 @@ This module provides unit test for utils.url.
 
 import pytest
 
-from utils.url import add_query_param, youtube_embed_url, youtube_video_id
+from utils.url import (
+    add_query_param,
+    embeddable_video_url,
+    vimeo_embed_url,
+    youtube_embed_url,
+    youtube_video_id,
+)
 
 
 VIDEO_ID = "Z7Xlj2eG8sc"
 EMBED_URL = f"https://www.youtube.com/embed/{VIDEO_ID}"
+
+VIMEO_ID = "123456789"
+VIMEO_EMBED = f"https://player.vimeo.com/video/{VIMEO_ID}"
 
 
 class TestURL:
@@ -139,3 +148,86 @@ class TestYoutubeEmbedUrl:
     def test_passes_other_links_through(self, url: str) -> None:
         """Anything that is not a YouTube video URL is returned untouched."""
         assert youtube_embed_url(url) == url
+
+
+class TestVimeoEmbedUrl:
+    """Verify vimeo_embed_url converts watch pages into player URLs."""
+
+    def test_converts_watch_page(self) -> None:
+        """A pasted vimeo.com link becomes the player URL that may be framed."""
+        assert vimeo_embed_url(f"https://vimeo.com/{VIMEO_ID}") == VIMEO_EMBED
+
+    def test_ignores_a_trailing_slash(self) -> None:
+        """A trailing slash does not turn the link into an unrecognized shape."""
+        assert vimeo_embed_url(f"https://vimeo.com/{VIMEO_ID}/") == VIMEO_EMBED
+
+    def test_unlisted_hash_in_the_path(self) -> None:
+        """An unlisted video's path hash becomes the ``h`` parameter the player needs."""
+        assert vimeo_embed_url(f"https://vimeo.com/{VIMEO_ID}/abc123def") == (
+            f"{VIMEO_EMBED}?h=abc123def"
+        )
+
+    def test_unlisted_hash_in_the_query(self) -> None:
+        """The ``?h=`` form of an unlisted link is carried over as-is."""
+        assert vimeo_embed_url(f"https://vimeo.com/{VIMEO_ID}?h=abc123def") == (
+            f"{VIMEO_EMBED}?h=abc123def"
+        )
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "",
+            VIMEO_EMBED,
+            f"{VIMEO_EMBED}?h=abc123def",
+            "https://vimeo.com/pyconde",
+            "https://vimeo.com/channels/staffpicks/123456789",
+            "https://vimeo.com/event/123456",
+            f"https://youtu.be/{VIDEO_ID}",
+        ],
+        ids=[
+            "empty",
+            "already-player",
+            "already-player-unlisted",
+            "user-page",
+            "channel",
+            "live-event",
+            "youtube",
+        ],
+    )
+    def test_passes_other_links_through(self, url: str) -> None:
+        """
+        Leave alone anything that is not a plain Vimeo video page.
+
+        Channel, showcase, and live-event URLs also hold a number, but not a video ID, so
+        rewriting them into a player URL would point the iframe at the wrong thing (or nothing).
+        """
+        assert vimeo_embed_url(url) == url
+
+
+class TestEmbeddableVideoUrl:
+    """Verify the dispatcher picks the right provider and leaves the rest alone."""
+
+    @pytest.mark.parametrize(
+        ("url", "expected"),
+        [
+            (f"https://youtu.be/{VIDEO_ID}", EMBED_URL),
+            (f"https://www.youtube.com/watch?v={VIDEO_ID}", EMBED_URL),
+            (f"https://vimeo.com/{VIMEO_ID}", VIMEO_EMBED),
+            (EMBED_URL, EMBED_URL),
+            (VIMEO_EMBED, VIMEO_EMBED),
+            ("https://example.com/talk.mp4", "https://example.com/talk.mp4"),
+            ("", ""),
+        ],
+        ids=[
+            "youtube-short",
+            "youtube-watch",
+            "vimeo",
+            "youtube-embed",
+            "vimeo-player",
+            "other",
+            "empty",
+        ],
+    )
+    def test_dispatches_by_provider(self, url: str, expected: str) -> None:
+        """Convert YouTube and Vimeo watch URLs, pass everything else through."""
+        assert embeddable_video_url(url) == expected

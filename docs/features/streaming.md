@@ -60,15 +60,26 @@ YouTube links get `enablejsapi=1` appended automatically when the talk is saved
 so re-saving does not keep appending it. The `video_link` field is also validated on save by
 `validate_video_link`.
 
-Any YouTube link is stored in whatever form it arrived in, and converted to
-`https://www.youtube.com/embed/<id>` by `get_video_link()` on the way to the template. This is not
-cosmetic: YouTube answers `youtu.be/<id>`, `watch?v=<id>`, `shorts/<id>`, and `live/<id>` with
-`X-Frame-Options: SAMEORIGIN`, so framing one of those shows an empty box, and the IFrame API needs
-the embed path too. Converting on read rather than on write means organizers can keep pasting short
-links, and rows that already hold one start working without a data migration. Query parameters are
-carried over so `enablejsapi=1` survives, and a `t=90` offset from a shared link becomes the
-`start=90` the embedded player understands. Non-YouTube links pass through untouched. The conversion
-lives in `youtube_embed_url()` in
+### Watch pages cannot be framed
+
+Links are stored in whatever form they arrive in, and `get_video_link()` converts them to the
+framable form on the way to the template. This is not cosmetic. Both providers serve their watch
+pages with `X-Frame-Options: SAMEORIGIN`, so dropping one into the iframe shows an empty box:
+
+| Stored (a person's link)                          | Rendered (framable)                           |
+| ------------------------------------------------- | --------------------------------------------- |
+| `youtu.be/<id>`, `watch?v=<id>`, `shorts`, `live` | `https://www.youtube.com/embed/<id>`          |
+| `vimeo.com/<id>`, `vimeo.com/<id>/<hash>`         | `https://player.vimeo.com/video/<id>[?h=...]` |
+
+Converting on read rather than on write means organizers can keep pasting whatever the share button
+gave them, and rows that already hold such a link start working without a data migration. Query
+parameters are carried over, so the `enablejsapi=1` that `_enrich_video_link` appends survives, a
+YouTube `t=90` offset becomes the `start=90` the embedded player understands, and an unlisted Vimeo
+video keeps the `h` privacy hash it cannot load without.
+
+Anything else passes through untouched, including URLs that merely look close. A Vimeo channel,
+showcase, or live-event URL also holds a number, but not a video ID, so rewriting it would point the
+iframe at the wrong thing. The conversion lives in `embeddable_video_url()` in
 [`utils/url.py`](https://github.com/PioneersHub/pyconde-talks/blob/main/utils/url.py).
 
 A live stream is detected with `has_active_streaming()`: true when the matched streaming's window

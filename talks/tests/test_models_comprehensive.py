@@ -427,11 +427,18 @@ class TestTalkComprehensive:
         assert talk.get_video_link() == f"https://www.youtube.com/embed/{YOUTUBE_ID}"
 
     @override_settings(SHOW_UPCOMING_TALKS_LINKS=True)
-    def test_get_video_link_leaves_vimeo_alone(self) -> None:
-        """Vimeo links are already embeddable and must pass through untouched."""
+    def test_get_video_link_leaves_the_vimeo_player_alone(self) -> None:
+        """A Vimeo player URL is already embeddable and must pass through untouched."""
         talk = baker.make(Talk, video_link="https://player.vimeo.com/video/111", room=None)
         talk.videos_unlocked = True
         assert talk.get_video_link() == "https://player.vimeo.com/video/111"
+
+    @override_settings(SHOW_UPCOMING_TALKS_LINKS=True)
+    def test_get_video_link_converts_vimeo_to_player(self) -> None:
+        """A pasted Vimeo watch page is converted too: it is framed exactly the same way."""
+        talk = baker.make(Talk, video_link="https://vimeo.com/123456789", room=None)
+        talk.videos_unlocked = True
+        assert talk.get_video_link() == "https://player.vimeo.com/video/123456789"
 
     @override_settings(SHOW_UPCOMING_TALKS_LINKS=True)
     def test_video_provider_short_youtube_link(self) -> None:

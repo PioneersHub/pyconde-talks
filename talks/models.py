@@ -21,7 +21,7 @@ from django.utils.translation import gettext_lazy as _
 from events.models import PUBLICLY_LISTED_VISIBILITIES, Event
 from talks.types import RatingStats, VideoProvider
 from talks.validators import validate_video_link
-from utils.url import add_query_param, youtube_embed_url
+from utils.url import add_query_param, embeddable_video_url
 
 
 if TYPE_CHECKING:
@@ -901,11 +901,11 @@ class Talk(models.Model):
             return ""
 
         if self.video_link:
-            return youtube_embed_url(self.video_link)
+            return embeddable_video_url(self.video_link)
 
         streaming = self.streaming
         if streaming:
-            return youtube_embed_url(streaming.video_link)
+            return embeddable_video_url(streaming.video_link)
 
         return ""
 
