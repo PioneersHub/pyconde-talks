@@ -23,6 +23,7 @@ from django.utils.translation import gettext_lazy
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from events.models import Event
+from users.models import EventAccessGrant, grant_event_access
 from utils.email_utils import hash_email
 
 
@@ -177,7 +178,7 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
                 event_slug=event.slug,
             )
             if user:
-                user.events.add(event)
+                grant_event_access(user, event, EventAccessGrant.Source.OPEN_REGISTRATION)
             return True
 
         return self._authorize_by_ticket(email, email_hash, user, event)
@@ -209,7 +210,7 @@ class AccountAdapter(DefaultAccountAdapter):  # type: ignore[misc]
         # Validation passed - associate the existing user with the event
         # (new users are handled later when the user is created in the view).
         if user and event:
-            user.events.add(event)
+            grant_event_access(user, event, EventAccessGrant.Source.TICKET)
             logger.info(
                 "Associated existing user with event",
                 email=email_hash,

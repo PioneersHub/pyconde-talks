@@ -3,9 +3,11 @@
 from typing import TYPE_CHECKING, Any
 
 import pytest
+from model_bakery import baker
 
 from events.models import Event
 from users.adapters import AccountAdapter
+from users.models import CustomUser, EventAccessGrant, grant_event_access
 
 
 if TYPE_CHECKING:
@@ -352,3 +354,86 @@ class TestPublicEventOpenRegistration:
             visibility=Event.Visibility.PUBLIC,
         )
         assert adapter.can_login_by_email("anyone@example.com") is True
+
+
+@pytest.mark.django_db
+class TestAccessProvenanceIsRecorded:
+    """
+    Every membership handed out by the login flows records how it was granted.
+
+    Without it an account let in by open registration on a public event is indistinguishable
+    from a ticket holder, so taking that event back off public visibility would silently leave
+    behind members who were never checked, with no way to find them again.
+    """
+
+    def test_open_registration_is_recorded_as_such(self, adapter: AccountAdapter) -> None:
+        """A public event grants access with no ticket check, and says so."""
+        event = Event.objects.create(
+            name="Archive",
+            slug="archive",
+            visibility=Event.Visibility.PUBLIC,
+            is_active=True,
+        )
+        user = baker.make(CustomUser, email="anyone@example.com")
+        adapter.set_selected_event(event)
+
+        assert adapter.is_email_authorized("anyone@example.com") is True
+
+        grant = EventAccessGrant.objects.get(user=user, event=event)
+        assert grant.source == EventAccessGrant.Source.OPEN_REGISTRATION
+        assert grant.was_ticket_checked is False
+
+    def test_a_repeat_login_keeps_the_original_source(self, adapter: AccountAdapter) -> None:
+        """
+        A second sign-in must not rewrite history.
+
+        Someone ticket-checked last year does not become an open-registration member because
+        they signed in again after the event was made public.
+        """
+        event = Event.objects.create(
+            name="Archive",
+            slug="archive",
+            visibility=Event.Visibility.PUBLIC,
+            is_active=True,
+        )
+        user = baker.make(CustomUser, email="member@example.com")
+        grant_event_access(user, event, EventAccessGrant.Source.TICKET)
+        adapter.set_selected_event(event)
+
+        assert adapter.is_email_authorized("member@example.com") is True
+
+        grant = EventAccessGrant.objects.get(user=user, event=event)
+        assert grant.source == EventAccessGrant.Source.TICKET
+        assert EventAccessGrant.objects.filter(user=user, event=event).count() == 1
+
+    def test_granting_twice_makes_one_record(self) -> None:
+        """The helper is idempotent, so a retried flow does not duplicate the row."""
+        event = Event.objects.create(name="Event", slug="event", is_active=True)
+        user = baker.make(CustomUser, email="someone@example.com")
+
+        grant_event_access(user, event, EventAccessGrant.Source.TICKET)
+        grant_event_access(user, event, EventAccessGrant.Source.TICKET)
+
+        assert EventAccessGrant.objects.filter(user=user, event=event).count() == 1
+        assert event in user.events.all()
+
+    def test_a_ticket_checked_grant_reads_as_checked(self) -> None:
+        """The property the admin leans on, for both of the verified sources."""
+        event = Event.objects.create(name="Event", slug="event", is_active=True)
+        user = baker.make(CustomUser, email="someone@example.com")
+        grant_event_access(user, event, EventAccessGrant.Source.TICKET)
+
+        assert EventAccessGrant.objects.get(user=user).was_ticket_checked is True
+
+    def test_membership_without_a_grant_is_left_alone(self) -> None:
+        """
+        An event assigned by hand in the admin has no grant row, and that is the answer.
+
+        Inventing an "unknown" source would claim the flows recorded something they did not.
+        """
+        event = Event.objects.create(name="Event", slug="event", is_active=True)
+        user = baker.make(CustomUser, email="someone@example.com")
+        user.events.add(event)
+
+        assert event in user.events.all()
+        assert not EventAccessGrant.objects.filter(user=user).exists()

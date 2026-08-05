@@ -12,7 +12,7 @@ from django.urls import URLPattern, path, reverse
 from django.utils.translation import gettext_lazy as _
 
 from .forms import CustomUserChangeForm, RegularUserCreationForm, SuperUserCreationForm
-from .models import CustomUser, Ticket
+from .models import CustomUser, EventAccessGrant, Ticket
 
 
 if TYPE_CHECKING:
@@ -59,6 +59,33 @@ class TicketInline(admin.TabularInline[Ticket, CustomUser]):
     fields: ClassVar[tuple[str, ...]] = ("ticket_id", "event", "created_at")
     readonly_fields: ClassVar[list[str]] = ["created_at"]
     autocomplete_fields: ClassVar[tuple[str, ...]] = ("event",)
+
+
+class EventAccessGrantInline(admin.TabularInline[EventAccessGrant, CustomUser]):
+    """
+    Read-only inline showing how this user got access to each of their events.
+
+    The point is to answer "who is here without a ticket check" before an event is taken back
+    off public visibility. Read-only because the record describes something that already
+    happened; editing it would only make it lie. A membership with no row here was added
+    straight through the ``events`` widget above, or predates this record.
+    """
+
+    model = EventAccessGrant
+    extra = 0
+    can_delete = False
+    fields: ClassVar[tuple[str, ...]] = ("event", "source", "created_at")
+    readonly_fields: ClassVar[tuple[str, ...]] = ("event", "source", "created_at")
+    verbose_name = _("Event access grant")
+    verbose_name_plural = _("How event access was granted")
+
+    def has_add_permission(self, request: HttpRequest, obj: CustomUser | None = None) -> bool:  # noqa: ARG002
+        """Grants are written by the login flows, never by hand."""
+        return False
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet[EventAccessGrant]:
+        """Fetch the event with the grant, which every row renders."""
+        return super().get_queryset(request).select_related("event")
 
 
 class EmailAddressInline(admin.TabularInline[EmailAddress, CustomUser]):
@@ -220,7 +247,7 @@ class CustomUserAdmin(UserAdmin[CustomUser]):
 
     readonly_fields = ("date_joined", "last_login")
     filter_horizontal = ("events",)
-    inlines = (EmailAddressInline, TicketInline)
+    inlines = (EmailAddressInline, TicketInline, EventAccessGrantInline)
     list_per_page = 25
 
     def get_urls(self) -> list[URLPattern]:

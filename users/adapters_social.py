@@ -20,6 +20,7 @@ from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
 
 from events.models import Event
+from users.models import EventAccessGrant, grant_event_access
 
 
 # Provider key used by django-allauth's Discord integration. Centralized here so the
@@ -207,9 +208,11 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
         if not adapter.can_login_by_email(verified_email):
             return
 
-        # Transfer event associations.
+        # Transfer event associations. Recorded as a transfer rather than re-deriving a source:
+        # the original grant belonged to the account being merged away, and guessing would
+        # misreport a ticket holder as an open registration or the other way round.
         for event in orphan_user.events.all():
-            current_user.events.add(event)
+            grant_event_access(current_user, event, EventAccessGrant.Source.TRANSFER)
 
         # Move the SocialAccount to the current user.
         sociallogin.account.user = current_user
@@ -306,7 +309,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # type: ignore[misc]
             logger.warning("DEFAULT_EVENT not found", slug=slug)
             return
         if not user.events.filter(pk=event.pk).exists():
-            user.events.add(event)
+            grant_event_access(user, event, EventAccessGrant.Source.DISCORD_ROLE)
             logger.info("Associated user with default event", user_pk=user.pk, event_slug=slug)
 
     @staticmethod

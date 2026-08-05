@@ -27,6 +27,7 @@ from django.views.i18n import set_language as django_set_language
 from events.models import Event
 from events.session import set_selected_event_slug
 from users.adapters_social import DISCORD_PROVIDER
+from users.models import access_source_for, grant_event_access
 from users.validators import validate_display_name
 from utils.email_utils import hash_email, obfuscate_email
 
@@ -72,7 +73,10 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
         logger.info("Creating new user account", email=email_hash)
         user = UserModel.objects.create_user(email=email, is_active=True)  # type: ignore[attr-defined]
         if event:
-            user.events.add(event)
+            # The adapter has already authorized this email. Which path it took is decided by
+            # the event's visibility, so ``access_source_for`` reads it back rather than
+            # threading the decision through the form.
+            grant_event_access(user, event, access_source_for(event))
         logger.info("Successfully created user account", email=email_hash)
         flows.login_by_code.LoginCodeVerificationProcess.initiate(
             request=self.request,
@@ -133,7 +137,7 @@ class CustomRequestLoginCodeView(RequestLoginCodeView):  # type: ignore[misc]
         if event:
             existing_user = cast("CustomUser | None", UserModel.objects.filter(email=email).first())
             if existing_user:
-                existing_user.events.add(event)
+                grant_event_access(existing_user, event, access_source_for(event))
 
         # Proceed with standard login code process
         logger.info("Form is valid", email=email_hash)

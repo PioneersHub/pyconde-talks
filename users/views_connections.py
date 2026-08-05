@@ -31,6 +31,7 @@ from django.views.decorators.http import require_http_methods
 
 from events.models import Event
 from users.adapters_social import DISCORD_PROVIDER
+from users.models import EventAccessGrant, grant_event_access
 from utils.email_utils import hash_email, obfuscate_email
 
 
@@ -345,6 +346,7 @@ def _finalize_add_email(
     if event_slug:
         event = Event.objects.filter(slug=event_slug, is_active=True).first()
         if event:
-            user.events.add(event)
+            # This flow exists to connect a ticket email, so the ticket path is the source.
+            grant_event_access(user, event, EventAccessGrant.Source.TICKET)
 
     logger.info("Email address verified and added", user_pk=user.pk, email=hash_email(email))

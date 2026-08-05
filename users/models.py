@@ -27,6 +27,11 @@ if TYPE_CHECKING:
     from events.models import Event
 
 
+# Lazy model reference, so this module does not import events.models for the relations and can
+# stay importable from it.
+_EVENT_MODEL = "events.Event"
+
+
 class InvalidEmailError(Exception):
     """Exception raised when an invalid email is provided."""
 
@@ -169,7 +174,7 @@ class CustomUser(AbstractUser):
     )
 
     events: models.ManyToManyField[Event, Event] = models.ManyToManyField(
-        "events.Event",
+        _EVENT_MODEL,
         related_name="users",
         blank=True,
         help_text=_("Events the user has access to"),
@@ -253,6 +258,103 @@ class CustomUser(AbstractUser):
         super().save(*args, **kwargs)
 
 
+class EventAccessGrant(models.Model):
+    """
+    Records how a user came to have access to an event.
+
+    ``CustomUser.events`` records *that* someone has access. It does not record why, and once
+    public events opened registration those two cases stopped being equivalent: an account let
+    in with no ticket check looks exactly like a ticket holder. Flipping a public event back to
+    schedule-only would then silently leave behind members who were never checked, with no way
+    to find them again.
+
+    A companion table rather than a ``through`` model on the M2M. ``through`` would be the
+    tidier data model, but it forbids the admin's ``filter_horizontal`` widget that organizers
+    use to assign events in bulk, and it means migrating the live membership table. Membership
+    stays the M2M's business; this annotates it. A membership with no row here was either made
+    directly in the admin or predates this record, which is why there is no "unknown" choice
+    pretending otherwise.
+    """
+
+    class Source(models.TextChoices):
+        """How the access was granted."""
+
+        TICKET = "ticket", _("Ticket validated by the event API")
+        OPEN_REGISTRATION = "open_registration", _("Open registration (public event, no check)")
+        DISCORD_ROLE = "discord_role", _("Discord role")
+        TRANSFER = "transfer", _("Transferred from a merged account")
+
+    user = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.CASCADE,
+        related_name="event_access_grants",
+    )
+    event = models.ForeignKey(
+        _EVENT_MODEL,
+        on_delete=models.CASCADE,
+        related_name="access_grants",
+    )
+    source = models.CharField(
+        max_length=20,
+        choices=Source.choices,
+        help_text=_("How this user got access to this event."),
+    )
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        """Metadata for the EventAccessGrant model."""
+
+        verbose_name = _("Event access grant")
+        verbose_name_plural = _("Event access grants")
+        constraints: ClassVar[list[models.UniqueConstraint]] = [
+            models.UniqueConstraint(
+                fields=["user", "event"],
+                name="unique_event_access_grant_per_user",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        """Return the user, event and how access was granted."""
+        return f"{self.user} @ {self.event} ({self.Source(self.source).label})"
+
+    @property
+    def was_ticket_checked(self) -> bool:
+        """Return whether a ticket was actually verified for this grant."""
+        return self.source in (self.Source.TICKET, self.Source.DISCORD_ROLE)
+
+
+def grant_event_access(
+    user: CustomUser,
+    event: Event,
+    source: str,
+) -> None:
+    """
+    Give *user* access to *event* and record why.
+
+    The one place membership is handed out, so the record cannot drift from the membership it
+    describes. An existing grant keeps its original source: someone who was ticket-checked last
+    year does not become an open-registration member because they signed in again.
+    """
+    user.events.add(event)
+    EventAccessGrant.objects.get_or_create(
+        user=user,
+        event=event,
+        defaults={"source": source},
+    )
+
+
+def access_source_for(event: Event) -> str:
+    """
+    Return the source that applies when *event* authorizes someone through the login flow.
+
+    A public event short-circuits the ticket API entirely (see ``AccountAdapter``), so the only
+    thing that decides which of the two happened is the event's visibility at the time.
+    """
+    if event.visibility == event.Visibility.PUBLIC:
+        return EventAccessGrant.Source.OPEN_REGISTRATION
+    return EventAccessGrant.Source.TICKET
+
+
 MAX_TICKET_ID_LENGTH = 10
 
 
@@ -265,7 +367,7 @@ class Ticket(models.Model):
         related_name="tickets",
     )
     event = models.ForeignKey(
-        "events.Event",
+        _EVENT_MODEL,
         on_delete=models.CASCADE,
         related_name="tickets",
     )

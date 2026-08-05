@@ -14,6 +14,7 @@ from model_bakery import baker
 
 from events.models import Event
 from users.adapters_social import SocialAccountAdapter, _DiscordNotInGuildError
+from users.models import EventAccessGrant
 
 
 pytestmark = pytest.mark.django_db
@@ -993,18 +994,26 @@ class TestAddDefaultEvent:
         self,
         mock_apply: MagicMock,
         discord_settings: Any,
+        user_model: type[Any],
     ) -> None:
-        """A brand-new user created via save_user gets the DEFAULT_EVENT."""
+        """
+        A brand-new user created via save_user gets the DEFAULT_EVENT.
+
+        Uses a real user rather than a MagicMock, so the grant record written alongside the
+        membership is exercised too. With a mock, ``grant_event_access`` would be writing a row
+        keyed on something that is not a user and the test would prove nothing about it.
+        """
         event = Event.objects.create(slug="pycon-2026", name="PyCon 2026", year=2026)
         discord_settings.DEFAULT_EVENT = "pycon-2026"
         sl = _make_sociallogin(
             extra_data={"email": "new@test.com", "verified": True, "matched_roles": ["attendee"]},
         )
         request = RequestFactory().get("/")
+        user = user_model.objects.create_user(email="new@test.com")
         with patch("users.adapters_social.DefaultSocialAccountAdapter.save_user") as mock_super:
-            mock_user = MagicMock()
-            mock_user.events = MagicMock()
-            mock_user.events.filter.return_value.exists.return_value = False
-            mock_super.return_value = mock_user
+            mock_super.return_value = user
             SocialAccountAdapter().save_user(request, sl)
-            mock_user.events.add.assert_called_once_with(event)
+
+        assert event in user.events.all()
+        grant = EventAccessGrant.objects.get(user=user, event=event)
+        assert grant.source == EventAccessGrant.Source.DISCORD_ROLE
