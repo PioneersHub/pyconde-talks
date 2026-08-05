@@ -18,7 +18,7 @@ from django.db.models import Avg, Count, Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from events.models import PUBLICLY_LISTED_VISIBILITIES
+from events.models import PUBLICLY_LISTED_VISIBILITIES, Event
 from talks.types import RatingStats, VideoProvider
 from talks.validators import validate_video_link
 from utils.url import add_query_param
@@ -28,8 +28,6 @@ if TYPE_CHECKING:
     from django.contrib.auth.base_user import AbstractBaseUser
     from django.contrib.auth.models import AnonymousUser
     from django_stubs_ext.db.models.manager import RelatedManager
-
-    from events.models import Event
 
 
 # Constants
@@ -309,6 +307,67 @@ def _talk_image_upload_path(instance: Talk, filename: str) -> str:
     return f"talk_images/{filename}"
 
 
+def user_can_watch_videos(
+    user: AbstractBaseUser | AnonymousUser | None,
+    event: Event | None,
+) -> bool:
+    """
+    Return whether *user* may watch recordings belonging to *event*.
+
+    Superusers and ticket holders always may. Everyone else only may once the event is public:
+    a schedule-only event publishes its programme but keeps the recordings for ticket holders.
+
+    Kept separate from ``TalkQuerySet.accessible_to``, which decides whether a talk is *listed*.
+    A schedule-only talk is listed to everyone and playable only by members.
+    """
+    if getattr(user, "is_superuser", False):
+        return True
+    if event is None:
+        return False
+    if event.visibility == event.Visibility.PUBLIC:
+        return True
+    if user is None or not user.is_authenticated:
+        return False
+    member_events = getattr(user, "events", None)
+    return member_events is not None and member_events.filter(pk=event.pk).exists()
+
+
+def unlock_video_access(
+    talks: list[Talk],
+    user: AbstractBaseUser | AnonymousUser | None,
+) -> None:
+    """
+    Decide video access for a list of talks using at most one membership query.
+
+    Calling ``user_can_watch_videos`` per row would issue a membership query per row, so the
+    viewer's events are fetched once and the decision is made once per event.
+
+    Reads ``talk.event`` for the visibility, so callers should ``select_related("event")``.
+    """
+    if not talks:
+        return
+
+    if getattr(user, "is_superuser", False):
+        for talk in talks:
+            talk.videos_unlocked = True
+        return
+
+    member_event_ids: set[int] = set()
+    if user is not None and user.is_authenticated:
+        member_events = getattr(user, "events", None)
+        if member_events is not None:
+            member_event_ids = set(member_events.values_list("pk", flat=True))
+
+    decided: dict[int, bool] = {}
+    for talk in talks:
+        event_id = talk.event_id
+        if event_id not in decided:
+            decided[event_id] = (
+                event_id in member_event_ids or talk.event.visibility == Event.Visibility.PUBLIC
+            )
+        talk.videos_unlocked = decided[event_id]
+
+
 class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
     """Custom queryset for ``Talk`` with access-control helpers."""
 
@@ -364,6 +423,20 @@ class TalkQuerySet(models.QuerySet["Talk"]):  # type: ignore[call-arg]
         """
         talks = list(self)
         prefetch_streamings(talks)
+        return talks
+
+    def with_video_access(
+        self,
+        user: AbstractBaseUser | AnonymousUser | None,
+    ) -> list[Talk]:
+        """
+        Evaluate the queryset, batch-load streamings, and resolve the video gate on every row.
+
+        Terminal like ``with_streamings``. Use it wherever a template will call
+        ``get_video_link`` or ``get_transcription_url``, or those will return "" for everyone.
+        """
+        talks = self.with_streamings()
+        unlock_video_access(talks, user)
         return talks
 
     def with_rating_stats(self) -> Self:
@@ -535,6 +608,12 @@ class Talk(models.Model):
     )
 
     ratings: RelatedManager[Rating]
+
+    # Whether the current viewer may be shown this talk's recording. Set per request by the
+    # view layer, through ``unlock_video_access`` or ``allow_videos_for``. It defaults to False
+    # so the gate fails closed: a view that forgets to set it renders no player, which is an
+    # obvious bug, rather than leaking a recording, which is a silent one.
+    videos_unlocked: bool = False
 
     objects: ClassVar[TalkQuerySet] = TalkQuerySet.as_manager()  # type: ignore[assignment]
 
@@ -719,21 +798,50 @@ class Talk(models.Model):
             return int((self.start_time - streaming.start_time).total_seconds())
         return 0
 
+    def allow_videos_for(self, user: AbstractBaseUser | AnonymousUser | None) -> Self:
+        """Resolve and cache whether *user* may watch this talk's recording. Returns self."""
+        self.videos_unlocked = user_can_watch_videos(user, self.event)
+        return self
+
+    def has_recording(self) -> bool:
+        """
+        Return whether a recording exists, ignoring who is asking.
+
+        For callers that report on the catalogue rather than render a player: the dashboard
+        counter and the admin column. Those must not change per viewer, so they cannot go
+        through ``get_video_link``.
+        """
+        if self._upcoming_and_links_hidden():
+            return False
+        return bool(self.video_link or (self.streaming and self.streaming.video_link))
+
+    def _upcoming_and_links_hidden(self) -> bool:
+        """Return whether this talk is still upcoming and upcoming links are not shown."""
+        return self.get_timing() == self.TalkTiming.UPCOMING and not getattr(
+            settings,
+            "SHOW_UPCOMING_TALKS_LINKS",
+            False,
+        )
+
     def get_video_link(self) -> str:
         """
-        Return the Video link for this talk.
+        Return the Video link for this talk, or "" when the viewer may not watch it.
 
         Returns the talk's own video_link if it exists.
         Otherwise, finds the appropriate streaming for this talk and returns its link with the
         correct timestamp.
         Returns an empty string if no link is found or if the talk is in the future.
+
+        Also returns "" unless the view layer has unlocked videos for the current viewer via
+        ``allow_videos_for`` or ``unlock_video_access``. Templates render this straight into an
+        iframe src, so withholding the URL is what withholds the recording. Callers that want
+        the link regardless of any viewer should use ``has_recording`` or read ``video_link``.
         """
+        if not self.videos_unlocked:
+            return ""
+
         # Optionally hide upcoming talks
-        if self.get_timing() == self.TalkTiming.UPCOMING and not getattr(
-            settings,
-            "SHOW_UPCOMING_TALKS_LINKS",
-            False,
-        ):
+        if self._upcoming_and_links_hidden():
             return ""
 
         if self.video_link:
@@ -888,12 +996,19 @@ class Talk(models.Model):
 
     def get_transcription_url(self) -> str:
         """
-        Return the transcription URL for this talk.
+        Return the transcription URL for this talk, or "" when the viewer may not read it.
 
         Returns the talk's own transcription_url if set. Otherwise falls back to the
         transcription_url from the matched streaming session for this talk's room and time slot.
         Returns an empty string if neither source provides a URL.
+
+        Gated on the same flag as ``get_video_link``: a transcription is the recording in text
+        form, so publishing it on a schedule-only event would hand over the content the video
+        gate is there to withhold.
         """
+        if not self.videos_unlocked:
+            return ""
+
         if self.transcription_url:
             return self.transcription_url
 

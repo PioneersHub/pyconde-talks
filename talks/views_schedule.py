@@ -52,7 +52,7 @@ def _build_schedule_data(
     talks_qs = (
         Talk.objects.filter(start_time__date=selected_date)
         .scheduled()
-        .select_related("room")
+        .select_related("room", "event")
         .prefetch_related("speakers")
         .defer("description", "abstract")
         .accessible_to(user)
@@ -60,10 +60,11 @@ def _build_schedule_data(
     )
     if event_id:
         talks_qs = talks_qs.filter(event_id=event_id)
-    # ``with_streamings`` evaluates the queryset and caches streamings so the per-row
+    # ``with_video_access`` evaluates the queryset and caches streamings so the per-row
     # ``get_video_link`` / ``get_transcription_url`` / ``has_active_streaming`` calls
-    # in the template don't fan out to one Streaming query per row.
-    talks = talks_qs.with_streamings()
+    # in the template don't fan out to one Streaming query per row, and resolves the video
+    # gate for those same rows.
+    talks = talks_qs.with_video_access(user)
 
     # Unique rooms ordered by name
     room_ids_seen: set[int] = set()

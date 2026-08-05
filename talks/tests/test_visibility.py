@@ -12,8 +12,9 @@ from model_bakery import baker
 
 from events.models import Event
 from events.session import events_visible_to
-from talks.models import Talk
+from talks.models import Talk, unlock_video_access, user_can_watch_videos
 from users.models import CustomUser
+from utils.test_perf import assert_no_n_plus_one
 
 
 @pytest.fixture
@@ -188,6 +189,116 @@ class TestAccessibleToHide:
             password="password",
         )
         assert talk in Talk.objects.accessible_to(superuser)
+
+
+@pytest.mark.django_db
+class TestVideoGate:
+    """Recording access is decided separately from listing access, and fails closed."""
+
+    @pytest.mark.parametrize(
+        ("visibility", "expected"),
+        [
+            (Event.Visibility.HIDDEN, False),
+            (Event.Visibility.SCHEDULE_ONLY, False),
+            (Event.Visibility.PUBLIC, True),
+        ],
+    )
+    def test_anonymous_only_watches_public_events(
+        self,
+        visibility: str,
+        expected: bool,  # noqa: FBT001
+    ) -> None:
+        """A schedule-only event lists its talks publicly but keeps the recordings back."""
+        event = baker.make(Event, visibility=visibility)
+        assert user_can_watch_videos(AnonymousUser(), event) is expected
+
+    def test_members_watch_their_own_events(self, hidden_event: Event) -> None:
+        """A ticket holder watches recordings whatever the event's visibility."""
+        member = baker.make(CustomUser, email="member@example.com")
+        member.events.add(hidden_event)
+        assert user_can_watch_videos(member, hidden_event) is True
+
+    def test_outsiders_cannot_watch_a_schedule_only_event(
+        self,
+        schedule_only_event: Event,
+    ) -> None:
+        """Being logged in without a ticket is no better than being anonymous."""
+        outsider = baker.make(CustomUser, email="outsider@example.com")
+        assert user_can_watch_videos(outsider, schedule_only_event) is False
+
+    def test_superusers_always_watch(self, hidden_event: Event) -> None:
+        """Superusers bypass the video gate."""
+        superuser = CustomUser.objects.create_superuser(
+            email="admin@example.com",
+            password="password",
+        )
+        assert user_can_watch_videos(superuser, hidden_event) is True
+
+    def test_missing_event_denies(self) -> None:
+        """Without an event there is no visibility to check, so deny."""
+        assert user_can_watch_videos(AnonymousUser(), None) is False
+
+    def test_link_is_withheld_until_a_view_unlocks_it(self, public_event: Event) -> None:
+        """
+        The gate fails closed.
+
+        A talk that no view has run through ``allow_videos_for`` or ``unlock_video_access``
+        yields no link even on a public event. A view that forgets the call renders a missing
+        player, which is obvious, instead of leaking a recording, which is not.
+        """
+        talk = baker.make(
+            Talk,
+            event=public_event,
+            video_link="https://youtube.com/watch?v=abc",
+        )
+        assert talk.get_video_link() == ""
+        assert talk.allow_videos_for(AnonymousUser()).get_video_link() != ""
+
+    def test_transcription_follows_the_same_gate(self, schedule_only_event: Event) -> None:
+        """A transcription is the recording in text form, so it is withheld alongside it."""
+        talk = baker.make(
+            Talk,
+            event=schedule_only_event,
+            transcription_url="https://example.com/transcript",
+        )
+        assert talk.allow_videos_for(AnonymousUser()).get_transcription_url() == ""
+
+        member = baker.make(CustomUser, email="member@example.com")
+        member.events.add(schedule_only_event)
+        assert talk.allow_videos_for(member).get_transcription_url() != ""
+
+    def test_has_recording_ignores_the_viewer(self, schedule_only_event: Event) -> None:
+        """
+        The catalogue view of "is there a recording" must not move with the viewer.
+
+        The dashboard counter and the admin column report on the data, not on a player, so
+        they would otherwise show different totals to different people.
+        """
+        talk = baker.make(
+            Talk,
+            event=schedule_only_event,
+            video_link="https://youtube.com/watch?v=abc",
+        )
+        talk.allow_videos_for(AnonymousUser())
+        assert talk.get_video_link() == ""
+        assert talk.has_recording() is True
+
+    def test_unlock_video_access_is_not_n_plus_one(self, public_event: Event) -> None:
+        """Deciding the gate for many rows costs one membership query, not one per row."""
+        talks = [baker.make(Talk, event=public_event) for _ in range(5)]
+        member = baker.make(CustomUser, email="member@example.com")
+        member.events.add(public_event)
+
+        loaded = list(Talk.objects.select_related("event").filter(event=public_event))
+        with assert_no_n_plus_one():
+            unlock_video_access(loaded, member)
+
+        assert all(talk.videos_unlocked for talk in loaded)
+        assert len(loaded) == len(talks)
+
+    def test_unlock_video_access_handles_an_empty_list(self) -> None:
+        """No rows means no queries and no error."""
+        unlock_video_access([], AnonymousUser())
 
 
 @pytest.mark.django_db

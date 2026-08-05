@@ -315,6 +315,7 @@ class TestTalkComprehensive:
     def test_get_video_link_own_link(self) -> None:
         """Return the talk's own video link with the YouTube JS API parameter."""
         talk = baker.make(Talk, video_link="https://youtube.com/watch?v=abc")
+        talk.videos_unlocked = True
         assert talk.get_video_link() == "https://youtube.com/watch?v=abc&enablejsapi=1"
 
     @override_settings(SHOW_UPCOMING_TALKS_LINKS=False)
@@ -350,6 +351,7 @@ class TestTalkComprehensive:
             end_time=now + timedelta(hours=2),
             video_link="https://youtube.com/live",
         )
+        talk.videos_unlocked = True
         assert talk.get_video_link() == "https://youtube.com/live"
 
     def test_get_video_link_no_room_no_link(self) -> None:
@@ -550,6 +552,7 @@ class TestTalkComprehensive:
     def test_get_transcription_url_own(self) -> None:
         """Return the talk's own transcription URL when set."""
         talk = baker.make(Talk, transcription_url="https://example.com/transcription/42")
+        talk.videos_unlocked = True
         assert talk.get_transcription_url() == "https://example.com/transcription/42"
 
     def test_get_transcription_url_own_takes_priority_over_streaming(self) -> None:
@@ -570,6 +573,7 @@ class TestTalkComprehensive:
             end_time=now + timedelta(hours=2),
             transcription_url="https://example.com/streaming",
         )
+        talk.videos_unlocked = True
         assert talk.get_transcription_url() == "https://example.com/talk-specific"
 
     def test_get_transcription_url_from_streaming(self) -> None:
@@ -590,6 +594,7 @@ class TestTalkComprehensive:
             end_time=now + timedelta(hours=2),
             transcription_url="https://example.com/streaming",
         )
+        talk.videos_unlocked = True
         assert talk.get_transcription_url() == "https://example.com/streaming"
 
     def test_get_transcription_url_streaming_has_no_url(self) -> None:

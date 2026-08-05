@@ -465,8 +465,13 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
 
     @admin.display(boolean=True, description=_("Has Video"))
     def has_video(self, obj: Talk) -> bool:
-        """Display whether the talk has a video link."""
-        return bool(obj.get_video_link())
+        """
+        Display whether the talk has a video link.
+
+        Uses the viewer-independent accessor: this column reports on the catalogue, so it must
+        not depend on who is looking, unlike ``get_video_link``.
+        """
+        return obj.has_recording()
 
     @admin.display(description=_("Active Streaming"))
     def display_active_streaming(self, obj: Talk) -> StrOrPromise:

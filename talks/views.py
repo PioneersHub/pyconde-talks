@@ -22,7 +22,15 @@ from django.views.generic import DetailView, ListView
 from events.models import Event
 from events.session import resolve_default_event
 
-from .models import Rating, Room, SavedTalk, Talk, TalkQuerySet, prefetch_streamings
+from .models import (
+    Rating,
+    Room,
+    SavedTalk,
+    Talk,
+    TalkQuerySet,
+    prefetch_streamings,
+    unlock_video_access,
+)
 from .utils import get_talk_by_id_or_pretalx, is_htmx_request, parse_iso_date
 from .views_qa import is_moderator
 
@@ -70,6 +78,11 @@ class TalkDetailView(DetailView[Talk]):
         """Enhance context with rating statistics and user's existing rating."""
         context = super().get_context_data(**kwargs)
         talk = self.object
+
+        # Resolve the video gate before the template reads get_video_link / video_provider.
+        # ``video_provider`` is a cached_property over ``get_video_link``, so unlocking after
+        # the first read would leave the cached "" in place.
+        talk.allow_videos_for(self.request.user)
 
         stats = talk.get_rating_stats()
         show_summary = _can_see_rating_summary(self.request.user, talk.event)
@@ -144,13 +157,14 @@ class TalkListView(ListView[Talk]):
 
     def _base_queryset(self) -> TalkQuerySet:
         """Return talks scoped to user access with list-view optimizations."""
-        # Defer large text fields not needed in list view to reduce memory usage
-        user = cast("CustomUser", self.request.user)
+        # Defer large text fields not needed in list view to reduce memory usage.
+        # select_related("event"): ``unlock_video_access`` reads each row's event visibility,
+        # which would otherwise be a query per row.
         return (
-            Talk.objects.select_related("room")
+            Talk.objects.select_related("room", "event")
             .prefetch_related("speakers")
             .defer("description", "abstract")
-            .accessible_to(user)
+            .accessible_to(self.request.user)
         )
 
     def _filter_options_queryset(self) -> TalkQuerySet:
@@ -311,11 +325,13 @@ class TalkListView(ListView[Talk]):
         context["is_htmx_request"] = is_htmx_request(self.request)
 
         # Cache streamings for the rows actually rendered to dodge per-row queries
-        # from ``talk.get_video_link`` / ``talk.get_transcription_url`` in the template.
+        # from ``talk.get_video_link`` / ``talk.get_transcription_url`` in the template, and
+        # resolve the video gate for the same rows, or both would return "" for everyone.
         # ``object_list`` here is already a list (a paginator Page or ListView's queryset).
         page_obj = context.get("page_obj")
         rendered_talks = list(page_obj.object_list if page_obj else context.get("talks", []))
         prefetch_streamings(rendered_talks)
+        unlock_video_access(rendered_talks, self.request.user)
 
         return context
 
@@ -344,9 +360,9 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
     events = list(user.visible_events())
     event_ids = [event.id for event in events]  # type: ignore[attr-defined]
 
-    # Fetch only the fields needed for get_video_link() - scoped to user events.
+    # Fetch only the fields needed for has_recording() - scoped to user events.
     # ``with_streamings`` batch-loads the streaming cache to avoid an N+1 in the
-    # ``get_video_link`` loop below (each unrecorded talk would otherwise re-query).
+    # ``has_recording`` loop below (each unrecorded talk would otherwise re-query).
     talks_for_video = (
         Talk.objects.filter(event_id__in=event_ids)
         .select_related("room")
@@ -355,7 +371,9 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
     )
     recorded_by_event: dict[int | None, int] = {}
     for talk in talks_for_video:
-        if talk.get_video_link():
+        # ``has_recording`` rather than ``get_video_link``: this is a count of what exists, so
+        # it must report the same number whoever is looking at the dashboard.
+        if talk.has_recording():
             eid = talk.event_id  # type: ignore[attr-defined]
             recorded_by_event[eid] = recorded_by_event.get(eid, 0) + 1
 
@@ -401,21 +419,34 @@ def dashboard_stats(request: HttpRequest) -> HttpResponse:
 
 
 @require_safe
-@cache_page(30)  # Cache for 30 seconds - talks list changes infrequently
-@vary_on_cookie
 def upcoming_talks(request: HttpRequest) -> HttpResponse:
-    """Display the next 8 upcoming talks, scoped to the user's events."""
-    user = cast("CustomUser", request.user)
+    """
+    Display the next 8 upcoming talks, scoped to what the viewer may see.
+
+    Deliberately uncached. It used to be ``cache_page(30)`` keyed on the cookie header via
+    ``vary_on_cookie``, which was only safe while every visitor was authenticated and so had a
+    distinct session cookie. Anonymous visitors can share a cookie header (or have none at
+    all), which would let one viewer be served another's fragment, including the recording
+    links of an event they cannot access. The view is one indexed query for eight rows, so the
+    cache bought little against that.
+    """
     current_time = timezone.now()
     talks_qs = (
-        Talk.objects.select_related("room")
+        Talk.objects.select_related("room", "event")
         .prefetch_related("speakers")
         .filter(start_time__gt=current_time)
-        .accessible_to(user)
+        .accessible_to(request.user)
     )
-    # ``with_streamings`` avoids an N+1 when the template calls
-    # ``get_transcription_url`` / ``get_video_link`` (both fall back to ``streaming``).
-    talks = talks_qs.with_rating_stats().order_by("start_time")[:8].with_streamings()
+    # ``with_video_access`` avoids an N+1 when the template calls
+    # ``get_transcription_url`` / ``get_video_link`` (both fall back to ``streaming``), and
+    # resolves the video gate for the rendered rows.
+    talks = (
+        talks_qs.with_rating_stats()
+        .order_by("start_time")[:8]
+        .with_video_access(
+            request.user,
+        )
+    )
     saved_talk_ids: set[int] = set()
     if request.user.is_authenticated:
         saved_talk_ids = SavedTalk.talk_ids_for(cast("CustomUser", request.user))

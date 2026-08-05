@@ -154,6 +154,8 @@ class TestTalkModel:
         """Return the canonical provider name regardless of YouTube URL format."""
         talk = baker.prepare(Talk, event=baker.make(Event), video_link=video_link)
         talk.save()
+        # ``video_provider`` reads ``get_video_link``, which is gated on the viewer.
+        talk.videos_unlocked = True
 
         with override_settings(SHOW_UPCOMING_TALKS_LINKS=True):
             assert talk.video_provider == expected_provider
