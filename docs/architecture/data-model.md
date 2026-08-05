@@ -59,8 +59,13 @@ Key fields:
 - `year` - optional, validated to the range 2000-2100.
 - `is_active` - whether the event is visible on the site. Inactive events are filtered out of event
     resolution and access checks.
+- `visibility` - how much of the event is reachable without logging in: `hidden` (nothing),
+    `schedule_only` (programme public, recordings for ticket holders), or `public` (everything). New
+    events default to `hidden`. See [Event visibility](../features/event-visibility.md).
+- `qa_mode` - whether attendees can post questions and whether new ones appear immediately: `open`
+    (the default), `moderated`, `frozen`, or `disabled`.
 - `validation_api_url` - external API that confirms a user bought a ticket for this event; blank
-    disables API validation.
+    disables API validation. Skipped entirely for a `public` event, which accepts any email.
 - `show_rating_summary` - whether regular users see the average rating and count. Staff and
     superusers always see summaries.
 - Branding URLs: `main_website_url`, `imprint_url`, `code_of_conduct_url`, `privacy_policy_url`,
@@ -142,7 +147,8 @@ Key fields:
 - `event` - required (`on_delete=CASCADE`).
 - `session_chair` - optional foreign key to `CustomUser` (`on_delete=SET_NULL`); the volunteer
     moderating the session.
-- `hide` - hides the talk from the public.
+- `hide` - hides the talk from everyone except administrators, whatever the event's visibility and
+    even for ticket holders. For an embargoed or cancelled session. Enforced in `accessible_to`.
 - `created_at`, `updated_at`.
 
 Validation: `clean()` rejects a room from a different event and any talk that overlaps another in
@@ -151,8 +157,15 @@ start time, room, event, presentation type, and the `hide`/`start_time` and `end
 combinations).
 
 `TalkQuerySet` adds the access and aggregation helpers used across views: `accessible_to(user)`,
-`scheduled()`, `with_streamings()` (batch-loads the streaming cache to avoid N+1), and
-`with_rating_stats()` (annotates `average_rating` and `rating_count`).
+`scheduled()`, `with_streamings()` (batch-loads the streaming cache to avoid N+1),
+`with_video_access(user)` (the same, plus resolving the recording gate), and `with_rating_stats()`
+(annotates `average_rating` and `rating_count`).
+
+`accessible_to` is the one gate every talk-facing view goes through. Superusers see everything;
+everyone else sees the union of talks on events they hold a ticket for and talks on events that are
+not hidden, minus anything with `hide` set. It accepts anonymous users. Whether a *recording* plays
+is decided separately, by the video gate described in
+[Event visibility](../features/event-visibility.md).
 
 ### Rating
 
@@ -182,16 +195,23 @@ A question asked about a talk. Part of the live Q&A feature.
 
 Key fields: `talk` (`on_delete=CASCADE`), `content` (max 2000 characters), `user`
 (`on_delete=SET_NULL`, nullable so anonymous questions survive a user deletion), `status` (one of
-`approved`, `answered`, `rejected`; defaults to `approved`), `created_at`, `updated_at`.
+`pending`, `approved`, `answered`, `rejected`; defaults to `approved`), `flag_reason`, `created_at`,
+`updated_at`.
 
-`QuestionQuerySet` provides `with_vote_count()`, `sorted_by_votes()`, `approved()`, `answered()`,
-and `not_rejected()`. The `display_name` property obfuscates the author's email for the public
-author line.
+`QuestionQuerySet` provides `with_vote_count()`, `sorted_by_votes()`, `pending()`, `approved()`,
+`answered()`, and `not_rejected()`. The `display_name` property obfuscates the author's email for
+the public author line.
 
 The `status` is driven by **moderators** (staff or superusers; session chairs are staff via
 `DISCORD_STAFF_ROLES`). On the Q&A page they approve, reject, or mark a question answered, which
 calls `approve()`, `reject()`, or `mark_as_answered()` to flip `status`. This is how a question
 becomes "answered" in normal use, not the [`Answer`](#answer) model below.
+
+A `pending` question is waiting for a moderator, either because the event runs its Q&A in
+`moderated` mode or because the spam heuristics caught it. It is visible to its author and to
+moderators, nobody else: the author needs to see that the question was received rather than silently
+dropped. `flag_reason` records what caught it, and is cleared on approval. See
+[Event visibility](../features/event-visibility.md).
 
 ### QuestionVote
 

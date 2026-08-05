@@ -37,6 +37,7 @@ nav = [
   { "Features" = [
     { "Talks" = "features/talks.md" },
     { "Schedule" = "features/schedule.md" },
+    { "Event visibility" = "features/event-visibility.md" },
     { "Ratings" = "features/ratings.md" },
     { "Questions and answers" = "features/questions.md" },
     { "Live streaming" = "features/streaming.md" },

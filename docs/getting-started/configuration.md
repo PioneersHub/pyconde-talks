@@ -91,6 +91,20 @@ The database is configured from a single connection URL.
     `DJANGO_CONN_MAX_AGE` is ignored. The default keeps a single connection warm per worker for up to
     `CONN_MAX_AGE` seconds, which works on any backend including SQLite.
 
+## Cache
+
+| Variable           | Default          | Purpose                                                      |
+| ------------------ | ---------------- | ------------------------------------------------------------ |
+| `DJANGO_CACHE_URL` | `locmemcache://` | Cache backend URL. Use `redis://redis:6379/0` in production. |
+
+!!! warning "The default cache is per process"
+
+    `locmemcache://` lives inside one worker. Two things need a backend shared by all of them: the Q&A
+    rate limiter, whose allowance silently becomes "limit x number of workers" otherwise, and the
+    allauth OAuth bearer token, which would be refetched per process. Fine for local development and a
+    single-worker deployment; point it at Redis for anything larger. The Docker Compose stack ships a
+    Redis service and is already configured this way.
+
 ## Email
 
 Login codes and admin notifications are sent by email. In development this points at Mailpit; in
@@ -146,6 +160,44 @@ fallback below is used.
 | `EMAIL_VALIDATION_API_OAUTH2_CLIENT_ID`     | empty          | OAuth2 client id for authenticated validation calls.                   |
 | `EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET` | empty          | OAuth2 client secret.                                                  |
 | `EMAIL_VALIDATION_API_OAUTH2_TOKEN_URL`     | empty          | OAuth2 token endpoint. All three OAuth2 values are required to enable. |
+
+## Q&A anti-spam
+
+Public events accept any email at registration, so the Q&A has several floors under it. See
+[Event visibility](../features/event-visibility.md) for how they fit together. All limits are keyed
+per user account, never per IP: the venue's attendees share one NAT address.
+
+| Variable                           | Default    | Purpose                                                               |
+| ---------------------------------- | ---------- | --------------------------------------------------------------------- |
+| `QA_QUESTION_RATE_LIMIT_PER_TALK`  | `5`        | Questions one account may ask about one talk per window.              |
+| `QA_QUESTION_RATE_WINDOW_PER_TALK` | `600`      | That window, in seconds.                                              |
+| `QA_QUESTION_RATE_LIMIT_OVERALL`   | `20`       | Questions one account may ask across all talks per window.            |
+| `QA_QUESTION_RATE_WINDOW_OVERALL`  | `3600`     | That window, in seconds.                                              |
+| `QA_SPAM_KEYWORDS`                 | empty      | Extra words that send a question to the moderation queue.             |
+| `LOGIN_CODE_IP_RATE_LIMIT`         | `60/5m/ip` | Per-IP ceiling on login-code requests, on top of the per-email limit. |
+
+The rate limits are env-configurable because the moment an organizer needs to loosen them is
+mid-conference, not at deploy time. Keep `LOGIN_CODE_IP_RATE_LIMIT` well above the opening-session
+rush: it exists to make bulk signup pointless, not to throttle real attendees.
+
+`QA_SPAM_KEYWORDS` is empty by default. Keyword lists date badly, so it is a lever for a conference
+under a specific ongoing campaign rather than something to maintain speculatively.
+
+### Cloudflare Turnstile
+
+Optional. With either key unset the captcha is skipped entirely, so local development and CI need no
+configuration.
+
+| Variable               | Default | Purpose                                                 |
+| ---------------------- | ------- | ------------------------------------------------------- |
+| `TURNSTILE_SITE_KEY`   | empty   | Public widget key. Blank disables the captcha.          |
+| `TURNSTILE_SECRET_KEY` | empty   | Server-side key. Blank disables the captcha.            |
+| `TURNSTILE_TIMEOUT`    | `5`     | Seconds to wait for Cloudflare.                         |
+| `TURNSTILE_FAIL_OPEN`  | `True`  | Let submissions through when Cloudflare is unreachable. |
+
+`TURNSTILE_FAIL_OPEN` defaults on deliberately: a conference Q&A going down for the duration of
+someone else's outage is worse than a few minutes without a captcha. Set it to `False` if you would
+rather refuse submissions than risk unverified ones.
 
 ## Discord OAuth
 
