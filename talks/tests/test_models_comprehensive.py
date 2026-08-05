@@ -21,6 +21,9 @@ from talks.models import (
 )
 
 
+YOUTUBE_ID = "Z7Xlj2eG8sc"
+
+
 # ---------------------------------------------------------------------------
 # Room
 # ---------------------------------------------------------------------------
@@ -377,6 +380,65 @@ class TestTalkComprehensive:
             duration=timedelta(minutes=30),
         )
         assert talk.get_video_link() == ""
+
+    @override_settings(SHOW_UPCOMING_TALKS_LINKS=True)
+    @pytest.mark.parametrize(
+        "stored_link",
+        [
+            f"https://youtu.be/{YOUTUBE_ID}",
+            f"https://www.youtube.com/watch?v={YOUTUBE_ID}",
+            f"https://www.youtube.com/embed/{YOUTUBE_ID}",
+        ],
+        ids=["short", "watch", "embed"],
+    )
+    def test_get_video_link_converts_youtube_to_embed(self, stored_link: str) -> None:
+        """
+        Hand the template a URL the iframe may load, whatever form was stored.
+
+        Short and watch URLs come back with X-Frame-Options: SAMEORIGIN, so rendering one
+        straight into the player leaves an empty box.
+        """
+        talk = baker.make(Talk, video_link=stored_link, room=None)
+        talk.videos_unlocked = True
+        assert talk.get_video_link() == (
+            f"https://www.youtube.com/embed/{YOUTUBE_ID}?enablejsapi=1"
+        )
+
+    @override_settings(SHOW_UPCOMING_TALKS_LINKS=True)
+    def test_get_video_link_converts_streaming_link_too(self) -> None:
+        """A short link on the streaming fallback is converted the same way."""
+        room = baker.make(Room)
+        now = timezone.now()
+        talk = baker.make(
+            Talk,
+            room=room,
+            start_time=now,
+            duration=timedelta(minutes=30),
+            video_link="",
+        )
+        baker.make(
+            Streaming,
+            room=room,
+            start_time=now - timedelta(hours=1),
+            end_time=now + timedelta(hours=2),
+            video_link=f"https://youtu.be/{YOUTUBE_ID}",
+        )
+        talk.videos_unlocked = True
+        assert talk.get_video_link() == f"https://www.youtube.com/embed/{YOUTUBE_ID}"
+
+    @override_settings(SHOW_UPCOMING_TALKS_LINKS=True)
+    def test_get_video_link_leaves_vimeo_alone(self) -> None:
+        """Vimeo links are already embeddable and must pass through untouched."""
+        talk = baker.make(Talk, video_link="https://player.vimeo.com/video/111", room=None)
+        talk.videos_unlocked = True
+        assert talk.get_video_link() == "https://player.vimeo.com/video/111"
+
+    @override_settings(SHOW_UPCOMING_TALKS_LINKS=True)
+    def test_video_provider_short_youtube_link(self) -> None:
+        """A stored youtu.be link still reports the YouTube provider after conversion."""
+        talk = baker.make(Talk, video_link=f"https://youtu.be/{YOUTUBE_ID}", room=None)
+        talk.videos_unlocked = True
+        assert talk.video_provider == "Youtube"
 
     # --- video_provider ---
     def test_video_provider_empty(self) -> None:

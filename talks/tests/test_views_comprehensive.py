@@ -189,6 +189,32 @@ class TestTalkDetailView:
         content = response.content.decode()
         assert "youtube.com/iframe_api" in content
 
+    def test_youtube_short_url_renders_a_framable_iframe(
+        self,
+        client: Client,
+        user: CustomUser,
+        event: Event,
+    ) -> None:
+        """
+        A stored youtu.be link reaches the iframe as an /embed/ URL.
+
+        YouTube refuses to be framed on any other path, so rendering the stored URL as-is would
+        leave an empty player. Short links are what organizers paste and what old rows hold.
+        """
+        past = timezone.now() - timedelta(hours=2)
+        talk = baker.make(
+            Talk,
+            event=event,
+            video_link="https://youtu.be/Z7Xlj2eG8sc",
+            start_time=past,
+            duration=timedelta(minutes=30),
+        )
+        client.force_login(user)
+        response = client.get(reverse("talk_detail", args=[talk.pk]))
+        content = response.content.decode()
+        assert 'src="https://www.youtube.com/embed/Z7Xlj2eG8sc?enablejsapi=1"' in content
+        assert "youtu.be" not in content
+
 
 @pytest.mark.django_db
 class TestTalkListView:

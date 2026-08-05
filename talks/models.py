@@ -21,7 +21,7 @@ from django.utils.translation import gettext_lazy as _
 from events.models import PUBLICLY_LISTED_VISIBILITIES, Event
 from talks.types import RatingStats, VideoProvider
 from talks.validators import validate_video_link
-from utils.url import add_query_param
+from utils.url import add_query_param, youtube_embed_url
 
 
 if TYPE_CHECKING:
@@ -887,6 +887,11 @@ class Talk(models.Model):
         ``allow_videos_for`` or ``unlock_video_access``. Templates render this straight into an
         iframe src, so withholding the URL is what withholds the recording. Callers that want
         the link regardless of any viewer should use ``has_recording`` or read ``video_link``.
+
+        Whatever form a YouTube link is stored in, what comes out is the embeddable one. A
+        ``youtu.be`` or ``watch?v=`` URL is served with ``X-Frame-Options: SAMEORIGIN`` and shows
+        an empty box inside the player, so the conversion happens here rather than at save time:
+        organizers keep pasting short links, and rows already holding one are fixed on read.
         """
         if not self.videos_unlocked:
             return ""
@@ -896,11 +901,11 @@ class Talk(models.Model):
             return ""
 
         if self.video_link:
-            return self.video_link
+            return youtube_embed_url(self.video_link)
 
         streaming = self.streaming
         if streaming:
-            return streaming.video_link
+            return youtube_embed_url(streaming.video_link)
 
         return ""
 
