@@ -28,6 +28,7 @@ from django.views.generic import CreateView, ListView, UpdateView
 
 from .models import Talk
 from .models_qa import Question, QuestionQuerySet, QuestionVote
+from .spam import spam_flag_reason
 from .utils import get_talk_by_id_or_pretalx, is_htmx_request
 
 
@@ -195,8 +196,13 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
         question.talk = self.talk
         question.user = self.request.user
 
-        if self.talk.event.qa_holds_for_review:
+        # Hold the question when the event pre-moderates, or when it looks like spam even on an
+        # otherwise open Q&A. The reason is recorded either way, so a moderator working a
+        # moderated event can still see which items were auto-flagged and triage those first.
+        reason = spam_flag_reason(question.content)
+        if self.talk.event.qa_holds_for_review or reason:
             question.status = Question.Status.PENDING
+            question.flag_reason = reason
 
         # Save the question
         response = super().form_valid(form)
@@ -477,14 +483,31 @@ class QuestionUpdateView(
         form: forms.ModelForm[Question],
     ) -> HttpResponse:
         """Persist changes and clear all existing votes, notifying the user."""
+        # Re-run the spam heuristics. Otherwise the way past them is obvious: post something
+        # innocuous, wait for it to publish, then edit the links in.
+        reason = spam_flag_reason(form.instance.content)
+        sent_back = reason and form.instance.status == Question.Status.APPROVED
+        if sent_back:
+            form.instance.status = Question.Status.PENDING
+            form.instance.flag_reason = reason
+
         # Save updated content
         response = super().form_valid(form)
         # Clear all votes (except your own) after content change
         QuestionVote.objects.filter(question=self.object).exclude(user=self.request.user).delete()
-        messages.warning(
-            self.request,
-            _("Your question was updated and all previous votes were cleared."),
-        )
+        if sent_back:
+            messages.warning(
+                self.request,
+                _(
+                    "Your question was updated and sent back for review. Previous votes were "
+                    "cleared.",
+                ),
+            )
+        else:
+            messages.warning(
+                self.request,
+                _("Your question was updated and all previous votes were cleared."),
+            )
         if is_htmx_request(self.request):
             talk = form.instance.talk
             return render_question_list_fragment(
