@@ -38,6 +38,7 @@ class TestEventAdmin:
             "year",
             "is_active",
             "visibility",
+            "qa_mode",
             "show_rating_summary",
             "validation_api_url_set",
         )
@@ -101,6 +102,7 @@ class TestEventAdmin:
                 "validation_api_url": "",
                 "is_active": True,
                 "visibility": Event.Visibility.HIDDEN,
+                "qa_mode": Event.QAMode.OPEN,
             },
         )
         assert response.status_code == HTTPStatus.FOUND
@@ -160,6 +162,7 @@ class TestEventAdmin:
                 "validation_api_url": "",
                 "is_active": "on",
                 "visibility": Event.Visibility.HIDDEN,
+                "qa_mode": Event.QAMode.OPEN,
                 "show_rating_summary": "on",
                 "users": [str(keep.pk), str(add.pk)],
             },

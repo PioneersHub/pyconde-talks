@@ -1,0 +1,8 @@
+{% load svg_tags %}
+{# Shared error fragment for the Q&A form: closed Q&A, rate limit, failed captcha, invalid
+   content. Swapped into #question-success, which is why it has to be markup rather than a
+   bare string. #}
+<div class="alert-error flex items-start gap-2" role="alert">
+  {% svg 'exclamation-circle' "h-5 w-5 shrink-0" %}
+  <p class="text-sm">{{ message }}</p>
+</div>

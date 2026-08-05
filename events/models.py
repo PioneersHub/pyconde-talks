@@ -33,6 +33,14 @@ class Event(models.Model):
         SCHEDULE_ONLY = "schedule_only", _("Schedule only (recordings require login)")
         PUBLIC = "public", _("Public (everything, including recordings)")
 
+    class QAMode(models.TextChoices):
+        """How the Q&A behaves for the talks in an event."""
+
+        OPEN = "open", _("Open (questions appear immediately)")
+        MODERATED = "moderated", _("Moderated (questions wait for approval)")
+        FROZEN = "frozen", _("Frozen (existing questions stay, no new ones)")
+        DISABLED = "disabled", _("Disabled (Q&A hidden entirely)")
+
     name = models.CharField(
         unique=True,
         max_length=MAX_EVENT_NAME_LENGTH,
@@ -84,6 +92,18 @@ class Event(models.Model):
             "login wall. Schedule only publishes titles, abstracts and speakers but keeps "
             "recordings for ticket holders. Public opens recordings too, and lets anyone "
             "register without a ticket check. Q&A and ratings always require a login.",
+        ),
+    )
+
+    qa_mode = models.CharField(
+        max_length=10,
+        choices=QAMode.choices,
+        default=QAMode.OPEN,
+        verbose_name=_("Q&A mode"),
+        help_text=_(
+            "Whether attendees can post questions, and whether new ones appear immediately or "
+            "wait for a moderator. Freeze or disable the Q&A once an event is over and nobody "
+            "is watching the queue any more.",
         ),
     )
 
@@ -191,6 +211,21 @@ class Event(models.Model):
     def videos_are_public(self) -> bool:
         """Return whether anonymous visitors may watch this event's recordings."""
         return self.visibility == self.Visibility.PUBLIC
+
+    @property
+    def qa_visible(self) -> bool:
+        """Return whether the Q&A should be rendered at all."""
+        return self.qa_mode != self.QAMode.DISABLED
+
+    @property
+    def qa_accepts_questions(self) -> bool:
+        """Return whether new questions may be submitted."""
+        return self.qa_mode in (self.QAMode.OPEN, self.QAMode.MODERATED)
+
+    @property
+    def qa_holds_for_review(self) -> bool:
+        """Return whether new questions start held for review instead of published."""
+        return self.qa_mode == self.QAMode.MODERATED
 
     @property
     def pretalx_schedule_url(self) -> str:

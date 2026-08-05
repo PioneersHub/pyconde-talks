@@ -165,6 +165,20 @@
       </div>
     </footer>
     <script>
+      // HTMX discards the body of a 4xx response by default, so a server-rendered error
+      // message never reaches the page and the form appears to do nothing. Opt into swapping
+      // them, and mark them handled so HTMX does not also treat them as transport errors.
+      // Registered on document.body, so load order relative to the deferred htmx script does
+      // not matter.
+      document.body.addEventListener('htmx:beforeSwap', function(evt) {
+        var status = evt.detail.xhr.status;
+        if (status >= 400 && status < 500) {
+          evt.detail.shouldSwap = true;
+          evt.detail.isError = false;
+        }
+      });
+    </script>
+    <script>
       (function() {
         var toggle = document.getElementById('theme-toggle');
         var iconLight = document.getElementById('theme-icon-light');

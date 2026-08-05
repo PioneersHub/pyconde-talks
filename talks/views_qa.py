@@ -19,7 +19,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBase, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -49,6 +49,30 @@ def _get_status_filter(request: HttpRequest) -> str:
     """Return a validated status_filter from POST (hx-vals) or GET, defaulting to 'all'."""
     raw = request.POST.get("status_filter") or request.GET.get("status_filter", "all")
     return raw if raw in _VALID_STATUS_FILTERS else "all"
+
+
+def _qa_error_response(
+    request: HttpRequest,
+    message: str | StrOrPromise,
+    status: HTTPStatus,
+    talk_id: int,
+) -> HttpResponse:
+    """
+    Return a Q&A error as an HTMX fragment, or flash it and redirect for a plain request.
+
+    The Q&A form posts into a small target div, so the error has to arrive as markup that can
+    be swapped in. HTMX does not swap 4xx bodies by default; ``base.html`` opts into that, so
+    an honest status code can be used here instead of a misleading 200.
+    """
+    if is_htmx_request(request):
+        return render(
+            request,
+            "talks/questions/question_error.html",
+            {"message": message},
+            status=status,
+        )
+    messages.error(request, message)
+    return redirect("talk_questions", talk_id=talk_id)
 
 
 def _get_accessible_question(user: AbstractBaseUser | AnonymousUser, question_id: int) -> Question:
@@ -87,7 +111,15 @@ class QuestionListView(LoginRequiredMixin, ListView[Question]):
     def get_queryset(self) -> QuestionQuerySet:
         """Get questions for the specific talk, sorted by votes."""
         user = cast("CustomUser", self.request.user)
-        self.talk = get_object_or_404(Talk.objects.accessible_to(user), pk=self.kwargs["talk_id"])
+        # select_related("event"): every Q&A mode check reads it, which would otherwise be an
+        # extra query per check.
+        self.talk = get_object_or_404(
+            Talk.objects.accessible_to(user).select_related("event"),
+            pk=self.kwargs["talk_id"],
+        )
+        if not self.talk.event.qa_visible:
+            # A disabled Q&A should look absent, not merely closed.
+            raise Http404
 
         # Get the (validated) status filter from the request
         self.status_filter = _get_status_filter(self.request)
@@ -125,36 +157,65 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
     """
     Create a new question for a talk.
 
-    Requires login to create questions.
+    Requires login to create questions, and an event whose Q&A is still accepting them.
     """
 
     model = Question
     template_name = "talks/questions/question_form.html"
     fields = ("content",)
 
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
+        """
+        Turn the submission away when the event's Q&A is frozen or disabled.
+
+        Checked before the form is even bound, so a closed Q&A costs nothing to reject and
+        cannot be talked into storing a question by a well-formed POST.
+        """
+        if request.user.is_authenticated:
+            self.talk = get_object_or_404(
+                Talk.objects.accessible_to(request.user).select_related("event"),
+                pk=self.kwargs["talk_id"],
+            )
+            if not self.talk.event.qa_visible:
+                raise Http404
+            if not self.talk.event.qa_accepts_questions:
+                return _qa_error_response(
+                    request,
+                    _("Questions are closed for this talk."),
+                    HTTPStatus.CONFLICT,
+                    self.kwargs["talk_id"],
+                )
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form: forms.ModelForm[Question]) -> HttpResponse:
         """Process the form submission."""
         question: Question = form.instance
 
-        # Set the talk and user
-        user = cast("CustomUser", self.request.user)
-        question.talk = get_object_or_404(
-            Talk.objects.accessible_to(user),
-            pk=self.kwargs["talk_id"],
-        )
+        # ``dispatch`` already resolved and access-checked the talk.
+        question.talk = self.talk
         question.user = self.request.user
+
+        if self.talk.event.qa_holds_for_review:
+            question.status = Question.Status.PENDING
 
         # Save the question
         response = super().form_valid(form)
 
-        # Auto vote your own question
+        # Auto vote your own question. Worth doing even while it is held for review, so the
+        # count is right the moment a moderator approves it.
         QuestionVote.objects.get_or_create(
             question=question,
             user=self.request.user,
         )
 
         # Show success message
-        messages.success(self.request, _("Your question has been posted."))
+        if question.status == Question.Status.PENDING:
+            messages.success(
+                self.request,
+                _("Your question was submitted and is waiting for a moderator to approve it."),
+            )
+        else:
+            messages.success(self.request, _("Your question has been posted."))
 
         # If this is an HTMX request, return to the question list
         if is_htmx_request(self.request):
@@ -179,15 +240,18 @@ class QuestionCreateView(LoginRequiredMixin, CreateView[Question, forms.ModelFor
         The create form is embedded in the question list page, so there is no standalone form
         template to re-render. Return a 422 with the error for HTMX (mirroring the rating views),
         or flash it and redirect back otherwise.
+
+        Collects errors from every field rather than only ``content``: the captcha check adds
+        its own, and those would otherwise fall through to the generic fallback message.
         """
-        errors = form.errors.get("content")
-        message = (
-            "; ".join(str(e) for e in errors) if errors else _("Your question could not be posted.")
+        errors = [str(error) for field_errors in form.errors.values() for error in field_errors]
+        message = "; ".join(errors) if errors else str(_("Your question could not be posted."))
+        return _qa_error_response(
+            self.request,
+            message,
+            HTTPStatus.UNPROCESSABLE_ENTITY,
+            self.kwargs["talk_id"],
         )
-        if is_htmx_request(self.request):
-            return HttpResponse(message, status=HTTPStatus.UNPROCESSABLE_ENTITY)
-        messages.error(self.request, message)
-        return redirect("talk_questions", talk_id=self.kwargs["talk_id"])
 
     def get_success_url(self) -> str:
         """Redirect to the talk's Q&A page."""
@@ -205,6 +269,8 @@ _STATUS_Q: dict[str, Q] = {
 _PUBLIC_STATUSES = (Question.Status.APPROVED, Question.Status.ANSWERED)
 # Statuses only the author (and moderators) may see: held back or turned down.
 _AUTHOR_ONLY_STATUSES = (Question.Status.PENDING, Question.Status.REJECTED)
+# The matching filter values, for the two paths that narrow to one of those statuses.
+_AUTHOR_ONLY_FILTERS = ("pending", "rejected")
 
 
 def get_filtered_questions(
@@ -220,7 +286,13 @@ def get_filtered_questions(
     A pending question is visible to its author and to moderators, nobody else: the author needs
     to see that their question was received rather than silently swallowed, while for everyone
     else the queue is the whole point of pre-moderation.
+
+    A disabled Q&A yields nothing to anyone, moderators included, so switching an event off
+    cannot keep serving content through a stale tab's ten-second poll.
     """
+    if not talk.event.qa_visible:
+        return Question.objects.none()
+
     queryset = Question.objects.filter(talk=talk).select_related("user")
 
     if status_filter == "mine":
@@ -230,22 +302,36 @@ def get_filtered_questions(
     if status_filter in ("approved", "answered"):
         return queryset.filter(_STATUS_Q[status_filter]).sorted_by_votes()
 
-    # Moderators can view pending / rejected questions and unfiltered "all"
     if is_moderator(request.user):
-        if status_filter in ("pending", "rejected"):
-            return queryset.filter(_STATUS_Q[status_filter]).sorted_by_votes()
-        return queryset.sorted_by_votes()
+        return _moderator_questions(queryset, status_filter)
+    return _regular_user_questions(queryset, request.user, status_filter)
 
-    # A regular user asking for pending or rejected gets their own, not everyone's.
-    if status_filter in ("pending", "rejected"):
-        return queryset.filter(
-            _STATUS_Q[status_filter],
-            user=request.user,
-        ).sorted_by_votes()
 
-    # Default for regular users: what is public, plus their own held-back questions
+def _moderator_questions(
+    queryset: QuestionQuerySet,
+    status_filter: str,
+) -> QuestionQuerySet:
+    """Return the queue a moderator sees: everything, or one status in full."""
+    if status_filter in _AUTHOR_ONLY_FILTERS:
+        return queryset.filter(_STATUS_Q[status_filter]).sorted_by_votes()
+    return queryset.sorted_by_votes()
+
+
+def _regular_user_questions(
+    queryset: QuestionQuerySet,
+    user: AbstractBaseUser | AnonymousUser,
+    status_filter: str,
+) -> QuestionQuerySet:
+    """
+    Return what an ordinary attendee sees: the public thread plus their own held questions.
+
+    Asking for "pending" or "rejected" by hand is allowed but not privileged: it narrows to
+    their own, never to everyone's.
+    """
+    if status_filter in _AUTHOR_ONLY_FILTERS:
+        return queryset.filter(_STATUS_Q[status_filter], user=user).sorted_by_votes()
     return queryset.filter(
-        Q(status__in=_PUBLIC_STATUSES) | Q(status__in=_AUTHOR_ONLY_STATUSES, user=request.user),
+        Q(status__in=_PUBLIC_STATUSES) | Q(status__in=_AUTHOR_ONLY_STATUSES, user=user),
     ).sorted_by_votes()
 
 
