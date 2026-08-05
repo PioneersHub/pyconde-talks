@@ -50,10 +50,37 @@
     </title>
     <script src="{% static 'js/htmx.min.js' %}" defer></script>
     <script src="{% static 'js/idiomorph-ext.min.js' %}" defer></script>
+    <script src="{% static 'js/saved-talks.js' %}" defer></script>
     {% block extra_head %}
     {% endblock extra_head %}
   </head>
-  <body class="app-body">
+  <body class="app-body"
+        data-user-authenticated="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+        data-merge-saved-url="{% url 'merge_saved_talks' %}">
+    {# CSRF_COOKIE_HTTPONLY is on, so scripts cannot read the token from the cookie. This form
+       exists only to carry it into saved-talks.js for the merge request. #}
+    <form id="csrf-form" hidden>
+      {% csrf_token %}
+    </form>
+    {% if not user.is_authenticated %}
+      <div id="saved-local-notice"
+           class="hidden alert-warning container mx-auto mt-4 flex items-start justify-between gap-3"
+           role="status">
+        {% url 'account_login' as login_url %}
+        <p class="text-sm">
+          {% blocktrans %}Your saved talks are kept in this browser only. <a href="{{ login_url }}" class="underline">Sign in</a> to keep them across devices - we will move them to your account automatically.{% endblocktrans %}
+        </p>
+        <button type="button"
+                data-dismiss-saved-notice
+                class="text-sm underline shrink-0">{% trans "Dismiss" %}</button>
+      </div>
+    {% else %}
+      <div id="saved-merged-notice"
+           class="hidden alert-success container mx-auto mt-4"
+           role="status">
+        <p class="text-sm">{% trans "The talks you saved before signing in are now on your account." %}</p>
+      </div>
+    {% endif %}
     <nav class="app-nav">
       <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
         <a href="{% url 'home' %}"><span class="sr-only">{% trans "Home" %}</span>{% svg brand_logo_svg_name "w-25 h-20 header-logo" %}</a>

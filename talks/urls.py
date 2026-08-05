@@ -33,7 +33,7 @@ from .views_qa import (
     vote_question,
 )
 from .views_rating import delete_rating, get_talk_rating_stats, rate_talk
-from .views_saved import toggle_save_talk
+from .views_saved import merge_saved_talks, toggle_save_talk
 from .views_schedule import schedule_view
 
 
@@ -50,6 +50,7 @@ urlpatterns = [
     path("<int:talk_id>/rating-stats/", get_talk_rating_stats, name="talk_rating_stats"),
     # Save/Bookmark URLs
     path("<int:talk_id>/save/", toggle_save_talk, name="toggle_save_talk"),
+    path("saved/merge/", merge_saved_talks, name="merge_saved_talks"),
     # Session-chair URLs
     path("<int:talk_id>/chair/", toggle_session_chair, name="toggle_session_chair"),
     path("<str:talk_id>/", login_not_required(talk_redirect_view), name="talk_redirect"),

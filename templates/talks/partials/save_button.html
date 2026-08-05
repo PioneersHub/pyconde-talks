@@ -1,31 +1,26 @@
 {% load svg_tags %}
 {% load i18n %}
-{# Saving writes a SavedTalk row against the user, so there is nothing to toggle for an
-   anonymous visitor. Guarded here rather than at each include so every caller (talk list,
-   detail, schedule, upcoming) is covered by one check. #}
-{% if user.is_authenticated %}
-  <div id="save-btn-{{ talk.pk }}" class="inline-flex">
-    {% if is_saved %}
-      {% translate "Remove from saved" as save_title %}
-    {% else %}
-      {% translate "Save talk" as save_title %}
-    {% endif %}
-    <button hx-post="{% url 'toggle_save_talk' talk.pk %}"
-            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-            hx-target="#save-btn-{{ talk.pk }}"
-            hx-swap="outerHTML"
-            class="btn-secondary inline-flex items-center px-3 py-1 rounded gap-1 {% if is_saved %}text-yellow-500{% endif %}"
-            title="{{ save_title }}">
-      {% if is_saved %}
-        {% svg 'bookmark-solid' "h-4 w-4" %}
-      {% else %}
-        {% svg 'bookmark' "h-4 w-4" %}
-      {% endif %}
-      {% if is_saved %}
-        {% trans "Saved" %}
-      {% else %}
-        {% trans "Save" %}
-      {% endif %}
-    </button>
-  </div>
-{% endif %}
+{% translate "Remove from saved" as remove_title %}
+{% translate "Save talk" as save_title %}
+{# Two variants of the same control. Signed in, HTMX posts to the server and swaps this markup
+   back. Signed out there is no row to write, so the button carries data-save-toggle and
+   saved-talks.js keeps the state in localStorage. The translated labels ride along in data
+   attributes so the script never has to hardcode English. #}
+<div id="save-btn-{{ talk.pk }}"
+     class="inline-flex"
+     data-save-talk="{{ talk.pk }}"
+     data-saved="{% if is_saved %}1{% else %}0{% endif %}">
+  <button {% if user.is_authenticated %} hx-post="{% url 'toggle_save_talk' talk.pk %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' hx-target="#save-btn-{{ talk.pk }}" hx-swap="outerHTML" {% else %} type="button" data-save-toggle="{{ talk.pk }}" {% endif %}
+          class="btn-secondary inline-flex items-center px-3 py-1 rounded gap-1 {% if is_saved %}text-yellow-500{% endif %}"
+          title="{% if is_saved %}{{ remove_title }}{% else %}{{ save_title }}{% endif %}"
+          data-title-saved="{{ remove_title }}"
+          data-title-unsaved="{{ save_title }}">
+    <span data-save-icon-solid class="{% if not is_saved %}hidden{% endif %}">{% svg 'bookmark-solid' "h-4 w-4" %}</span>
+    <span data-save-icon-outline class="{% if is_saved %}hidden{% endif %}">{% svg 'bookmark' "h-4 w-4" %}</span>
+    {% translate "Saved" as saved_label %}
+    {% translate "Save" as unsaved_label %}
+    <span data-save-label
+          data-label-saved="{{ saved_label }}"
+          data-label-unsaved="{{ unsaved_label }}">{% if is_saved %}{{ saved_label }}{% else %}{{ unsaved_label }}{% endif %}</span>
+  </button>
+</div>

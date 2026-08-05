@@ -9,6 +9,7 @@ EDITMSG
 Ebene
 Genderqueer
 HSTS
+HTTPONLY
 JGit
 Kuppelsaal
 LANCZOS
@@ -66,6 +67,7 @@ createsuperuser
 createuser
 crossbario
 csrf
+csrfmiddlewaretoken
 dataclass
 datetimes
 dbadmin

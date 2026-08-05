@@ -26,9 +26,7 @@
         <div class="mb-6">
           <div class="flex justify-between items-start">
             <h1 class="text-3xl font-bold text-heading">{{ talk.title }}</h1>
-            {% if user.is_authenticated %}
-              {% include "talks/partials/save_button.html" %}
-            {% endif %}
+            {% include "talks/partials/save_button.html" %}
           </div>
           <p class="text-xl text-muted mt-2">{{ talk.speaker_names }}</p>
           {% if user_can_moderate and talk.session_chair_id %}
