@@ -149,6 +149,7 @@ select = ["ALL"]
 ignore = [
     "D203",   # one-blank-line-before-class
     "D212",   # multi-line-summary-first-line
+    "D413",   # blank-line-after-last-section: docformatter strips it, so the two would fight
     "ANN401", # Allow Any type annotations in certain cases
     "COM812", # Conflicts with the formatter
     # The MIT license lives in LICENSE at the repo root and is declared in [project]; this project
@@ -182,12 +183,27 @@ combine-as-imports = true
 force-wrap-aliases = true
 lines-after-imports = 2
 
+[tool.docformatter]
+# Reflow docstrings to the project's 100-column width, so text that fits on one line stays on one
+# line instead of wrapping early. `pre-summary-newline` keeps the summary on the second line to
+# match the active D213 (the D212 alternative is ignored above). The pre-commit hook passes
+# `--in-place` and the staged filenames; a bare `docformatter <dir>` only prints a diff.
+#
+# No `exclude` here on purpose: docformatter's exclude breaks out of the whole directory walk on the
+# first match instead of skipping that one directory (PyCQA/docformatter util.py `find_py_files`),
+# so it silently drops every file after it. Exclusions live in .pre-commit-config.yaml instead, and
+# a manual run should name source directories rather than `.` (which would descend into `.venv`).
+recursive = true
+wrap-summaries = 100
+wrap-descriptions = 100
+pre-summary-newline = true
+
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "event_talks.settings"
 python_files = ["test_*.py"]
-# pytest-httpx2 defines this marker in its plugin, but its entry point only exposes the
-# httpx2_mock fixture (not pytest_configure), so the marker goes unregistered. Register it
-# here to silence PytestUnknownMarkWarning.
+# pytest-httpx2 defines this marker in its plugin, but its entry point only exposes the httpx2_mock
+# fixture (not pytest_configure), so the marker goes unregistered. Register it here to silence
+# PytestUnknownMarkWarning.
 markers = [
     "httpx2: configure the pytest-httpx2 httpx2_mock fixture (e.g. assert_all_called=False)",
 ]

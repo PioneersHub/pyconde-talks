@@ -80,6 +80,7 @@ dhparams
 digestabot
 distroless
 djlint
+docformatter
 docstrings
 dumpall
 dumpdata

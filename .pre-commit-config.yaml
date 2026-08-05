@@ -15,6 +15,22 @@ repos:
     hooks:
       - id: uv-lock
 
+  # Docformatter: reflow docstrings to the full 100 columns instead of wrapping early.
+  # See [tool.docformatter] in pyproject.toml. Must run before ruff, which formats the code
+  # around the docstrings. Only migrations are excluded: Django generates them, so they are not
+  # ours to restyle.
+  #
+  # Note for new code: until PyCQA/docformatter#364 ships, a triple-quoted string that is not a
+  # docstring (a verbose regex, a SQL block) is read as one and reflowed into broken syntax.
+  # Write those as concatenated single-line strings instead of excluding the file, or the file
+  # loses docstring formatting along with it.
+  - repo: https://github.com/PyCQA/docformatter
+    rev: v1.7.8
+    hooks:
+      - id: docformatter
+        args: [--in-place, --config, ./pyproject.toml]
+        exclude: /migrations/
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.1
     hooks:

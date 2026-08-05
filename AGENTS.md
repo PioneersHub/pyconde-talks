@@ -9,9 +9,27 @@ HTMX, SQLite (dev) / PostgreSQL 18 (prod), `uv` for packages.
 
 - Python 3.14: use modern syntax. PEP 695 generics, `match`, structural pattern matching, and PEP
   758 `except` without parentheses (`except ValueError, TypeError:`) are all fine.
-- 100-column width for code, comments, and docstrings.
+- 100-column width for code, comments, and docstrings. Fill the line: do not wrap at 80 or 88 out of
+  habit. The `docformatter` hook enforces most docstrings, but not all of them, and nothing enforces
+  comments. See the note below.
 - Write comments and docstrings in plain, simple language. Explain the _why_, not the _what_.
+- Never start a docstring with a bare lowercase function name: docformatter capitalizes the first
+  word, so `event() returns ...` silently becomes `Event() returns ...`, which names something else.
+  Qualify it (`PretalxClient.event() returns ...`) or wrap it in double backticks.
+- A function whose body is only a docstring needs a trailing comment, or docformatter and
+  ruff-format will fight over the blank line after it.
 - Never use em-dash (`—`). Use a regular hyphen or rephrase.
+
+### What docformatter does not catch
+
+It skips any description containing a line it reads as a field list, and the pattern it uses for
+that allows spaces in the field name (`^\s[a-zA-Z0-9_\- ]+ ?: [\S ]+`). So a description with an
+ordinary colon in it, like `...has to hold: this is only for reporting.`, is left at whatever width
+it was typed at. Not configurable: the patterns run for every `--style`, and `--force-wrap` bypasses
+all structure detection and flattens real `Attributes:` sections.
+
+So the width is on you for any docstring description containing a colon or a hyphenated aside, and
+for every comment anywhere. Check those by eye; nothing else will.
 
 ## Tests and code quality
 
