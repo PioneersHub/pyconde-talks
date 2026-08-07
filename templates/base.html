@@ -92,9 +92,15 @@
       </output>
     {% endif %}
     <nav class="app-nav">
-      <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
+      <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
         <a href="{% url 'home' %}"><span class="sr-only">{% trans "Home" %}</span>{% svg brand_logo_svg_name "w-25 h-20 header-logo" %}</a>
-        <div class="flex items-center gap-4">
+        {% comment %}
+          Wraps instead of overflowing: on a 360px phone the links, the language selector and the
+          theme toggle are together wider than the viewport, and without flex-wrap the row spilled
+          past both edges. The selector and the toggle sit in a nested flex so they wrap as one
+          unit, otherwise the toggle drops to a line of its own.
+        {% endcomment %}
+        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           {% comment %}
             Browsing is open to everyone; the talk list and schedule scope themselves per row.
             Hidden from logged-out visitors when no event is public, since both links would
@@ -115,29 +121,31 @@
           {% else %}
             <a href="{% url 'account_login' %}" class="hover:underline">{% trans "Login" %}</a>
           {% endif %}
-          {% include "partials/language_selector.html" %}
-          {% translate "Toggle dark mode" as toggle_dark_mode_label %}
-          <button id="theme-toggle"
-                  type="button"
-                  class="p-2 rounded-lg hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
-                  title="{{ toggle_dark_mode_label }}"
-                  aria-label="{{ toggle_dark_mode_label }}">
-            <!-- Sun icon (shown in dark mode) -->
-            <svg id="theme-icon-light"
-                 class="hidden w-5 h-5"
-                 fill="currentColor"
-                 viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd">
-              </path>
-            </svg>
-            <!-- Moon icon (shown in light mode) -->
-            <svg id="theme-icon-dark"
-                 class="hidden w-5 h-5"
-                 fill="currentColor"
-                 viewBox="0 0 20 20">
-              <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-            </svg>
-          </button>
+          <div class="flex items-center gap-2">
+            {% include "partials/language_selector.html" %}
+            {% translate "Toggle dark mode" as toggle_dark_mode_label %}
+            <button id="theme-toggle"
+                    type="button"
+                    class="p-2 rounded-lg hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
+                    title="{{ toggle_dark_mode_label }}"
+                    aria-label="{{ toggle_dark_mode_label }}">
+              <!-- Sun icon (shown in dark mode) -->
+              <svg id="theme-icon-light"
+                   class="hidden w-5 h-5"
+                   fill="currentColor"
+                   viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd">
+                </path>
+              </svg>
+              <!-- Moon icon (shown in light mode) -->
+              <svg id="theme-icon-dark"
+                   class="hidden w-5 h-5"
+                   fill="currentColor"
+                   viewBox="0 0 20 20">
+                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </nav>
