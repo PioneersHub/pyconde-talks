@@ -13,7 +13,7 @@
   {% endif %}
 {% endblock extra_head %}
 {% block content %}
-  <div class="container mx-auto px-4 py-8">
+  <div class="mx-auto py-2 sm:py-6">
     <script>
     // Clear form content on page load to prevent resubmission of the same question
     document.addEventListener('DOMContentLoaded', function() {
@@ -37,16 +37,16 @@
       }
     });
     </script>
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">
-        {% translate "Questions for" %} <a href="{% url 'talk_detail' talk.pk %}" class="link-primary">{{ talk.title }}</a>
-      </h1>
-      <a href="{% url 'talk_detail' talk.pk %}"
-         class="btn-outline-primary inline-flex items-center gap-2 px-3 py-2">
-        {% svg 'chevron-left' "h-4 w-4" %}
-        <span>{% translate "Back to Talk" %}</span>
-      </a>
-    </div>
+    {# Back link above the title, not beside it: side by side, the two split a 360px screen and #}
+    {# the talk name ended up wrapping over four lines. #}
+    <a href="{% url 'talk_detail' talk.pk %}"
+       class="link-muted mb-3 min-h-11">
+      {% svg 'chevron-left' "h-4 w-4 mr-2" %}
+      <span>{% translate "Back to Talk" %}</span>
+    </a>
+    <h1 class="text-xl sm:text-2xl font-bold mb-6">
+      {% translate "Questions for" %} <a href="{% url 'talk_detail' talk.pk %}" class="link-primary">{{ talk.title }}</a>
+    </h1>
     {% comment %}
       The one place Q&A errors are delivered, whichever control produced them.
       ``_qa_error_response`` points its HTMX fragment here, and the same view's non-HTMX

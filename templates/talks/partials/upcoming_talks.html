@@ -1,83 +1,94 @@
 {% load svg_tags rating_tags saved_tags %}
 {% load i18n %}
 <div class="card">
-  <div class="flex justify-between items-center mb-4">
+  <div class="flex justify-between items-center gap-3 mb-4">
     <h2 class="text-xl font-bold">{% trans "Coming Up Next" %}</h2>
     <a href="{% url 'talk_list' %}" class="link-primary text-sm">{% trans "View All" %}</a>
   </div>
   {% if upcoming_talks %}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {% comment %}
+      Day, time and room lead the card as a wrapping row. They used to be absolutely positioned
+      over the top-right corner, which on a phone left the title a narrow gutter to wrap into and
+      still collided with it once a badge grew (a weekday name, a long room).
+
+      As in the talk list, the title link stretches over the whole card, so the card is one tap
+      target and the controls stay above it.
+    {% endcomment %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
       {% for talk in upcoming_talks %}
         <div class="relative card-bordered hover:shadow-md transition-shadow">
           <!-- Time indicator strip -->
           <div class="absolute left-0 top-0 bottom-0 w-1.5 status-bar-upcoming"></div>
-          {# ── Bookmark toggle button ──────── #}
-          {% with is_saved=talk.pk|is_in:saved_talk_ids %}
-            <div class="absolute top-1 right-1 z-10" id="sched-save-{{ talk.pk }}">
-              {% include "talks/partials/schedule_save_button.html" %}
+          <div class="p-3 pl-4 sm:p-4 sm:pl-5">
+            <div class="flex items-start justify-between gap-2 mb-1">
+              <div class="flex flex-wrap items-center gap-2 text-sm">
+                {% with talk_date=talk.start_time|date:"Y-m-d" %}
+                  {% if talk_date == today %}
+                    <span class="badge badge-green font-semibold">
+                      {% svg 'calendar' "h-3 w-3 mr-1" %}
+                      {% trans "Today" %}
+                    </span>
+                  {% elif talk_date == tomorrow %}
+                    <span class="badge badge-orange font-semibold">
+                      {% svg 'calendar' "h-3 w-3 mr-1" %}
+                      {% trans "Tomorrow" %}
+                    </span>
+                  {% else %}
+                    <span class="badge badge-purple font-semibold">
+                      {% svg 'calendar' "h-3 w-3 mr-1" %}
+                      {{ talk.start_time|date:"l" }}
+                    </span>
+                  {% endif %}
+                {% endwith %}
+                <span class="badge badge-blue font-semibold">
+                  {% svg 'clock' "h-3 w-3 mr-1" %}
+                  {{ talk.start_time|date:"g:i A" }}
+                </span>
+                <span class="badge badge-gray">
+                  {% svg 'location-marker' "h-3 w-3 mr-1" %}
+                  {{ talk.room }}
+                </span>
+              </div>
+              {# ── Bookmark toggle button ──────── #}
+              {% with is_saved=talk.pk|is_in:saved_talk_ids %}
+                <div class="relative shrink-0" id="sched-save-{{ talk.pk }}">
+                  {% include "talks/partials/schedule_save_button.html" %}
+                </div>
+              {% endwith %}
             </div>
-          {% endwith %}
-          <!-- Time and day badges -->
-          <div class="absolute right-2 top-8 flex flex-col gap-1 items-end">
-            {% with talk_date=talk.start_time|date:"Y-m-d" %}
-              {% if talk_date == today %}
-                <span class="badge badge-green text-xs font-semibold">
-                  {% svg 'calendar' "h-3 w-3 mr-1" %}
-                  {% trans "Today" %}
-                </span>
-              {% elif talk_date == tomorrow %}
-                <span class="badge badge-orange text-xs font-semibold">
-                  {% svg 'calendar' "h-3 w-3 mr-1" %}
-                  {% trans "Tomorrow" %}
-                </span>
-              {% else %}
-                <span class="badge badge-purple text-xs font-semibold">
-                  {% svg 'calendar' "h-3 w-3 mr-1" %}
-                  {{ talk.start_time|date:"l" }}
-                </span>
-              {% endif %}
-            {% endwith %}
-            <span class="badge badge-blue text-xs font-semibold">
-              {% svg 'clock' "h-3 w-3 mr-1" %}
-              {{ talk.start_time|date:"g:i A" }}
-            </span>
-          </div>
-          <div class="p-4 pl-5">
-            <a href="{% url 'talk_detail' talk.pk %}" class="link-title mb-1 pr-20">{{ talk.title }}</a>
-            <p class="text-muted mb-3">{{ talk.speaker_names }}</p>
+            <a href="{% url 'talk_detail' talk.pk %}"
+               class="link-title text-base sm:text-lg after:absolute after:inset-0 after:content-['']">{{ talk.title }}</a>
+            <p class="text-muted text-sm">{{ talk.speaker_names }}</p>
             {% if show_rating_summary %}
-              <div class="mb-2">{% star_rating talk.average_rating talk.rating_count %}</div>
+              <div class="mt-1">{% star_rating talk.average_rating talk.rating_count %}</div>
             {% endif %}
-            <div class="flex flex-wrap gap-2 mb-3">
-              <span class="badge badge-gray text-xs">
-                {% svg 'location-marker' "h-3 w-3 mr-1" %}
-                {{ talk.room }}
-              </span>
-              <span class="badge badge-green text-xs">{{ talk.get_presentation_type_display }}</span>
-              {% if talk.track %}<span class="badge badge-blue text-xs">{{ talk.track }}</span>{% endif %}
+            <div class="mt-2 flex flex-wrap gap-2">
+              <span class="badge badge-green">{{ talk.get_presentation_type_display }}</span>
+              {% if talk.track %}<span class="badge badge-blue">{{ talk.track }}</span>{% endif %}
             </div>
-            <div class="flex gap-2">
+            {# The talk page carries all of these; below sm they would take more room than the card. #}
+            <div class="relative mt-3 hidden sm:flex flex-wrap gap-2">
               <a href="{{ talk.pretalx_link }}"
                  target="_blank"
                  rel="noopener noreferrer"
-                 class="btn-outline-primary inline-flex items-center px-2 py-1 text-xs rounded">
-                {% svg 'information-circle' "h-3 w-3 mr-1" %}
+                 class="btn-outline-primary inline-flex items-center gap-1 px-2 py-1 text-xs rounded">
+                {% svg 'information-circle' "h-3 w-3" %}
                 {% trans "Details" %}
               </a>
               {% if talk.get_slido_link %}
                 <a href="{{ talk.get_slido_link }}"
                    target="_blank"
                    rel="noopener noreferrer"
-                   class="btn-secondary inline-flex items-center px-2 py-1 text-xs rounded">
-                  {% svg 'chat-bubble-left-ellipsis' "h-3 w-3 mr-1" %}
+                   class="btn-secondary inline-flex items-center gap-1 px-2 py-1 text-xs rounded">
+                  {% svg 'chat-bubble-left-ellipsis' "h-3 w-3" %}
                   Slido
                 </a>
               {% endif %}
               {# ``qa_visible`` too, or a disabled event still offers a button that 404s. #}
               {% if user.is_authenticated and talk.event.qa_visible %}
                 <a href="{% url 'talk_questions' talk.pk %}"
-                   class="btn-secondary inline-flex items-center px-3 py-1 rounded">
-                  {% svg 'chat-bubble-left-ellipsis' "h-4 w-4 mr-1" %}
+                   class="btn-secondary inline-flex items-center gap-1 px-2 py-1 text-xs rounded">
+                  {% svg 'chat-bubble-left-ellipsis' "h-3 w-3" %}
                   {% trans "Q&amp;A" %}
                 </a>
               {% endif %}
@@ -85,8 +96,8 @@
                 <a href="{{ talk.get_transcription_url }}"
                    target="_blank"
                    rel="noopener noreferrer"
-                   class="btn-secondary inline-flex items-center px-3 py-1 rounded">
-                  {% svg 'language' "h-4 w-4 mr-1" %}
+                   class="btn-secondary inline-flex items-center gap-1 px-2 py-1 text-xs rounded">
+                  {% svg 'language' "h-3 w-3" %}
                   {% trans "Transcription" %}
                 </a>
               {% endif %}
