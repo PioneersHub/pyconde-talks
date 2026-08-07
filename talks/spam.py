@@ -84,8 +84,12 @@ _MIN_LETTERS_FOR_RATIO: Final = 20
 # An earnings pitch. Split into three plain patterns rather than one that spans them: a single
 # regex needed a variable-length bridge between the verb and the period, which backtracks badly
 # on long input. Never a question about a talk, but still only flagged alongside a second signal.
+#
+# The plural is factored out of the currency alternation ("dollar|euro" plus a trailing "s?", not
+# "dollars?|euros?"). Same matches, one nesting level less: spelled per branch it put the pattern
+# one point over SonarQube's regex complexity limit.
 _MONEY_AMOUNT_RE: Final = re.compile(
-    r"(?i)(?:[$€£]\s?\d{3,}|\b\d{3,}\s?(?:usd|eur|dollars?|euros?)\b)",
+    r"(?i)(?:[$€£]\s?\d{3,}|\b\d{3,}\s?(?:usd|eur|dollar|euro)s?\b)",
 )
 _EARN_VERB_RE: Final = re.compile(r"(?i)\b(?:earn|earning|make|verdiene|verdienen)\b")
 # Plain substrings rather than one alternation: as a regex this sat just over the complexity

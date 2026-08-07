@@ -85,6 +85,18 @@ SHOULD_FLAG = [
         "money_pitch",
         id="earnings-plus-link",
     ),
+    # Both spellings of the currency words. The pattern factors the plural out of the alternation
+    # ("dollar|euro" plus a trailing "s?"), so singular and plural have to keep matching alike.
+    pytest.param(
+        "Earn 500 dollars per day, details at https://x.example.com",
+        "money_pitch",
+        id="earnings-plural-currency",
+    ),
+    pytest.param(
+        "Earn 500 euro per day, details at https://x.example.com",
+        "money_pitch",
+        id="earnings-singular-currency",
+    ),
     # A homoglyph swap: Latin "ontact" behind a Cyrillic capital Es.
     pytest.param("\u0421ontact me for deals", "mixed_script", id="cyrillic-homoglyph"),
 ]
