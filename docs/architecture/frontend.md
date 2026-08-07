@@ -6,7 +6,9 @@ icon: lucide/palette
 
 The frontend is server-rendered Django templates styled with Tailwind CSS and made interactive with
 HTMX. There is no JavaScript build step and no SPA framework: pages are HTML, and small fragments
-are swapped in over the wire. The only hand-written JavaScript is the dark-mode toggle.
+are swapped in over the wire. The hand-written JavaScript is limited to three small scripts: the
+dark-mode toggle and the filter-panel opener (both inline in `base.html`) and the bookmark store for
+logged-out visitors (`static/js/saved-talks.js`).
 
 ## Tailwind CSS v4
 
@@ -33,7 +35,8 @@ It uses Tailwind v4's CSS-first configuration:
 - `@theme` defines the brand palette (the PyCon DE / PyData blues, greens, yellow, red, pink),
     typography, spacing, breakpoints, and easing as CSS custom properties.
 - `@layer components` defines reusable classes such as `.btn-primary`, `.card`, `.badge-*`,
-    `.alert-*`, and the `.app-body` / `.app-nav` / `.app-main` / `.app-footer` layout shell, each
+    `.alert-*`, the `.app-body` / `.app-nav` / `.app-main` / `.app-footer` layout shell, and the
+    phone chrome (`.bottom-nav`, `.segmented`, `.day-pill`, `.filter-panel`, `.agenda-card`), each
     with light and dark variants.
 - `@layer utilities` adds neutral text and border tones (`.text-muted`, `.border-weak`, ...) and the
     talk-state helpers (`.card-bg-current`, `.ring-upcoming`, the schedule-grid overrides).
@@ -66,7 +69,9 @@ that changed.
     `hx-push-url="true"` keeps the URL shareable, `hx-include` submits both forms together, and an
     `hx-indicator` spinner shows during the request. The list container itself also polls
     (`every 300s`) so a long-open list stays current. Matched terms are wrapped with the `highlight`
-    filter.
+    filter. The event-dependent selects come from `partials/filter_selects.html`, rendered once in
+    the form and once with `hx-swap-oob` so switching event cannot leave another event's room or
+    track selected.
 - **Ratings.** The rating widget posts a score (and optional comment) and the view returns the
     re-rendered widget. It also uses out-of-band swaps to update the star summary shown next to the
     talk title elsewhere on the page, so a single response updates two places at once.
@@ -83,6 +88,42 @@ that changed.
     `hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'`, since the request does not go through a normal
     form submission.
 
+## Responsive layout
+
+Most attendees read this site on a phone during the conference, so the templates are written phone
+first and grow into the desktop layout, with `md` (768px) as the line between "phone" and
+"everything else".
+
+**Two navigation bars, one markup.** Below `md` the primary navigation is a fixed bottom tab bar
+([`partials/bottom_nav.html`](https://github.com/PioneersHub/pyconde-talks/blob/main/templates/partials/bottom_nav.html));
+from `md` up it is the header links. Both are always rendered and `.bottom-nav`/`md:hidden` decide
+which one shows, so there is no user-agent sniffing and no JavaScript involved. The tab list itself
+comes from `nav_tags.py`, since it depends on the visitor: Talks and Schedule are dropped for a
+logged-out visitor with no public event, and Saved is authenticated-only because an anonymous
+visitor's bookmarks live in `localStorage` where the server cannot filter on them. The current tab
+is resolved from `request.resolver_match.url_name` and marked with `aria-current="page"`, which is
+also what the stylesheet keys the selected look on.
+
+**Two shapes for wide data.** Where a layout cannot survive a 360px screen, the template renders
+both shapes and CSS picks one:
+
+- The schedule is a room-per-column grid from `md` up and a single column of time slots below it
+    (`.agenda-slot`, `.agenda-card`), so a phone never scrolls sideways. Every talk is therefore in
+    the markup twice, which is why `schedule_save_button.html` takes a `variant` for its wrapper id:
+    two elements with the same id would send both buttons' HTMX swaps to whichever came first.
+- The multi-event stats panel is a table from `sm` up and one block per event below it.
+
+**Filters collapse.** The talk list and the schedule put their filters in a `<details data-filters>`
+disclosure that is marked up closed, and a script in `base.html` opens it from `md` up. Closed by
+default rather than open-and-closed-by-script, so a phone does not paint the long version and
+reflow. The summary carries a marker when a filter is applied, so a closed panel cannot filter the
+list silently.
+
+**Touch and viewport.** Interactive elements are at least 44px tall on a phone, form controls are
+16px up to `sm` (anything smaller makes iOS Safari zoom the page when a field takes focus), the
+viewport meta sets `viewport-fit=cover` so `env(safe-area-inset-bottom)` reports a real value, and
+`.app-body` reserves the tab bar's height below `md` and uses `100dvh` where supported.
+
 ## Template layout
 
 Templates live under
@@ -92,8 +133,8 @@ Django's cached loader. The structure:
 - `base.html` - the shell every page extends: the `<head>`, the top navigation, the content block,
     the footer (built from the `brand_*` context variables), and the dark-mode script.
 - `home.html`, `404.html`, `500.html` - top-level pages.
-- `partials/` - cross-app fragments (`event_selector.html`, `alert_error.html`,
-    `useful_link_card.html`).
+- `partials/` - cross-app fragments (`bottom_nav.html`, `event_selector.html`, `alert_error.html`,
+    `useful_link_card.html`, `language_selector.html`).
 - Per-app directories: `talks/` (with `talks/partials/` and `talks/questions/` for HTMX fragments),
     `users/`, `account/`, `socialaccount/`, and `admin/` overrides.
 
@@ -143,6 +184,7 @@ The custom tags and filters live in
 
 | Module             | Provides                                                                                   |
 | ------------------ | ------------------------------------------------------------------------------------------ |
+| `nav_tags.py`      | `{% bottom_nav %}`: the mobile tab bar (see [Responsive layout](#responsive-layout)).      |
 | `svg_tags.py`      | `{% svg name css_class %}`: inline an SVG icon (see above).                                |
 | `rating_tags.py`   | `{% star_rating average count %}`: render filled, half, and empty stars from the star SVG. |
 | `saved_tags.py`    | `{{ talk.pk\|is_in:saved_talk_ids }}`: set-membership filter for the saved-talk highlight. |
