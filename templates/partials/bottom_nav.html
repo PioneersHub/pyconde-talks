@@ -8,7 +8,8 @@
   current tab carries aria-current="page", which is also what the stylesheet keys its active look
   on, so there is no second "active" class to keep in sync.
 {% endcomment %}
-<nav class="bottom-nav" aria-label="{% translate "Main sections" %}">
+{% translate "Main sections" as sections_label %}
+<nav class="bottom-nav" aria-label="{{ sections_label }}">
   <ul class="flex items-stretch list-none m-0 p-0">
     {% for item in nav_items %}
       <li class="flex flex-1">

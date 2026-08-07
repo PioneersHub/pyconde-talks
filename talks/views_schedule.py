@@ -154,6 +154,17 @@ def _resolve_selected_event_id(request: HttpRequest) -> int | None:
     return default_event.pk if default_event else None  # type: ignore[return-value]
 
 
+def _resolve_layout(request: HttpRequest) -> str:
+    """
+    Return the schedule layout the visitor asked for: ``"grid"`` or ``"agenda"``.
+
+    Only ``grid`` is honoured, and only because it has something to override: the stylesheet already
+    gives a phone the agenda and everything wider the grid, so ``?view=grid`` is how someone on a
+    phone asks for the grid anyway. Anything else, including junk, means "let the viewport decide".
+    """
+    return "grid" if request.GET.get("view") == "grid" else "agenda"
+
+
 def _resolve_selected_date(
     request: HttpRequest,
     available_dates: list[date],
@@ -247,5 +258,6 @@ def schedule_view(request: HttpRequest) -> HttpResponse:
         "selected_type": filter_type,
         "events": available_events,
         "selected_event": str(selected_event_id) if selected_event_id else "",
+        "schedule_layout": _resolve_layout(request),
     }
     return render(request, "talks/schedule.html", context)

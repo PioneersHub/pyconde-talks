@@ -460,6 +460,41 @@
   }
 }
 
+/* Which of the schedule's two renderings shows.
+   By default the viewport decides, the same as any other twin layout here. ?view=grid sets
+   data-view on the wrapper and asks for the grid on a phone as well, for the attendees who would
+   rather scroll a room-per-column grid sideways than read a list. It needs no media query of its
+   own: the attribute selector outranks the one in the query below at every width, which is what
+   "at every width" should mean.
+
+   Not utility classes on the two blocks, because that would put a three-way conditional on each of
+   them in the template. One attribute at the top, and CSS does the rest. */
+.schedule-agenda {
+  display: block;
+}
+
+.schedule-grid-wrap {
+  display: none;
+}
+
+@media (width >= 48rem) {
+  .schedule-agenda {
+    display: none;
+  }
+
+  .schedule-grid-wrap {
+    display: block;
+  }
+}
+
+.schedule-layout[data-view="grid"] .schedule-agenda {
+  display: none;
+}
+
+.schedule-layout[data-view="grid"] .schedule-grid-wrap {
+  display: block;
+}
+
 /* Follow a phone browser's collapsing toolbar. This is a rule of its own rather than a second
    utility on .app-body, because two min-height declarations inside one rule get collapsed to one
    during minification and the vh fallback is the one that survives. Browsers without dvh keep

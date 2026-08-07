@@ -32,6 +32,8 @@
             class="px-4 pb-4 grid gap-3 md:flex md:flex-wrap md:items-center">
         {# Preserve the selected day. Switching event may drop it, and the view then falls back. #}
         {% if selected_date %}<input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}" />{% endif %}
+        {# And the chosen layout, or filtering would drop a phone visitor back to the agenda. #}
+        {% if schedule_layout == "grid" %}<input type="hidden" name="view" value="grid" />{% endif %}
         <label class="sr-only" for="event-filter">{% translate "Filter by event" %}</label>
         <select id="event-filter"
                 name="event"
@@ -89,7 +91,9 @@
           <button type="submit"
                   class="btn-secondary justify-center min-h-11 md:min-h-0 rounded">{% trans "Filter" %}</button>
           {% if search_query or filter_saved or selected_track or selected_type %}
-            <a href="?date={{ selected_date|date:'Y-m-d' }}{% if selected_event %}&amp;event={{ selected_event }}{% endif %}"
+            {# querystring drops the four filters and keeps date, event and view, which the #}
+            {# hand-built URL here used to lose. #}
+            <a href="{% querystring q=None saved=None track=None presentation_type=None %}"
                class="btn-neutral justify-center min-h-11 md:min-h-0">{% trans "Clear all" %}</a>
           {% endif %}
         {% endif %}
@@ -102,109 +106,140 @@
         one attendees open most from a phone. Below md the day is a single column of time slots
         instead, which is the same information in the order you actually consume it.
 
+        Which one shows is down to the stylesheet, keyed on data-view here: empty means the viewport
+        decides, "grid" means the grid at every width. See the .schedule-layout rules in input.css.
+
         Every talk therefore appears twice in the markup, and only one copy is ever displayed.
         The bookmark buttons need distinct wrapper ids for that reason, hence variant="agenda-".
       {% endcomment %}
-      {% regroup schedule_items by talk.start_time as time_slots %}
-      <div class="md:hidden">
-        {% for slot in time_slots %}
-          <section class="mb-4">
-            <h2 class="agenda-slot">{{ slot.grouper|date:"g:i A" }}</h2>
-            <ul class="mt-2 space-y-2 list-none p-0 m-0">
-              {% for item in slot.list %}
-                {% with talk=item.talk %}
-                  <li class="agenda-card {% if talk.is_current %}border-orange-400 card-bg-current{% elif talk.is_upcoming %}border-blue-400{% else %}border-gray-300{% endif %}">
-                    <div class="min-w-0 grow">
-                      <div class="flex flex-wrap items-center gap-2 mb-1 text-sm">
-                        <span class="badge badge-gray">
-                          {% svg 'location-marker' "h-3 w-3 mr-1" %}
-                          {{ talk.room }}
-                        </span>
-                        {% if item.duration_min %}
-                          <span class="badge badge-gray">{% blocktrans with duration=item.duration_min %}{{ duration }}min{% endblocktrans %}</span>
-                        {% endif %}
-                        {% if talk.is_current %}
-                          <span class="badge badge-orange">
-                            {% svg 'clock' "h-3 w-3 mr-1" %}
-                            {% trans "NOW" %}
-                          </span>
-                        {% endif %}
-                      </div>
-                      <a href="{% url 'talk_detail' talk.pk %}"
-                         class="link-title text-base after:absolute after:inset-0 after:content-['']">{{ talk.title }}</a>
-                      <p class="text-muted text-sm">{{ talk.speaker_names }}</p>
-                      <div class="mt-2 flex flex-wrap gap-2">
-                        <span class="badge badge-green">{{ talk.get_presentation_type_display }}</span>
-                        {% if talk.track %}<span class="badge badge-blue">{{ talk.track }}</span>{% endif %}
-                      </div>
-                    </div>
-                    {% with is_saved=talk.pk|is_in:saved_talk_ids %}
-                      <div class="relative shrink-0" id="sched-save-agenda-{{ talk.pk }}">
-                        {% include "talks/partials/schedule_save_button.html" with variant="agenda-" %}
-                      </div>
-                    {% endwith %}
-                  </li>
-                {% endwith %}
-              {% endfor %}
-            </ul>
-          </section>
-        {% endfor %}
+      {% comment %}
+        The switch is for phones: from md up the grid is already what shows, so there is nothing to
+        override and the control would only be one more thing in the way. Landing on ?view=grid on a
+        desktop therefore changes nothing, which is why the parameter is allowed to survive in
+        shared links and in the day and filter navigation below.
+      {% endcomment %}
+      <div class="flex justify-end mb-3 md:hidden">
+        {# A labelled <nav>, not a div with role="group": two links that reload the page are #}
+        {# navigation, and the native landmark carries that without an ARIA role (Web:S6819). #}
+        {% translate "Schedule layout" as layout_label %}
+        <nav class="segmented" aria-label="{{ layout_label }}">
+          <a href="{% querystring view=None %}"
+             class="segmented-item"
+             {% if schedule_layout != "grid" %}aria-current="page"{% endif %}>
+            {% svg 'bars-3' "h-4 w-4" %}
+            {% translate "Agenda" %}
+          </a>
+          <a href="{% querystring view='grid' %}"
+             class="segmented-item"
+             {% if schedule_layout == "grid" %}aria-current="page"{% endif %}>
+            {% svg 'table-cells' "h-4 w-4" %}
+            {% translate "Grid" %}
+          </a>
+        </nav>
       </div>
-      {# ── CSS Grid Schedule (md and up) ──────────────────────── #}
-      <div class="hidden md:block overflow-x-auto pb-4">
-        <div class="schedule-grid"
-             style="display:grid;
-                    grid-template-columns: 64px repeat({{ rooms|length }}, minmax(160px, 1fr));
-                    grid-template-rows: auto {{ grid_template_rows }};
-                    min-width: min-content;
-                    gap: 0">
-          {# ── Room headers (row 1) ──────────── #}
-          <div class="sticky top-0 z-20 bg-gray-100 border-b border-gray-300 px-2 py-2"
-               style="grid-column: 1;
-                      grid-row: 1"></div>
-          {% for room in rooms %}
-            <div class="sticky top-0 z-20 bg-gray-100 border-b border-gray-300 px-3 py-2 text-center text-xs font-semibold text-subtle uppercase tracking-wider"
-                 style="grid-column: {{ forloop.counter|add:1 }};
-                        grid-row: 1">{{ room.name }}</div>
+      {% regroup schedule_items by talk.start_time as time_slots %}
+      <div class="schedule-layout"
+           data-view="{% if schedule_layout == 'grid' %}grid{% endif %}">
+        <div class="schedule-agenda">
+          {% for slot in time_slots %}
+            <section class="mb-4">
+              <h2 class="agenda-slot">{{ slot.grouper|date:"g:i A" }}</h2>
+              <ul class="mt-2 space-y-2 list-none p-0 m-0">
+                {% for item in slot.list %}
+                  {% with talk=item.talk %}
+                    <li class="agenda-card {% if talk.is_current %}border-orange-400 card-bg-current{% elif talk.is_upcoming %}border-blue-400{% else %}border-gray-300{% endif %}">
+                      <div class="min-w-0 grow">
+                        <div class="flex flex-wrap items-center gap-2 mb-1 text-sm">
+                          <span class="badge badge-gray">
+                            {% svg 'location-marker' "h-3 w-3 mr-1" %}
+                            {{ talk.room }}
+                          </span>
+                          {% if item.duration_min %}
+                            <span class="badge badge-gray">{% blocktrans with duration=item.duration_min %}{{ duration }}min{% endblocktrans %}</span>
+                          {% endif %}
+                          {% if talk.is_current %}
+                            <span class="badge badge-orange">
+                              {% svg 'clock' "h-3 w-3 mr-1" %}
+                              {% trans "NOW" %}
+                            </span>
+                          {% endif %}
+                        </div>
+                        <a href="{% url 'talk_detail' talk.pk %}"
+                           class="link-title text-base after:absolute after:inset-0 after:content-['']">{{ talk.title }}</a>
+                        <p class="text-muted text-sm">{{ talk.speaker_names }}</p>
+                        <div class="mt-2 flex flex-wrap gap-2">
+                          <span class="badge badge-green">{{ talk.get_presentation_type_display }}</span>
+                          {% if talk.track %}<span class="badge badge-blue">{{ talk.track }}</span>{% endif %}
+                        </div>
+                      </div>
+                      {% with is_saved=talk.pk|is_in:saved_talk_ids %}
+                        <div class="relative shrink-0" id="sched-save-agenda-{{ talk.pk }}">
+                          {% include "talks/partials/schedule_save_button.html" with variant="agenda-" %}
+                        </div>
+                      {% endwith %}
+                    </li>
+                  {% endwith %}
+                {% endfor %}
+              </ul>
+            </section>
           {% endfor %}
-          {# ── Time labels (first column) ──────────── #}
-          {% for label in time_labels %}
-            <div class="sticky left-0 z-10 bg-gray-50 border-t border-gray-200 px-2 pt-1 text-xs font-medium text-muted whitespace-nowrap text-center"
-                 style="grid-row: {{ label.name }};
-                        grid-column: 1">{{ label.display }}</div>
-            {# Horizontal rule spanning all room columns, behind cards #}
-            <div class="border-t border-gray-200 dark:border-gray-700 pointer-events-none"
-                 style="grid-row: {{ label.name }};
-                        grid-column: 2 / -1;
-                        z-index: 0"></div>
-          {% endfor %}
-          {# ── Talk cards ──────────────────────────── #}
-          {% for item in schedule_items %}
-            {% with talk=item.talk %}
-              <div class="relative m-1 rounded-lg text-sm transition-shadow hover:shadow-md hover:ring-2 hover:ring-blue-300 overflow-hidden {% if talk.is_current %}bg-orange-50 border-l-4 border-orange-400{% elif talk.is_upcoming %}bg-blue-50 border-l-4 border-blue-400{% else %}bg-gray-50 border-l-4 border-gray-300{% endif %}"
-                   style="grid-area: {{ item.grid_area }};
-                          z-index: 1">
-                <a href="{% url 'talk_detail' talk.pk %}"
-                   class="block p-3 pr-10 h-full"
-                   title="{{ talk.title }}">
-                  <div class="font-semibold text-heading leading-tight mb-1 line-clamp-2">{{ talk.title }}</div>
-                  <div class="text-xs text-muted mb-1">{{ talk.speaker_names }}</div>
-                  <div class="flex flex-wrap gap-1 mt-1">
-                    <span class="badge badge-green text-[10px]">{{ talk.get_presentation_type_display }}</span>
-                    {% if item.duration_min %}
-                      <span class="badge badge-gray text-[10px]">{% blocktrans with duration=item.duration_min %}{{ duration }}min{% endblocktrans %}</span>
-                    {% endif %}
-                  </div>
-                </a>
-                {# ── Bookmark toggle button ──────── #}
-                {% with is_saved=talk.pk|is_in:saved_talk_ids %}
-                  <div class="absolute top-1 right-1" id="sched-save-{{ talk.pk }}">
-                    {% include "talks/partials/schedule_save_button.html" %}
-                  </div>
-                {% endwith %}
-              </div>
-            {% endwith %}
-          {% endfor %}
+        </div>
+        {# ── CSS Grid Schedule: from md up, or on request at any width ──────────── #}
+        <div class="schedule-grid-wrap overflow-x-auto pb-4">
+          <div class="schedule-grid"
+               style="display:grid;
+                      grid-template-columns: 64px repeat({{ rooms|length }}, minmax(160px, 1fr));
+                      grid-template-rows: auto {{ grid_template_rows }};
+                      min-width: min-content;
+                      gap: 0">
+            {# ── Room headers (row 1) ──────────── #}
+            <div class="sticky top-0 z-20 bg-gray-100 border-b border-gray-300 px-2 py-2"
+                 style="grid-column: 1;
+                        grid-row: 1"></div>
+            {% for room in rooms %}
+              <div class="sticky top-0 z-20 bg-gray-100 border-b border-gray-300 px-3 py-2 text-center text-xs font-semibold text-subtle uppercase tracking-wider"
+                   style="grid-column: {{ forloop.counter|add:1 }};
+                          grid-row: 1">{{ room.name }}</div>
+            {% endfor %}
+            {# ── Time labels (first column) ──────────── #}
+            {% for label in time_labels %}
+              <div class="sticky left-0 z-10 bg-gray-50 border-t border-gray-200 px-2 pt-1 text-xs font-medium text-muted whitespace-nowrap text-center"
+                   style="grid-row: {{ label.name }};
+                          grid-column: 1">{{ label.display }}</div>
+              {# Horizontal rule spanning all room columns, behind cards #}
+              <div class="border-t border-gray-200 dark:border-gray-700 pointer-events-none"
+                   style="grid-row: {{ label.name }};
+                          grid-column: 2 / -1;
+                          z-index: 0"></div>
+            {% endfor %}
+            {# ── Talk cards ──────────────────────────── #}
+            {% for item in schedule_items %}
+              {% with talk=item.talk %}
+                <div class="relative m-1 rounded-lg text-sm transition-shadow hover:shadow-md hover:ring-2 hover:ring-blue-300 overflow-hidden {% if talk.is_current %}bg-orange-50 border-l-4 border-orange-400{% elif talk.is_upcoming %}bg-blue-50 border-l-4 border-blue-400{% else %}bg-gray-50 border-l-4 border-gray-300{% endif %}"
+                     style="grid-area: {{ item.grid_area }};
+                            z-index: 1">
+                  <a href="{% url 'talk_detail' talk.pk %}"
+                     class="block p-3 pr-10 h-full"
+                     title="{{ talk.title }}">
+                    <div class="font-semibold text-heading leading-tight mb-1 line-clamp-2">{{ talk.title }}</div>
+                    <div class="text-xs text-muted mb-1">{{ talk.speaker_names }}</div>
+                    <div class="flex flex-wrap gap-1 mt-1">
+                      <span class="badge badge-green text-[10px]">{{ talk.get_presentation_type_display }}</span>
+                      {% if item.duration_min %}
+                        <span class="badge badge-gray text-[10px]">{% blocktrans with duration=item.duration_min %}{{ duration }}min{% endblocktrans %}</span>
+                      {% endif %}
+                    </div>
+                  </a>
+                  {# ── Bookmark toggle button ──────── #}
+                  {% with is_saved=talk.pk|is_in:saved_talk_ids %}
+                    <div class="absolute top-1 right-1" id="sched-save-{{ talk.pk }}">
+                      {% include "talks/partials/schedule_save_button.html" %}
+                    </div>
+                  {% endwith %}
+                </div>
+              {% endwith %}
+            {% endfor %}
+          </div>
         </div>
       </div>
     {% else %}

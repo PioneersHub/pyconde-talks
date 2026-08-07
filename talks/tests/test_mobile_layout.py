@@ -295,18 +295,24 @@ class TestScheduleShapes:
         assert "schedule-grid" in body, "the desktop grid is missing"
         assert body.count(talk.title) >= 2  # noqa: PLR2004
 
-    def test_the_grid_is_hidden_on_small_screens(
+    def test_each_rendering_carries_the_class_that_shows_or_hides_it(
         self,
         client: Client,
         public_event: Event,
     ) -> None:
-        """It is five columns wide; on a 360px screen it was the sideways scrolling."""
+        """
+        The stylesheet keys on these two classes and on the wrapper's data-view.
+
+        Which rendering wins is a specificity question between a media query and an attribute
+        selector, so the names have to match what input.css declares.
+        """
         _scheduled_talk(public_event)
 
         body = client.get(reverse("schedule")).content.decode()
 
-        assert 'class="hidden md:block overflow-x-auto pb-4"' in body
-        assert 'class="md:hidden"' in body
+        assert 'class="schedule-layout"' in body
+        assert 'class="schedule-agenda"' in body
+        assert 'class="schedule-grid-wrap overflow-x-auto pb-4"' in body
 
     def test_the_agenda_groups_talks_by_start_time(
         self,
@@ -340,6 +346,116 @@ class TestScheduleShapes:
         assert f'id="sched-save-agenda-{talk.pk}"' in body
         assert f'hx-target="#sched-save-agenda-{talk.pk}"' in body
         assert not _duplicate_ids(body)
+
+
+# ---------------------------------------------------------------------------
+# Schedule: asking for the grid on a phone
+# ---------------------------------------------------------------------------
+@pytest.mark.django_db
+class TestScheduleLayoutChoice:
+    """
+    ?view=grid is how a phone visitor asks for the room-per-column grid anyway.
+
+    The layout is otherwise the viewport's decision, so this parameter has to survive every link
+    and form on the page: losing it would drop the visitor back to the agenda on the next tap.
+    """
+
+    def test_the_default_leaves_the_choice_to_the_viewport(
+        self,
+        client: Client,
+        public_event: Event,
+    ) -> None:
+        """An empty attribute is what lets the media query decide."""
+        _scheduled_talk(public_event)
+
+        body = client.get(reverse("schedule")).content.decode()
+
+        assert 'data-view=""' in body
+
+    def test_grid_is_requested_through_the_wrapper(
+        self,
+        client: Client,
+        public_event: Event,
+    ) -> None:
+        """One attribute, rather than a three-way conditional on both renderings."""
+        _scheduled_talk(public_event)
+
+        body = client.get(reverse("schedule"), {"view": "grid"}).content.decode()
+
+        assert 'data-view="grid"' in body
+
+    @pytest.mark.parametrize("value", ["", "agenda", "list", "GRID", "<script>"])
+    def test_anything_else_falls_back_to_the_viewport(
+        self,
+        client: Client,
+        public_event: Event,
+        value: str,
+    ) -> None:
+        """Only ``grid`` is honoured, so junk in the URL cannot reach the attribute."""
+        _scheduled_talk(public_event)
+
+        response = client.get(reverse("schedule"), {"view": value})
+
+        assert response.context["schedule_layout"] == "agenda"
+        assert 'data-view=""' in response.content.decode()
+
+    def test_the_switch_marks_the_layout_in_use(
+        self,
+        client: Client,
+        public_event: Event,
+    ) -> None:
+        """Both directions, since the pair is the only way to get back."""
+        _scheduled_talk(public_event)
+
+        default = client.get(reverse("schedule")).content.decode()
+        grid = client.get(reverse("schedule"), {"view": "grid"}).content.decode()
+
+        # The agenda link drops the parameter; the grid link sets it.
+        assert re.search(r'href="\?"\s+class="segmented-item"\s+aria-current="page"', default)
+        assert re.search(
+            r'href="\?view=grid"\s+class="segmented-item"\s+aria-current="page"',
+            grid,
+        )
+
+    def test_filtering_keeps_the_grid(self, client: Client, public_event: Event) -> None:
+        """The filter form rebuilds the query string from its own fields, so it has to carry it."""
+        _scheduled_talk(public_event)
+
+        body = client.get(reverse("schedule"), {"view": "grid"}).content.decode()
+
+        assert '<input type="hidden" name="view" value="grid" />' in body
+
+    def test_picking_another_day_keeps_the_grid(
+        self,
+        client: Client,
+        public_event: Event,
+    ) -> None:
+        """The day pills are links, and querystring preserves everything it is not given."""
+        talk = _scheduled_talk(public_event)
+        day = talk.start_time.date().isoformat()
+
+        body = client.get(reverse("schedule"), {"view": "grid"}).content.decode()
+
+        assert f'href="?view=grid&amp;date={day}"' in body
+
+    def test_clearing_filters_keeps_the_grid(
+        self,
+        client: Client,
+        public_event: Event,
+    ) -> None:
+        """Clear all drops the four filters, not the day, the event or the layout."""
+        _scheduled_talk(public_event, title="Findable")
+
+        body = client.get(
+            reverse("schedule"),
+            {"view": "grid", "q": "Findable"},
+        ).content.decode()
+
+        match = re.search(r'href="([^"]+)"\s+class="btn-neutral[^"]*">\s*Clear all', body)
+
+        assert match, "the Clear all link is missing"
+        assert "view=grid" in match.group(1)
+        assert "q=" not in match.group(1)
 
 
 # ---------------------------------------------------------------------------

@@ -111,6 +111,12 @@ both shapes and CSS picks one:
     (`.agenda-slot`, `.agenda-card`), so a phone never scrolls sideways. Every talk is therefore in
     the markup twice, which is why `schedule_save_button.html` takes a `variant` for its wrapper id:
     two elements with the same id would send both buttons' HTMX swaps to whichever came first.
+    `?view=grid` overrides the breakpoint for visitors who would rather scroll the grid sideways on
+    their phone: it sets `data-view="grid"` on the `.schedule-layout` wrapper, and the attribute
+    selector outranks the media query at every width. Only `grid` is honoured, since the agenda is
+    what the viewport already picks; the parameter has no effect from `md` up, which is why the
+    Agenda/Grid switch is hidden there. The day pills, the filter form and Clear all all carry the
+    parameter, so a phone visitor is not dropped back to the agenda on the next tap.
 - The multi-event stats panel is a table from `sm` up and one block per event below it.
 
 **Filters collapse.** The talk list and the schedule put their filters in a `<details data-filters>`
