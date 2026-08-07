@@ -64,24 +64,32 @@
     <form id="csrf-form" hidden>
       {% csrf_token %}
     </form>
+    {% comment %}
+      Both notices are <output> rather than a div with role="status": the element carries that role
+      natively, so the announcement works even where the ARIA attribute is ignored. Its content
+      model is phrasing content, which is why the text sits in a <span> and not a <p>.
+
+      saved-talks.js reveals them by removing "hidden". That keeps working because Tailwind emits
+      .hidden after the other display utilities, so it wins while present. The second one needs an
+      explicit "block": <output> is inline by default, and the padding and centering here assume a
+      block box. The first gets its box from "flex".
+    {% endcomment %}
     {% if not user.is_authenticated %}
-      <div id="saved-local-notice"
-           class="hidden alert-warning container mx-auto mt-4 flex items-start justify-between gap-3"
-           role="status">
+      <output id="saved-local-notice"
+              class="hidden alert-warning container mx-auto mt-4 flex items-start justify-between gap-3">
         {% url 'account_login' as login_url %}
-        <p class="text-sm">
+        <span class="text-sm">
           {% blocktrans %}Your saved talks are kept in this browser only. <a href="{{ login_url }}" class="underline">Sign in</a> to keep them across devices - we will move them to your account automatically.{% endblocktrans %}
-        </p>
+        </span>
         <button type="button"
                 data-dismiss-saved-notice
                 class="text-sm underline shrink-0">{% trans "Dismiss" %}</button>
-      </div>
+      </output>
     {% else %}
-      <div id="saved-merged-notice"
-           class="hidden alert-success container mx-auto mt-4"
-           role="status">
-        <p class="text-sm">{% trans "The talks you saved before signing in are now on your account." %}</p>
-      </div>
+      <output id="saved-merged-notice"
+              class="hidden alert-success container mx-auto mt-4 block">
+        <span class="text-sm">{% trans "The talks you saved before signing in are now on your account." %}</span>
+      </output>
     {% endif %}
     <nav class="app-nav">
       <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
