@@ -1,12 +1,21 @@
 {% load static %}
 {% load svg_tags %}
 {% load i18n %}
+{% load nav_tags %}
 {% get_current_language as LANGUAGE_CODE %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% comment %}
+      viewport-fit=cover lets the page draw into the notch area, which is also what makes
+      env(safe-area-inset-bottom) report a real value: the tab bar uses it to stay clear of the
+      iOS home indicator.
+    {% endcomment %}
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    {# Tints the browser UI to match the header on Android and installed web apps. #}
+    <meta name="theme-color" content="#3778be" />
     <script>
       // Prevent flash of wrong theme: runs synchronously before first paint
       (function() {
@@ -92,35 +101,38 @@
       </output>
     {% endif %}
     <nav class="app-nav">
-      <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
-        <a href="{% url 'home' %}"><span class="sr-only">{% trans "Home" %}</span>{% svg brand_logo_svg_name "w-25 h-20 header-logo" %}</a>
-        {% comment %}
-          Wraps instead of overflowing: on a 360px phone the links, the language selector and the
-          theme toggle are together wider than the viewport, and without flex-wrap the row spilled
-          past both edges. The selector and the toggle sit in a nested flex so they wrap as one
-          unit, otherwise the toggle drops to a line of its own.
-        {% endcomment %}
-        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+      <div class="container mx-auto flex items-center justify-between gap-3">
+        <a href="{% url 'home' %}" class="shrink-0">
+          <span class="sr-only">{% trans "Home" %}</span>
+          {% svg brand_logo_svg_name "w-20 h-14 md:w-25 md:h-20 header-logo" %}
+        </a>
+        <div class="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
           {% comment %}
+            Below md these links are hidden and the bottom tab bar carries the same destinations,
+            with hit areas a thumb can find. They stay in the markup for md and up, where there is
+            no tab bar, and wrap rather than overflow on the narrow end of that range.
+
             Browsing is open to everyone; the talk list and schedule scope themselves per row.
             Hidden from logged-out visitors when no event is public, since both links would
             then lead to an empty page.
           {% endcomment %}
-          {% if user.is_authenticated or has_public_event %}
-            <a href="{% url 'talk_list' %}" class="hover:underline">{% trans "Talks" %}</a>
-            <a href="{% url 'schedule' %}" class="hover:underline">{% trans "Schedule" %}</a>
-          {% endif %}
-          {% if user.is_authenticated %}
-            {% if user.is_staff or user.is_superuser %}
-              <a href="{% url 'chair_grid' %}" class="hover:underline">{% trans "Chairs" %}</a>
+          <div class="hidden md:flex md:flex-wrap md:items-center md:justify-end md:gap-x-4 md:gap-y-2">
+            {% if user.is_authenticated or has_public_event %}
+              <a href="{% url 'talk_list' %}" class="hover:underline">{% trans "Talks" %}</a>
+              <a href="{% url 'schedule' %}" class="hover:underline">{% trans "Schedule" %}</a>
             {% endif %}
-            <span>
-              <a href="{% url 'user_profile' %}" class="hover:underline">{% trans "Profile" %}</a> |
-              <a href="{% url 'account_logout' %}" class="hover:underline">{% trans "Logout" %}</a>
-            </span>
-          {% else %}
-            <a href="{% url 'account_login' %}" class="hover:underline">{% trans "Login" %}</a>
-          {% endif %}
+            {% if user.is_authenticated %}
+              {% if user.is_staff or user.is_superuser %}
+                <a href="{% url 'chair_grid' %}" class="hover:underline">{% trans "Chairs" %}</a>
+              {% endif %}
+              <span>
+                <a href="{% url 'user_profile' %}" class="hover:underline">{% trans "Profile" %}</a> |
+                <a href="{% url 'account_logout' %}" class="hover:underline">{% trans "Logout" %}</a>
+              </span>
+            {% else %}
+              <a href="{% url 'account_login' %}" class="hover:underline">{% trans "Login" %}</a>
+            {% endif %}
+          </div>
           <div class="flex items-center gap-2">
             {% include "partials/language_selector.html" %}
             {% translate "Toggle dark mode" as toggle_dark_mode_label %}
@@ -163,7 +175,8 @@
                 {% blocktrans with made_by_url=brand_made_by_url made_by_name=brand_made_by_name %}Made with ❤️ by the <a href="{{ made_by_url }}">{{ made_by_name }}</a>{% endblocktrans %}
               </p>
             {% endif %}
-            <ul class="mt-4 flex flex-wrap items-center justify-center divide-x divide-strong list-none p-0 m-0">
+            {# gap-y so wrapped rows keep their tap targets apart on a phone. #}
+            <ul class="mt-4 flex flex-wrap items-center justify-center gap-y-2 divide-x divide-strong list-none p-0 m-0">
               {% if brand_main_website_url %}
                 <li class="whitespace-nowrap pr-3 first:pl-0">
                   <a href="{{ brand_main_website_url }}" class="hover:underline">{% trans "Main website" %}</a>
@@ -213,6 +226,7 @@
         </div>
       </div>
     </footer>
+    {% bottom_nav %}
     <script>
       // HTMX discards the body of a 4xx response by default, so a server-rendered error message
       // never reaches the page and the form appears to do nothing. Opt into swapping the ones
@@ -236,6 +250,22 @@
           evt.detail.isError = false;
         }
       });
+    </script>
+    <script>
+      // Filter blocks are marked up closed. On a phone that is what they should be: six
+      // dropdowns open by default push the results themselves off the screen. From md up there
+      // is room to lay them out in a row and no reason to hide them, so open them here.
+      //
+      // Closed-by-default rather than open-and-closed-by-script, so a phone never paints the
+      // long version first and then reflows. The one cost is that a desktop visitor without
+      // JavaScript has to click "Filters" once, and on the talk list the filters need JavaScript
+      // to apply at all.
+      (function() {
+        if (!globalThis.matchMedia('(min-width: 48rem)').matches) { return; }
+        for (const panel of document.querySelectorAll('details[data-filters]')) {
+          panel.open = true;
+        }
+      })();
     </script>
     <script>
       (function() {

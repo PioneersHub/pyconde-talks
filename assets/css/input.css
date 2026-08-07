@@ -104,22 +104,22 @@
   }
 
   .app-nav {
-    @apply bg-[var(--blue)] text-white p-4;
+    @apply bg-[var(--blue)] text-white px-4 py-2 sm:py-4;
     @apply dark:bg-gray-950;
   }
 
   .app-main {
-    @apply container mx-auto mt-8 px-4 grow;
+    @apply container mx-auto mt-4 sm:mt-8 px-3 sm:px-4 grow;
   }
 
   .app-footer {
-    @apply bg-gray-800 text-white p-6 mt-12;
+    @apply bg-gray-800 text-white p-6 mt-8 sm:mt-12;
     @apply dark:bg-gray-950;
   }
 
   /* Cards & Panels */
   .card {
-    @apply bg-white rounded-lg shadow-sm p-6;
+    @apply bg-white rounded-lg shadow-sm p-4 sm:p-6;
     @apply dark:bg-gray-800 dark:shadow-gray-900/50;
   }
 
@@ -192,9 +192,17 @@
     @apply dark:bg-red-900/50 dark:text-red-300;
   }
 
-  /* Forms */
+  /* Forms
+     Both controls are 16px up to sm and smaller above it. Anything below 16px makes iOS Safari
+     zoom the whole page when the field takes focus, which on a phone reads as the layout
+     breaking. */
   .form-select {
-    @apply border rounded px-2 py-1 pr-8;
+    @apply border rounded px-2 py-1 pr-8 text-base sm:text-sm max-sm:min-h-11;
+    @apply dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200;
+  }
+
+  .form-input {
+    @apply border rounded px-3 py-2 text-base sm:text-sm max-sm:min-h-11;
     @apply dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200;
   }
 
@@ -234,6 +242,91 @@
   }
   .item-gap {
     @apply mb-2;
+  }
+
+  /* Mobile app chrome
+     Below md the primary navigation is the bottom tab bar; above it, the header links. Both are
+     always in the markup and only CSS picks one, so there is no JS and no user-agent sniffing.
+     Every hit area here is at least 44px, the smallest target a thumb hits reliably. */
+  .bottom-nav {
+    @apply md:hidden fixed inset-x-0 bottom-0 z-40 border-t;
+    /* Opaque, not translucent: the page scrolls under it, and a see-through bar leaves the last
+       card's text ghosting through wherever backdrop-filter is unavailable. */
+    @apply bg-white border-gray-200 shadow-[0_-1px_3px_rgb(0_0_0/0.06)];
+    @apply dark:bg-gray-950 dark:border-gray-800;
+    /* Clears the iOS home indicator. Zero unless the viewport meta says viewport-fit=cover. */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .bottom-nav-item {
+    @apply relative flex flex-1 flex-col items-center justify-center gap-1 px-1 py-2 min-h-14;
+    @apply text-[0.6875rem] leading-none font-medium text-center;
+    @apply text-gray-500 dark:text-gray-400;
+  }
+
+  .bottom-nav-item[aria-current="page"] {
+    @apply text-[var(--blue)] dark:text-[var(--blue-light)];
+  }
+
+  /* Slim bar above the active tab, the way a native tab bar marks the current screen. */
+  .bottom-nav-item[aria-current="page"]::before {
+    content: "";
+    @apply absolute inset-x-4 top-0 h-0.5 rounded-full;
+    @apply bg-[var(--blue)] dark:bg-[var(--blue-light)];
+  }
+
+  /* Two-way view switch (list vs grid, and anything else with exactly two states). */
+  .segmented {
+    @apply inline-flex gap-1 rounded-lg p-1 bg-gray-200 dark:bg-gray-800;
+  }
+
+  .segmented-item {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 min-h-10;
+    @apply text-sm font-medium text-gray-600 dark:text-gray-300;
+  }
+
+  .segmented-item[aria-current="page"] {
+    @apply bg-white shadow-sm text-[var(--blue)];
+    @apply dark:bg-gray-700 dark:text-[var(--blue-light)];
+  }
+
+  /* Day tabs on the schedule and the chair grid. */
+  .day-pill {
+    @apply inline-flex items-center justify-center rounded-lg px-3 min-h-11 transition-colors;
+    @apply text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200;
+    @apply dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600;
+  }
+
+  .day-pill[aria-current="date"] {
+    @apply bg-[var(--blue)] text-white hover:bg-[var(--blue)] dark:text-white;
+  }
+
+  /* Collapsible filter block. Open by default so it works without JS; a script closes it on
+     narrow viewports, where six stacked selects would bury the results. */
+  .filter-panel {
+    @apply bg-white rounded-lg dark:bg-gray-800;
+  }
+
+  .filter-summary {
+    @apply flex items-center gap-2 px-4 min-h-12 py-3 font-medium cursor-pointer select-none;
+    list-style: none;
+  }
+
+  .filter-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  /* Single-column agenda: the mobile face of the schedule grid. */
+  .agenda-slot {
+    @apply sticky top-0 z-10 -mx-3 px-3 py-2 text-xs font-semibold uppercase tracking-wider;
+    /* Matches the page background, so cards scrolling under the heading disappear behind it. */
+    @apply bg-gray-100 text-gray-500;
+    @apply dark:bg-gray-900 dark:text-gray-400;
+  }
+
+  .agenda-card {
+    @apply relative flex items-start gap-3 rounded-lg border-l-4 p-3 shadow-sm;
+    @apply bg-white dark:bg-gray-800;
   }
 }
 
@@ -367,6 +460,23 @@
   }
 }
 
+/* Follow a phone browser's collapsing toolbar. This is a rule of its own rather than a second
+   utility on .app-body, because two min-height declarations inside one rule get collapsed to one
+   during minification and the vh fallback is the one that survives. Browsers without dvh keep
+   using the min-h-screen in .app-body. */
+.app-body {
+  min-height: 100dvh;
+}
+
+/* The tab bar is fixed, so it covers whatever the page ends with: the footer links, the last
+   talk in a list, the submit button of the Q&A form. Reserve its height below md, where it
+   shows, and give the height back above md, where it does not. */
+@media (width < 48rem) {
+  .app-body {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+  }
+}
+
 /* Dark-mode overrides for elements with inline Tailwind classes */
 /* Schedule grid sticky cells */
 .dark .schedule-grid .sticky.bg-gray-100 {
@@ -384,14 +494,6 @@
 }
 .dark .schedule-grid .bg-gray-50:not(.sticky) {
   background-color: #1f2937;
-}
-/* Schedule day picker */
-.dark a.bg-gray-100 {
-  background-color: #374151;
-  color: #d1d5db;
-}
-.dark a.bg-gray-100:hover {
-  background-color: #4b5563;
 }
 /* Prose (markdown) dark mode */
 .dark .prose {

@@ -1,0 +1,24 @@
+{% load i18n %}
+{% load svg_tags %}
+{% comment %}
+  Mobile primary navigation, rendered by the bottom_nav tag in nav_tags.py. Hidden above md by
+  .bottom-nav, where the header links do the same job.
+
+  A <nav> of its own, with a label, so a screen reader can tell it apart from the header nav. The
+  current tab carries aria-current="page", which is also what the stylesheet keys its active look
+  on, so there is no second "active" class to keep in sync.
+{% endcomment %}
+<nav class="bottom-nav" aria-label="{% translate "Main sections" %}">
+  <ul class="flex items-stretch list-none m-0 p-0">
+    {% for item in nav_items %}
+      <li class="flex flex-1">
+        <a href="{{ item.url }}"
+           class="bottom-nav-item"
+           {% if item.is_active %}aria-current="page"{% endif %}>
+          {% svg item.icon "h-6 w-6 shrink-0" %}
+          <span>{{ item.label }}</span>
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+</nav>
