@@ -2,8 +2,10 @@
 
 # ruff: noqa: PLR2004
 
+import re
 from pathlib import Path
 
+from django.conf import settings
 from django.test import override_settings
 
 from talks.templatetags.highlight import _compile_pattern, highlight
@@ -120,6 +122,28 @@ class TestSvgTag:
             result = svg("icon")
             assert "<svg" in result
             assert "class=" not in result
+
+    def test_every_icon_a_template_asks_for_exists(self) -> None:
+        """
+        A misspelled or missing icon renders as nothing at all.
+
+        The tag returns "" for a file it cannot read, by design: one absent icon should not take a
+        page down with it. The cost is that the mistake is invisible, and three icons had been
+        missing for a while, leaving bare text and odd gaps where they should have been. Only
+        literal names can be checked here; ``{% svg item.icon %}`` in the tab bar is covered by the
+        navigation tests.
+        """
+        template_root = Path(settings.BASE_DIR) / "templates"
+        svg_dir = Path(settings.BASE_DIR) / "svg"
+
+        missing = {
+            f"{name} ({path.relative_to(template_root)})"
+            for path in template_root.rglob("*.html")
+            for name in re.findall(r"{%\s*svg\s+'([^']+)'", path.read_text(encoding="utf-8"))
+            if not (svg_dir / f"{name}.svg").is_file()
+        }
+
+        assert not missing, f"templates reference icons with no file in svg/: {sorted(missing)}"
 
 
 # ---------------------------------------------------------------------------
