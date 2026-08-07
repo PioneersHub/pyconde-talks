@@ -319,12 +319,15 @@ PYTHON
 		run_django_shell <<-'PYTHON' || warn "Failed to create default event"
             from events.models import Event
 
-            Event.objects.get_or_create(
+            # The past event is public and the current ones stay hidden, so a dev instance always
+            # has one of each to test the login wall against.
+            event_2025, created_2025 = Event.objects.get_or_create(
                 slug='pyconde-pydata-2025',
                 defaults={
                     'name': 'PyCon DE & PyData 2025',
                     'year': 2025,
                     'is_active': True,
+                    'visibility': Event.Visibility.PUBLIC,
                     'pretalx_url': 'https://pretalx.com/pyconde-pydata-2025',
                     'main_website_url': 'https://2025.pycon.de',
                     'imprint_url': 'https://2025.pycon.de/imprint/',
@@ -337,6 +340,12 @@ PYTHON
                     'made_by_url': 'https://2025.pycon.de/team',
                 },
             )
+
+            # The script is re-run against existing dev databases, where the event predates this
+            # default, so flip it here too.
+            if not created_2025 and event_2025.visibility != Event.Visibility.PUBLIC:
+                event_2025.visibility = Event.Visibility.PUBLIC
+                event_2025.save(update_fields=['visibility'])
 
             Event.objects.get_or_create(
                 slug='pyconde-pydata-2026',

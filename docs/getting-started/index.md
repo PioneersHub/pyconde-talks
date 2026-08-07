@@ -102,7 +102,8 @@ runs these stages in order:
     social card generation.
 8. **Sample data.** When `GEN_FAKE_DATA=true`, create the sample events (`pyconde-pydata-2025`,
     `pyconde-pydata-2026`, `pydata-berlin-2026`) and generate fake talks, rooms, and speakers for
-    each with `generate_fake_talks`.
+    each with `generate_fake_talks`. `pyconde-pydata-2025` is public and the other two are hidden,
+    so there is always one event of each kind to test the login wall against.
 9. **Pretalx sync.** When `PRETALX_SYNC=true`, ensure the `DEFAULT_EVENT` exists and run
     `import_pretalx_talks` (requires `PRETALX_API_TOKEN`).
 10. **Livestreams.** When `IMPORT_STREAMS=true`, run `import_livestream_urls` from Google Sheets

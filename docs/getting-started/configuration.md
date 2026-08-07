@@ -323,6 +323,8 @@ and validation API URL, and users are linked to the events they have access to.
 - A regular user only sees the active events they are linked to. Superusers see all active events.
 - The committed dev defaults set `DEFAULT_EVENT=pyconde-pydata-2026`, and `dev-setup.sh` creates the
     `pyconde-pydata-2025`, `pyconde-pydata-2026`, and `pydata-berlin-2026` sample events.
+    `pyconde-pydata-2025` is created public (browsable without logging in) and the two 2026 events
+    stay hidden, which gives a dev instance one event of each kind.
 
 For how events relate to talks, users, and the rest of the data model, see
 [Architecture](../architecture/index.md).
