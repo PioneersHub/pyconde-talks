@@ -4,91 +4,154 @@
 {% load saved_tags %}
 {% load rating_tags %}
 {% block content %}
-  <div class="w-full mx-auto p-4">
+  <div class="w-full mx-auto pb-2">
     {# ── Header ────────────────────────────────────────────── #}
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div class="flex items-center justify-between gap-3 mb-4">
       <h1 class="text-2xl font-bold text-heading">{% trans "Schedule" %}</h1>
-      <a href="{% url 'talk_list' %}"
-         class="btn-secondary inline-flex items-center px-3 py-1 rounded">
-        {% svg 'rectangle-stack' "h-4 w-4 mr-1" %}
-        {% trans "List view" %}
-      </a>
+      {% include "talks/partials/view_switch.html" with current="schedule" %}
     </div>
     {# ── Day picker ────────────────────────────────────────── #}
     {% include "talks/partials/day_picker.html" %}
-    {# ── Event filter (always visible) ─────────────────────── #}
-    <form method="get" class="mb-4 card-compact inline-flex">
-      <label class="sr-only" for="event-filter">{% translate "Filter by event" %}</label>
-      <select id="event-filter"
-              name="event"
-              class="form-select"
-              onchange="this.form.submit()">
-        <option value="all">{% trans "All Events" %}</option>
-        {% for event in events %}
-          <option value="{{ event.id }}"
-                  {% if event.id|stringformat:"s" == selected_event %}selected{% endif %}>{{ event.name }}</option>
-        {% endfor %}
-      </select>
-    </form>
-    {# ── Filters ───────────────────────────────────────────── #}
-    {% if has_schedule %}
+    {% comment %}
+      Event and filters used to be two separate forms stacked on top of each other, which on a
+      phone meant two cards and a lot of scrolling before the first talk. One disclosure now holds
+      both. It is a plain GET form, so it still works with JavaScript off; the script in
+      base.html only decides whether it starts open.
+    {% endcomment %}
+    <details class="filter-panel mb-4" data-filters>
+      <summary class="filter-summary">
+        {% svg 'funnel' "h-5 w-5 shrink-0 text-subtle" %}
+        <span>{% trans "Filters" %}</span>
+        {% if search_query or filter_saved or selected_track or selected_type %}
+          <span class="badge badge-blue">{% trans "active" %}</span>
+        {% endif %}
+        <span class="ml-auto text-sm text-subtle">{% blocktrans count counter=schedule_items|length %}{{ counter }} talk{% plural %}{{ counter }} talks{% endblocktrans %}</span>
+      </summary>
       <form id="schedule-filters"
             method="get"
-            class="flex flex-wrap gap-3 items-center mb-4 card-compact">
-        {# preserve selected date and event #}
+            class="px-4 pb-4 grid gap-3 md:flex md:flex-wrap md:items-center">
+        {# Preserve the selected day. Switching event may drop it, and the view then falls back. #}
         {% if selected_date %}<input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}" />{% endif %}
-        {% if selected_event %}<input type="hidden" name="event" value="{{ selected_event }}" />{% endif %}
-        {% translate "Search talks…" as search_placeholder %}
-        {% translate "Search schedule" as search_label %}
-        <input type="search"
-               name="q"
-               value="{{ search_query }}"
-               placeholder="{{ search_placeholder }}"
-               class="form-input w-60"
-               aria-label="{{ search_label }}" />
-        <label class="sr-only" for="type-filter">{% translate "Filter by presentation type" %}</label>
-        <select id="type-filter"
-                name="presentation_type"
-                class="form-select"
+        <label class="sr-only" for="event-filter">{% translate "Filter by event" %}</label>
+        <select id="event-filter"
+                name="event"
+                class="form-select w-full md:w-auto"
                 onchange="this.form.submit()">
-          <option value="">{% trans "All Types" %}</option>
-          {% for type_value, type_label in presentation_types %}
-            <option value="{{ type_value }}"
-                    {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
+          <option value="all">{% trans "All Events" %}</option>
+          {% for event in events %}
+            <option value="{{ event.id }}"
+                    {% if event.id|stringformat:"s" == selected_event %}selected{% endif %}>{{ event.name }}</option>
           {% endfor %}
         </select>
-        <label class="sr-only" for="track-filter">{% translate "Filter by track" %}</label>
-        <select id="track-filter"
-                name="track"
-                class="form-select truncate w-60"
-                onchange="this.form.submit()">
-          <option value="">{% trans "All Tracks" %}</option>
-          {% for track in tracks %}
-            <option value="{{ track }}"
-                    {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
-          {% endfor %}
-        </select>
-        {# See talk_list.html: nothing to filter on without an account. #}
-        {% if user.is_authenticated %}
-          <label class="inline-flex items-center gap-1 cursor-pointer select-none">
-            <input type="checkbox"
-                   name="saved"
-                   value="1"
-                   {% if filter_saved == "1" %}checked{% endif %}
-                   onchange="this.form.submit()" />
-            <span>{% svg 'bookmark-solid' "h-4 w-4 inline text-yellow-500" %} {% trans "Saved only" %}</span>
-          </label>
-        {% endif %}
-        <button type="submit" class="btn-secondary px-3 py-1 rounded text-sm">{% trans "Filter" %}</button>
-        {% if search_query or filter_saved or selected_track or selected_type %}
-          <a href="?date={{ selected_date|date:'Y-m-d' }}{% if selected_event %}&amp;event={{ selected_event }}{% endif %}"
-             class="text-sm text-brand-blue hover:underline">{% trans "Clear" %}</a>
+        {% if has_schedule %}
+          {% translate "Search talks…" as search_placeholder %}
+          {% translate "Search schedule" as search_label %}
+          <input type="search"
+                 name="q"
+                 value="{{ search_query }}"
+                 placeholder="{{ search_placeholder }}"
+                 class="form-input w-full md:w-60"
+                 aria-label="{{ search_label }}" />
+          <label class="sr-only" for="type-filter">{% translate "Filter by presentation type" %}</label>
+          <select id="type-filter"
+                  name="presentation_type"
+                  class="form-select w-full md:w-auto"
+                  onchange="this.form.submit()">
+            <option value="">{% trans "All Types" %}</option>
+            {% for type_value, type_label in presentation_types %}
+              <option value="{{ type_value }}"
+                      {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
+            {% endfor %}
+          </select>
+          <label class="sr-only" for="track-filter">{% translate "Filter by track" %}</label>
+          <select id="track-filter"
+                  name="track"
+                  class="form-select w-full md:w-60 truncate"
+                  onchange="this.form.submit()">
+            <option value="">{% trans "All Tracks" %}</option>
+            {% for track in tracks %}
+              <option value="{{ track }}"
+                      {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
+            {% endfor %}
+          </select>
+          {# See talk_list.html: nothing to filter on without an account. #}
+          {% if user.is_authenticated %}
+            <label class="inline-flex items-center gap-2 min-h-11 cursor-pointer select-none">
+              <input type="checkbox"
+                     name="saved"
+                     value="1"
+                     {% if filter_saved == "1" %}checked{% endif %}
+                     onchange="this.form.submit()" />
+              {% svg 'bookmark-solid' "h-4 w-4 text-yellow-500" %}
+              <span>{% trans "Saved only" %}</span>
+            </label>
+          {% endif %}
+          <button type="submit"
+                  class="btn-secondary justify-center min-h-11 md:min-h-0 rounded">{% trans "Filter" %}</button>
+          {% if search_query or filter_saved or selected_track or selected_type %}
+            <a href="?date={{ selected_date|date:'Y-m-d' }}{% if selected_event %}&amp;event={{ selected_event }}{% endif %}"
+               class="btn-neutral justify-center min-h-11 md:min-h-0">{% trans "Clear all" %}</a>
+          {% endif %}
         {% endif %}
       </form>
-    {% endif %}
-    {# ── CSS Grid Schedule ─────────────────────────────────── #}
+    </details>
     {% if schedule_items %}
-      <div class="overflow-x-auto pb-4">
+      {% comment %}
+        Two renderings of the same day. A grid of rooms cannot be read on a 360px screen: it was
+        five columns wide and needed sideways scrolling to see any of them, and this page is the
+        one attendees open most from a phone. Below md the day is a single column of time slots
+        instead, which is the same information in the order you actually consume it.
+
+        Every talk therefore appears twice in the markup, and only one copy is ever displayed.
+        The bookmark buttons need distinct wrapper ids for that reason, hence variant="agenda-".
+      {% endcomment %}
+      {% regroup schedule_items by talk.start_time as time_slots %}
+      <div class="md:hidden">
+        {% for slot in time_slots %}
+          <section class="mb-4">
+            <h2 class="agenda-slot">{{ slot.grouper|date:"g:i A" }}</h2>
+            <ul class="mt-2 space-y-2 list-none p-0 m-0">
+              {% for item in slot.list %}
+                {% with talk=item.talk %}
+                  <li class="agenda-card {% if talk.is_current %}border-orange-400 card-bg-current{% elif talk.is_upcoming %}border-blue-400{% else %}border-gray-300{% endif %}">
+                    <div class="min-w-0 grow">
+                      <div class="flex flex-wrap items-center gap-2 mb-1 text-sm">
+                        <span class="badge badge-gray">
+                          {% svg 'location-marker' "h-3 w-3 mr-1" %}
+                          {{ talk.room }}
+                        </span>
+                        {% if item.duration_min %}
+                          <span class="badge badge-gray">{% blocktrans with duration=item.duration_min %}{{ duration }}min{% endblocktrans %}</span>
+                        {% endif %}
+                        {% if talk.is_current %}
+                          <span class="badge badge-orange">
+                            {% svg 'clock' "h-3 w-3 mr-1" %}
+                            {% trans "NOW" %}
+                          </span>
+                        {% endif %}
+                      </div>
+                      <a href="{% url 'talk_detail' talk.pk %}"
+                         class="link-title text-base after:absolute after:inset-0 after:content-['']">{{ talk.title }}</a>
+                      <p class="text-muted text-sm">{{ talk.speaker_names }}</p>
+                      <div class="mt-2 flex flex-wrap gap-2">
+                        <span class="badge badge-green">{{ talk.get_presentation_type_display }}</span>
+                        {% if talk.track %}<span class="badge badge-blue">{{ talk.track }}</span>{% endif %}
+                      </div>
+                    </div>
+                    {% with is_saved=talk.pk|is_in:saved_talk_ids %}
+                      <div class="relative shrink-0" id="sched-save-agenda-{{ talk.pk }}">
+                        {% include "talks/partials/schedule_save_button.html" with variant="agenda-" %}
+                      </div>
+                    {% endwith %}
+                  </li>
+                {% endwith %}
+              {% endfor %}
+            </ul>
+          </section>
+        {% endfor %}
+      </div>
+      {# ── CSS Grid Schedule (md and up) ──────────────────────── #}
+      <div class="hidden md:block overflow-x-auto pb-4">
         <div class="schedule-grid"
              style="display:grid;
                     grid-template-columns: 64px repeat({{ rooms|length }}, minmax(160px, 1fr));

@@ -1,10 +1,12 @@
 {% load i18n %}
 {# Day tabs shared by the schedule and the chair grid. Needs available_dates, selected_date #}
 {# and has_multiple_years in the context; every other query parameter is preserved. #}
+{# The pills wrap instead of scrolling sideways, and each one is 44px tall. #}
 <div class="flex flex-wrap gap-2 mb-4">
   {% for d in available_dates %}
     <a href="{% querystring date=d|date:'Y-m-d' %}"
-       class="px-4 py-2 rounded-lg font-medium text-sm transition-colors {% if d == selected_date %}bg-brand-blue text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+       class="day-pill"
+       {% if d == selected_date %}aria-current="date"{% endif %}>
       {% if has_multiple_years %}
         {{ d|date:"D, M j, Y" }}
       {% else %}

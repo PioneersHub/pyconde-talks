@@ -4,10 +4,14 @@
 {% translate "Bookmark talk" as save_title %}
 {% comment %}
   Icon-only variant for schedule cards. See save_button.html for how the signed-out path
-  works; the wrapper here is the surrounding #sched-save-<pk> element, which the schedule
-  template provides, so this partial is only the button itself.
+  works; the wrapper here is the surrounding #sched-save-<variant><pk> element, which the
+  calling template provides, so this partial is only the button itself.
+
+  `variant` exists because the schedule renders every talk twice, once for the agenda list and
+  once for the grid, and two elements with the same id would send both buttons' swaps to
+  whichever came first. Callers that render a talk once leave it unset.
 {% endcomment %}
-<button {% if user.is_authenticated %} hx-post="{% url 'toggle_save_talk' talk.pk %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' hx-target="#sched-save-{{ talk.pk }}" hx-swap="innerHTML" {% else %} type="button" data-save-toggle="{{ talk.pk }}" {% endif %}
+<button {% if user.is_authenticated %} hx-post="{% url 'toggle_save_talk' talk.pk %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' hx-target="#sched-save-{{ variant }}{{ talk.pk }}" hx-swap="innerHTML" {% else %} type="button" data-save-toggle="{{ talk.pk }}" {% endif %}
         data-save-talk="{{ talk.pk }}"
         data-saved="{% if is_saved %}1{% else %}0{% endif %}"
         class="p-1 rounded hover:bg-black/10 transition-colors {% if is_saved %}text-yellow-500{% else %}text-gray-400{% endif %}"
