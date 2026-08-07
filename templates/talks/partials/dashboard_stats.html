@@ -1,10 +1,11 @@
 {% load stat_tags %}
 {% load i18n %}
 {% if single_event %}
-  {# Single event: keep it simple with stat cards #}
+  {# Single event: keep it simple with stat cards. Three across even on a phone, so the panel #}
+  {# stays one glance tall instead of three stacked cards. #}
   {% with row=event_rows.0 %}
     <h2 class="text-lg font-semibold mb-3">{{ row.name }}</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-3 gap-2 sm:gap-4">
       {% trans "Total Talks" as total_talks_label %}
       {% stat_card total_talks_label row.total %}
       {% trans "Today's Talks" as today_talks_label %}
@@ -14,9 +15,46 @@
     </div>
   {% endwith %}
 {% elif event_rows %}
-  {# Multiple events: display a table with per-event breakdown #}
   <h2 class="text-lg font-semibold mb-3">{% trans "Stats by Event" %}</h2>
-  <div class="overflow-x-auto">
+  {% comment %}
+    Two shapes for the same numbers. A four-column table cannot fit a 360px screen without
+    sideways scrolling, and event names are long, so below sm each event becomes a block with its
+    counts side by side. The table takes over at sm, where it is the denser and easier read.
+  {% endcomment %}
+  <div class="space-y-3 sm:hidden">
+    {% for row in event_rows %}
+      <div class="border border-weak rounded-lg p-3">
+        <div class="font-medium mb-2">{{ row.name }}</div>
+        <dl class="grid grid-cols-3 gap-2 text-center">
+          <div>
+            <dt class="text-xs text-subtle">{% trans "Talks" %}</dt>
+            <dd class="text-lg font-bold tabular-nums">
+              {{ row.total }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-subtle">{% trans "Today" %}</dt>
+            <dd class="text-lg font-bold tabular-nums">
+              {{ row.today }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-subtle">{% trans "Recordings" %}</dt>
+            <dd class="text-lg font-bold tabular-nums">
+              {{ row.recorded }}
+            </dd>
+          </div>
+        </dl>
+      </div>
+    {% endfor %}
+    <div class="flex items-center justify-between border-t border-weak pt-2 text-sm font-semibold">
+      <span>{% trans "Total" %}</span>
+      <span class="tabular-nums">
+        {% blocktrans with total=totals.total today=totals.today recorded=totals.recorded %}{{ total }} talks · {{ today }} today · {{ recorded }} recorded{% endblocktrans %}
+      </span>
+    </div>
+  </div>
+  <div class="hidden sm:block">
     <table class="w-full text-sm">
       <thead>
         <tr class="border-b border-weak text-left text-subtle">

@@ -1,8 +1,8 @@
-{# Small "useful link" card used on the 404 and 500 error pages. Callers pass `url`, `icon`, `label`. Renders nothing when `url` is empty so conditional guards stay out of the calling template. #}
+{# Tappable "useful link" row, used on the home page and the 404/500 pages. Callers pass `url`, `icon` (an emoji) and `label`. Renders nothing when `url` is empty so conditional guards stay out of the calling template. #}
 {% if url %}
   <a href="{{ url }}"
-     class="card hover:shadow-lg transition duration-300 flex items-center gap-2">
-    <span class="text-brand-blue">{{ icon }}</span>
-    <span>{{ label }}</span>
+     class="card flex items-center gap-3 min-h-14 py-3 hover:shadow-lg transition duration-300">
+    <span class="text-xl leading-none">{{ icon }}</span>
+    <span class="font-medium">{{ label }}</span>
   </a>
 {% endif %}

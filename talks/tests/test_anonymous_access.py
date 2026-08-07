@@ -211,7 +211,7 @@ class TestAnonymousDashboardStats:
 
         # The widget renders each figure as a styled div, so match the total precisely:
         # a loose ">1<" would also match unrelated markup and pass either way.
-        total_markup = '<div class="text-2xl font-bold">{}</div>'
+        total_markup = '<div class="text-xl sm:text-2xl font-bold tabular-nums">{}</div>'
         assert total_markup.format(1) in body
         assert total_markup.format(2) not in body
 

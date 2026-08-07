@@ -2,24 +2,35 @@
 {% load i18n %}
 {% load svg_tags %}
 {% block content %}
-  <div class="max-w-4xl mx-auto p-4">
+  {% comment %}
+    One column on a phone, one column with wider cards on a desktop: the page is short enough that
+    a second column would only add scanning work. Horizontal padding comes from .app-main, so
+    nothing here adds its own or a 360px screen loses 56px to nesting.
+
+    The action buttons are full-width blocks below sm. That is the shape a thumb reaches for, and
+    it removes the ragged two-and-a-half-per-row wrap the flex layout produced at 360px.
+  {% endcomment %}
+  <div class="max-w-4xl mx-auto pb-2">
     {% if user.is_authenticated %}
-      <div class="card mb-6">
-        <h1 class="text-2xl font-bold mb-2">{% blocktrans with event_name=brand_event_name %}Welcome to {{ event_name }}!{% endblocktrans %}</h1>
-        <div class="flex flex-wrap gap-4">
+      <div class="card mb-4 sm:mb-6">
+        <h1 class="text-xl sm:text-2xl font-bold mb-3">{% blocktrans with event_name=brand_event_name %}Welcome to {{ event_name }}!{% endblocktrans %}</h1>
+        <div class="grid gap-3 sm:flex sm:flex-wrap">
           <a href="{% url 'talk_list' %}"
-             class="btn-primary inline-flex items-center px-4 py-2 rounded-lg">
-            {% svg 'rectangle-stack' "w-4 h-4 mr-2" %} {% trans "Browse Talks" %}
+             class="btn-primary inline-flex items-center justify-center gap-2 min-h-12 rounded-lg">
+            {% svg 'rectangle-stack' "h-5 w-5" %}
+            {% trans "Browse Talks" %}
           </a>
           <a href="{% url 'schedule' %}"
-             class="btn-secondary inline-flex items-center px-4 py-2 rounded-lg">
-            {% svg 'calendar' "w-4 h-4 mr-2" %} {% trans "Schedule" %}
+             class="btn-secondary inline-flex items-center justify-center gap-2 min-h-12 rounded-lg">
+            {% svg 'calendar' "h-5 w-5" %}
+            {% trans "Schedule" %}
           </a>
-          <a href="{% url 'account_logout' %}" class="btn-outline-primary">{% trans "Sign Out" %}</a>
+          <a href="{% url 'account_logout' %}"
+             class="btn-outline-primary inline-flex items-center justify-center min-h-12">{% trans "Sign Out" %}</a>
         </div>
       </div>
       <!-- Quick Stats with live updates -->
-      <div class="card mb-6">
+      <div class="card mb-4 sm:mb-6">
         <!-- Container for HTMX to swap content into -->
         <div hx-get="{% url 'dashboard_stats' %}"
              hx-trigger="load, every 300s"
@@ -29,7 +40,7 @@
         </div>
       </div>
       <!-- Next Talks with live updates -->
-      <div class="mb-6">
+      <div class="mb-4 sm:mb-6">
         <!-- Container for HTMX to swap content into -->
         <div hx-get="{% url 'upcoming_talks' %}"
              hx-trigger="load, every 300s"
@@ -44,8 +55,8 @@
         </div>
       </div>
     {% else %}
-      <div class="card mb-6">
-        <h1 class="text-2xl font-bold mb-2">{% blocktrans with event_name=brand_event_name %}Welcome to {{ event_name }}{% endblocktrans %}</h1>
+      <div class="card mb-4 sm:mb-6">
+        <h1 class="text-xl sm:text-2xl font-bold mb-2">{% blocktrans with event_name=brand_event_name %}Welcome to {{ event_name }}{% endblocktrans %}</h1>
         {% if has_public_event %}
           <p class="text-muted mb-4">
             {% trans "Browse the talks and the schedule without an account. Sign in to watch recordings, ask questions and save talks." %}
@@ -53,19 +64,21 @@
         {% else %}
           <p class="text-muted mb-4">{% trans "Please sign in to access the conference talks." %}</p>
         {% endif %}
-        <div class="flex flex-wrap gap-4">
+        <div class="grid gap-3 sm:flex sm:flex-wrap">
           {% if has_public_event %}
             <a href="{% url 'talk_list' %}"
-               class="btn-primary inline-flex items-center px-4 py-2 rounded-lg">
-              {% svg 'rectangle-stack' "w-4 h-4 mr-2" %} {% trans "Browse Talks" %}
+               class="btn-primary inline-flex items-center justify-center gap-2 min-h-12 rounded-lg">
+              {% svg 'rectangle-stack' "h-5 w-5" %}
+              {% trans "Browse Talks" %}
             </a>
             <a href="{% url 'schedule' %}"
-               class="btn-secondary inline-flex items-center px-4 py-2 rounded-lg">
-              {% svg 'calendar' "w-4 h-4 mr-2" %} {% trans "Schedule" %}
+               class="btn-secondary inline-flex items-center justify-center gap-2 min-h-12 rounded-lg">
+              {% svg 'calendar' "h-5 w-5" %}
+              {% trans "Schedule" %}
             </a>
           {% endif %}
           <a href="{% url 'account_request_login_code' %}"
-             class="btn-outline-primary">{% trans "Sign In" %}</a>
+             class="btn-outline-primary inline-flex items-center justify-center min-h-12">{% trans "Sign In" %}</a>
         </div>
       </div>
       {% comment %}
@@ -73,14 +86,14 @@
         there is a public event to count: otherwise both widgets render an empty shell.
       {% endcomment %}
       {% if has_public_event %}
-        <div class="card mb-6">
+        <div class="card mb-4 sm:mb-6">
           <div hx-get="{% url 'dashboard_stats' %}"
                hx-trigger="load, every 300s"
                hx-swap="innerHTML">
             <p class="text-subtle text-sm">{% trans "Loading stats..." %}</p>
           </div>
         </div>
-        <div class="mb-6">
+        <div class="mb-4 sm:mb-6">
           <div hx-get="{% url 'upcoming_talks' %}"
                hx-trigger="load, every 300s"
                hx-swap="innerHTML">
@@ -93,6 +106,24 @@
           </div>
         </div>
       {% endif %}
+    {% endif %}
+    {% comment %}
+      The practical links: venue, speakers, the code of conduct. They were reachable only from the
+      footer, which on a phone is a wrapped row of eight small targets below everything else. Each
+      card renders only when its event has that URL configured, so an event with none of them adds
+      no empty section.
+    {% endcomment %}
+    {% if brand_venue_url or pretalx_speakers_url or brand_code_of_conduct_url or brand_main_website_url or brand_transcriptions_url %}
+      <section aria-labelledby="need-to-know">
+        <h2 id="need-to-know" class="text-lg font-semibold mb-3">{% trans "Need to know" %}</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {% include "partials/useful_link_card.html" with url=brand_venue_url icon="🏢" label=_("Venue") %}
+          {% include "partials/useful_link_card.html" with url=pretalx_speakers_url icon="🎤" label=_("Speakers") %}
+          {% include "partials/useful_link_card.html" with url=brand_code_of_conduct_url icon="🤝" label=_("Code of Conduct") %}
+          {% include "partials/useful_link_card.html" with url=brand_transcriptions_url icon="🌐" label=_("Transcriptions") %}
+          {% include "partials/useful_link_card.html" with url=brand_main_website_url icon="🔗" label=_("Main website") %}
+        </div>
+      </section>
     {% endif %}
   </div>
 {% endblock content %}
