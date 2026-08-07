@@ -1,0 +1,23 @@
+{% load i18n %}
+{% load svg_tags %}
+{% comment %}
+  Switch between the talk list and the schedule. Callers pass `current` as "list" or "schedule".
+
+  It replaces the pair of "Schedule view" / "List view" buttons each page carried: those looked
+  like actions and gave no hint that the two were alternative views of the same talks. The current
+  view is marked with aria-current, which is also the stylesheet's hook for the selected look.
+{% endcomment %}
+<div class="segmented" role="group" aria-label="{% translate "View" %}">
+  <a href="{% url 'talk_list' %}"
+     class="segmented-item"
+     {% if current == "list" %}aria-current="page"{% endif %}>
+    {% svg 'rectangle-stack' "h-4 w-4" %}
+    {% translate "List" %}
+  </a>
+  <a href="{% url 'schedule' %}"
+     class="segmented-item"
+     {% if current == "schedule" %}aria-current="page"{% endif %}>
+    {% svg 'calendar' "h-4 w-4" %}
+    {% translate "Schedule" %}
+  </a>
+</div>

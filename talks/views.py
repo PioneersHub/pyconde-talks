@@ -330,6 +330,15 @@ class TalkListView(ListView[Talk]):
             ("completed", _("Completed")),
         ]
 
+        # The template collapses the filter block on small screens, so it needs to say whether
+        # anything inside it is set: a closed panel that is quietly filtering the list would
+        # otherwise look like a short list. Stale selections are already blanked above, and the
+        # event filter is left out on purpose, since it always has a value.
+        context["filters_active"] = any(
+            context[key]
+            for key in ("selected_room", "selected_date", "selected_track", "selected_type")
+        ) or bool(context["selected_status"] or context["filter_saved"])
+
         # Build a set of saved talk IDs for the current user. Anonymous visitors keep their
         # bookmarks in the browser, so there is nothing to look up for them.
         context["saved_talk_ids"] = (

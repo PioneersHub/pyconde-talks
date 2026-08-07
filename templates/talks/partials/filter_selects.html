@@ -1,0 +1,72 @@
+{% load i18n %}
+{% comment %}
+  The five event-dependent filter dropdowns of the talk list, in one place.
+
+  They are rendered twice per HTMX response: once inside the filters form, and once with
+  hx-swap-oob so that changing the event re-renders the options that depend on it (a room or track
+  from another event must not stay selectable). Keeping the markup here is what makes the two
+  copies identical; when they were spelled out twice, a class added to one silently did not reach
+  the other, and the swap replaced a full-width select with a narrow one.
+
+  Only bare <select> elements, no wrapper: hx-swap-oob only works on the top-level elements of a
+  response, and the caller supplies the layout box.
+
+  Callers pass `oob=True` for the out-of-band copy. djLint's H025 fires on the OOB copy because
+  the tags look unbalanced to it, hence the guard at the call site.
+{% endcomment %}
+<select id="date-filter"
+        name="date"
+        class="form-select w-full md:w-auto"
+        {% if oob %}hx-swap-oob="true"{% endif %}>
+  <option value="">{% trans "All Days" %}</option>
+  {% for date in dates %}
+    <option value="{{ date|date:'Y-m-d' }}"
+            {% if date|date:'Y-m-d' == selected_date %}selected{% endif %}>
+      {% if has_multiple_years %}
+        {{ date|date:"l, F j, Y" }}
+      {% else %}
+        {{ date|date:"l, F j" }}
+      {% endif %}
+    </option>
+  {% endfor %}
+</select>
+<select id="room-filter"
+        name="room"
+        class="form-select w-full md:w-auto"
+        {% if oob %}hx-swap-oob="true"{% endif %}>
+  <option value="">{% trans "All Rooms" %}</option>
+  {% for room in rooms %}
+    <option value="{{ room.id }}"
+            {% if room.id|stringformat:"s" == selected_room %}selected{% endif %}>{{ room.name }}</option>
+  {% endfor %}
+</select>
+<select id="type-filter"
+        name="presentation_type"
+        class="form-select w-full md:w-auto"
+        {% if oob %}hx-swap-oob="true"{% endif %}>
+  <option value="">{% trans "All Types" %}</option>
+  {% for type_value, type_label in presentation_types %}
+    <option value="{{ type_value }}"
+            {% if type_value == selected_type %}selected{% endif %}>{{ type_label }}</option>
+  {% endfor %}
+</select>
+<select id="track-filter"
+        name="track"
+        class="form-select w-full md:w-60 truncate"
+        {% if oob %}hx-swap-oob="true"{% endif %}>
+  <option value="">{% trans "All Tracks" %}</option>
+  {% for track in tracks %}
+    <option value="{{ track }}"
+            {% if track == selected_track %}selected{% endif %}>{{ track }}</option>
+  {% endfor %}
+</select>
+<select id="status-filter"
+        name="status"
+        class="form-select w-full md:w-auto"
+        {% if oob %}hx-swap-oob="true"{% endif %}>
+  <option value="">{% trans "All Statuses" %}</option>
+  {% for status_value, status_label in status_choices %}
+    <option value="{{ status_value }}"
+            {% if status_value == selected_status %}selected{% endif %}>{{ status_label }}</option>
+  {% endfor %}
+</select>
