@@ -25,8 +25,7 @@ COPY --from=ghcr.io/astral-sh/uv:0.12.5@sha256:e85be844203885286c60ffad8a858d48a
 # which statically bundles its own OpenSSL/sqlite that the base image cannot patch). No git is
 # needed: all dependencies resolve from PyPI (see uv.lock).
 # libpq is unnecessary: psycopg[binary] ships it.
-# No C toolchain (build-base / python-dev) is needed: all deps ship prebuilt wheels and py-ubjson is
-# excluded via override-dependencies in pyproject.toml.
+# No C toolchain (build-base / python-dev) is needed: every dependency ships a prebuilt wheel.
 RUN apk add --no-cache \
     python-3.14
 

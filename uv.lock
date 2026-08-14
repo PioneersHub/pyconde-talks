@@ -4,20 +4,17 @@ requires-python = ">=3.14, <4"
 resolution-markers = [
     "python_full_version >= '3.15' and platform_python_implementation == 'PyPy' and sys_platform == 'win32'",
     "python_full_version >= '3.15' and platform_python_implementation != 'PyPy' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform == 'emscripten'",
+    "python_full_version >= '3.15' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version < '3.15' and platform_python_implementation == 'PyPy' and sys_platform == 'win32'",
     "python_full_version < '3.15' and platform_python_implementation != 'PyPy' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform == 'emscripten'",
     "python_full_version < '3.15' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.15' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version < '3.15' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
 [options]
 exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P1D"
-
-[manifest]
-overrides = [{ name = "py-ubjson", marker = "sys_platform == 'nowhere'", specifier = ">=0.16.1" }]
 
 [[package]]
 name = "annotated-types"
