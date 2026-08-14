@@ -44,6 +44,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # No setup-python / uv sync: under build-mode none the extractor reads source directly (no
       # dependency install) and the pinned CodeQL parses 3.14 syntax.
