@@ -65,6 +65,7 @@ The hooks configured in
 | `bandit`                     | Security scan, configured via `pyproject.toml`                            |
 | `pyupgrade`                  | Upgrades syntax to Python 3.14+ idioms                                    |
 | `renovate-config-validator`  | Validates `renovate.json5` so dependency updates do not silently break    |
+| `zizmor`                     | Audits the GitHub Actions workflows for security                          |
 | `zuban`                      | Strict type check (mypy-compatible, with django-stubs)                    |
 
 !!! warning "Do not skip hooks"

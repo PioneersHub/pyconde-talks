@@ -96,6 +96,13 @@ repos:
       - id: renovate-config-validator
         args: [--strict]
 
+  # Static analysis for the GitHub Actions workflows. Same tool as the zizmor.yml workflow, so a
+  # finding shows up here first instead of on a red CI run.
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.29.0
+    hooks:
+      - id: zizmor
+
   - repo: local
     hooks:
       - id: zuban

@@ -302,6 +302,8 @@ wsgi
 xlink
 youtu
 ytimg
+zizmor
+zizmorcore
 zoneinfo
 zuban
 zubanls

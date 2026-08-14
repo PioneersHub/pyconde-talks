@@ -84,6 +84,10 @@ Beyond Ruff and Zuban it runs:
 - **pyupgrade** - rewrites code to Python 3.14+ idioms.
 - **renovate-config-validator** - validates `renovate.json5` so a typo cannot silently break
     dependency updates.
+- **[zizmor](https://docs.zizmor.sh)** - audits the GitHub Actions workflows themselves, which no
+    Python linter reads: credentials left behind by a checkout, caches a lower-privileged run could
+    poison, untrusted input interpolated into a `run:` block, jobs holding more permissions than
+    they use. Run it on its own with `uv run zizmor .`.
 - The standard pre-commit hygiene hooks: trailing whitespace, end-of-file newline, large-file guard,
     TOML/YAML syntax, and a debug-statement check.
 
@@ -129,3 +133,9 @@ workflow before it builds or deploys any image, so nothing ships that has not pa
 
 Because the workflow installs from `uv.lock`, keep the lockfile committed and up to date (the
 `uv-lock` pre-commit hook does this for you).
+
+`zizmor.yml` runs beside that gate rather than inside it: it audits the workflow files, not the
+application, so it has no reason to run again before every deploy. It sends its findings to the
+repository's Security tab and then reruns the audit to fail the PR, and CI passes it a `GH_TOKEN` so
+the audits that query the GitHub API (a referenced action being vulnerable, or its tag having moved)
+are switched on. A local run without a token only does the offline checks.

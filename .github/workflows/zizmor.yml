@@ -1,0 +1,67 @@
+# Static analysis for the GitHub Actions workflows themselves (https://docs.zizmor.sh).
+# CodeQL's `actions` queries overlap a little, but zizmor is the specialist: credential
+# persistence, cache poisoning, template injection, over-broad permissions. It is the same tool
+# the pre-commit hook runs locally, so a contributor sees a finding before CI does.
+#
+# Deliberately not part of the reusable checks.yml gate: this audits the workflow files, not the
+# application, so it has no reason to run again before every deploy.
+name: zizmor
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+# Cancel superseded PR scans, but never cancel the main baseline
+# (killing it would leave the Security tab's results stale).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Nothing by default; the job asks for exactly what it needs.
+permissions: {}
+
+jobs:
+  zizmor:
+    name: Audit workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read # actions/checkout
+      security-events: write # upload-sarif
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+      # --only-group dev: zizmor needs none of the app's dependencies.
+      # GH_TOKEN switches on the audits that query the GitHub API (known-vulnerable-actions,
+      # stale-action-refs). Without it those quietly do not run.
+      - name: Run zizmor
+        run: >-
+          uv run --only-group dev --locked --no-build
+          zizmor --format=sarif . > results.sarif
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload SARIF to code scanning
+        # A fork PR gets a read-only token, so the upload would fail there; the gate below still
+        # runs. The expression is also true for push and workflow_dispatch, where the field is null.
+        if: ${{ !github.event.pull_request.head.repo.fork }}
+        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        with:
+          sarif_file: results.sarif
+          category: zizmor
+
+      - name: Fail on findings
+        # --format=sarif always exits 0, so the audit runs a second time (sub-second) to gate the
+        # PR, after the results are safely in the Security tab.
+        run: uv run --only-group dev --locked --no-build zizmor .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

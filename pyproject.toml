@@ -68,6 +68,7 @@ dev = [
     "pandas-stubs>=3.0.5.260730",
     "prek>=0.4.12",
     "ruff>=0.16.1",
+    "zizmor>=1.29.0",
     "zuban>=0.9.1",
 ]
 test = [

@@ -54,6 +54,11 @@ zuban check                 # Strict type check (mypy-compatible, with django-st
 prek run -a                 # Run all pre-commit hooks (drop-in pre-commit replacement)
 ```
 
+Anything under `.github/workflows/` is audited by [`zizmor`](https://docs.zizmor.sh)
+(`uv run zizmor .`), as a pre-commit hook and in `zizmor.yml`, which also uploads SARIF to the
+Security tab. A workflow edit must keep it clean: actions pinned to a full commit SHA,
+`persist-credentials: false` on every checkout, and the narrowest `permissions` per job.
+
 The full local CI + SonarQube refresh pipeline lives in the `/ci` skill
 ([.claude/skills/ci.md](.claude/skills/ci.md)). Claude **may** invoke it, but should do so
 sparingly:
