@@ -22,7 +22,7 @@ from utils.test_perf import assert_no_n_plus_one
 
 if TYPE_CHECKING:
     from django.test import Client
-    from pytest_django.fixtures import SettingsWrapper
+    from pytest_django import Settings
 
 
 def _talk_with_qa(mode: str) -> Talk:
@@ -506,7 +506,7 @@ class TestCreateFormGet:
     def test_a_get_does_not_spend_the_rate_limit(
         self,
         client: Client,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """
         Opening the page must not count against the allowance.

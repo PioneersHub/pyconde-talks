@@ -14,7 +14,7 @@ from users.models import CustomUser
 
 if TYPE_CHECKING:
     import respx
-    from pytest_django.fixtures import SettingsWrapper
+    from pytest_django import Settings
 
 
 # Match the legacy respx_mock default (assert_all_called=False): a couple of tests register a
@@ -69,7 +69,7 @@ def test_superuser_authorization(
     adapter: AccountAdapter,
     user_model: type[Any],
     event: Event,
-    settings: SettingsWrapper,
+    settings: Settings,
 ) -> None:
     """
     Test email authorization for superusers and event-associated users.
@@ -113,7 +113,7 @@ def test_superuser_authorization(
 @pytest.mark.django_db
 def test_api_authorization_success(
     adapter: AccountAdapter,
-    settings: SettingsWrapper,
+    settings: Settings,
     mock_email_api_valid: str,
     httpx2_mock: respx.Router,
 ) -> None:
@@ -133,7 +133,7 @@ def test_api_authorization_success(
 @pytest.mark.django_db
 def test_api_authorization_failure(
     adapter: AccountAdapter,
-    settings: SettingsWrapper,
+    settings: Settings,
     mock_email_api_invalid: str,
     httpx2_mock: respx.Router,
 ) -> None:
@@ -153,7 +153,7 @@ def test_api_authorization_failure(
 @pytest.mark.django_db
 def test_api_authorization_validation_error(
     adapter: AccountAdapter,
-    settings: SettingsWrapper,
+    settings: Settings,
     mock_email_api_error: str,
     httpx2_mock: respx.Router,
 ) -> None:
@@ -181,7 +181,7 @@ def test_api_authorization_validation_error(
 @pytest.mark.django_db
 def test_api_authorization_exceptions(
     adapter: AccountAdapter,
-    settings: SettingsWrapper,
+    settings: Settings,
     mock_email_api_exception: str,
     httpx2_mock: respx.Router,
 ) -> None:
@@ -240,7 +240,7 @@ class TestSendMail:
 @pytest.mark.django_db
 def test_api_authorization_valid_false(
     adapter: AccountAdapter,
-    settings: SettingsWrapper,
+    settings: Settings,
     httpx2_mock: respx.Router,
 ) -> None:
     """Test API returns valid=false, hitting the warning branch."""
@@ -260,7 +260,7 @@ def test_api_authorization_valid_false(
 @pytest.mark.django_db
 def test_inactive_user_denied_without_api_call(
     adapter: AccountAdapter,
-    settings: SettingsWrapper,
+    settings: Settings,
     httpx2_mock: respx.Router,
 ) -> None:
     """A deactivated account is denied up front: no validation-API call, no event re-link."""
@@ -289,7 +289,7 @@ def test_inactive_user_denied_without_api_call(
 
 
 @pytest.fixture
-def oauth2_settings(settings: SettingsWrapper) -> dict[str, str]:
+def oauth2_settings(settings: Settings) -> dict[str, str]:
     """Configure OAuth2 client-credentials settings and return the URLs."""
     token_url = "https://keycloak.example.com/realms/test/protocol/openid-connect/token"
     api_url = "https://fake-api.example.com/validate"
@@ -330,7 +330,7 @@ def test_oauth2_bearer_token_sent(
 @pytest.mark.django_db
 def test_oauth2_disabled_no_auth_header(
     adapter: AccountAdapter,
-    settings: SettingsWrapper,
+    settings: Settings,
     httpx2_mock: respx.Router,
 ) -> None:
     """When OAuth2 settings are empty, no Authorization header is sent."""
@@ -421,7 +421,7 @@ def test_404_not_retried(
     adapter: AccountAdapter,
     mock_email_api_base: str,
     httpx2_mock: respx.Router,
-    settings: SettingsWrapper,
+    settings: Settings,
 ) -> None:
     """
     A 404 response from the validation API is a definitive "not found" answer.
@@ -443,7 +443,7 @@ def test_can_login_by_email_404_returns_false(
     adapter: AccountAdapter,
     mock_email_api_base: str,
     httpx2_mock: respx.Router,
-    settings: SettingsWrapper,
+    settings: Settings,
 ) -> None:
     """
     can_login_by_email returns False when the validation API responds with 404.
@@ -480,7 +480,7 @@ def test_can_login_by_email_swallows_errors(
     adapter: AccountAdapter,
     mock_email_api_base: str,
     httpx2_mock: respx.Router,
-    settings: SettingsWrapper,
+    settings: Settings,
     side_effect: Exception,
 ) -> None:
     """Every error raised by the validation API must downgrade to a safe False result."""

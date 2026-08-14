@@ -30,7 +30,7 @@ from users.models import CustomUser
 if TYPE_CHECKING:
     from django.test import Client
     from django.test.client import _MonkeyPatchedWSGIResponse
-    from pytest_django.fixtures import SettingsWrapper
+    from pytest_django import Settings
 
 
 # A small allowance so the tests can reach it in a couple of requests.
@@ -118,7 +118,7 @@ class TestQuestionRateLimit:
         client: Client,
         talk: Talk,
         asker: CustomUser,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """The limit is generous enough that ordinary use never meets it."""
         settings.QA_QUESTION_RATE_LIMIT_PER_TALK = 3
@@ -134,7 +134,7 @@ class TestQuestionRateLimit:
         client: Client,
         talk: Talk,
         asker: CustomUser,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """Once the allowance is spent the question is not stored."""
         settings.QA_QUESTION_RATE_LIMIT_PER_TALK = 2
@@ -152,7 +152,7 @@ class TestQuestionRateLimit:
         client: Client,
         talk: Talk,
         asker: CustomUser,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """A bare 429 is unhelpful; say roughly how long to wait."""
         settings.QA_QUESTION_RATE_LIMIT_PER_TALK = 1
@@ -169,7 +169,7 @@ class TestQuestionRateLimit:
         talk: Talk,
         second_talk: Talk,
         asker: CustomUser,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """Being chatty about one talk must not silence someone on the next."""
         settings.QA_QUESTION_RATE_LIMIT_PER_TALK = 1
@@ -189,7 +189,7 @@ class TestQuestionRateLimit:
         talk: Talk,
         second_talk: Talk,
         asker: CustomUser,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """The per-talk limit alone would let someone spray the whole schedule."""
         settings.QA_QUESTION_RATE_LIMIT_PER_TALK = 100
@@ -207,7 +207,7 @@ class TestQuestionRateLimit:
         self,
         client: Client,
         talk: Talk,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """Moderators post repeatedly by nature, and would have to unpick their own limit."""
         settings.QA_QUESTION_RATE_LIMIT_PER_TALK = 1
@@ -225,7 +225,7 @@ class TestQuestionRateLimit:
         client: Client,
         talk: Talk,
         asker: CustomUser,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """
         The allowance is consumed on success, not on attempt.
@@ -249,7 +249,7 @@ class TestQuestionRateLimit:
         client: Client,
         talk: Talk,
         asker: CustomUser,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """
         Documents the degraded mode rather than pretending it cannot happen.
@@ -278,7 +278,7 @@ class TestClaimIsAtomic:
         client: Client,
         talk: Talk,
         asker: CustomUser,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """
         A question that never got stored must not cost part of the allowance.
@@ -307,7 +307,7 @@ class TestClaimIsAtomic:
         client: Client,
         talk: Talk,
         asker: CustomUser,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """Refunding must not turn the limit off: the third real question is still refused."""
         settings.QA_QUESTION_RATE_LIMIT_PER_TALK = ALLOWANCE

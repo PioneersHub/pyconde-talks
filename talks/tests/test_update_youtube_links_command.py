@@ -21,7 +21,7 @@ from talks.models import Talk
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from pytest_django.fixtures import SettingsWrapper
+    from pytest_django import Settings
 
 
 # Stand-in Pretalx submission codes, shaped like the real ones.
@@ -384,7 +384,7 @@ class TestHandleCommand:
     def test_defaults_to_configured_event(
         self,
         json_map: Path,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """With no flag, the run is scoped to DEFAULT_EVENT."""
         settings.DEFAULT_EVENT = "configured"

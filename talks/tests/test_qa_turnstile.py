@@ -21,7 +21,7 @@ from users.models import CustomUser
 if TYPE_CHECKING:
     import respx
     from django.test import Client
-    from pytest_django.fixtures import SettingsWrapper
+    from pytest_django import Settings
 
 
 VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
@@ -45,7 +45,7 @@ def asker(talk: Talk) -> CustomUser:
 
 
 @pytest.fixture
-def _turnstile_on(settings: SettingsWrapper) -> None:
+def _turnstile_on(settings: Settings) -> None:
     """Switch the captcha on with test keys."""
     settings.TURNSTILE_SITE_KEY = "site-key"
     settings.TURNSTILE_SECRET_KEY = "secret-key"

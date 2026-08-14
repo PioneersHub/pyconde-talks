@@ -33,18 +33,18 @@ classifiers = [
 dependencies = [
     "argon2-cffi>=25.1.0",
     "daphne>=4.2.3",
-    "django-allauth[socialaccount]>=65.18.0",
+    "django-allauth[socialaccount]>=65.19.1",
     "django-anymail[mailgun]>=15.1",
     "django-environ>=0.14.0",
-    "django-health-check[psutil]>=4.4.4",
-    "django-htmx>=1.28.0",
+    "django-health-check[psutil]>=4.5.0",
+    "django-htmx>=1.29.0",
     "django-markdownify>=0.9.7",
     "django-structlog>=10.1.0",
-    "django-stubs-ext>=6.0.7",
-    "django>=6.0.7",
+    "django-stubs-ext>=6.1.0",
+    "django>=6.1",
     "emoji>=2.15.0",
     "furl>=2.1.4",
-    "httpx2>=2.9.1",
+    "httpx2>=2.10.0",
     "matplotlib>=3.11.1",
     "model-bakery>=1.24.0",
     "openpyxl>=3.1.5",
@@ -52,7 +52,7 @@ dependencies = [
     "pillow>=12.3.0",
     "pilmoji>=2.0.5",
     "pydantic>=2.13.4",
-    "sentry-sdk[django]>=2.66.1",
+    "sentry-sdk[django]>=2.68.0",
     "structlog>=26.1.0",
     "tenacity>=9.1.4",
 ]
@@ -60,23 +60,23 @@ dependencies = [
 [dependency-groups]
 dev = [
     "bandit[sarif]>=1.9.4",
-    "django-stubs[compatible-mypy]>=6.0.7",
-    "djlint>=1.43.2",
+    "django-stubs[compatible-mypy]>=6.1.0",
+    "djlint>=1.44.2",
     "faker>=40.36.0",
     "ipython>=9.16.1",
     "mypy>=2.3.0",
     "pandas-stubs>=3.0.5.260730",
-    "prek>=0.4.12",
-    "ruff>=0.16.1",
+    "prek>=0.4.13",
+    "ruff>=0.16.3",
     "zizmor>=1.29.0",
     "zuban>=0.9.1",
 ]
 test = [
-    "hypothesis>=6.165.0",
-    "inline-snapshot>=0.35.3",
+    "hypothesis>=6.165.5",
+    "inline-snapshot>=0.35.4",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
-    "pytest-django>=4.12.0",
+    "pytest-django>=4.14.0",
     "pytest-httpx2>=1.0.0",
     "pytest-mock>=3.15.1",
     "pytest-random-order>=1.2.0",
@@ -88,10 +88,10 @@ prod = [
     "psycopg[binary]>=3.3.4",
     # Client for Django's built-in RedisCache (`DJANGO_CACHE_URL=redis://...`). Django ships the
     # backend itself, so django-redis is not needed - only the driver.
-    "redis>=6.4.0",
+    "redis>=8.1.0",
 ]
 docs = [
-    "zensical>=0.0.53",
+    "zensical>=0.0.54",
 ]
 
 [project.urls]

@@ -10,7 +10,7 @@ from django.utils import translation
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from pytest_django.fixtures import SettingsWrapper
+    from pytest_django import Settings
 
 
 @pytest.fixture(autouse=True)
@@ -30,7 +30,7 @@ def _reset_active_language() -> Generator[None]:
 
 
 @pytest.fixture(autouse=True)
-def _clear_cache(settings: SettingsWrapper) -> Generator[None]:
+def _clear_cache(settings: Settings) -> Generator[None]:
     """
     Start and end every test with an empty, in-process cache.
 

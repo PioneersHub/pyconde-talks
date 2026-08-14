@@ -15,7 +15,7 @@ from utils import turnstile
 
 if TYPE_CHECKING:
     import respx
-    from pytest_django.fixtures import SettingsWrapper
+    from pytest_django import Settings
 
 
 VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
@@ -26,7 +26,7 @@ pytestmark = pytest.mark.httpx2(assert_all_called=False)
 
 
 @pytest.fixture
-def _configured(settings: SettingsWrapper) -> None:
+def _configured(settings: Settings) -> None:
     """Configure Turnstile with test keys."""
     settings.TURNSTILE_SITE_KEY = "site-key"
     settings.TURNSTILE_SECRET_KEY = "secret-key"
@@ -36,7 +36,7 @@ def _configured(settings: SettingsWrapper) -> None:
 
 
 @pytest.fixture
-def _no_keys(settings: SettingsWrapper) -> None:
+def _no_keys(settings: Settings) -> None:
     """Leave Turnstile switched off, as in dev and CI."""
     settings.TURNSTILE_SITE_KEY = ""
     settings.TURNSTILE_SECRET_KEY = ""
@@ -52,7 +52,7 @@ def _no_keys(settings: SettingsWrapper) -> None:
     ],
 )
 def test_is_enabled_needs_both_keys(
-    settings: SettingsWrapper,
+    settings: Settings,
     site_key: str,
     secret_key: str,
     expected: bool,  # noqa: FBT001
@@ -101,7 +101,7 @@ def test_failed_challenge(httpx2_mock: respx.Router) -> None:
 
 @pytest.mark.parametrize("fail_open", [True, False])
 def test_network_failure_follows_fail_open(
-    settings: SettingsWrapper,
+    settings: Settings,
     httpx2_mock: respx.Router,
     fail_open: bool,  # noqa: FBT001
 ) -> None:
@@ -157,7 +157,7 @@ def test_the_token_is_sent_but_the_client_ip_is_not(httpx2_mock: respx.Router) -
 )
 @pytest.mark.parametrize("fail_open", [True, False])
 def test_a_bad_secret_follows_fail_open(
-    settings: SettingsWrapper,
+    settings: Settings,
     httpx2_mock: respx.Router,
     code: str,
     fail_open: bool,  # noqa: FBT001
@@ -181,7 +181,7 @@ def test_a_bad_secret_follows_fail_open(
 
 @pytest.mark.usefixtures("_configured")
 def test_a_rejected_token_still_fails_closed_when_fail_open_is_on(
-    settings: SettingsWrapper,
+    settings: Settings,
     httpx2_mock: respx.Router,
 ) -> None:
     """

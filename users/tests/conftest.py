@@ -12,7 +12,7 @@ from users.adapters import OAUTH_BEARER_CACHE_KEY
 
 if TYPE_CHECKING:
     import respx
-    from pytest_django.fixtures import SettingsWrapper
+    from pytest_django import Settings
 
 
 @pytest.fixture(autouse=True)
@@ -28,7 +28,7 @@ def user_model() -> type[Any]:
 
 
 @pytest.fixture
-def mock_email_api_base(settings: SettingsWrapper) -> str:
+def mock_email_api_base(settings: Settings) -> str:
     """
     Define base fixture that sets up the mock email validation API infrastructure.
 
@@ -155,7 +155,7 @@ def mock_email_api_exception(mock_email_api_base: str, httpx2_mock: respx.Router
 
 
 @pytest.fixture
-def allauth_settings(settings: SettingsWrapper) -> None:
+def allauth_settings(settings: Settings) -> None:
     """Configure Allauth settings for passwordless login."""
     settings.ACCOUNT_ADAPTER = "users.adapters.AccountAdapter"
     settings.ACCOUNT_EMAIL_REQUIRED = True

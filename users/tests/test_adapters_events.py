@@ -12,7 +12,7 @@ from users.models import CustomUser, EventAccessGrant, grant_event_access
 
 if TYPE_CHECKING:
     import respx
-    from pytest_django.fixtures import SettingsWrapper
+    from pytest_django import Settings
 
 
 # Match the legacy respx_mock default (assert_all_called=False): a couple of tests register a
@@ -70,7 +70,7 @@ class TestEventAwareAuthorization:
     """Tests for is_email_authorized with event-aware logic."""
 
     @pytest.fixture(autouse=True)
-    def _no_oauth(self, settings: SettingsWrapper) -> None:
+    def _no_oauth(self, settings: Settings) -> None:
         """Disable OAuth2 client credentials so API validation never makes a real token call."""
         settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_ID = ""
         settings.EMAIL_VALIDATION_API_OAUTH2_CLIENT_SECRET = ""
@@ -81,7 +81,7 @@ class TestEventAwareAuthorization:
         adapter: AccountAdapter,
         user_model: type[Any],
         event_with_api: Event,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """User already linked to the selected event is authorized immediately."""
         settings.AUTHORIZED_EMAILS_WHITELIST = []
@@ -97,7 +97,7 @@ class TestEventAwareAuthorization:
         adapter: AccountAdapter,
         user_model: type[Any],
         event_without_api: Event,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """User NOT linked to event, no API configured -> denied."""
         settings.AUTHORIZED_EMAILS_WHITELIST = []
@@ -112,7 +112,7 @@ class TestEventAwareAuthorization:
         adapter: AccountAdapter,
         user_model: type[Any],
         event_with_api: Event,
-        settings: SettingsWrapper,
+        settings: Settings,
         httpx2_mock: respx.Router,
     ) -> None:
         """User NOT linked, event API validates -> authorized AND linked to event."""
@@ -132,7 +132,7 @@ class TestEventAwareAuthorization:
         adapter: AccountAdapter,
         user_model: type[Any],
         event_with_api: Event,
-        settings: SettingsWrapper,
+        settings: Settings,
         httpx2_mock: respx.Router,
     ) -> None:
         """User NOT linked, event API rejects -> denied, NOT linked."""
@@ -150,7 +150,7 @@ class TestEventAwareAuthorization:
         self,
         adapter: AccountAdapter,
         event_with_api: Event,
-        settings: SettingsWrapper,
+        settings: Settings,
         httpx2_mock: respx.Router,
     ) -> None:
         """Non-existent user, event API validates -> authorized (user created later)."""
@@ -166,7 +166,7 @@ class TestEventAwareAuthorization:
         self,
         adapter: AccountAdapter,
         event_with_api: Event,
-        settings: SettingsWrapper,
+        settings: Settings,
         httpx2_mock: respx.Router,
     ) -> None:
         """Event-specific API URL is used instead of the global fallback."""
@@ -186,7 +186,7 @@ class TestEventAwareAuthorization:
         self,
         adapter: AccountAdapter,
         event_without_api: Event,
-        settings: SettingsWrapper,
+        settings: Settings,
         httpx2_mock: respx.Router,
     ) -> None:
         """When event has no API URL, global fallback is used."""
@@ -204,7 +204,7 @@ class TestEventAwareAuthorization:
     def test_no_event_no_api_denies(
         self,
         adapter: AccountAdapter,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """No event selected and no global API -> denied."""
         settings.AUTHORIZED_EMAILS_WHITELIST = []
@@ -218,7 +218,7 @@ class TestEventAwareAuthorization:
         adapter: AccountAdapter,
         user_model: type[Any],
         event_with_api: Event,
-        settings: SettingsWrapper,
+        settings: Settings,
     ) -> None:
         """Superusers are always authorized, regardless of event association."""
         settings.AUTHORIZED_EMAILS_WHITELIST = []
@@ -236,7 +236,7 @@ class TestPublicEventOpenRegistration:
     """A public event drops the ticket check, because its content is already open."""
 
     @pytest.fixture(autouse=True)
-    def _no_api(self, settings: SettingsWrapper) -> None:
+    def _no_api(self, settings: Settings) -> None:
         """Remove every authorization shortcut so only the visibility rule can allow a login."""
         settings.AUTHORIZED_EMAILS_WHITELIST = []
         settings.EMAIL_VALIDATION_API_URL_FALLBACK = ""

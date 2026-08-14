@@ -28,7 +28,7 @@ from users.models import CustomUser
 
 if TYPE_CHECKING:
     from django.test import Client
-    from pytest_django.fixtures import SettingsWrapper
+    from pytest_django import Settings
 
 
 # Deliberate spam samples and a deliberate typo, not real words.
@@ -185,7 +185,7 @@ def test_plain_ascii_prose_is_never_flagged(content: str) -> None:
     assert spam_flag_reason(content) == ""
 
 
-def test_configured_keywords_flag(settings: SettingsWrapper) -> None:
+def test_configured_keywords_flag(settings: Settings) -> None:
     """The operator lever works, for a conference under a specific ongoing campaign."""
     settings.QA_SPAM_KEYWORDS = ["miracle cure"]
     assert spam_flag_reason("Try this MIRACLE CURE today") == "keyword"
