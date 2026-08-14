@@ -8,7 +8,7 @@
 # those fixes, so the digest is kept fresh by Renovate's dockerfile manager, which expands this ARG,
 # re-resolves the digest behind ":latest", and opens a PR whenever it moves. Tag + digest together
 # gives both reproducibility and patching.
-ARG WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest@sha256:ca263a0360cca48e8fe3f86c8af61c6d5b85e484809fe187440a4206a50efc06
+ARG WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest@sha256:0a8fd427de5882aed77471b0a432c3675eda6b6a0ae952b5d640b46da628cdbe
 
 # Stage 1: Builder
 FROM ${WOLFI_BASE} AS builder
@@ -18,7 +18,7 @@ FROM ${WOLFI_BASE} AS builder
 # Pinned by version AND digest for reproducibility.
 # Renovate bumps both the version tag and the digest, grouped with the uv-pre-commit hook so the two
 # uv pins stay in sync (see renovate.json5).
-COPY --from=ghcr.io/astral-sh/uv:0.12.2@sha256:069a51314a7bb6031777a9273205fe1b0b19e914ef418207d1338b268df641dd /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:0.12.5@sha256:e85be844203885286c60ffad8a858d48afb6c5a5c237ca0e67f12e74b8f174b1 /uv /uvx /usr/local/bin/
 
 # Build dependency: the Python interpreter. Wolfi's Python is dynamically linked against the base
 # image's apk-managed OpenSSL, so a fresh base patches it (unlike uv's python-build-standalone,
