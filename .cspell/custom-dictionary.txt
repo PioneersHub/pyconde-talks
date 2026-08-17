@@ -64,6 +64,7 @@ collectstatic
 compilemessages
 configfile
 conftest
+containerimage
 cooldown
 createsuperuser
 createuser
@@ -283,6 +284,7 @@ tzdata
 ubjson
 unmodelled
 unparseable
+unreviewed
 unvalidated
 upsert
 upserted

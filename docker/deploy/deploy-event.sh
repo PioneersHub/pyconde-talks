@@ -14,7 +14,8 @@
 #
 # What it does, all from the SAME build so the static manifest always matches the assets:
 #   1. validate the target (allowlist) and the tag (a git sha, nothing else)
-#   2. pull the shared app image and the static-assets image at that tag
+#   2. pull the shared app image and the static-assets image at that tag, optionally checking that
+#      CI really built them
 #   3. extract the assets and add them to the target's nginx cache dir, keeping the old ones
 #   4. point the target's compose at the new tag and roll the container
 #   5. health-check; roll back to the previous tag if it does not come up, and prune the superseded
@@ -34,6 +35,12 @@ STATIC_IMAGE="${REGISTRY}/event-talks-static"
 HEALTH_TIMEOUT=180
 # Targets this script may deploy. Must match the GitHub allowlist in .github/workflows/deploy.yml.
 ALLOWED_TARGETS=("talks.pycon.de" "videos.pydata-berlin.org")
+# Check each image's signed build provenance before deploying it. Needs the GitHub CLI and a token
+# on the server, so it stays off until that is set up; turn it on here, per server. See
+# docs/deployment/ci-cd.md. The environment variable is a convenience for a manual run.
+VERIFY_ATTESTATION="${VERIFY_ATTESTATION:-false}"
+ATTESTATION_REPO="PioneersHub/pyconde-talks"
+ATTESTATION_WORKFLOW="${ATTESTATION_REPO}/.github/workflows/deploy.yml"
 # ---------------------------------------------------------------------------------------
 
 log() { printf '>> %s\n' "$*"; }
@@ -71,6 +78,22 @@ log "deploying ${target} -> ${tag} (previous: ${prev_tag:-none})"
 # 2. Pull both images at this exact tag.
 docker pull "${APP_IMAGE}:${tag}"
 docker pull "${STATIC_IMAGE}:${tag}"
+
+# 2b. A registry tag is a promise about a name, not about the bytes: anything holding packages:write
+#     on the repository can move it. The attestation is signed over the image digest and names the
+#     workflow that produced it, so this is what actually ties the running image to reviewed code.
+verify_attestation() {
+  gh attestation verify "oci://$1" \
+    --repo "$ATTESTATION_REPO" \
+    --signer-workflow "$ATTESTATION_WORKFLOW" \
+    --bundle-from-oci
+}
+if [[ "$VERIFY_ATTESTATION" == "true" ]]; then
+  command -v gh >/dev/null || die "VERIFY_ATTESTATION is on but the gh CLI is not installed"
+  log "verifying build provenance of ${tag}"
+  verify_attestation "${APP_IMAGE}:${tag}" || die "no valid provenance for ${APP_IMAGE}:${tag}"
+  verify_attestation "${STATIC_IMAGE}:${tag}" || die "no valid provenance for ${STATIC_IMAGE}:${tag}"
+fi
 
 # 3. Extract the collected static assets from the static image and add them to the target's nginx
 #    cache dir. --chmod keeps files world-readable (nginx runs as www-data) without trying to

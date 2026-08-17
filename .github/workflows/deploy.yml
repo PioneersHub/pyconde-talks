@@ -134,6 +134,8 @@ jobs:
     permissions:
       contents: read
       packages: write # push the shared app and static images to GHCR
+      id-token: write # sign the build provenance attestations
+      attestations: write # record them against this repository
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -156,6 +158,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push shared app image + static assets
+        id: bake
         working-directory: docker
         env:
           REGISTRY: ${{ needs.setup.outputs.registry }}
@@ -165,10 +168,41 @@ jobs:
           REVISION: ${{ github.sha }}
           VERSION: ${{ needs.setup.outputs.version }}
         run: |
+          set -euo pipefail
           docker buildx bake --allow=fs.read=.. \
+            --metadata-file /tmp/bake-metadata.json \
             --set '*.output=type=registry' \
             --set '*.cache-from=type=gha' \
             --set '*.cache-to=type=gha,mode=max'
+          # Read back what was actually pushed, rather than restating the image names the bake file
+          # already owns. The digest is the subject of the attestation below: a tag can be moved by
+          # anything holding packages:write, a digest cannot. "%:*" drops the tag.
+          app="$(jq -r '.django."image.name"' /tmp/bake-metadata.json)"
+          static="$(jq -r '."staticfiles-export"."image.name"' /tmp/bake-metadata.json)"
+          {
+            echo "app_name=${app%:*}"
+            echo "static_name=${static%:*}"
+            echo "app_digest=$(jq -r '.django."containerimage.digest"' /tmp/bake-metadata.json)"
+            echo "static_digest=$(jq -r '."staticfiles-export"."containerimage.digest"' /tmp/bake-metadata.json)"
+          } >> "$GITHUB_OUTPUT"
+
+      # Publishes a signed statement that this repository, at this commit, produced these exact
+      # digests, to the attestation API and to the registry alongside the image. The server can
+      # then check the provenance of what it pulled with `gh attestation verify`; see
+      # docs/deployment/ci-cd.md.
+      - name: Attest the app image
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ steps.bake.outputs.app_name }}
+          subject-digest: ${{ steps.bake.outputs.app_digest }}
+          push-to-registry: true
+
+      - name: Attest the static assets image
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ steps.bake.outputs.static_name }}
+          subject-digest: ${{ steps.bake.outputs.static_digest }}
+          push-to-registry: true
 
   deploy:
     name: Deploy

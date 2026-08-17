@@ -69,6 +69,10 @@ built-in `GITHUB_TOKEN` with `packages: write`.
 - **One environment per target.** Each site is its own GitHub environment with its own SSH secrets
     and its own required reviewer, so approvals and credentials are isolated per site.
 - **No app secrets in GitHub.** Each server's `.env` (real credentials) stays on the server.
+- **Signed build provenance.** Each build publishes a signed statement that this repository, at this
+    commit, produced those exact image digests. A registry tag is only a name and anything holding
+    `packages: write` can move it, so the attestation is what actually ties the running image back
+    to reviewed code. See [Verifying provenance on the server](#verifying-provenance-on-the-server).
 - **Immutable tags + rollback.** Deploys pin the git sha; a failed health check rolls back to the
     previous tag automatically.
 
@@ -156,6 +160,44 @@ Image _push_ needs no PAT: the workflow uses the built-in `GITHUB_TOKEN` with `p
 Protect `main` and require the `ci` checks to pass before merging, so only green code can be tagged
 for deploy. The `ci` workflow (on pull requests) and the `deploy` workflow both reuse the same
 `checks.yml` quality gate, so the same lint, format, type, and test checks run in both places.
+
+The `setup` job already refuses any commit `main` does not contain, so branch protection is what
+decides how a commit gets onto `main`, not whether an unreviewed one can deploy.
+
+______________________________________________________________________
+
+## Verifying provenance on the server
+
+Every build publishes a
+[signed attestation](https://docs.github.com/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds):
+this repository, at this commit, produced these image digests. It is stored both in GitHub's
+attestation API and next to the image in GHCR.
+
+`deploy-event` can check it before it deploys anything, which closes the last gap in the chain: a
+tag names bytes it does not control, and anything holding `packages: write` on the repository could
+move it. **This is off by default**, because it needs two things on each server:
+
+```bash
+# 1. the GitHub CLI
+sudo apt install gh
+
+# 2. a token for it. The read:packages PAT from step 4 is enough; gh reads GH_TOKEN, and
+#    ~/.docker/config.json already covers the registry side.
+```
+
+Then set `VERIFY_ATTESTATION="true"` in the config block of `/usr/local/bin/deploy-event`. A deploy
+whose images have no valid provenance from `.github/workflows/deploy.yml` then fails before it
+touches the site. To try it by hand first:
+
+```bash
+gh attestation verify oci://ghcr.io/pioneershub/event-talks:<sha> \
+  --repo PioneersHub/pyconde-talks \
+  --signer-workflow PioneersHub/pyconde-talks/.github/workflows/deploy.yml \
+  --bundle-from-oci
+```
+
+Worth pairing with **immutable tags** on the GHCR packages (Package settings -> Manage tag
+immutability), which stops a published sha tag from being overwritten in the first place.
 
 ______________________________________________________________________
 
