@@ -3,6 +3,8 @@
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
+from django.db.models import Q
+
 from .models import Talk
 
 
@@ -63,3 +65,20 @@ def get_talk_by_id_or_pretalx(
 
     # Fallback: try pretalx_id embedded in the pretalx_link
     return qs.filter(pretalx_link__contains=f"/talk/{talk_id}").first()
+
+
+def pretalx_code_q(code: str) -> Q:
+    """
+    Return a Q matching talks whose Pretalx code is exactly *code*, case-insensitively.
+
+    ``Talk.pretalx_code`` is a property over the last path segment of ``pretalx_link``, so there is
+    no column to filter on directly. Anchoring to that segment is what keeps the match meaningful. A
+    bare ``pretalx_link__icontains`` would match anywhere in the URL, so searching for the host, for
+    "talk", or for the event slug would return every talk that has a link at all.
+
+    An empty *code* matches nothing, so callers can OR this in without widening their queryset.
+    """
+    if not code:
+        return Q(pk__in=())
+    # Both spellings, because the stored links are inconsistent about the trailing slash.
+    return Q(pretalx_link__iendswith=f"/{code}") | Q(pretalx_link__iendswith=f"/{code}/")

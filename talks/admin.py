@@ -13,6 +13,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from .models import Rating, Room, Speaker, Streaming, Talk
+from .utils import pretalx_code_q
 
 
 if TYPE_CHECKING:
@@ -320,6 +321,9 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
         "speakers__name",
         "room__name",
     )
+    # "pretalx_link" is deliberately absent: the admin searches every entry here with icontains, so
+    # a term like "talk" or the event slug would match every talk that has a link. Pretalx codes are
+    # handled by get_search_results below, which matches the whole code.
     date_hierarchy = "start_time"
     filter_horizontal = ("speakers",)
     # room is a plain (non-autocomplete) FK field so its choices can be scoped to the
@@ -396,6 +400,19 @@ class TalkAdmin(admin.ModelAdmin[Talk]):
                 _saved_count=Count("saved_by", distinct=True),
             )
         )
+
+    def get_search_results(
+        self,
+        request: HttpRequest,
+        queryset: QuerySet[Talk],
+        search_term: str,
+    ) -> tuple[QuerySet[Talk], bool]:
+        """Extend the changelist search so a whole Pretalx code finds its talk."""
+        results, may_have_duplicates = super().get_search_results(request, queryset, search_term)
+        code_match = pretalx_code_q(search_term.strip())
+        # OR against the incoming queryset, not Talk.objects: the list filters are already applied
+        # to it, and starting over would let a code search escape them.
+        return results | queryset.filter(code_match), may_have_duplicates
 
     def formfield_for_foreignkey(
         self,

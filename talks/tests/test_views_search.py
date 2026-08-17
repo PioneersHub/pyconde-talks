@@ -110,6 +110,61 @@ class TestTalkListSearch:
         assert resp.status_code == HTTPStatus.OK
         assert "No talks found" not in resp.content.decode()
 
+    @pytest.mark.parametrize("scope", ["", "&search_in=title", "&search_in=author"])
+    def test_search_by_pretalx_code(self, client: Client, event: Event, scope: str) -> None:
+        """A query matching the pretalx code finds the talk under every search scope."""
+        baker.make(
+            Talk,
+            event=event,
+            title="Ministry of Silly Walks",
+            pretalx_link="https://pretalx.com/pycon/talk/XYZ789/",
+        )
+        baker.make(Talk, event=event, title="Dead Parrot Sketch")
+
+        url = reverse("talk_list") + f"?q=XYZ789{scope}"
+        resp = client.get(url)
+        assert resp.status_code == HTTPStatus.OK
+        content = resp.content.decode()
+        assert "Ministry of Silly Walks" in content
+        assert "Dead Parrot" not in content
+
+    def test_search_by_pretalx_code_without_trailing_slash(
+        self,
+        client: Client,
+        event: Event,
+    ) -> None:
+        """Links stored without a trailing slash match the same way."""
+        baker.make(
+            Talk,
+            event=event,
+            title="Ministry of Silly Walks",
+            pretalx_link="https://pretalx.com/pycon/talk/XYZ789",
+        )
+
+        resp = client.get(reverse("talk_list") + "?q=xyz789")
+        assert resp.status_code == HTTPStatus.OK
+        assert "Ministry of Silly Walks" in resp.content.decode()
+
+    @pytest.mark.parametrize("query", ["https", "pretalx", "com", "pycon", "talk", "XYZ"])
+    def test_search_does_not_match_url_around_the_code(
+        self,
+        client: Client,
+        event: Event,
+        query: str,
+    ) -> None:
+        """The rest of the pretalx URL is not searchable, only the whole code is."""
+        baker.make(
+            Talk,
+            event=event,
+            title="Ministry of Silly Walks",
+            description="Ambulation, but funnier.",
+            pretalx_link="https://pretalx.com/pycon/talk/XYZ789/",
+        )
+
+        resp = client.get(reverse("talk_list") + f"?q={query}")
+        assert resp.status_code == HTTPStatus.OK
+        assert "Ministry of Silly Walks" not in resp.content.decode()
+
     def test_search_scope_title_only(self, client: Client, event: Event) -> None:
         """When limited to title, matches in author should be ignored."""
         # Title contains the token only for talk_a

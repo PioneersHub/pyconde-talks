@@ -392,6 +392,64 @@ class TestTalkAdmin:
         formfield = admin.formfield_for_foreignkey(Talk._meta.get_field("room"), request)
         assert list(formfield.queryset) == [room_a]
 
+    def test_search_by_pretalx_code(self, rf: RequestFactory, admin_user: CustomUser) -> None:
+        """The changelist search finds a talk by its whole pretalx code."""
+        wanted = baker.make(
+            Talk,
+            title="Ministry of Silly Walks",
+            pretalx_link="https://pretalx.com/pycon/talk/XYZ789/",
+        )
+        baker.make(Talk, title="Dead Parrot Sketch", pretalx_link="")
+
+        admin = TalkAdmin(Talk, site)
+        request = rf.get("/")
+        request.user = admin_user
+        results, _ = admin.get_search_results(request, admin.get_queryset(request), "xyz789")
+        assert list(results) == [wanted]
+
+    @pytest.mark.parametrize("term", ["pretalx", "talk", "XYZ"])
+    def test_search_does_not_match_url_around_the_code(
+        self,
+        rf: RequestFactory,
+        admin_user: CustomUser,
+        term: str,
+    ) -> None:
+        """The rest of the pretalx URL stays out of the changelist search."""
+        baker.make(
+            Talk,
+            title="Ministry of Silly Walks",
+            description="Ambulation, but funnier.",
+            pretalx_link="https://pretalx.com/pycon/talk/XYZ789/",
+        )
+
+        admin = TalkAdmin(Talk, site)
+        request = rf.get("/")
+        request.user = admin_user
+        results, _ = admin.get_search_results(request, admin.get_queryset(request), term)
+        assert not results.exists()
+
+    def test_search_by_code_respects_active_filters(
+        self,
+        rf: RequestFactory,
+        admin_user: CustomUser,
+    ) -> None:
+        """A code search cannot pull in rows the changelist filters already excluded."""
+        event_a = Event.objects.create(slug="code-a", name="A", year=2099)
+        event_b = Event.objects.create(slug="code-b", name="B", year=2099)
+        baker.make(
+            Talk,
+            event=event_b,
+            title="Ministry of Silly Walks",
+            pretalx_link="https://pretalx.com/pycon/talk/XYZ789/",
+        )
+
+        admin = TalkAdmin(Talk, site)
+        request = rf.get("/")
+        request.user = admin_user
+        filtered = admin.get_queryset(request).filter(event=event_a)
+        results, _ = admin.get_search_results(request, filtered, "XYZ789")
+        assert not results.exists()
+
     def test_num_saves_annotation(self, rf: RequestFactory, admin_user: CustomUser) -> None:
         """``num_saves`` reflects the bookmark count annotated on the queryset."""
         talk = baker.make(Talk)

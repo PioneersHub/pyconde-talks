@@ -125,7 +125,13 @@ def _talk_matches_filters(
     search_query = filters.get("q", "")
     if search_query:
         q_lower = search_query.lower()
-        if q_lower not in talk.title.lower() and q_lower not in talk.speaker_names.lower():
+        # The code match is exact, not a substring, to stay in step with the talk list. A pretalx
+        # code is an identifier: half of one is not a hit.
+        if (
+            q_lower not in talk.title.lower()
+            and q_lower not in talk.speaker_names.lower()
+            and q_lower != talk.pretalx_code.lower()
+        ):
             return False
     return True
 

@@ -31,7 +31,7 @@ from .models import (
     prefetch_streamings,
     unlock_video_access,
 )
-from .utils import get_talk_by_id_or_pretalx, is_htmx_request, parse_iso_date
+from .utils import get_talk_by_id_or_pretalx, is_htmx_request, parse_iso_date, pretalx_code_q
 from .views_qa import is_moderator
 
 
@@ -558,5 +558,10 @@ def _apply_search_filter(queryset: TalkQuerySet, request: HttpRequest) -> TalkQu
         q_obj |= Q(description__icontains=query) | Q(abstract__icontains=query)
     if "author" in scopes:
         q_obj |= Q(speakers__name__icontains=query)
+
+    # Always match pretalx codes: they are unique identifiers, not scoped content. The match is on
+    # the whole code, so narrowing the scope to titles still cannot be widened by a stray URL
+    # substring.
+    q_obj |= pretalx_code_q(query)
 
     return queryset.filter(q_obj).distinct()

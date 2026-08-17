@@ -5,7 +5,7 @@ from model_bakery import baker
 
 from events.models import Event
 from talks.models import Talk
-from talks.utils import get_talk_by_id_or_pretalx
+from talks.utils import get_talk_by_id_or_pretalx, pretalx_code_q
 from users.models import CustomUser
 
 
@@ -68,3 +68,33 @@ class TestGetTalkByIdOrPretalx:
         talk = baker.make(Talk, pretalx_link="https://pretalx.com/event/talk/ABC")
         result = get_talk_by_id_or_pretalx("ABC", user=_superuser())
         assert result == talk
+
+
+@pytest.mark.django_db
+class TestPretalxCodeQ:
+    """Tests for pretalx_code_q."""
+
+    @pytest.mark.parametrize(
+        "link", ["https://p.com/e/talk/XYZ789", "https://p.com/e/talk/XYZ789/"]
+    )
+    @pytest.mark.parametrize("code", ["XYZ789", "xyz789"])
+    def test_matches_whole_code(self, link: str, code: str) -> None:
+        """Match the whole code case-insensitively, with or without a trailing slash."""
+        talk = baker.make(Talk, pretalx_link=link)
+        assert list(Talk.objects.filter(pretalx_code_q(code))) == [talk]
+
+    @pytest.mark.parametrize("term", ["https", "p.com", "talk", "e/talk", "XYZ", "789", "YZ78"])
+    def test_ignores_the_rest_of_the_url(self, term: str) -> None:
+        """Never match on the host, the path, or a fragment of the code."""
+        baker.make(Talk, pretalx_link="https://p.com/e/talk/XYZ789/")
+        assert not Talk.objects.filter(pretalx_code_q(term)).exists()
+
+    def test_empty_code_matches_nothing(self) -> None:
+        """An empty code must not widen the queryset it is OR'd into."""
+        baker.make(Talk, pretalx_link="https://p.com/e/talk/XYZ789/")
+        assert not Talk.objects.filter(pretalx_code_q("")).exists()
+
+    def test_talk_without_a_link_never_matches(self) -> None:
+        """A talk with no pretalx link stays out of every code search."""
+        baker.make(Talk, pretalx_link="")
+        assert not Talk.objects.filter(pretalx_code_q("XYZ789")).exists()

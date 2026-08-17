@@ -299,6 +299,47 @@ class TestScheduleView:
         assert "Talk 2" not in content
         assert "Talk 3" not in content
 
+    def test_search_by_pretalx_code(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        today_talks: list[Talk],
+    ) -> None:
+        """The ?q= parameter also matches a talk's whole pretalx code."""
+        client.force_login(user)
+        talk = today_talks[0]
+        talk.pretalx_link = "https://pretalx.com/pycon/talk/XYZ789/"
+        talk.save(update_fields=["pretalx_link"])
+        talk_date = talk.start_time.date()
+
+        url = reverse("schedule") + f"?date={talk_date.isoformat()}&q=xyz789"
+        response = client.get(url)
+        content = response.content.decode()
+        assert "Talk 1" in content
+        assert "Talk 2" not in content
+        assert "Talk 3" not in content
+
+    # "talk" is not probed here, unlike in the talk-list tests: these fixtures are titled "Talk 1"
+    # and friends, so it is a legitimate title hit.
+    @pytest.mark.parametrize("query", ["pretalx", "pycon", "XYZ", "789"])
+    def test_search_does_not_match_url_around_the_code(
+        self,
+        client: pytest.fixture,  # type: ignore[type-arg,valid-type]
+        user: CustomUser,
+        today_talks: list[Talk],
+        query: str,
+    ) -> None:
+        """Partial codes and the surrounding URL are not searchable in the grid either."""
+        client.force_login(user)
+        talk = today_talks[0]
+        talk.pretalx_link = "https://pretalx.com/pycon/talk/XYZ789/"
+        talk.save(update_fields=["pretalx_link"])
+        talk_date = talk.start_time.date()
+
+        url = reverse("schedule") + f"?date={talk_date.isoformat()}&q={query}"
+        response = client.get(url)
+        assert "Talk 1" not in response.content.decode()
+
     def test_saved_filter(
         self,
         client: pytest.fixture,  # type: ignore[type-arg,valid-type]
