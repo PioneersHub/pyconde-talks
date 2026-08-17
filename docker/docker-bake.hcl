@@ -3,7 +3,7 @@
 # Local build (loads the app image into the daemon, exports static files to ./staticfiles):
 #   docker buildx bake --allow=fs.read=..
 #
-# CI build (pushes both images to a registry, tagged with the git sha and :latest):
+# CI build (pushes both images to a registry, tagged with the git sha):
 #   REGISTRY=ghcr.io/<owner> IMAGE_TAG=<sha> docker buildx bake --allow=fs.read=.. \
 #     --set '*.output=type=registry'
 #
@@ -25,7 +25,11 @@
 # the assets.
 
 # When empty, build for local use (daemon load + local export). When set (CI), push to
-# "${REGISTRY}/<image>:${IMAGE_TAG}" and "${REGISTRY}/<image>:latest".
+# "${REGISTRY}/<image>:${IMAGE_TAG}".
+#
+# Only the git sha is published: a ":latest" that any deploy of any commit could move (a manual
+# run, a rollback tag on an older sha) names nothing in particular, and neither the deploy script
+# nor compose on the server ever reads it.
 variable "REGISTRY" {
   default = ""
 }
@@ -50,6 +54,17 @@ variable "STATIC_IMAGE" {
   default = "event-talks-static"
 }
 
+# Provenance for the OCI labels below, set by CI. REVISION is the full commit (IMAGE_TAG carries
+# only the first 12 characters) and VERSION is the human-facing "<version>" half of the deploy tag.
+# Empty locally, where neither is known and neither means anything.
+variable "REVISION" {
+  default = ""
+}
+
+variable "VERSION" {
+  default = ""
+}
+
 group "default" {
   targets = ["django", "staticfiles-export"]
 }
@@ -60,8 +75,15 @@ target "django" {
   platforms  = REGISTRY != "" ? [CI_PLATFORM] : [LOCAL_PLATFORM]
   tags = REGISTRY != "" ? [
     "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}",
-    "${REGISTRY}/${IMAGE_NAME}:latest",
   ] : ["${IMAGE_NAME}:${IMAGE_TAG}"]
+  # "source" is what links the package to this repository on GHCR; the other two say which commit
+  # and which deploy tag produced the image, so a pulled image can be traced back without the
+  # registry's own metadata. staticfiles-export inherits all three.
+  labels = {
+    "org.opencontainers.image.source"   = "https://github.com/PioneersHub/pyconde-talks"
+    "org.opencontainers.image.revision" = REVISION
+    "org.opencontainers.image.version"  = VERSION
+  }
 }
 
 target "staticfiles-export" {
@@ -74,6 +96,5 @@ target "staticfiles-export" {
   platforms = REGISTRY != "" ? [CI_PLATFORM] : [LOCAL_PLATFORM]
   tags = REGISTRY != "" ? [
     "${REGISTRY}/${STATIC_IMAGE}:${IMAGE_TAG}",
-    "${REGISTRY}/${STATIC_IMAGE}:latest",
   ] : []
 }

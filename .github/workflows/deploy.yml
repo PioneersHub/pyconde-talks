@@ -160,6 +160,10 @@ jobs:
         env:
           REGISTRY: ${{ needs.setup.outputs.registry }}
           IMAGE_TAG: ${{ needs.setup.outputs.tag }}
+          # Both end up as OCI labels, so a pulled image says which commit and which deploy tag
+          # produced it. IMAGE_TAG holds only the short sha.
+          REVISION: ${{ github.sha }}
+          VERSION: ${{ needs.setup.outputs.version }}
         run: |
           docker buildx bake --allow=fs.read=.. \
             --set '*.output=type=registry' \

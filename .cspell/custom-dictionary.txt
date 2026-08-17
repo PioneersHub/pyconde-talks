@@ -191,6 +191,7 @@ onchange
 onclick
 oninput
 onsubmit
+opencontainers
 openpyxl
 organiser
 partialdef
