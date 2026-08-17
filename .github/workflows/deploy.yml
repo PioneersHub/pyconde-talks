@@ -8,8 +8,9 @@
 #   git tag talks.pycon.de/2026.06.03 && git push origin talks.pycon.de/2026.06.03
 # or run the workflow manually and pick a target.
 #
-# Flow: parse+validate target -> quality gate -> build & push to GHCR (by git sha) -> manual
-# approval in the target's environment -> trigger the locked-down deploy over SSH.
+# Flow: parse+validate target -> require the commit to be on main -> quality gate -> build & push
+# to GHCR (by git sha) -> manual approval in the target's environment -> trigger the locked-down
+# deploy over SSH.
 #
 # Nothing here touches the server's shell. The target is pinned per key in the server's
 # authorized_keys forced command ("deploy-event <target>"); CI controls only the git sha.
@@ -19,7 +20,10 @@ name: deploy
 on:
   push:
     tags:
-      - "*/*" # <target>/<version>; the setup job validates <target> against the allowlist
+      # <target>/<version>. One pattern per target, kept in step with the ALLOWED list in the
+      # setup job, which also covers workflow_dispatch (no tag pattern filters that path).
+      - "talks.pycon.de/*"
+      - "videos.pydata-berlin.org/*"
   workflow_dispatch:
     inputs:
       target:
@@ -30,17 +34,31 @@ on:
           - talks.pycon.de
           - videos.pydata-berlin.org
 
+# Nothing by default; each job asks for exactly what it needs. A job added later without its own
+# block therefore gets no token scopes rather than the repository default.
+permissions: {}
+
 jobs:
   setup:
+    name: Resolve deploy target
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
-      contents: read
+      contents: read # actions/checkout
     outputs:
       target: ${{ steps.parse.outputs.target }}
       version: ${{ steps.parse.outputs.version }}
       registry: ${{ steps.parse.outputs.registry }}
       tag: ${{ steps.parse.outputs.tag }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The main-ancestry gate below needs the commit graph, and actions/checkout only fetches
+          # every branch (so origin/main exists locally) when fetch-depth is 0.
+          fetch-depth: 0
+          persist-credentials: false
+
       - name: Parse and validate target
         id: parse
         env:
@@ -74,18 +92,48 @@ jobs:
             echo "tag=${GITHUB_SHA::12}"
           } >> "$GITHUB_OUTPUT"
           echo "Deploying ${target} (version ${version}) at ${GITHUB_SHA::12}"
+          # The approver only sees this run page, so put what they are approving on it.
+          {
+            echo "### Deploy to \`${target}\`"
+            echo ""
+            echo "| Field | Value |"
+            echo "| ----- | ----- |"
+            echo "| Target | \`${target}\` |"
+            echo "| Version | \`${version}\` |"
+            echo "| Commit | \`${GITHUB_SHA}\` |"
+            echo "| Image tag | \`${GITHUB_SHA::12}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Require the commit to be on main
+        # A tag can point at any commit, on any branch, reviewed or not, and pushing one is enough
+        # to start a deploy. Green checks are not review, so refuse anything main does not already
+        # contain. Rolling back by tagging an older good commit still works: it is on main too.
+        run: |
+          set -euo pipefail
+          if ! git rev-parse --verify --quiet refs/remotes/origin/main >/dev/null; then
+            echo "::error::origin/main was not fetched; cannot verify the commit is on main"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main; then
+            echo "::error::${GITHUB_SHA} is not an ancestor of main; only merged commits deploy"
+            exit 1
+          fi
+          echo "${GITHUB_SHA} is on main"
 
   checks:
+    needs: setup # fail a bad target before spending a full test run on it
     permissions:
       contents: read
     uses: ./.github/workflows/checks.yml
 
   build:
+    name: Build and push images
     needs: [setup, checks]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
-      packages: write
+      packages: write # push the shared app and static images to GHCR
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -119,10 +167,13 @@ jobs:
             --set '*.cache-to=type=gha,mode=max'
 
   deploy:
+    name: Deploy
     needs: [setup, build]
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    # An unreachable server would otherwise hang ssh for the runner's full 6 hours while holding
+    # the concurrency group below, blocking every later deploy to the same target.
+    timeout-minutes: 20
+    permissions: {} # this job never checks out and never calls the API
     # One deploy per target at a time; different targets can deploy in parallel.
     concurrency:
       group: deploy-${{ needs.setup.outputs.target }}
@@ -150,6 +201,17 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
           DEPLOY_TAG: ${{ needs.setup.outputs.tag }}
+        # StrictHostKeyChecking is set explicitly: ssh's default ("ask") happens to fail closed on
+        # a runner with no tty, so an empty SSH_KNOWN_HOSTS is already refused, but that is a side
+        # effect of the environment rather than a guarantee. The timeouts keep a silent server or a
+        # dropped connection from hanging the job instead of failing it.
         run: |
-          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes \
+          ssh -i ~/.ssh/id_deploy \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            -o ConnectTimeout=15 \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=6 \
             "${SSH_USER}@${SSH_HOST}" "${DEPLOY_TAG}"

@@ -15,7 +15,8 @@ flowchart TD
     PR[Pull request] --> checks_pr["ci.yml -> checks.yml: ruff, format, zuban, pytest"]
 
     tag["Push tag &lt;target&gt;/&lt;version&gt;<br/>(or run workflow manually)"] --> parse["deploy.yml: parse + validate target"]
-    parse --> checks[Quality gate checks]
+    parse --> merged["Commit must be an<br/>ancestor of main"]
+    merged --> checks[Quality gate checks]
     checks --> build["Build & push ONE shared image<br/>to GHCR (tagged by git sha)"]
     build --> approve["environment = &lt;target&gt;:<br/>manual approval"]
     approve --> ssh["ssh &lt;forced-command key&gt;<br/>deploy-event &lt;target&gt; &lt;git-sha&gt;"]
@@ -57,6 +58,10 @@ built-in `GITHUB_TOKEN` with `packages: write`.
 
 - **Pull-based.** CI publishes images; the server pulls them. A compromised workflow cannot get a
     shell on the box.
+- **Only main deploys.** A tag can point at any commit, on any branch, and pushing one is enough to
+    start a deploy, so the `setup` job refuses any commit that is not already an ancestor of `main`.
+    Green checks are not the same as reviewed. This backstop lives in the workflow, so it applies
+    even if an environment's protection rules are missing or misconfigured.
 - **Target pinned per key.** Each site's CI key in `authorized_keys` is pinned to
     `command="/usr/local/bin/deploy-event <target>"`. The target is fixed on the server, not chosen
     by the client, so a leaked key can only ever deploy its own site. CI controls only the git sha
@@ -168,9 +173,10 @@ ______________________________________________________________________
     (required reviewer + `SSH_*` secrets).
 2. Add the domain to `ALLOWED_TARGETS` in
     [`docker/deploy/deploy-event.sh`](https://github.com/PioneersHub/pyconde-talks/blob/main/docker/deploy/deploy-event.sh).
-3. Add the domain to the allowlist in
+3. Add the domain to
     [`.github/workflows/deploy.yml`](https://github.com/PioneersHub/pyconde-talks/blob/main/.github/workflows/deploy.yml)
-    (`ALLOWED` env in the `setup` job) and to the `workflow_dispatch` target choices.
+    in three places: the `<domain>/*` tag pattern under `on.push.tags`, the `ALLOWED` env in the
+    `setup` job, and the `workflow_dispatch` target choices.
 
 ## One host or several
 
