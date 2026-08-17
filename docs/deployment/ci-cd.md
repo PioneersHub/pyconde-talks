@@ -204,6 +204,12 @@ A failed health check rolls back automatically: `deploy-event` re-points the tar
 previous git sha and re-verifies that it is healthy, so it never reports success while the site is
 down.
 
+The static assets follow the same rule. A deploy **adds** its assets to the nginx cache dir instead
+of replacing them, so the rolled-back image still finds every file its own `staticfiles.json` names
+(the names are content-hashed, so two builds coexist without colliding). Superseded files are
+deleted only after the new build reports healthy, which means a rollback leaves both sets on disk
+until the next successful deploy prunes them.
+
 To roll back a healthy-but-bad deploy, push a new tag on the previous (good) commit, e.g.:
 
 ```bash

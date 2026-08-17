@@ -15,9 +15,10 @@
 # What it does, all from the SAME build so the static manifest always matches the assets:
 #   1. validate the target (allowlist) and the tag (a git sha, nothing else)
 #   2. pull the shared app image and the static-assets image at that tag
-#   3. extract the assets and swap them into the target's nginx cache dir
+#   3. extract the assets and add them to the target's nginx cache dir, keeping the old ones
 #   4. point the target's compose at the new tag and roll the container
-#   5. health-check; roll back to the previous tag if it does not come up
+#   5. health-check; roll back to the previous tag if it does not come up, and prune the superseded
+#      assets only once the new build is confirmed to be serving
 #
 # It needs no sudo: the invoking user is in the `docker` group and owns each target's COMPOSE_DIR
 # and STATIC_DIR. See docs/deployment/ci-cd.md for the one-time server setup.
@@ -71,16 +72,21 @@ log "deploying ${target} -> ${tag} (previous: ${prev_tag:-none})"
 docker pull "${APP_IMAGE}:${tag}"
 docker pull "${STATIC_IMAGE}:${tag}"
 
-# 3. Extract the collected static assets from the static image and sync them into the target's
-#    nginx cache dir. --chmod keeps files world-readable (nginx runs as www-data) without trying to
+# 3. Extract the collected static assets from the static image and add them to the target's nginx
+#    cache dir. --chmod keeps files world-readable (nginx runs as www-data) without trying to
 #    preserve the root ownership baked into the image.
+#
+#    Deliberately no --delete: the previous build's files stay until this one is known to be
+#    healthy. Asset names are content-hashed, so both builds coexist happily, and a rollback in
+#    step 5 still finds every file its own staticfiles.json names. Deleting up front would leave a
+#    rolled-back site up but serving 404s for all of its CSS and JS. Step 5 prunes instead.
 tmp="$(mktemp -d)"
 cid="$(docker create "${STATIC_IMAGE}:${tag}")"
 # shellcheck disable=SC2329  # invoked indirectly via the EXIT trap below
 cleanup() { docker rm -f "$cid" >/dev/null 2>&1 || true; rm -rf "$tmp"; }
 trap cleanup EXIT
 docker cp "${cid}:/staticfiles/." "${tmp}/"
-rsync -rlpt --delete --chmod=D755,F644 "${tmp}/" "${STATIC_DIR}/"
+rsync -rlpt --chmod=D755,F644 "${tmp}/" "${STATIC_DIR}/"
 log "synced $(find "${tmp}" -type f | wc -l | tr -d ' ') static files to ${STATIC_DIR}"
 
 # 4. Point this target's compose at the new tag and roll the app container.
@@ -119,6 +125,10 @@ docker compose up -d --no-build
 log "waiting for ${container} to become healthy (up to ${HEALTH_TIMEOUT}s)"
 if wait_healthy; then
   log "deploy of ${tag} to ${target} is healthy"
+  # Nothing serves the previous manifest any more, so the files it named can go. A rollback skips
+  # this, leaving both builds in place until the next successful deploy prunes them.
+  rsync -rlpt --delete --chmod=D755,F644 "${tmp}/" "${STATIC_DIR}/"
+  log "pruned static assets that are not part of ${tag}"
   docker image prune -f >/dev/null 2>&1 || true
   exit 0
 fi
