@@ -287,6 +287,27 @@ jobs:
       name: ${{ needs.setup.outputs.target }}
       url: https://${{ needs.setup.outputs.target }}
     steps:
+      # Names what is missing instead of failing later with an obscure ssh error, which is what a
+      # half-configured environment (a new target, most likely) would otherwise produce.
+      - name: Check the environment is configured
+        env:
+          ENVIRONMENT: ${{ needs.setup.outputs.target }}
+          SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -n "$SSH_DEPLOY_KEY" ] || missing="${missing} SSH_DEPLOY_KEY"
+          [ -n "$SSH_KNOWN_HOSTS" ] || missing="${missing} SSH_KNOWN_HOSTS"
+          [ -n "$SSH_USER" ] || missing="${missing} SSH_USER"
+          [ -n "$SSH_HOST" ] || missing="${missing} SSH_HOST"
+          if [ -n "$missing" ]; then
+            echo "::error::environment '${ENVIRONMENT}' is missing secrets:${missing} (Settings -> Environments -> ${ENVIRONMENT})"
+            exit 1
+          fi
+
       - name: Configure SSH
         env:
           SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
@@ -300,6 +321,11 @@ jobs:
       - name: Trigger remote deploy
         # The server key is pinned to "deploy-event <target>", so DEPLOY_TAG is the only thing CI
         # controls. The script validates it as a git sha before acting.
+        #
+        #
+        # SSH_HOST is a management address rather than the site's public host, and the account
+        # differs per target, so neither is public information and both stay secrets. Masking them
+        # costs some log clarity; that is the right way round for an address that is not in DNS.
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}

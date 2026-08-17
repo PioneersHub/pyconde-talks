@@ -151,12 +151,19 @@ ssh pycon '
 
 - Add these **environment** secrets (scoped to that environment, not repo-wide):
 
-    | Secret            | Value                                           |
-    | ----------------- | ----------------------------------------------- |
-    | `SSH_DEPLOY_KEY`  | full contents of the private `ci-<target>` file |
-    | `SSH_HOST`        | the server's hostname/IP                        |
-    | `SSH_USER`        | `videoteam`                                     |
-    | `SSH_KNOWN_HOSTS` | output of `ssh-keyscan -p 22 <host>`            |
+    | Secret            | Value                                              |
+    | ----------------- | -------------------------------------------------- |
+    | `SSH_DEPLOY_KEY`  | full contents of the private `ci-<target>` file    |
+    | `SSH_HOST`        | the server's management address                    |
+    | `SSH_USER`        | the deploy account on that server                  |
+    | `SSH_KNOWN_HOSTS` | output of `ssh-keyscan -p 22 <management-address>` |
+
+All four are secrets, including the two that only say who and where. The management address is not
+the site's public host and is not in DNS, and the deploy account differs per target, so neither is
+public information. Masking them costs some log clarity, which is the right way round here.
+
+The deploy job checks all four before it does anything, so a half-configured environment fails
+immediately, naming what is missing, without touching the server.
 
 Image _push_ needs no PAT: the workflow uses the built-in `GITHUB_TOKEN` with `packages: write`.
 
