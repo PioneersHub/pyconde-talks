@@ -131,6 +131,9 @@ jobs:
     needs: [setup, checks]
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      app_name: ${{ steps.bake.outputs.app_name }}
+      app_digest: ${{ steps.bake.outputs.app_digest }}
     permissions:
       contents: read
       packages: write # push the shared app and static images to GHCR
@@ -203,6 +206,68 @@ jobs:
           subject-name: ${{ steps.bake.outputs.static_name }}
           subject-digest: ${{ steps.bake.outputs.static_digest }}
           push-to-registry: true
+
+  # Deliberately not a dependency of the deploy job. Blocking a deploy on a scanner would mean a
+  # base-image CVE published this morning can stop a hotfix during the conference, which is the
+  # wrong trade. A failing scan turns the run red and lands in the Security tab instead, where it
+  # gets fixed by bumping the base image rather than by waiting.
+  #
+  # Only the app image is scanned; the static one is FROM scratch, so it has nothing to scan.
+  scan:
+    name: Scan the published image
+    needs: [setup, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read # codeql-action/upload-sarif
+      packages: read # pull the image that was just pushed
+      security-events: write # upload-sarif
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Everything below addresses the image by digest, not by tag, so it describes exactly the
+      # bytes the deploy job is about to roll out.
+      - name: Record what is in the image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ needs.build.outputs.app_name }}@${{ needs.build.outputs.app_digest }}
+          scan-type: image
+          format: cyclonedx
+          output: sbom.cdx.json
+
+      # Answers "were we ever shipping the affected version?" months later, when the CVE that
+      # matters has not been published yet.
+      - name: Keep the SBOM with the run
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom-${{ needs.setup.outputs.tag }}
+          path: sbom.cdx.json
+
+      - name: Scan for known vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ needs.build.outputs.app_name }}@${{ needs.build.outputs.app_digest }}
+          format: sarif
+          output: trivy.sarif
+          severity: HIGH,CRITICAL
+          # Nothing can be done about a vulnerability with no fix available, and repeating it every
+          # run only teaches people to skim past the report.
+          ignore-unfixed: true
+          exit-code: "1"
+
+      # Trivy writes the report before it applies exit-code, so the findings still reach the
+      # Security tab on the run that fails because of them.
+      - name: Upload the report to code scanning
+        if: ${{ !cancelled() }}
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+        with:
+          sarif_file: trivy.sarif
+          category: trivy
 
   deploy:
     name: Deploy

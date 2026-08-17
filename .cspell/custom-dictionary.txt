@@ -39,6 +39,7 @@ allauth
 allkeys
 anymail
 appendonly
+aquasecurity
 arithmatex
 armv
 asgi
@@ -71,6 +72,7 @@ createuser
 crossbario
 csrf
 csrfmiddlewaretoken
+cyclonedx
 dataclass
 datetimes
 dbadmin
@@ -242,6 +244,7 @@ rlpt
 runserver
 ryanluker
 sarif
+sbom
 scannerwork
 sched
 scipy
@@ -276,6 +279,7 @@ timesince
 tlsv
 tmpfs
 tokenless
+trivy
 trixie
 truncatewords
 tspan

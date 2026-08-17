@@ -73,6 +73,11 @@ built-in `GITHUB_TOKEN` with `packages: write`.
     commit, produced those exact image digests. A registry tag is only a name and anything holding
     `packages: write` can move it, so the attestation is what actually ties the running image back
     to reviewed code. See [Verifying provenance on the server](#verifying-provenance-on-the-server).
+- **Scanned and inventoried.** Every published image is scanned for known, fixable HIGH/CRITICAL
+    vulnerabilities (results in the Security tab, category `trivy`) and its SBOM is kept with the
+    workflow run. The scan runs beside the deploy rather than in front of it, on purpose: a CVE
+    published this morning must not be able to block a hotfix during the conference. It turns the
+    run red, which is a bug report against the base image, not a reason to wait.
 - **Immutable tags + rollback.** Deploys pin the git sha; a failed health check rolls back to the
     previous tag automatically.
 
