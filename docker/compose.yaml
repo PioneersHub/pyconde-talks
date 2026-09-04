@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:18-trixie@sha256:7157393f508fd8eb46119937fab39813783fe3e7d4c6316c45c12ce2ea25e61d
+    image: postgres:18-trixie@sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280
     container_name: ${CONTAINER_PREFIX}-postgres
     restart: unless-stopped
     volumes:
@@ -24,7 +24,7 @@ services:
     # Shared cache. The Q&A rate limiter counts per account here, and the allauth OAuth bearer
     # token is cached here too; both need a backend common to every worker, which the default
     # per-process local memory cache is not.
-    image: redis:8-alpine@sha256:978f0e01593e65eed801f2402944efcd936d43b5027e4908a7897baf88ed6241
+    image: redis:8-alpine@sha256:becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576
     container_name: ${CONTAINER_PREFIX}-redis
     restart: unless-stopped
     # Cache-only, so persistence is off: losing the contents on restart costs at most a reset

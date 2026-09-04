@@ -8,7 +8,7 @@
 # those fixes, so the digest is kept fresh by Renovate's dockerfile manager, which expands this ARG,
 # re-resolves the digest behind ":latest", and opens a PR whenever it moves. Tag + digest together
 # gives both reproducibility and patching.
-ARG WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest@sha256:0a8fd427de5882aed77471b0a432c3675eda6b6a0ae952b5d640b46da628cdbe
+ARG WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest@sha256:96ff486b326d15db16aa1fbd41a17043a557bebf76d2c0ac932e717534025940
 
 # Stage 1: Builder
 FROM ${WOLFI_BASE} AS builder
