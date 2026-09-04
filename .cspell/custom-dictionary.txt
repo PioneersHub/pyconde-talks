@@ -298,7 +298,6 @@ urllib
 urlopen
 usefixtures
 venv
-videoteam
 viewports
 vimeocdn
 virtualenv

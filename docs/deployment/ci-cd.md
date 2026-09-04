@@ -85,8 +85,9 @@ ______________________________________________________________________
 
 ## One-time setup
 
-Do steps 1-6 once per target (`talks.pycon.de`, `videos.pydata-berlin.org`, ...). Where a path
-contains `<target>`, substitute the site's domain.
+Do steps 1-6 once per target (`talks.pycon.de`, `videos.pydata-berlin.org`, ...). Substitute the
+site's domain for `<target>`, that server's unprivileged deploy account (the one in `SSH_USER`,
+which differs per target) for `<deploy-user>`, and its management address for `<server>`.
 
 ### 1. Generate a per-target CI deploy key
 
@@ -98,8 +99,8 @@ ssh-keygen -t ed25519 -f ci-<target> -C "ci-deploy@<target>" -N ""
 
 ### 2. Install the public key, pinned to the target
 
-Append to `~videoteam/.ssh/authorized_keys` on the target's server, on a single line. The target is
-baked into the forced command:
+Append to `~<deploy-user>/.ssh/authorized_keys` on the target's server, on a single line. The target
+is baked into the forced command:
 
 ```text
 command="/usr/local/bin/deploy-event <target>",no-port-forwarding,no-agent-forwarding,no-X11-forwarding,no-pty <contents of ci-<target>.pub>
@@ -116,8 +117,8 @@ to the server. Review its config block (`REGISTRY`, `ALLOWED_TARGETS`); it deriv
 `COMPOSE_DIR=~/<target>` and `STATIC_DIR=/var/cache/<target>/staticfiles` from the target name.
 
 ```bash
-scp docker/deploy/deploy-event.sh pycon:/tmp/deploy-event
-ssh pycon 'sudo install -o root -g root -m 0755 /tmp/deploy-event /usr/local/bin/deploy-event && rm /tmp/deploy-event'
+scp docker/deploy/deploy-event.sh <server>:/tmp/deploy-event
+ssh <server> 'sudo install -o root -g root -m 0755 /tmp/deploy-event /usr/local/bin/deploy-event && rm /tmp/deploy-event'
 ```
 
 ### 4. Let the server pull from GHCR
@@ -131,18 +132,18 @@ GHCR packages are private by default. Pick one:
 
 ### 5. Ownership so the deploy needs no sudo
 
-The deploy runs as `videoteam`, which must own the target's compose dir and static cache and be in
-the `docker` group:
+The deploy runs as `<deploy-user>`, which must own the target's compose dir and static cache and be
+in the `docker` group:
 
 ```bash
-ssh pycon '
-  sudo chown -R videoteam:www-data /var/cache/<target>/staticfiles
+ssh <server> '
+  sudo chown -R <deploy-user>:www-data /var/cache/<target>/staticfiles
   sudo chmod 0755 /var/cache/<target>/staticfiles
-  id -nG videoteam | grep -qw docker || echo "WARN: videoteam is not in the docker group"
+  id -nG <deploy-user> | grep -qw docker || echo "WARN: <deploy-user> is not in the docker group"
 '
 ```
 
-`videoteam` writes the assets; nginx (`www-data`) reads them via the group/other bits.
+The deploy account writes the assets; nginx (`www-data`) reads them via the group/other bits.
 
 ### 6. GitHub environment + secrets
 
