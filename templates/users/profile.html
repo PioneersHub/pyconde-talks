@@ -4,7 +4,7 @@
   <div class="container-narrow page-section">
     <h1 class="page-title">{% trans "Edit Profile" %}</h1>
     {% for message in messages %}
-      {% if 'profile' in message.tags %}
+      {% if "profile" in message.tags %}
         <div class="section-gap" aria-live="polite" aria-atomic="true">
           <div class="{% if 'success' in message.tags %}alert-success{% elif 'error' in message.tags %}alert-error{% elif 'warning' in message.tags %}alert-warning{% else %}alert-info{% endif %} item-gap">
             {{ message }}

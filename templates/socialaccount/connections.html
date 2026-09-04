@@ -9,7 +9,7 @@
   <div class="container-narrow page-section">
     <h1 class="page-title">{% translate "Connected Accounts" %}</h1>
     {% for message in messages %}
-      {% if 'connections' in message.tags %}
+      {% if "connections" in message.tags %}
         <div class="mb-4" aria-live="polite" aria-atomic="true">
           <div class="{% if 'success' in message.tags %}alert-success{% elif 'error' in message.tags %}alert-error{% else %}alert-info{% endif %} item-gap">
             {{ message }}
