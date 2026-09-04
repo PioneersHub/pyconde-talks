@@ -15,4 +15,9 @@ jobs:
   checks:
     permissions:
       contents: read
-    uses: ./.github/workflows/checks.yml
+    # "$/" is GitHub's self-repository form: it resolves against this repository at the commit that
+    # triggered the run, instead of against whatever the runner happens to have checked out. That
+    # counts as a pin, which the workspace-relative "./" form does not.
+    #
+    # NOSONAR: S7637 wants a full commit SHA, but a same-repository reference has no ref to pin.
+    uses: $/.github/workflows/checks.yml # NOSONAR
