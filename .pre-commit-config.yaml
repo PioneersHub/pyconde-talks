@@ -11,7 +11,7 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.12.5
+    rev: 0.12.9
     hooks:
       - id: uv-lock
 
@@ -32,14 +32,14 @@ repos:
         exclude: /migrations/
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.3
+    rev: v0.16.6
     hooks:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
 
   - repo: https://github.com/djlint/djLint
-    rev: v1.44.2
+    rev: v1.45.0
     hooks:
       - id: djlint-reformat-django
       - id: djlint-django
@@ -60,7 +60,7 @@ repos:
           - mdformat-frontmatter # Don't mess with YAML front matter blocks
 
   - repo: https://github.com/streetsidesoftware/cspell-cli
-    rev: v10.0.1
+    rev: v10.1.0
     hooks:
       - id: cspell # Spell check changed files
       - id: cspell # Spell check the commit message
@@ -91,7 +91,7 @@ repos:
   # rev is Renovate's bare semver with NO "v" prefix; Renovate keeps it bumped via the pre-commit
   # manager (it lands in the "pre-commit hooks" group).
   - repo: https://github.com/renovatebot/pre-commit-hooks
-    rev: 44.30.2
+    rev: 44.62.0
     hooks:
       - id: renovate-config-validator
         args: [--strict]
@@ -99,7 +99,7 @@ repos:
   # Static analysis for the GitHub Actions workflows. Same tool as the zizmor.yml workflow, so a
   # finding shows up here first instead of on a red CI run.
   - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.29.0
+    rev: v1.30.0
     hooks:
       - id: zizmor
 
