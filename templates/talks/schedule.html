@@ -119,8 +119,8 @@
         shared links and in the day and filter navigation below.
       {% endcomment %}
       <div class="flex justify-end mb-3 md:hidden">
-        {# A labelled <nav>, not a div with role="group": two links that reload the page are #}
-        {# navigation, and the native landmark carries that without an ARIA role (Web:S6819). #}
+        {# A labelled nav element, not a div with role="group": two links that reload the page #}
+        {# are navigation, and the native landmark says so without an ARIA role (Web:S6819). #}
         {% translate "Schedule layout" as layout_label %}
         <nav class="segmented" aria-label="{{ layout_label }}">
           <a href="{% querystring view=None %}"

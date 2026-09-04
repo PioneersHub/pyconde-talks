@@ -7,8 +7,8 @@
   like actions and gave no hint that the two were alternative views of the same talks. The current
   view is marked with aria-current, which is also the stylesheet's hook for the selected look.
 {% endcomment %}
-{# A labelled <nav>, not a div with role="group": two links that reload the page are #}
-{# navigation, and the native landmark carries that without an ARIA role (Web:S6819). #}
+{# A labelled nav element, not a div with role="group": two links that reload the page #}
+{# are navigation, and the native landmark says so without an ARIA role (Web:S6819). #}
 {% translate "View" as view_switch_label %}
 <nav class="segmented" aria-label="{{ view_switch_label }}">
   <a href="{% url 'talk_list' %}"

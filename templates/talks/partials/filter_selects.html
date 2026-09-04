@@ -8,11 +8,15 @@
   copies identical; when they were spelled out twice, a class added to one silently did not reach
   the other, and the swap replaced a full-width select with a narrow one.
 
-  Only bare <select> elements, no wrapper: hx-swap-oob only works on the top-level elements of a
+  Only bare select elements, no wrapper: hx-swap-oob only works on the top-level elements of a
   response, and the caller supplies the layout box.
 
   Callers pass `oob=True` for the out-of-band copy. djLint's H025 fires on the OOB copy because
   the tags look unbalanced to it, hence the guard at the call site.
+
+  Each select is labelled by an sr-only label in the calling template, next to the include, since
+  a label here would be swapped out of place by hx-swap-oob. SonarQube analyzes this file on its
+  own and cannot see those, so Web:InputWithoutLabelCheck is marked false positive for all five.
 {% endcomment %}
 <select id="date-filter"
         name="date"

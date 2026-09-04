@@ -72,14 +72,14 @@
       {% csrf_token %}
     </form>
     {% comment %}
-      Both notices are <output> rather than a div with role="status": the element carries that role
-      natively, so the announcement works even where the ARIA attribute is ignored. Its content
-      model is phrasing content, which is why the text sits in a <span> and not a <p>.
+      Both notices are output elements rather than a div with role="status": the element carries
+      that role natively, so the announcement works even where the ARIA attribute is ignored. Its
+      content model is phrasing content, which is why the text sits in a span and not a p.
 
       saved-talks.js reveals them by removing "hidden". That keeps working because Tailwind emits
       .hidden after the other display utilities, so it wins while present. The second one needs an
-      explicit "block": <output> is inline by default, and the padding and centering here assume a
-      block box. The first gets its box from "flex".
+      explicit "block": an output element is inline by default, and the padding and centering here
+      assume a block box. The first gets its box from "flex".
     {% endcomment %}
     {% if not user.is_authenticated %}
       <output id="saved-local-notice"
@@ -134,16 +134,20 @@
           <div class="flex items-center gap-2">
             {% include "partials/language_selector.html" %}
             {% translate "Toggle dark mode" as toggle_dark_mode_label %}
+            {% comment %}
+              The ids sit on the wrappers, not on the icons: the svg tag can inject classes but not
+              an id, and the script below finds each icon by id to show one and hide the other. Same
+              shape as the bookmark button, which wraps its two states the same way.
+
+              The comment stays outside the button: SonarQube's HTML analyzer reads a Django comment
+              body as element content, so inside it this prose became the button's visible text and
+              tripped Web:S7927 against the aria-label.
+            {% endcomment %}
             <button id="theme-toggle"
                     type="button"
                     class="p-2 rounded-lg hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
                     title="{{ toggle_dark_mode_label }}"
                     aria-label="{{ toggle_dark_mode_label }}">
-              {% comment %}
-                The ids sit on the wrappers, not on the icons: the svg tag can inject classes but
-                not an id, and the script below finds each icon by id to show one and hide the
-                other. Same shape as the bookmark button, which wraps its two states the same way.
-              {% endcomment %}
               <span id="theme-icon-light" class="hidden">{% svg 'sun' "w-5 h-5" %}</span>
               <span id="theme-icon-dark" class="hidden">{% svg 'moon' "w-5 h-5" %}</span>
             </button>
