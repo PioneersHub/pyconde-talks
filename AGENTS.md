@@ -45,6 +45,23 @@ for every comment anywhere. Check those by eye; nothing else will.
   `security-reviewer` subagent for a second pass (cross-event leaks, auth bypasses, PII in logs).
   Optional, not mandatory.
 
+### SonarQube and Django templates
+
+Its HTML analyzer does not know Django syntax, which produces two recurring classes of false
+positive in `templates/`. Both are avoidable when writing the template:
+
+- **A comment body is parsed as markup.** `{# ... #}` and `{% comment %}` are invisible to the
+  analyzer, so a tag written literally in one becomes a real element in its parse, and prose inside
+  an interactive element becomes that element's visible text. Name elements in prose
+  (`a nav element`, `output elements`), use `{placeholder}` not `<placeholder>` for id patterns, and
+  keep a comment out of a `<button>` or `<a>`.
+- **A partial is analyzed as a standalone file.** Anything the including template supplies is
+  invisible, so a labelled control in a partial still reports as unlabelled. Not fixable in the
+  template; mark it false positive with the including template named as the reason.
+
+`mcp__sonarqube__analyze_code_snippet` runs the real analyzer on one file, so a suspected false
+positive can be confirmed (and a fix checked) without waiting for a full `/ci` upload.
+
 ## Before committing
 
 ```bash
