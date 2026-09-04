@@ -83,7 +83,8 @@ docker pull "${STATIC_IMAGE}:${tag}"
 #     on the repository can move it. The attestation is signed over the image digest and names the
 #     workflow that produced it, so this is what actually ties the running image to reviewed code.
 verify_attestation() {
-  gh attestation verify "oci://$1" \
+  local image="$1"
+  gh attestation verify "oci://${image}" \
     --repo "$ATTESTATION_REPO" \
     --signer-workflow "$ATTESTATION_WORKFLOW" \
     --bundle-from-oci
